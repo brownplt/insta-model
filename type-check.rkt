@@ -32,7 +32,7 @@
 
 
 (define-metafunction StaticPython-tc
-  collect-clss : K define-class ... -> K
+  collect-clss : K define-class ... -> any
   ;; What are the defined classes?
   [(collect-clss K_0) K_0]
   [(collect-clss K_0 (class x_child x_parent class-member ...) define-class ...)
@@ -40,7 +40,9 @@
    (where (any_fields any_methods) (collect-mems class-member ...))
    (where C (class x_parent any_fields any_methods))
    (judgment-holds (K⊢C K_0 C))
-   (where K_1 (collect-clss (extend K_0 (x_child C)) define-class ...))])
+   (where K_1 (collect-clss (extend K_0 (x_child C)) define-class ...))]
+  [(collect-clss K_0 define-class ...)
+   #f])
 
 
 (define-metafunction StaticPython-tc
@@ -196,11 +198,11 @@
   
   [(≲ int t)
    ----------------------- "integer"
-   (Γ⊢e⇐t Γ i t)]
+   (Γ⊢e⇐t Γ integer t)]
 
   [(≲ bool t)
    ----------------------- "boolean"
-   (Γ⊢e⇐t Γ b t)])
+   (Γ⊢e⇐t Γ boolean t)])
 
 ; (extend Γ (x t) ...) add (x t) to Γ so that x is found before other x-s
 (module+ test

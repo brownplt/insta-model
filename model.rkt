@@ -25,10 +25,8 @@
    (field x t)
    (method x_method x_self ((x_arg t_arg) ...) t_ret s ...))
 
-  (i number)
-  (b boolean)
-  (c i
-     b)
+  (c integer
+     boolean)
 
   (e x
      c)
