@@ -7,20 +7,15 @@
 
   ;; program
   (program
-   (top-statement ...))
-  
-  ;; general purpose statements
-  (s
-   top-statement
-   method-statement)
-  
-  (top-statement
-   (define x t e)
-   pass
-   (class x_child x_parent class-member ...)
-   e)
+   (define-class ...
+    s ...))
 
-  (method-statement
+  ;;
+  (define-class
+    (class x_child x_parent class-member ...))
+  
+  ;; statements
+  (s
    (return e)
    (define x t e)
    pass
@@ -28,22 +23,22 @@
 
   (class-member
    (field x t)
-   (method x_method x_self ((x_arg t_arg) ...) t_ret method-statement ...))
+   (method x_method x_self ((x_arg t_arg) ...) t_ret s ...))
 
-  (c number
-     boolean)
+  (i number)
+  (b boolean)
+  (c i
+     b)
 
-  (e c)
+  (e x
+     c)
 
   (t dynamic
      None
      bool
      int
      str
-     (CheckedDict t t))
-
-  (C (class x_child x_parent
-       ((x_field t_field) ...)
-       ((x_method x_self (t_arg ...) t_ret) ...)))
+     (CheckedDict t t)
+     (class x))
 
   (x variable-not-otherwise-mentioned))

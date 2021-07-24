@@ -2,30 +2,26 @@
 (require redex)
 (require redex-abbrevs)
 (require "model.rkt")
+(require "type-check.rkt")
 
 
 
-(define good-programs
-  '(()
-    (pass)
-    (pass
-     pass)
-    (42)
-    (#t)
-    (#f)
-    ((define x int 42))
-    ((define x int 42)
-     x)
-    ((class C object))
-    ((class C object
-       (field x int)
-       (method y self ((arg int)) int
-               (return 42))))))
-(for ([p good-programs])
-  (test-match StaticPython program p))
-(for ([p good-programs])
-  (check-judgment-holds*
-   (⊢p ,p)))
+(check-judgment-holds*
+ (⊢p ())
+ (⊢p (pass))
+ (⊢p (pass
+      pass))
+ (⊢p (42))
+ (⊢p (#t))
+ (⊢p (#f))
+ (⊢p ((define x int 42)))
+ (⊢p ((define x int 42)
+      x))
+ (⊢p ((class C object)))
+ (⊢p ((class C object
+        (field x int)
+        (method y self ((arg int)) int
+                (return 42))))))
 
 #|
 The goal is to create a test suite for our model. At this stage, let's focus on static errors.
