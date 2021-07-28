@@ -16,8 +16,8 @@
        ((x_field t_field) ...)
        ((x_method x_self (t_arg ...) t_ret) ...)))
   ;; a handy concept that is useful when I want to check well-formness of classes
-  (flat-class ((x_field ...)
-               (x_method ...))))
+  (flat-class (((x_field t_field) ...)
+               ((x_method (t_arg ...) t_ret) ...))))
 
 
 (define-judgment-form StaticPython-tc
@@ -123,10 +123,10 @@
   [(flatten-class K (class x_parent
                       ((x_field t_field) ...)
                       ((x_method x_self (t_arg ...) t_ret) ...)))
-   ((x_field ... x_all-fields ...)
-    (x_method ... x_all-methods ...))
-   (where ((x_all-fields ...)
-           (x_all-methods ...))
+   (((x_field t_field) ... any_field ...)
+    ((x_method (t_arg ...) t_ret) ... any_method ...))
+   (where ((any_field ...)
+           (any_method ...))
           (flatten-class K (lookup K x_parent)))])
 
 
@@ -134,9 +134,27 @@
   #:mode (¬⊢flat-class I)
   #:contract (¬⊢flat-class flat-class)
 
-  [-----------------
-   (¬⊢flat-class ((x_0 ... x x_1 ...)
-                  (x_2 ... x x_3 ...)))])
+  [------------------"field-and-method"
+   (¬⊢flat-class ((any_0 ... (x t_field) any_1 ...)
+                  (any_1 ... (x (t_arg ...) t_ret) any_2 ...)))]
+
+  #;; TODO This check is disabled. Waiting for Carl&Dino's reply
+  [------------------"field-twice"
+   (¬⊢flat-class ((any_0 ...
+                   (x_0 t_0)
+                   any_1 ...
+                   (x_0 t_1)
+                   any_2 ...)
+                  any_methods))]
+
+  [(where #f (≲ (Callable (t_ci ...) t_co) (Callable (t_pi ...) t_po)))
+   ------------------"method-incompatible"
+   (¬⊢flat-class (any_fields
+                  (any_0 ...
+                   (x_0 (t_ci ...) t_co)
+                   any_1 ...
+                   (x_0 (t_pi ...) t_po)
+                   any_2 ...)))])
 
 
 (define-judgment-form StaticPython-tc
@@ -161,31 +179,6 @@
    -------------------------
    (Γ⊢class-member Γ (method x_method x_self ((x_arg t_arg) ...) t_ret method-statement ...))])
 
-(module+ test
-  (check-judgment-holds*
-   (≲ int int)
-   (≲ int dynamic)
-   (≲ dynamic int)
-   (≲ bool int)))
-
-(define-judgment-form StaticPython-tc
-  #:mode (≲ I I)
-  #:contract (≲ t t)
-  ;; Is it sensible to use a value of type t_0 as as value of type t_1?
-  
-  [------------------------ "refl"
-   (≲ t t)]
-  
-  [------------------------ "dynamic-R"
-   (≲ t dynamic)]
-
-  [------------------------ "dynamic-L"
-   (≲ dynamic t)]
-
-  [------------------------ "bool<:int"
-   (≲ bool int)]
-
-  )
 
 (define-judgment-form StaticPython-tc
   #:mode (Γ⊢e⇐t I I I)

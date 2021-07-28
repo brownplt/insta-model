@@ -54,22 +54,29 @@ The goal is to create a test suite for our model. At this stage, let's focus on 
 |#
 
 
-(define test_compat_override
-  (term
-   ((class C object
-      (field x int))
-    (class D C
-      (field x int)))))
-(define test_incompat_override
-  (term
-   ((class C object
-      (field x int))
-    (class D C
-      (method x self () dynamic
-        pass)))))
-(test-match StaticPython program test_compat_override)
-(test-match StaticPython program test_incompat_override)
-(check-judgment-holds*
- (⊢p ,test_compat_override))
 (check-not-judgment-holds*
- (⊢p ,test_incompat_override))
+ (⊢p ((class C object
+        (field x int))
+      (class D C
+        (method x self () dynamic
+                pass)))))
+
+
+(check-not-judgment-holds*
+ (⊢p ((class A object
+        (method m self () str
+                (return "hello")))
+      (class B A
+        (method m self () int
+                (return 0))))))
+
+
+(check-judgment-holds*
+ (⊢p ((class C object
+        (field x int))
+      (class D C
+        (field x int))))
+ (⊢p ((class C object
+        (field x int))
+      (class D C
+        (field x str)))))
