@@ -6,11 +6,11 @@ This file describes the static semantics (type system) of the idealized Static P
 
 ### Construct instances
 
-Class constructors (`__init__` methods) check their arity.
+`__init__` checks its arity.
 
 * [init_checks_arity.py](./conformance_suite/init_checks_arity.py)
 
-Class constructors (`__init__` methods) check their argument types.
+`__init__` checks its argument types.
 
 * [init_checks_type.py](./conformance_suite/init_checks_type.py)
 
@@ -23,6 +23,20 @@ Overriding a method with a field is a static error.
 Overriding a field with a method is a static error.
 
 * [override_field_with_method.py](./conformance_suite/override_field_with_method.py)
+
+Overriding a field is a static error.
+
+* TODO
+
+Overriding a method requires that the new output type is a subtype of the old one.
+
+* [override_instance_method_covariant_output_neg.py](./conformance_suite/override_instance_method_covariant_output_neg.py)
+* [override_instance_method_covariant_output_pos.py](./conformance_suite/override_instance_method_covariant_output_pos.py)
+
+Overriding a method requires that the new input type is a supertype of the old one.
+
+* [override_instance_method_contravariant_inputs_neg.py](./conformance_suite/override_instance_method_contravariant_inputs_neg.py)
+* [override_instance_method_contravariant_inputs_pos.py](./conformance_suite/override_instance_method_contravariant_inputs_pos.py)
 
 ## Subtyping
 
