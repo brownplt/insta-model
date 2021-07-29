@@ -58,7 +58,7 @@
   #:mode (≲ I I)
   #:contract (≲ t t)
   ;; Is it sensible to use a value of type t_0 as as value of type t_1?
-  ;; (consistent subtyping)
+  ;; (a.k.a. consistent subtyping)
   
   [------------------------ "dynamic-R"
    (≲ t dynamic)]
