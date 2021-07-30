@@ -1,4 +1,5 @@
 # override_instance_method_contravariant_inputs_pos.py
+# This should pass.
 
 class C: pass
 class D(C): pass
@@ -10,5 +11,3 @@ class A:
 class B(A):
     def m(self, x: C) -> None:
         return
-
-# This should pass.

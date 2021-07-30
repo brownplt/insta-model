@@ -1,4 +1,5 @@
 # override_instance_method_with_field.py
+# This should fail.
 
 class C:
     def x(self): 
@@ -6,5 +7,3 @@ class C:
 
 class D(C):
     x: int
-
-# This should error.
