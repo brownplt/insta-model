@@ -18,11 +18,11 @@ This file describes the static semantics (type system) of the idealized Static P
 
 Overriding a method with a field is a static error.
 
-* [override_method_with_field.py](conformance_suite/override_method_with_field.py)
+* [override_instance_method_with_field.py](conformance_suite/override_instance_method_with_field.py)
 
 Overriding a field with a method is a static error.
 
-* [override_field_with_method.py](conformance_suite/override_field_with_method.py)
+* [override_instance_field_with_method.py](conformance_suite/override_instance_field_with_method.py)
 
 Overriding a field is a static error.
 
