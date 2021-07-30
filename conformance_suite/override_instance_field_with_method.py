@@ -1,8 +1,7 @@
 # override_instance_field_with_method.py
 # This should fail.
 
-# Borrowed from `test_static.py`.
-# The original name is `test_incompat_override.py`.
+# This program is adapted from the `test_incompat_override` test in `test_static.py`.
 
 class C:
     x: int
