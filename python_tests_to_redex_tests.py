@@ -1,5 +1,6 @@
 import ast
 from os import error
+from typing import List, Union
 
 
 class symbol(str):
@@ -9,8 +10,7 @@ class symbol(str):
 class string(str):
     pass
 
-
-def expr_to_type(expr):
+def expr_to_type(expr: ast.expr) -> SExp:
     if expr is None:
         return symbol('dynamic')
     elif isinstance(expr, ast.Name):
@@ -23,7 +23,7 @@ def expr_to_type(expr):
         raise Exception("Can't deal with {}".format(expr))
 
 
-def stmt_to_class_member(stmt):
+def stmt_to_class_member(stmt: ast.stmt) -> SExp:
     if isinstance(stmt, ast.AnnAssign):
         assert stmt.value is None
         return [
@@ -47,7 +47,7 @@ def stmt_to_class_member(stmt):
         raise Exception("Can't deal with {}".format(stmt))
 
 
-def ast_to_sexp(node):
+def ast_to_sexp(node) -> SExp:
     if isinstance(node, ast.Module):
         return [ast_to_sexp(e) for e in node.body]
     elif isinstance(node, ast.ClassDef):
