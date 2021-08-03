@@ -10,7 +10,8 @@ class symbol(str):
 class string(str):
     pass
 
-def expr_to_type(expr: ast.expr) -> SExp:
+
+def expr_to_type(expr: ast.expr):
     if expr is None:
         return symbol('dynamic')
     elif isinstance(expr, ast.Name):
@@ -23,7 +24,7 @@ def expr_to_type(expr: ast.expr) -> SExp:
         raise Exception("Can't deal with {}".format(expr))
 
 
-def stmt_to_class_member(stmt: ast.stmt) -> SExp:
+def stmt_to_class_member(stmt: ast.stmt):
     if isinstance(stmt, ast.AnnAssign):
         assert stmt.value is None
         return [
@@ -47,7 +48,7 @@ def stmt_to_class_member(stmt: ast.stmt) -> SExp:
         raise Exception("Can't deal with {}".format(stmt))
 
 
-def ast_to_sexp(node) -> SExp:
+def ast_to_sexp(node):
     if isinstance(node, ast.Module):
         return [ast_to_sexp(e) for e in node.body]
     elif isinstance(node, ast.ClassDef):
@@ -93,10 +94,22 @@ def ast_to_sexp(node) -> SExp:
     elif isinstance(node, ast.Constant):
         if isinstance(node.value, str):
             return string(node.value)
+        elif node.value is None:
+            return symbol('None')
         else:
             return node.value
     elif isinstance(node, ast.Call):
         return [ast_to_sexp(node.func)] + [ast_to_sexp(a) for a in node.args]
+    elif isinstance(node, ast.ImportFrom):
+        return [symbol('import-from'), string(node.module), [symbol(a.name) for a in node.names]]
+    elif isinstance(node, ast.Dict):
+        return [
+            symbol('dict')
+        ] + [
+            [ast_to_sexp(k), ast_to_sexp(v)]
+            for k, v in zip(node.keys, node.values)
+        ]
+
     assert False, str(node)
 
 

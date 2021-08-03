@@ -4,11 +4,20 @@
 (require "model.rkt")
 (require "type-check.rkt")
 
+;; conformance_suite/None_is_inhabitable.py
+(check-judgment-holds* (⊢p ((define x None None))))
+
+;; conformance_suite/PyDict_is_inhabitable.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict)) (define x PyDict (dict (1 "foo") ("bar" 2))))))
+
 ;; conformance_suite/bool_is_a_subtype_of_int_neg.py
 (check-not-judgment-holds* (⊢p ((define x bool 42))))
 
 ;; conformance_suite/bool_is_a_subtype_of_int_pos.py
 (check-judgment-holds* (⊢p ((define x int #t))))
+
+;; conformance_suite/bool_is_inhabitable.py
+(check-judgment-holds* (⊢p ((define x bool #t))))
 
 ;; conformance_suite/child_is_a_subtype_of_parent_neg.py
 (check-not-judgment-holds* (⊢p ((class C object) (class D C) (define x D (C)))))
@@ -21,6 +30,12 @@
 
 ;; conformance_suite/init_checks_type.py
 (check-not-judgment-holds* (⊢p ((class Person object (method "__init__" self ((name str) (age int)) dynamic pass)) (define p1 (Person "Alice" "21")))))
+
+;; conformance_suite/int_is_inhabitable.py
+(check-judgment-holds* (⊢p ((define x int 42))))
+
+;; conformance_suite/override_instance_field.py
+(check-not-judgment-holds* (⊢p ((class C object (field "x" int)) (class D C (field "x" int)))))
 
 ;; conformance_suite/override_instance_field_with_method.py
 (check-not-judgment-holds* (⊢p ((class C object (field "x" int)) (class D C (method "x" self () dynamic pass)))))
@@ -39,3 +54,6 @@
 
 ;; conformance_suite/override_instance_method_with_field.py
 (check-not-judgment-holds* (⊢p ((class C object (method "x" self () dynamic pass)) (class D C (field "x" int)))))
+
+;; conformance_suite/str_is_inhabitable.py
+(check-judgment-holds* (⊢p ((define x str "hello"))))

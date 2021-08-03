@@ -10,6 +10,7 @@
   (K ((x C) ...))
   ;; class
   (C (base-class)
+     (prim-class x)
      (class x_parent
        (t_init ...)
        ((string_field t_field) ...)
@@ -114,12 +115,40 @@
   #:mode (⊢p I)
   #:contract (⊢p program)
   ;; Is program well-formed?
-  [(where K (collect-clss ((object (base-class))) define-class ...))
+  [(where K_0 ((object (base-class))))
+   (where K_1 (collect-imports K_0 import-type ...))
+   (where K_2 (collect-clss K_1 define-class ...))
    (where Γ (collect-defs s ...))
-   (KΓ⊢s K Γ s) ...
-   ------------------------ "collect-def"
-   (⊢p (define-class ... s ...))])
+   (KΓ⊢s K_2 Γ s) ...
+   ------------------------
+   (⊢p (import-type ... define-class ... s ...))])
 
+(module+ test
+  (test-equal
+   (term (collect-imports ((object (base-class)))))
+   (term ((object (base-class))))))
+
+(define-metafunction StaticPython-tc
+  collect-imports : K import-type ... -> any
+  [(collect-imports K_0) K_0]
+  [(collect-imports
+    K_0
+    (import-from string_0 (x_0 x_1 x_2 ...))
+    import-type_0 ...)
+   (collect-imports
+    K_0
+    (import-from string_0 (x_0))
+    (import-from string_0 (x_1 x_2 ...))
+    import-type_0 ...)]
+  [(collect-imports
+    K_0
+    (import-from "__static__" (PyDict))
+    import-type_0 ...)
+   (collect-imports
+    (extend K_0 (PyDict (prim-class PyDict)))
+    import-type_0 ...)]
+  [(collect-imports any ...)
+   #f])
 
 (define-metafunction StaticPython-tc
   collect-clss : K define-class ... -> any
@@ -237,18 +266,19 @@
   #:mode (¬⊢flat-class I I)
   #:contract (¬⊢flat-class K flat-class)
 
+  ;; Is this flat-class ill-formed under the class environment K?
+
   [------------------"field-and-method"
    (¬⊢flat-class K ((any_0 ... (string t_field) any_1 ...)
-                  (any_1 ... (string (t_arg ...) t_ret) any_2 ...)))]
+                    (any_1 ... (string (t_arg ...) t_ret) any_2 ...)))]
 
-  #;; TODO This check is disabled. Waiting for Carl&Dino's reply
   [------------------"field-twice"
-   (¬⊢flat-class ((any_0 ...
-                   (string_0 t_0)
-                   any_1 ...
-                   (string_0 t_1)
-                   any_2 ...)
-                  any_methods))]
+   (¬⊢flat-class K ((any_0 ...
+                     (string_0 t_0)
+                     any_1 ...
+                     (string_0 t_1)
+                     any_2 ...)
+                    any_methods))]
 
   [(where #f (K⊢t≲t K (Callable (t_ci ...) t_co) (Callable (t_pi ...) t_po)))
    ------------------"method-incompatible"
@@ -263,6 +293,8 @@
 (define-judgment-form StaticPython-tc
   #:mode (⊢flat-class I I)
   #:contract (⊢flat-class K flat-class)
+
+  ;; Is this flat-class well-formed under the class environment K?
 
   [(where #f (¬⊢flat-class K flat-class))
    -----------------
@@ -292,6 +324,10 @@
    ------------------------ "variable"
    (KΓ⊢e⇐t K Γ x t)]
   
+  [(K⊢t≲t K None t)
+   ----------------------- "None"
+   (KΓ⊢e⇐t K Γ None t)]
+  
   [(K⊢t≲t K int t)
    ----------------------- "integer"
    (KΓ⊢e⇐t K Γ integer t)]
@@ -299,6 +335,16 @@
   [(K⊢t≲t K bool t)
    ----------------------- "boolean"
    (KΓ⊢e⇐t K Γ boolean t)]
+
+  [(K⊢t≲t K str t)
+   ----------------------- "string"
+   (KΓ⊢e⇐t K Γ string t)]
+
+  [(KΓ⊢e⇐t K Γ e_key dynamic) ...
+   (KΓ⊢e⇐t K Γ e_value dynamic) ...
+   (K⊢t≲t K PyDict t)
+   ----------------------- "PyDict"
+   (KΓ⊢e⇐t K Γ (dict (e_key e_value) ...) t)]
 
   [(where (class x_parent (t_arg ...) any_fields any_methods) (lookup K x_cls))
    (KΓ⊢e⇐t K Γ e_arg t_arg) ...
@@ -325,4 +371,4 @@
   [(lookup ((x_1 any_1) ... (x any) (x_2 any_2) ...) x)
    any
    (side-condition (not (member (term x) (term (x_1 ...)))))]
-  [(lookup any_1 any_2) ,(error 'lookup "not found: ~e" (term x))])
+  [(lookup any_1 any_2) ,(error 'lookup "not found: ~e" (term any_2))])

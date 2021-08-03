@@ -7,10 +7,16 @@
 
   ;; program
   (program
-   (define-class ...
+   (import-type ...
+    define-class ...
     s ...))
 
-  ;;
+  ;; type imports
+  (import-type
+   (import-from "__static__" (x ...))
+   (import-from "typing" (x ...)))
+
+  ;; class definitions
   (define-class
     (class x_child x_parent class-member ...))
   
@@ -33,13 +39,17 @@
 
   (e x
      c
+     (dict (e e) ...)
      (e e ...))
 
-  (t dynamic
-     None
+  ;; base types
+  (b None
      bool
      int
-     str
+     str)
+
+  (t dynamic
+     b
      (CheckedDict t t)
      (Callable (t ...) t)
      x)
