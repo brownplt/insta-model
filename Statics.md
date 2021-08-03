@@ -22,11 +22,18 @@ This file describes the static semantics (type system) of the idealized Static P
 
 ## CheckedDict[T0, T1]
 
-`CheckedDict` are constructed from `dict`.
+`CheckedDict` must be constructed from `dict`. TODO: This is not yet implemented.
+
+- [CheckedDict_from_dict_neg.py](conformance_suite/CheckedDict_from_dict_neg.py)
+- [CheckedDict_from_dict_pos.py](conformance_suite/CheckedDict_from_dict_pos.py)
+
+Looking up `CheckedDict[T0, T1]` expects a `T0` key.
 
 - TODO
 
-Looking up `CheckedDict[T0, T1]` returns a `T1`.
+Looking up `CheckedDict[T0, T1]` returns a `T1` value.
+
+- TODO
 
 ## Classes
 
