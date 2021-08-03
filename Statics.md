@@ -2,7 +2,7 @@
 
 This file describes the static semantics (type system) of the idealized Static Python.
 
-## Base Types (Classes)
+## Base Types
 
 `bool` is inhabitable.
 
@@ -16,9 +16,17 @@ This file describes the static semantics (type system) of the idealized Static P
 
 - [str_is_inhabitable.py](conformance_suite/str_is_inhabitable.py)
 
+## PyDict
+
 `PyDict` is inhabitable.
 
 - [PyDict_is_inhabitable.py](conformance_suite/PyDict_is_inhabitable.py)
+
+TODO: Updating a `PyDict` is allowed.
+
+TODO: Deleting `PyDict` entries is allowd.
+
+TODO: Looking up a `PyDict` is allowed.
 
 ## CheckedDict[T0, T1]
 
@@ -27,13 +35,15 @@ This file describes the static semantics (type system) of the idealized Static P
 - [CheckedDict_from_dict_neg.py](conformance_suite/CheckedDict_from_dict_neg.py)
 - [CheckedDict_from_dict_pos.py](conformance_suite/CheckedDict_from_dict_pos.py)
 
-Looking up `CheckedDict[T0, T1]` expects a `T0` key.
+TODO: Looking up `CheckedDict[T0, T1]` expects a `T0` key.
 
-- TODO
+TODO: Looking up `CheckedDict[T0, T1]` returns a `T1` value.
 
-Looking up `CheckedDict[T0, T1]` returns a `T1` value.
+TODO: Updating a `CheckedDict[T0, T1]` checks the key.
 
-- TODO
+TODO: Updating a `CheckedDict[T0, T1]` checks the value.
+
+TODO: Deleting `CheckedDict[T0, T1]` entries checks the key.
 
 ## Classes
 
@@ -74,6 +84,19 @@ Overriding a method requires that the new input type is a supertype of the old o
 
 - [override_instance_method_contravariant_inputs_neg.py](conformance_suite/override_instance_method_contravariant_inputs_neg.py)
 - [override_instance_method_contravariant_inputs_pos.py](conformance_suite/override_instance_method_contravariant_inputs_pos.py)
+
+
+## Instances
+
+TODO: field lookup
+
+TODO: field update
+
+TODO: insert new field?
+
+TODO: delete field?
+
+TODO: method call
 
 ## Subtyping
 
