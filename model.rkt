@@ -13,18 +13,16 @@
 
   ;; type imports
   (import-type
-   (import-from "__static__" (x ...))
-   (import-from "typing" (x ...)))
-
-  ;; class definitions
-  (define-class
-    (class x_child x_parent class-member ...))
+   (import-from "__static__" (any ...))
+   (import-from "typing" (any ...)))
   
   ;; statements
   (s
+   (class x_child x_parent class-member ...)
    (return e)
-   (define x t e)
-   (define x e)
+   (define/assign e t e)
+   (define/assign e e)
+   (delete e)
    pass
    e)
 
@@ -40,17 +38,13 @@
   (e x
      c
      (dict (e e) ...)
+     (subscript e e)
+     (tuple t t)
      (e e ...))
 
-  ;; base types
-  (b None
-     bool
-     int
-     str)
-
   (t dynamic
-     b
-     (CheckedDict t t)
+     variable
+     (subscript variable (tuple t ...))
      (Callable (t ...) t)
      x)
 

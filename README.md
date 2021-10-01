@@ -12,6 +12,7 @@ The short-term goal is to model a subset of StaticPython that includes the follo
   * bool
   * int
   * str
+* `PyDict`
 * `CheckedDict[T0, T1]`
 * (user-defined) classes
 

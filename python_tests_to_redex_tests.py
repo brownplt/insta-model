@@ -17,9 +17,16 @@ def expr_to_type(expr: ast.expr):
     elif isinstance(expr, ast.Name):
         return symbol(str(expr.id))
     elif isinstance(expr, ast.Subscript):
-        return [expr_to_type(expr.value), expr_to_type(expr.slice)]
+        return [
+            symbol("subscript"),
+            symbol(str(expr.value.id)),
+            expr_to_type(expr.slice)]
     elif isinstance(expr, ast.Constant) and expr.value is None:
         return symbol('None')
+    elif isinstance(expr, ast.Index):
+        return expr_to_type(expr.value)
+    elif isinstance(expr, ast.Tuple):
+        return [symbol('tuple')] + [expr_to_type(e) for e in expr.elts]
     else:
         raise Exception("Can't deal with {}".format(expr))
 
@@ -73,7 +80,7 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.AnnAssign):
         assert node.value is not None
         return [
-            symbol('define'),
+            symbol('define/assign'),
             symbol(str(node.target.id)),
             expr_to_type(node.annotation),
             ast_to_sexp(node.value)
@@ -81,8 +88,8 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Assign):
         assert len(node.targets) == 1
         return [
-            symbol('define'),
-            symbol(str(node.targets[0].id)),
+            symbol('define/assign'),
+            ast_to_sexp(node.targets[0]),
             ast_to_sexp(node.value)
         ]
     elif isinstance(node, ast.Pass):
@@ -109,7 +116,21 @@ def ast_to_sexp(node):
             [ast_to_sexp(k), ast_to_sexp(v)]
             for k, v in zip(node.keys, node.values)
         ]
-
+    elif isinstance(node, ast.Subscript):
+        return [
+            symbol("subscript"),
+            symbol(str(node.value.id)),
+            ast_to_sexp(node.slice)]
+    elif isinstance(node, ast.Constant) and node.value is None:
+        return symbol('None')
+    elif isinstance(node, ast.Index):
+        return ast_to_sexp(node.value)
+    elif isinstance(node, ast.Tuple):
+        return [symbol('tuple')] + [ast_to_sexp(e) for e in node.elts]
+    elif isinstance(node, ast.Delete):
+        return [symbol('delete'), ast_to_sexp(node.targets[0])]
+    elif isinstance(node, ast.Attribute):
+        return [symbol('attribute'), ast_to_sexp(node.value), string(node.attr)]
     assert False, str(node)
 
 

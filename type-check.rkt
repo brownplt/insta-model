@@ -4,7 +4,6 @@
 (require "model.rkt")
 (provide (all-defined-out))
 
-
 (define-extended-language StaticPython-tc StaticPython
   ;; class environment
   (Ψ ((x C) ...))
@@ -12,7 +11,6 @@
   (C (base-class)
      (prim-class x)
      (class x_parent
-       (t_init ...)
        ((string_field t_field) ...)
        ((string_method (t_arg ...) t_ret) ...)))
   ;; type environment
@@ -33,27 +31,33 @@
    (Ψ⊢t≲t () (Callable (int) bool) (Callable (int) int))
    (Ψ⊢t≲t () (Callable (int) int) (Callable (bool) int)))
   (check-judgment-holds*
-   (Ψ⊢t≲t ((C (class object () () ()))
-           (D (class C () () ())))
+   (Ψ⊢t≲t ((object (base-class))
+           (C (class object () ()))
+           (D (class C () ())))
           D C)
-   (Ψ⊢t≲t ((C (class object () () ()))
-           (D (class C () () ())))
+   (Ψ⊢t≲t ((object (base-class))
+           (C (class object () ()))
+           (D (class C () ())))
           (Callable (int) D)
           (Callable (int) C))
-   (Ψ⊢t≲t ((C (class object () () ()))
-           (D (class C () () ())))
+   (Ψ⊢t≲t ((object (base-class))
+           (C (class object () ()))
+           (D (class C () ())))
           (Callable (C) int)
           (Callable (D) int)))
   (check-not-judgment-holds*
-   (Ψ⊢t≲t ((C (class object () () ()))
-           (D (class C () () ())))
+   (Ψ⊢t≲t ((object (base-class))
+           (C (class object () ()))
+           (D (class C () ())))
           C D)
-   (Ψ⊢t≲t ((C (class object () () ()))
-           (D (class C () () ())))
+   (Ψ⊢t≲t ((object (base-class))
+           (C (class object () ()))
+           (D (class C () ())))
           (Callable (int) C)
           (Callable (int) D))
-   (Ψ⊢t≲t ((C (class object () () ()))
-           (D (class C () () ())))
+   (Ψ⊢t≲t ((object (base-class))
+           (C (class object () ()))
+           (D (class C () ())))
           (Callable (D) int)
           (Callable (C) int)))
   )
@@ -111,17 +115,34 @@
   [(≠ any any) #f]
   [(≠ any_0 any_1) #t])
 
+(define-metafunction StaticPython-tc
+  extend : ((x any) ...) (x any) ... -> ((x any) ...)
+  [(extend ((x_known any_known) ...) (x_new any_new) ...) ((x_new any_new) ...(x_known any_known) ...)])
+
+(define-judgment-form StaticPython-tc
+  #:mode (⊢flat-class I I)
+  #:contract (⊢flat-class Ψ flat-class)
+
+  ;; Is this flat-class well-formed under the class environment K?
+
+  [(where #f (¬⊢flat-class Ψ flat-class))
+   -----------------
+   (⊢flat-class Ψ flat-class)])
+
 (define-judgment-form StaticPython-tc
   #:mode (⊢p I)
   #:contract (⊢p program)
   ;; Is program well-formed?
   [(where Ψ_0 ((object (base-class))))
    (where Ψ_1 (collect-imports Ψ_0 import-type ...))
-   (where Ψ_2 (collect-clss Ψ_1 define-class ...))
+   (where Ψ_2 (collect-clss Ψ_1 s ...))
+   (where Ψ Ψ_2)
+   (where ((x C) ...) Ψ)
+   (Ψ⊢C Ψ C) ...
    (where Γ (collect-defs s ...))
-   (ΨΓ⊢s Ψ_2 Γ s) ...
+   (ΨΓ⊢s⇐t Ψ Γ s dynamic) ...
    ------------------------
-   (⊢p (import-type ... define-class ... s ...))])
+   (⊢p (import-type ... s ...))])
 
 (module+ test
   (test-equal
@@ -133,6 +154,20 @@
   [(collect-imports Ψ_0) Ψ_0]
   [(collect-imports
     Ψ_0
+    (import-from "__static__" (PyDict))
+    import-type_0 ...)
+   (collect-imports
+    (extend Ψ_0 (PyDict (prim-class PyDict)))
+    import-type_0 ...)]
+  [(collect-imports
+    Ψ_0
+    (import-from "__static__" (CheckedDict))
+    import-type_0 ...)
+   (collect-imports
+    (extend Ψ_0 (CheckedDict (prim-class CheckedDict)))
+    import-type_0 ...)]
+  [(collect-imports
+    Ψ_0
     (import-from string_0 (x_0 x_1 x_2 ...))
     import-type_0 ...)
    (collect-imports
@@ -140,40 +175,20 @@
     (import-from string_0 (x_0))
     (import-from string_0 (x_1 x_2 ...))
     import-type_0 ...)]
-  [(collect-imports
-    Ψ_0
-    (import-from "__static__" (PyDict))
-    import-type_0 ...)
-   (collect-imports
-    (extend Ψ_0 (PyDict (prim-class PyDict)))
-    import-type_0 ...)]
   [(collect-imports any ...)
    #f])
 
 (define-metafunction StaticPython-tc
-  collect-clss : Ψ define-class ... -> any
+  collect-clss : Ψ s ... -> Ψ
   ;; What are the defined classes?
   [(collect-clss Ψ_0) Ψ_0]
-  #;
-  ;; when __init__ is defined
-  [(collect-clss K_0 (class x_child x_parent class-member ...) define-class ...)
-   K_1
-   (where (any_fields any_methods)
-          (collect-mems class-member ...))
-   (where (any_methods-0 ... ("__init__" (t_arg ...) t_ret) any_methods-1 ...)
-          any_methods)
-   (where C (class x_parent (t_arg ...) any_fields any_methods))
-   (judgment-holds (K⊢C K_0 C))
-   (where K_1 (collect-clss (extend K_0 (x_child C)) define-class ...))]
-  ;; when __init__ is not defined
-  [(collect-clss Ψ_0 (class x_child x_parent class-member ...) define-class ...)
+  [(collect-clss Ψ_0 (class x_child x_parent class-member ...) s ...)
    Ψ_1
    (where (any_fields any_methods) (collect-mems class-member ...))
-   (where C (class x_parent () any_fields any_methods))
-   (judgment-holds (K⊢C Ψ_0 C))
-   (where Ψ_1 (collect-clss (extend Ψ_0 (x_child C)) define-class ...))]
-  [(collect-clss Ψ_0 define-class ...)
-   #f])
+   (where C (class x_parent any_fields any_methods))
+   (where Ψ_1 (collect-clss (extend Ψ_0 (x_child C)) s ...))]
+  [(collect-clss Ψ_0 s_1 s_2 ...)
+   (collect-clss Ψ_0 s_2 ...)])
 
 
 (define-metafunction StaticPython-tc
@@ -181,20 +196,46 @@
   ;; What are the classes and variables defined at the top level?  
   [(collect-defs) ()]
   
-  [(collect-defs (define x t e) s ...)
+  [(collect-defs (define/assign x t e) s ...)
    (extend (collect-defs s ...)
            (x t))]
+
+  [(collect-defs (define/assign x e) s ...)
+   (extend (collect-defs s ...)
+           (x dynamic))]
+
+  ;; ignore the define/assign if the lhs is not a variable
+  [(collect-defs (define/assign e t e) s ...)
+   (collect-defs s ...)]
 
   [(collect-defs s_fst s_rst ...)
    (collect-defs s_rst ...)])
 
+(define-metafunction StaticPython-tc
+  flatten-class : Ψ C -> flat-class
+  [(flatten-class Ψ (base-class))
+   (()
+    (("__init__" () None)))]
+  [(flatten-class Ψ (prim-class x))
+   (()
+    ;; fix this
+    (("__init__" () None)))]
+  [(flatten-class Ψ (class x_parent
+                      (any_new-field ...)
+                      (any_new-method ...)))
+   ((any_new-field ... any_field ...)
+    (any_new-method ... any_method ...))
+   (where ((any_field ...)
+           (any_method ...))
+          (flatten-class Ψ (lookup Ψ x_parent)))])
 
 (define-judgment-form StaticPython-tc
-  #:mode (K⊢C I I)
-  #:contract (K⊢C Ψ C)
+  #:mode (Ψ⊢C I I)
+  #:contract (Ψ⊢C Ψ C)
+  ;; Is this class well-formed (not overriding member signatures incorrectly)? 
   [(⊢flat-class Ψ (flatten-class Ψ C))
    --------------------------------------
-   (K⊢C Ψ C)])
+   (Ψ⊢C Ψ C)])
 
 
 (define-metafunction StaticPython-tc
@@ -219,47 +260,44 @@
            (any_method ...))
           (collect-mems class-member ...))])
 
-
-
 (define-judgment-form StaticPython-tc
-  #:mode (ΨΓ⊢s I I I)
-  #:contract (ΨΓ⊢s Ψ Γ s)
+  #:mode (ΨΓ⊢s⇐t I I I I)
+  #:contract (ΨΓ⊢s⇐t Ψ Γ s t)
 
   ;; Is the s well-formed under the type and class environment Γ?
+
+  [(ΨΓ⊢e⇐t Ψ Γ e t_ret)
+   ------------------------ "return"
+   (ΨΓ⊢s⇐t Ψ Γ (return e) t_ret)]
   
   [(ΨΓ⊢e⇐t Ψ Γ e t)
-   ------------------------ "declare"
-   (ΨΓ⊢s Ψ Γ (define x t e))]
+   ------------------------ "define/assign-check"
+   (ΨΓ⊢s⇐t Ψ Γ (define/assign x t e) t_ret)]
+
+  [(ΨΓ⊢e⇒t Ψ Γ e_lhs t)
+   (ΨΓ⊢e⇐t Ψ Γ e_rhs t)
+   (side-condition ,(not (redex-match? StaticPython-tc x (term e_lhs))))
+   ------------------------ "define/assign-synth"
+   (ΨΓ⊢s⇐t Ψ Γ (define/assign e_lhs e_rhs) t_ret)]
+  
+
+  [(ΨΓ⊢e⇐t Ψ Γ e dynamic)
+   ------------------------ "delete"
+   (ΨΓ⊢s⇐t Ψ Γ (delete e) t_ret)]
 
 
   [------------------------ "pass"
-   (ΨΓ⊢s Ψ Γ pass)]
+   (ΨΓ⊢s⇐t Ψ Γ pass t_ret)]
 
   
-  [(Γ⊢class-member Γ class-member) ...
+  [(ΨΓ⊢class-member Ψ Γ class-member) ...
    ------------------------ "class"
-   (ΨΓ⊢s Ψ Γ (class x_cls x_sup class-member ...))]
+   (ΨΓ⊢s⇐t Ψ Γ (class x_cls x_sup class-member ...) t_ret)]
 
  
   [(ΨΓ⊢e⇐t Ψ Γ e dynamic)
    ------------------------ "exp"
-   (ΨΓ⊢s Ψ Γ e)])
-
-
-(define-metafunction StaticPython-tc
-  flatten-class : Ψ C -> flat-class
-  [(flatten-class Ψ (base-class))
-   (()
-    ())]
-  [(flatten-class Ψ (class x_parent
-                      (t_init ...)
-                      (any_new-field ...)
-                      (any_new-method ...)))
-   ((any_new-field ... any_field ...)
-    (any_new-method ... any_method ...))
-   (where ((any_field ...)
-           (any_method ...))
-          (flatten-class Ψ (lookup Ψ x_parent)))])
+   (ΨΓ⊢s⇐t Ψ Γ e t_ret)])
 
 
 (define-judgment-form StaticPython-tc
@@ -280,7 +318,7 @@
                      any_2 ...)
                     any_methods))]
 
-  [(where #f (K⊢t≲t Ψ (Callable (t_ci ...) t_co) (Callable (t_pi ...) t_po)))
+  [(where #f (Ψ⊢t≲t Ψ (Callable (t_ci ...) t_co) (Callable (t_pi ...) t_po)))
    ------------------"method-incompatible"
    (¬⊢flat-class Ψ (any_fields
                   (any_0 ...
@@ -291,28 +329,17 @@
 
 
 (define-judgment-form StaticPython-tc
-  #:mode (⊢flat-class I I)
-  #:contract (⊢flat-class Ψ flat-class)
-
-  ;; Is this flat-class well-formed under the class environment K?
-
-  [(where #f (¬⊢flat-class Ψ flat-class))
-   -----------------
-   (⊢flat-class Ψ flat-class)])
-
-
-(define-judgment-form StaticPython-tc
-  #:mode (Γ⊢class-member I I)
-  #:contract (Γ⊢class-member Γ class-member)
+  #:mode (ΨΓ⊢class-member I I I)
+  #:contract (ΨΓ⊢class-member Ψ Γ class-member)
 
   ;; Is this class-member well-formed under the environment Γ?
 
   [-------------------------
-   (Γ⊢class-member Γ (field string t))]
+   (ΨΓ⊢class-member Ψ Γ (field string t))]
 
-  [;; todo: check method bodies
+  [(ΨΓ⊢s⇐t Ψ Γ s t_ret) ...
    -------------------------
-   (Γ⊢class-member Γ (method string_method x_self ((x_arg t_arg) ...) t_ret method-statement ...))])
+   (ΨΓ⊢class-member Ψ Γ (method string_method x_self ((x_arg t_arg) ...) t_ret s ...))])
 
 
 (define-judgment-form StaticPython-tc
@@ -340,26 +367,84 @@
    ----------------------- "string"
    (ΨΓ⊢e⇐t Ψ Γ string t)]
 
+  [(ΨΓ⊢e⇒t Ψ Γ e_map PyDict)
+   (ΨΓ⊢e⇐t Ψ Γ e_key dynamic)
+   ----------------------- "lookup-PyDict"
+   (ΨΓ⊢e⇐t Ψ Γ (subscript e_map e_key) t)]
+
+  
+  [(ΨΓ⊢e⇒t Ψ Γ e_map (subscript CheckedDict (tuple t_key t_val)))
+   (ΨΓ⊢e⇐t Ψ Γ e_key t_key)
+   (Ψ⊢t≲t Ψ t_val t)
+   ----------------------- "lookup-CheckedDict"
+   (ΨΓ⊢e⇐t Ψ Γ (subscript e_map e_key) t)]
+
   [(ΨΓ⊢e⇐t Ψ Γ e_key dynamic) ...
    (ΨΓ⊢e⇐t Ψ Γ e_value dynamic) ...
    (Ψ⊢t≲t Ψ PyDict t)
    ----------------------- "PyDict"
    (ΨΓ⊢e⇐t Ψ Γ (dict (e_key e_value) ...) t)]
 
-  [(where (class x_parent (t_arg ...) any_fields any_methods) (lookup Ψ x_cls))
+  [(ΨΓ⊢e⇐t Ψ Γ e_init PyDict)
+   ---------------------- "CheckedDict"
+   (ΨΓ⊢e⇐t Ψ Γ ((subscript CheckedDict (tuple t_1 t_2)) e_init) (subscript CheckedDict (tuple t_1 t_2)))]
+
+  [(where
+    (any_fields (any_method1 ... ("__init__" (t_arg ...) any_ret) any_method2 ...))
+    (flatten-class Ψ (lookup Ψ x_cls)))
+   (side-condition
+    ,(= (length (term (t_arg ...)))
+        (length (term (e_arg ...)))))
    (ΨΓ⊢e⇐t Ψ Γ e_arg t_arg) ...
    (Ψ⊢t≲t Ψ x_cls t)
    ----------------------- "class construction"
    (ΨΓ⊢e⇐t Ψ Γ (x_cls e_arg ...) t)]
   )
 
+(define-judgment-form StaticPython-tc
+  #:mode (ΨΓ⊢e⇒t I I I O)
+  #:contract (ΨΓ⊢e⇒t Ψ Γ e t)
+  ;; Is e well-formed under Γ and usable as a t?
+  
+  [------------------------ "variable"
+   (ΨΓ⊢e⇒t Ψ Γ x (lookup Γ x))]
+  
+  [----------------------- "None"
+   (ΨΓ⊢e⇒t Ψ Γ None None)]
+  
+  [----------------------- "integer"
+   (ΨΓ⊢e⇒t Ψ Γ integer int)]
+
+  [----------------------- "boolean"
+   (ΨΓ⊢e⇒t Ψ Γ boolean bool)]
+
+  [----------------------- "string"
+   (ΨΓ⊢e⇒t Ψ Γ string str)]
+
+  [(ΨΓ⊢e⇐t Ψ Γ e_key dynamic) ...
+   (ΨΓ⊢e⇐t Ψ Γ e_value dynamic) ...
+   ----------------------- "PyDict"
+   (ΨΓ⊢e⇒t Ψ Γ (dict (e_key e_value) ...) PyDict)]
+
+  [(ΨΓ⊢e⇐t Ψ Γ e_init PyDict)
+   ---------------------- "CheckedDict"
+   (ΨΓ⊢e⇒t Ψ Γ ((subscript CheckedDict (tuple t_1 t_2)) e_init) (subscript CheckedDict (tuple t_1 t_2)))]
+
+  [(ΨΓ⊢e⇒t Ψ Γ e_map PyDict)
+   (ΨΓ⊢e⇐t Ψ Γ e_key dynamic)
+   ----------------------- "lookup-PyDict"
+   (ΨΓ⊢e⇒t Ψ Γ (subscript e_map e_key) dynamic)]
+  
+  [(ΨΓ⊢e⇒t Ψ Γ e_map (subscript CheckedDict (tuple t_key t_val)))
+   (ΨΓ⊢e⇐t Ψ Γ e_key t_key)
+   ----------------------- "lookup-CheckedDict"
+   (ΨΓ⊢e⇒t Ψ Γ (subscript e_map e_key) t_val)]
+  )
+
 ; (extend Γ (x t) ...) add (x t) to Γ so that x is found before other x-s
 (module+ test
   (test-equal (term (extend () (x int))) (term ((x int)))))
- 
-(define-metafunction StaticPython-tc
-  extend : ((x any) ...) (x any) ... -> ((x any) ...)
-  [(extend ((x_known any_known) ...) (x_new any_new) ...) ((x_new any_new) ...(x_known any_known) ...)])
+
  
 ; (lookup Γ x) retrieves x's type from Γ
 (module+ test

@@ -22,11 +22,25 @@ This file describes the static semantics (type system) of the idealized Static P
 
 - [PyDict_is_inhabitable.py](conformance_suite/PyDict_is_inhabitable.py)
 
-TODO: Updating a `PyDict` is allowed.
+Inserting `PyDict` entries is allowed.
 
-TODO: Deleting `PyDict` entries is allowd.
+- [PyDict_insert.py](conformance_suite/PyDict_insert.py)
 
-TODO: Looking up a `PyDict` is allowed.
+Updating `PyDict` entries is allowed.
+
+- [PyDict_update.py](conformance_suite/PyDict_update.py)
+
+Deleting `PyDict` entries is allowed.
+
+- [PyDict_delete.py](conformance_suite/PyDict_delete.py)
+
+Looking up `PyDict` entries with good keys is allowed.
+
+- [PyDict_lookup_good_keys.py](conformance_suite/PyDict_lookup_good_keys.py)
+
+Looking up `PyDict` entries with bad keys is allowed.
+
+- [PyDict_lookup_bad_keys.py](conformance_suite/PyDict_lookup_bad_keys.py)
 
 ## CheckedDict[T0, T1]
 
