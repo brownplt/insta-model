@@ -51,7 +51,9 @@ Looking up `PyDict` entries with bad keys is allowed.
 
 TODO: Looking up `CheckedDict[T0, T1]` expects a `T0` key.
 
-TODO: Looking up `CheckedDict[T0, T1]` returns a `T1` value.
+Looking up `CheckedDict[T0, T1]` returns a `T1` value.
+- [CheckedDict_lookup_neg.py](conformance_suite/CheckedDict_lookup_neg.py)
+- [CheckedDict_lookup_pos.py](conformance_suite/CheckedDict_lookup_pos.py)
 
 TODO: Updating a `CheckedDict[T0, T1]` checks the key.
 
@@ -88,6 +90,7 @@ Overriding a field with a method is a static error.
 Overriding a field is a static error.
 
 - TODO: Waiting for a reply to https://github.com/facebookincubator/cinder/issues/39
+- [override_instance_field.py](conformance_suite/override_instance_field.py)
 
 Overriding a method requires that the new output type is a subtype of the old one.
 

@@ -37,15 +37,18 @@
 
   (e x
      c
-     (dict (e e) ...)
+     (dict-syntax (e e) ...)
+     (tuple-syntax t t)
      (subscript e e)
-     (tuple t t)
+     (e o2 e)
      (e e ...))
 
+  (o2 +)
+
+  ;; type expression
   (t dynamic
-     variable
-     (subscript variable (tuple t ...))
-     (Callable (t ...) t)
+     None ;; x doesn't cover this because we mentioned None in c
+     (subscript x (tuple-syntax t ...))
      x)
 
   (x variable-not-otherwise-mentioned))

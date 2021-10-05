@@ -26,7 +26,7 @@ def expr_to_type(expr: ast.expr):
     elif isinstance(expr, ast.Index):
         return expr_to_type(expr.value)
     elif isinstance(expr, ast.Tuple):
-        return [symbol('tuple')] + [expr_to_type(e) for e in expr.elts]
+        return [symbol('tuple-syntax')] + [expr_to_type(e) for e in expr.elts]
     else:
         raise Exception("Can't deal with {}".format(expr))
 
@@ -111,7 +111,7 @@ def ast_to_sexp(node):
         return [symbol('import-from'), string(node.module), [symbol(a.name) for a in node.names]]
     elif isinstance(node, ast.Dict):
         return [
-            symbol('dict')
+            symbol('dict-syntax')
         ] + [
             [ast_to_sexp(k), ast_to_sexp(v)]
             for k, v in zip(node.keys, node.values)
@@ -126,13 +126,19 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Index):
         return ast_to_sexp(node.value)
     elif isinstance(node, ast.Tuple):
-        return [symbol('tuple')] + [ast_to_sexp(e) for e in node.elts]
+        return [symbol('tuple-syntax')] + [ast_to_sexp(e) for e in node.elts]
     elif isinstance(node, ast.Delete):
         return [symbol('delete'), ast_to_sexp(node.targets[0])]
     elif isinstance(node, ast.Attribute):
         return [symbol('attribute'), ast_to_sexp(node.value), string(node.attr)]
+    elif isinstance(node, ast.BinOp):
+        assert isinstance(node.op, ast.Add)
+        return [
+            symbol('method-call'),
+            ast_to_sexp(node.left),
+            string('__add__'),
+            ast_to_sexp(node.right)]
     assert False, str(node)
-
 
 def python_file_to_sexp(test_file):
     with open(test_file) as f:
