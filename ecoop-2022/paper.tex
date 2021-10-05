@@ -1,0 +1,280 @@
+\documentclass[a4paper,english,cleveref,autoref,thm-restate,anonymous,]{lipics-v2021}
+\bibliographystyle{plainurl}
+
+%% Thesis:
+%%  the addition of sound nominal types to an optionally-typed codebase
+%%  can effectively improve peformance
+
+% > Here’s the thing: I think this is the sort of thing an academic might say “oh,
+% > this is too much work, it’d never work” But in fact it looks like they seem to
+% > be making it work -- Shriram 2021-09-30
+
+
+%% TODO before submission
+%% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
+%%   helps the static checker find new errors. ChkDict is one example.
+
+%% TODO after submission, before camera-ready
+%% - 
+
+\title{Gradual Soundness: Lessons from Static Python}
+%% ... types make things fast?
+%% ... gradual migratory progressive soundness
+
+%\titlerunning{short title}
+
+\author{Kuang-Chen Lu}{Department of Computer Science, Brown University, USA}{LuKuangchen1024@gmail.com}{}{}
+\author{Ben Greenman}{Department of Computer Science, Brown University, USA}{benjamin.l.greenman@gmail.com}{0000-0001-7078-9287}{}
+\author{Carl Meyer}{Facebook, Inc.}{carljm@fb.com}{}{}
+\author{Dino Viehland}{Facebook, Inc.}{dinoviehland@fb.com}{}{}
+\author{Shriram Krishnamurthi}{Department of Computer Science, Brown University, USA}{shriram@brown.edu}{0000-0001-5184-1975}{}
+
+\authorrunning{K-C. Lu, B. Greenman, C. Meyer, D. Viehland, S. Krishnamurthi}
+%TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
+
+\Copyright{Kuang-Chen Lu, Ben Greenman, Carl Meyer, Dino Viehland, and Shriram Krishnamurthi}
+%TODO mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
+
+\ccsdesc[100]{\textcolor{red}{Replace ccsdesc macro with valid one}}
+%TODO mandatory: Please choose ACM 2012 classifications from https://dl.acm.org/ccs/ccs_flat.cfm 
+
+\keywords{gradual typing, migratory typing}
+
+\category{} %optional, e.g. invited paper
+
+%\supplement{}%optional, e.g. related research data, source code, ... hosted on a repository like zenodo, figshare, GitHub, ...
+%\supplementdetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93, subcategory={Description, Subcategory}, swhid={Software Heritage Identifier}]{General Classification (e.g. Software, Dataset, Model, ...)}{URL to related version} %linktext, cite, and subcategory are optional
+
+%\funding{(Optional) general funding statement \dots}%optional, to capture a funding statement, which applies to all authors. Please enter author specific funding statements as fifth argument of the \author macro.
+
+\acknowledgements{
+  Thanks to
+   Guido van Rossom for provocative tweets.
+  This work was partly supported by the US National Science Foundation.
+  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
+  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
+  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+}
+
+%\nolinenumbers %uncomment to disable line numbering
+
+
+
+%Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\EventEditors{John Q. Open and Joan R. Access}
+\EventNoEds{2}
+\EventLongTitle{42nd Conference on Very Important Topics (CVIT 2016)}
+\EventShortTitle{CVIT 2016}
+\EventAcronym{CVIT}
+\EventYear{2016}
+\EventDate{December 24--27, 2016}
+\EventLocation{Little Whinging, United Kingdom}
+\EventLogo{}
+\SeriesVolume{42}
+\ArticleNo{23}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+\newcommand{\shorturl}[2]{\href{#1#2}{#2}}
+\newcommand{\SP}{Static Python}
+
+
+\begin{abstract}
+  Soundness, migratory typing.
+  Novel run-time check strategy, combines concrete and transient for ergonomics.
+\end{abstract}
+
+
+\section{Typing for Performance}
+\label{s:intro}
+
+Gradual typing has attracted significant interest as a solution to
+the old tradeoff between static and dynamic typing.
+The premise is simple: let programmers apply types to part of the
+codebase and leave the rest un-analyzed.
+Run-time checks can in principle enforce the assumptions that
+typed code makes about untyped components, thereby ensuring sound types.
+
+Unfortunately, the high run-time cost of sound types has split
+the community.
+Industry teams have developed innovative type systems that accommodate
+untyped designs, but these systems are all unsound [CITE].
+They intentionally check nothing at run-time when untyped values enter
+typed code.
+Academic teams have primarily focused on the theory of sound
+graduality and its extension to new types and correctness theorems [CITE].
+A few academics have studied the cost of run-time checks
+in detail [CITE] and proposed implementation methods [CITE],
+compiler technology [CITE],
+and even weakened semantics [CITE], but none of these efforts
+decisively close the performance gap.
+The most promising attempt is the \emph{concrete} semantics
+for gradual types [CITE kafka nom etc], but its low performance
+overhead stems from severe restrictions on untyped code.
+These restrictions may not be acceptable to the maintainers of a
+working untyped codebase.
+Indeed, the maintainers might prefer to re-implement their system
+in a typed language as Dropbox recently did to its core sync
+engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}}
+
+In short, academic researchers are working to close the performance gap
+without overly restricting the promise of gradual typing.
+Industry researchers are, for the most part, sidestepping the problem with unsound types.
+
+This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
+The \SP{} team at Instagram has developed a sound type system for a subset of
+Python along with a runtime system designed to lower the cost of run-time checks
+and capitalize on the benefits of sound types.
+The language design is a novel twist on concrete types that lets programmers
+begin with a shallow claims about data structures and gradually opt in to deep soundness.
+Remarkably, the performance of Python is an upper bound on their observed performance of
+Static Python.
+
+
+\paragraph*{Contributions}
+
+\begin{itemize}
+  \item
+    Evidence that gradual soundness can work.
+    \SP{} performs well on a microbenchmark suite and, more importantly, in production.
+    The effort needed to convert code to \SP{} is low thanks to its novel application
+    of concrete types.
+  \item
+    A formal description and analysis of the \SP{} core language.
+    The analysis includes a proof of soundness and (perhaps) a metric for
+    the relative cost of a type migration.
+  \item
+    A full list of the limitations in \SP{} relative to idealized gradual type
+    systems and an informal description of the programming discipline that Instagram
+    follows in their gradually sound codebase.
+\end{itemize}
+
+
+\paragraph*{Significance}
+
+We have written this paper to promote two future directions.
+First, we want to encourage system-builders to reproduce the essentials of
+\SP{} in another context and measure the net performance.
+Second, we want to lend focus to theoretical research on gradual typing.
+On one hand, the restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
+may be worthwhile assumptions for theory going forward.
+On the flip side, there are issues in today's \SP{} that might
+be addressed by future research.
+
+
+\section{A Tour of Static Python}
+\label{s:tour}
+%% purpose = SP looks like Pyre, adds soundness to certain types
+
+
+\subsection{Language Pipeline}
+
+\begin{itemize}
+  \item Pyre as a recommended, optional pre-check
+  \item SP type checker
+  \item custom bytecode
+\end{itemize}
+
+
+\subsection{Type Dynamic}
+
+The dynamic type is an important part of Static Python.
+Dynamic avoids the need for whole-sale migration,
+lets programmers work around dynamic features like splatting,
+and is in some cases necessary for optimal performance (evidence?).
+
+
+\subsection{Migration Issues}
+
+%% more to say about the style of migration in SP?
+
+Enabling sound types on a function has a ripple effect on callers.
+All untyped callers are now forced to supply type-correct inputs; may call for
+refactoring.
+
+Enabling checked types has a huge ripple effect.
+The worst case is changing an annotation to a expect a checked data structure:
+\begin{enumerate}
+  \item all callers must create a checked value by invoking the right constructor, and
+  \item all clients of those callers can no longer expect an unchecked type.
+\end{enumerate}
+Programmers have to trace the annotation back to value-creation points, and then
+ensure that all uses of those values are compatible.
+
+
+\section{Model}
+\label{s:model}
+%% purpose = types, checks, and optimizations can be formalized and analyzed
+
+
+\subsection{Surface Language}
+
+
+\subsection{Evaluation Language, Optimizations}
+
+
+\subsection{Bug Reports}
+
+While formalizing Static Python, we submitted N bug reports to the language developers.
+The developers acknowledged M of these bugs as issues to fix.
+
+
+\section{Under the Hood: Static Python Specifics}
+\label{s:impl}
+
+Purpose: explain significant gaps between the model and the implementation.
+E.g. what would the TypeScript team need to know before using our model
+to add soundness?
+
+
+\section{Evaluation}
+\label{s:eval}
+
+
+\subsection{Benchmarks}
+
+
+\subsection{Production Experience}
+
+
+\section{Related Work}
+
+Nom~\cite{mt-oopsla-2017} is foundational.
+Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
+
+PyPy is another runtime for Python
+Pycket is built on PyPy and improves both Typed Racket~\cite{bbst-oopsla-2017}
+and Reticulated Python~\cite{vsc-dls-2019}.
+
+
+\section{Future Work}
+
+Adapt SP ideas to a new setting, test performance takeaways.
+
+Improve SP with generic types, structural types (lambda), \ldots.
+
+Build an automatic migration tool for Checked data.
+
+Build a static analysis that hoists transient annotations to an early, shared point.
+Take care to give quality error messages.
+
+
+\section{Conclusion}
+\label{s:conclusion}
+
+Sound types in Static Python give programmers a way to improve performance.
+The change is not forced, not intrusive;
+programmers can keep using unsound types when working toward a deadline.
+
+Conjecture that soundness will find bugs too, and lead to more reliable products.
+Too soon to say.
+
+
+\bibliography{bg}
+
+%\appendix
+
+\end{document}
