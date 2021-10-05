@@ -89,7 +89,10 @@
   [------------------------ "tag-None"
    (Ψ⊢t≲t Ψ None None)]
 
-  [(Ψ⊢t≲t Ψ t_1i t_0i) ...
+  [(side-condition
+    (= (len (t_1i ...))
+       (len (t_0i ...))))
+   (Ψ⊢t≲t Ψ t_1i t_0i) ...
    (Ψ⊢t≲t Ψ t_0o t_1o)
    ------------------------ "tag-callable"
    (Ψ⊢t≲t Ψ
@@ -111,9 +114,27 @@
   )
 
 (define-metafunction StaticPython-tc
+  member : any (any ...) -> boolean
+  [(member any_0 (any_1 ... any_0 any_2 ...)) #t]
+  [(member any_0 (any_1 ...)) #f])
+
+(define-metafunction StaticPython-tc
+  not : boolean -> boolean
+  [(not #t) #f]
+  [(not #f) #t])
+
+(define-metafunction StaticPython-tc
+  len : (any ...) -> number
+  [(len (any ...)) ,(length (term (any ...)))])
+
+(define-metafunction StaticPython-tc
+  = : any any -> boolean
+  [(= any any) #t]
+  [(= any_0 any_1) #f])
+
+(define-metafunction StaticPython-tc
   ≠ : any any -> boolean
-  [(≠ any any) #f]
-  [(≠ any_0 any_1) #t])
+  [(≠ any_0 any_1) (not (= any_0 any_1))])
 
 (define-metafunction StaticPython-tc
   extend : ((x any) ...) (x any) ... -> ((x any) ...)
@@ -276,7 +297,7 @@
 
   [(ΨΓ⊢e⇒t Ψ Γ e_lhs t)
    (ΨΓ⊢e⇐t Ψ Γ e_rhs t)
-   (side-condition ,(not (redex-match? StaticPython-tc x (term e_lhs))))
+   (side-condition (not ,(redex-match? StaticPython-tc x (term e_lhs))))
    ------------------------ "define/assign-synth"
    (ΨΓ⊢s⇐t Ψ Γ (define/assign e_lhs e_rhs) t_ret)]
   
@@ -393,8 +414,8 @@
     (any_fields (any_method1 ... ("__init__" (t_arg ...) any_ret) any_method2 ...))
     (flatten-class Ψ (lookup Ψ x_cls)))
    (side-condition
-    ,(= (length (term (t_arg ...)))
-        (length (term (e_arg ...)))))
+    (= (len (t_arg ...))
+       (len (e_arg ...))))
    (ΨΓ⊢e⇐t Ψ Γ e_arg t_arg) ...
    (Ψ⊢t≲t Ψ x_cls t)
    ----------------------- "class construction"
@@ -455,5 +476,5 @@
   lookup : ((x any) ...) x -> any
   [(lookup ((x_1 any_1) ... (x any) (x_2 any_2) ...) x)
    any
-   (side-condition (not (member (term x) (term (x_1 ...)))))]
+   (side-condition (term (not (member x (x_1 ...)))))]
   [(lookup any_1 any_2) ,(error 'lookup "not found: ~e" (term any_2))])
