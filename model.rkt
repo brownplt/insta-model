@@ -40,7 +40,6 @@
      (dict-syntax (e e) ...)
      (tuple-syntax t t)
      (subscript e e)
-     (e o2 e)
      (e e ...))
 
   (o2 +)
