@@ -1,15 +1,20 @@
-\documentclass[a4paper,english,cleveref,autoref,thm-restate,,]{lipics-v2021}
+\documentclass[a4paper,english,cleveref,autoref,thm-restate,anonymous,]{lipics-v2021}
 \bibliographystyle{plainurl}
 
 %% Thesis:
 %%  the addition of sound nominal types to an optionally-typed codebase
 %%  can effectively improve peformance
 
+% > Here’s the thing: I think this is the sort of thing an academic might say “oh,
+% > this is too much work, it’d never work” But in fact it looks like they seem to
+% > be making it work -- Shriram 2021-09-30
+
+
 %% TODO before submission
 %% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
 %%   helps the static checker find new errors. ChkDict is one example.
 
-%% TODO before camera-ready
+%% TODO after submission, before camera-ready
 %% - 
 
 \title{Gradual Soundness: Lessons from Static Python}
@@ -18,16 +23,11 @@
 
 %\titlerunning{short title}
 
-% > Here’s the thing: I think this is the sort of thing an academic might say “oh,
-% > this is too much work, it’d never work” But in fact it looks like they seem to
-% > be making it work
-% -- Shriram 2021-09-30
-
 \author{Kuang-Chen Lu}{Department of Computer Science, Brown University, USA}{LuKuangchen1024@gmail.com}{}{}
 \author{Ben Greenman}{Department of Computer Science, Brown University, USA}{benjamin.l.greenman@gmail.com}{0000-0001-7078-9287}{}
 \author{Carl Meyer}{Facebook, Inc.}{carljm@fb.com}{}{}
 \author{Dino Viehland}{Facebook, Inc.}{dinoviehland@fb.com}{}{}
-\author{Shriram Krishnamurthi}{Department of Computer Science, Brown University, USA}{joanrpublic@dummycollege.org}{0000-0001-5184-1975}{}
+\author{Shriram Krishnamurthi}{Department of Computer Science, Brown University, USA}{shriram@brown.edu}{0000-0001-5184-1975}{}
 
 \authorrunning{K-C. Lu, B. Greenman, C. Meyer, D. Viehland, S. Krishnamurthi}
 %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
@@ -78,6 +78,10 @@
 
 \maketitle
 
+\newcommand{\shorturl}[2]{\href{#1#2}{#2}}
+\newcommand{\SP}{Static Python}
+
+
 \begin{abstract}
   Soundness, migratory typing.
   Novel run-time check strategy, combines concrete and transient for ergonomics.
@@ -87,25 +91,78 @@
 \section{Typing for Performance}
 \label{s:intro}
 
-Go go gradual~\cite{tf-dls-2006,st-sfp-2006}.
+Gradual typing has attracted significant interest as a solution to
+the old tradeoff between static and dynamic typing.
+The premise is simple: let programmers apply types to part of the
+codebase and leave the rest un-analyzed.
+Run-time checks can in principle enforce the assumptions that
+typed code makes about untyped components, thereby ensuring sound types.
+
+Unfortunately, the high run-time cost of sound types has split
+the community.
+Industry teams have developed innovative type systems that accommodate
+untyped designs, but these systems are all unsound [CITE].
+They intentionally check nothing at run-time when untyped values enter
+typed code.
+Academic teams have primarily focused on the theory of sound
+graduality and its extension to new types and correctness theorems [CITE].
+A few academics have studied the cost of run-time checks
+in detail [CITE] and proposed implementation methods [CITE],
+compiler technology [CITE],
+and even weakened semantics [CITE], but none of these efforts
+decisively close the performance gap.
+The most promising attempt is the \emph{concrete} semantics
+for gradual types [CITE kafka nom etc], but its low performance
+overhead stems from severe restrictions on untyped code.
+These restrictions may not be acceptable to the maintainers of a
+working untyped codebase.
+Indeed, the maintainers might prefer to re-implement their system
+in a typed language as Dropbox recently did to its core sync
+engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}}
+
+In short, academic researchers are working to close the performance gap
+without overly restricting the promise of gradual typing.
+Industry researchers are, for the most part, sidestepping the problem with unsound types.
+
+This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
+The \SP{} team at Instagram has developed a sound type system for a subset of
+Python along with a runtime system designed to lower the cost of run-time checks
+and capitalize on the benefits of sound types.
+The language design is a novel twist on concrete types that lets programmers
+begin with a shallow claims about data structures and gradually opt in to deep soundness.
+Remarkably, the performance of Python is an upper bound on their observed performance of
+Static Python.
 
 
 \paragraph*{Contributions}
 
 \begin{itemize}
-\item
-  Evidence that gradual soundness works. Performance rises incrementally from runtime engineering and programmer buy-in.
-\item
-  Informal description of the programming methods that enabled good performance.
-  % migration strategy, use of dyn., use of handwritten annotations
-\item Formal description of the core language, to promote a reproduction.
+  \item
+    Evidence that gradual soundness can work.
+    \SP{} performs well on a microbenchmark suite and, more importantly, in production.
+    The effort needed to convert code to \SP{} is low thanks to its novel application
+    of concrete types.
+  \item
+    A formal description and analysis of the \SP{} core language.
+    The analysis includes a proof of soundness and (perhaps) a metric for
+    the relative cost of a type migration.
+  \item
+    A full list of the limitations in \SP{} relative to idealized gradual type
+    systems and an informal description of the programming discipline that Instagram
+    follows in their gradually sound codebase.
 \end{itemize}
 
-The language design is a novel point in the space, combining concrete and transient checking strategies.
-Concrete has the best performance, but imposes an annotation burden.
-Transient mitigates the burden.
 
+\paragraph*{Significance}
 
+We have written this paper to promote two future directions.
+First, we want to encourage system-builders to reproduce the essentials of
+\SP{} in another context and measure the net performance.
+Second, we want to lend focus to theoretical research on gradual typing.
+On one hand, the restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
+may be worthwhile assumptions for theory going forward.
+On the flip side, there are issues in today's \SP{} that might
+be addressed by future research.
 
 
 \section{A Tour of Static Python}
@@ -127,7 +184,7 @@ Transient mitigates the burden.
 The dynamic type is an important part of Static Python.
 Dynamic avoids the need for whole-sale migration,
 lets programmers work around dynamic features like splatting,
-and is (proof?) in some cases necessary for optimal performance.
+and is in some cases necessary for optimal performance (evidence?).
 
 
 \subsection{Migration Issues}
