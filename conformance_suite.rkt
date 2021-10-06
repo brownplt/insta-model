@@ -10,10 +10,16 @@
 ;; conformance_suite/CheckedDict_from_dict_pos.py
 (check-judgment-holds* (⊢p ((import-from "__static__" (CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax int str)) ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (2 "a") (3 "b")))))))
 
-;; conformance_suite/CheckedDict_lookup_neg.py
+;; conformance_suite/CheckedDict_lookup_key_neg.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str str)) (dict-syntax ("foo" 1)))) (subscript x 2))))
+
+;; conformance_suite/CheckedDict_lookup_key_pos.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 2)))) (subscript x "foo"))))
+
+;; conformance_suite/CheckedDict_lookup_val_neg.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str str)) ((subscript CheckedDict (tuple-syntax str str)) (dict-syntax ("foo" "bar")))) (define/assign y int (subscript x "foo")))))
 
-;; conformance_suite/CheckedDict_lookup_pos.py
+;; conformance_suite/CheckedDict_lookup_val_pos.py
 (check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 2)))) (define/assign y int (subscript x "foo")))))
 
 ;; conformance_suite/None_is_inhabitable.py

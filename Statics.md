@@ -45,15 +45,16 @@ Looking up `PyDict` entries with bad keys is allowed.
 ## CheckedDict[T0, T1]
 
 `CheckedDict` must be constructed from `dict`. TODO: This is not yet implemented.
-
 - [CheckedDict_from_dict_neg.py](conformance_suite/CheckedDict_from_dict_neg.py)
 - [CheckedDict_from_dict_pos.py](conformance_suite/CheckedDict_from_dict_pos.py)
 
-TODO: Looking up `CheckedDict[T0, T1]` expects a `T0` key.
+Looking up `CheckedDict[T0, T1]` expects a `T0` key.
+- [CheckedDict_lookup_key_neg.py](conformance_suite/CheckedDict_lookup_key_neg.py)
+- [CheckedDict_lookup_key_pos.py](conformance_suite/CheckedDict_lookup_key_pos.py)
 
 Looking up `CheckedDict[T0, T1]` returns a `T1` value.
-- [CheckedDict_lookup_neg.py](conformance_suite/CheckedDict_lookup_neg.py)
-- [CheckedDict_lookup_pos.py](conformance_suite/CheckedDict_lookup_pos.py)
+- [CheckedDict_lookup_val_neg.py](conformance_suite/CheckedDict_lookup_val_neg.py)
+- [CheckedDict_lookup_val_pos.py](conformance_suite/CheckedDict_lookup_val_pos.py)
 
 TODO: Updating a `CheckedDict[T0, T1]` checks the key.
 
