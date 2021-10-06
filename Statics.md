@@ -64,7 +64,9 @@ Updating a `CheckedDict[T0, T1]` checks the value.
 - [CheckedDict_update_val_neg.py](conformance_suite/CheckedDict_update_val_neg.py)
 - [CheckedDict_update_val_pos.py](conformance_suite/CheckedDict_update_val_pos.py)
 
-TODO: Deleting `CheckedDict[T0, T1]` entries checks the key.
+Deleting `CheckedDict[T0, T1]` entries checks the key.
+- [CheckedDict_delete_neg.py](conformance_suite/CheckedDict_delete_neg.py)
+- [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
 
 ## Classes
 

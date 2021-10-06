@@ -4,6 +4,12 @@
 (require "model.rkt")
 (require "type-check.rkt")
 
+;; conformance_suite/CheckedDict_delete_neg.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (delete (subscript x 2)))))
+
+;; conformance_suite/CheckedDict_delete_pos.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (delete (subscript x "foo")))))
+
 ;; conformance_suite/CheckedDict_from_dict_neg.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" (CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax int str)) ((subscript CheckedDict (tuple-syntax int str)) 42)))))
 
