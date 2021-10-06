@@ -96,8 +96,7 @@ Overriding a field with a method is a static error.
 
 Overriding a field is a static error.
 
-- TODO: Waiting for a reply to https://github.com/facebookincubator/cinder/issues/39
-- [override_instance_field.py](conformance_suite/override_instance_field.py)
+- [override_instance_field.py](conformance_suite/override_instance_field.py) TODO: Waiting for a reply to https://github.com/facebookincubator/cinder/issues/39
 
 Overriding a method requires that the new output type is a subtype of the old one.
 
