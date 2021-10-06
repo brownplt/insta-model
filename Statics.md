@@ -56,9 +56,13 @@ Looking up `CheckedDict[T0, T1]` returns a `T1` value.
 - [CheckedDict_lookup_val_neg.py](conformance_suite/CheckedDict_lookup_val_neg.py)
 - [CheckedDict_lookup_val_pos.py](conformance_suite/CheckedDict_lookup_val_pos.py)
 
-TODO: Updating a `CheckedDict[T0, T1]` checks the key.
+Updating a `CheckedDict[T0, T1]` checks the key.
+- [CheckedDict_update_key_neg.py](conformance_suite/CheckedDict_update_key_neg.py)
+- [CheckedDict_update_key_pos.py](conformance_suite/CheckedDict_update_key_pos.py)
 
-TODO: Updating a `CheckedDict[T0, T1]` checks the value.
+Updating a `CheckedDict[T0, T1]` checks the value.
+- [CheckedDict_update_val_neg.py](conformance_suite/CheckedDict_update_val_neg.py)
+- [CheckedDict_update_val_pos.py](conformance_suite/CheckedDict_update_val_pos.py)
 
 TODO: Deleting `CheckedDict[T0, T1]` entries checks the key.
 

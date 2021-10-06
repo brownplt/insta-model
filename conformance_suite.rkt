@@ -11,16 +11,28 @@
 (check-judgment-holds* (⊢p ((import-from "__static__" (CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax int str)) ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (2 "a") (3 "b")))))))
 
 ;; conformance_suite/CheckedDict_lookup_key_neg.py
-(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str str)) (dict-syntax ("foo" 1)))) (subscript x 2))))
+(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (subscript x 2))))
 
 ;; conformance_suite/CheckedDict_lookup_key_pos.py
-(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 2)))) (subscript x "foo"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (subscript x "foo"))))
 
 ;; conformance_suite/CheckedDict_lookup_val_neg.py
-(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str str)) ((subscript CheckedDict (tuple-syntax str str)) (dict-syntax ("foo" "bar")))) (define/assign y int (subscript x "foo")))))
+(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign y str (subscript x "bar")))))
 
 ;; conformance_suite/CheckedDict_lookup_val_pos.py
-(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 2)))) (define/assign y int (subscript x "foo")))))
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign y int (subscript x "foo")))))
+
+;; conformance_suite/CheckedDict_update_key_neg.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x 2) 3))))
+
+;; conformance_suite/CheckedDict_update_key_pos.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") 3))))
+
+;; conformance_suite/CheckedDict_update_val_neg.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") "2"))))
+
+;; conformance_suite/CheckedDict_update_val_pos.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict CheckedDict)) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") 2))))
 
 ;; conformance_suite/None_is_inhabitable.py
 (check-judgment-holds* (⊢p ((define/assign x None None))))
@@ -35,7 +47,7 @@
 (check-judgment-holds* (⊢p ((import-from "__static__" (PyDict)) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))))))
 
 ;; conformance_suite/PyDict_lookup_bad_key.py
-(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict)) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (subscript x "baz"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" (PyDict)) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (subscript x "bar"))))
 
 ;; conformance_suite/PyDict_lookup_good_key.py
 (check-judgment-holds* (⊢p ((import-from "__static__" (PyDict)) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (subscript x "bar"))))
