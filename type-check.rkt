@@ -32,7 +32,8 @@
              (float
               (class float object
                 ()
-                (("__add__" (float float) float))))
+                (("__init__" (dynamic) None)
+                 ("__add__" (float float) float))))
              (int (class int float () ()))
              (bool (class bool int () ()))
              (str (prim-class "str"))
@@ -273,6 +274,13 @@
     import-type_0 ...)]
   [(collect-imports
     Ψ_0
+    (import-from "__static__" (cast))  ;; TODO: cast are skipped
+    import-type_0 ...)
+   (collect-imports
+    Ψ_0
+    import-type_0 ...)]
+  [(collect-imports
+    Ψ_0
     (import-from string_0 (x_0 x_1 x_2 ...))
     import-type_0 ...)
    (collect-imports
@@ -494,6 +502,8 @@
    (evalo Ψ t_pi T_pi) ...
    (evalo Ψ t_po T_po)
    (where #f (Ψ⊢T≲T Ψ (-> (T_ci ...) T_co) (-> (T_pi ...) T_po)))
+   ;; don't worry about constructors
+   (where #t (≠ string_0 "__init__"))
    ------------------"method-incompatible"
    (¬⊢flat-class Ψ
                  (any_fields

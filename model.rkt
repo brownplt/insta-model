@@ -46,7 +46,7 @@
 
   ;; type expression
   (t dynamic
-     None ;; x doesn't cover this because we mentioned None in c
+     None ;; nonterminal x doesn't cover this because we mentioned None in c
      (subscript x (tuple-syntax t ...))
      x)
 

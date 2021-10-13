@@ -44,7 +44,7 @@ Looking up `PyDict` entries with bad keys is allowed.
 
 ## CheckedDict[T0, T1]
 
-`CheckedDict` must be constructed from `dict`. TODO: This is not yet implemented.
+`CheckedDict` must be constructed from `dict`.
 - [CheckedDict_from_dict_neg.py](conformance_suite/CheckedDict_from_dict_neg.py)
 - [CheckedDict_from_dict_pos.py](conformance_suite/CheckedDict_from_dict_pos.py)
 
@@ -80,11 +80,11 @@ Deleting `CheckedDict[T0, T1]` entries checks the key.
 
 - [init_checks_type.py](conformance_suite/init_checks_type.py)
 
-### Inheritance
+### Inheritance/subclassing
 
-Inheriting base classes is allowed.
+Inheriting builtin classes is allowed.
 
-- TODO
+- [subclass_builtin.py](conformance_suite/subclass_builtin.py)
 
 Overriding a method with a field is a static error.
 

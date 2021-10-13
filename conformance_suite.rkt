@@ -114,3 +114,6 @@
 
 ;; conformance_suite/str_is_inhabitable.py
 (check-judgment-holds* (⊢p ((define/assign x str "hello"))))
+
+;; conformance_suite/subclass_builtin.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (cast)) (class C int) (define/assign x C (C 42)) (define/assign y int x))))
