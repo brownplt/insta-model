@@ -49,7 +49,7 @@
 
 \acknowledgements{
   Thanks to
-   Guido van Rossom for provocative tweets.
+   Guido van Rossom for stimulating tweets.
   This work was partly supported by the US National Science Foundation.
   This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
   The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
@@ -92,20 +92,21 @@
 \label{s:intro}
 
 Gradual typing has attracted significant interest as a solution to
-the old tradeoff between static and dynamic typing.
-The premise is simple: let programmers apply types to part of the
-codebase and leave the rest un-analyzed.
+the impasse between static and dynamic typing.
+The premise is simple: let programmers introduce types in part of a
+codebase and while leaving the rest untyped.
 Run-time checks can in principle enforce the assumptions that
-typed code makes about untyped components, thereby ensuring sound types.
+typed code makes about untyped components, thereby ensuring that
+the types are sound no matter how the untyped code behaves.
 
 Unfortunately, the high run-time cost of sound types has split
-the community.
+the gradual typing community.
 Industry teams have developed innovative type systems that accommodate
 untyped designs, but these systems are all unsound [CITE].
-They intentionally check nothing at run-time when untyped values enter
+These systems intentionally check nothing at run-time when untyped values enter
 typed code.
 Academic teams have primarily focused on the theory of sound
-graduality and its extension to new types and correctness theorems [CITE].
+gradual types, formulating correctness properties and studying ever-more-descriptive types [CITE].
 A few academics have studied the cost of run-time checks
 in detail [CITE] and proposed implementation methods [CITE],
 compiler technology [CITE],
@@ -117,7 +118,7 @@ overhead stems from severe restrictions on untyped code.
 These restrictions may not be acceptable to the maintainers of a
 working untyped codebase.
 Indeed, the maintainers might prefer to re-implement their system
-in a typed language as Dropbox recently did to its core sync
+in a typed language, as Dropbox recently did with its core sync
 engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}}
 
 In short, academic researchers are working to close the performance gap
@@ -126,11 +127,11 @@ Industry researchers are, for the most part, sidestepping the problem with unsou
 
 This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
 The \SP{} team at Instagram has developed a sound type system for a subset of
-Python along with a runtime system designed to lower the cost of run-time checks
-and capitalize on the benefits of sound types.
-The language design is a novel twist on concrete types that lets programmers
-begin with a shallow claims about data structures and gradually opt in to deep soundness.
-Remarkably, the performance of Python is an upper bound on their observed performance of
+Python along with a runtime system designed to
+capitalize on the benefits of sound types.
+The language design is a variation of concrete types that lets programmers
+begin with shallow claims about data structures and gradually opt in to deeper soundness.
+Remarkably, the performance of Python is an upper bound on the observed performance of
 Static Python.
 
 
@@ -159,7 +160,7 @@ We have written this paper to promote two future directions.
 First, we want to encourage system-builders to reproduce the essentials of
 \SP{} in another context and measure the net performance.
 Second, we want to lend focus to theoretical research on gradual typing.
-On one hand, the restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
+The restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
 may be worthwhile assumptions for theory going forward.
 On the flip side, there are issues in today's \SP{} that might
 be addressed by future research.
@@ -208,6 +209,24 @@ ensure that all uses of those values are compatible.
 \section{Model}
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
+
+
+\subsection{Goals and Limitations}
+
+The designers of Static Python hope to eventually build a system that is sound for arbitrary Python code,
+but are not there yet.
+The known side channels include:
+eval, the locals and globals dicts (the latter can be accessed through frame objects at the moment),
+and mutable closure cells.
+Our model does not cover these either.
+We essentially ban all these features, rejecting any program in which they appear.
+Code mining in JS (and perhaps the newer R work?) suggests that at least eval
+uses can be rewritten without too much pain. The few exceptions would point
+to language weaknesses / call for new semantically-descriptive features.
+
+FILL do we stop at strict modules?\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
+A strict module is 100\% repeatable and isolated from the side effects of other modules.
+
 
 
 \subsection{Surface Language}
@@ -271,6 +290,15 @@ programmers can keep using unsound types when working toward a deadline.
 
 Conjecture that soundness will find bugs too, and lead to more reliable products.
 Too soon to say.
+
+
+\subsection{Communication}
+
+How did we communicate effectively?
+Starting point was GT survey [CITE].
+Moved forward with example programs, see emails and github issues.
+Our formalism had to cover their unit tests.
+FILL
 
 
 \bibliography{bg}
