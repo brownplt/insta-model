@@ -125,7 +125,8 @@ Assigning to a declared field requires matched type, even if that field is decla
 - [assign_declared_field_pos.py](conformance_suite/assign_declared_field_pos.py)
 - [assign_declared_field_neg.py](conformance_suite/assign_declared_field_neg.py)
 
-TODO: insert new field?
+Inserting new fields is allowed.
+- [insert_new_field.py](conformance_suite/insert_new_field.py)
 
 TODO: delete field?
 

@@ -88,6 +88,9 @@
 ;; conformance_suite/init_checks_type.py
 (check-not-judgment-holds* (⊢p ((class Person object (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 (Person "Alice" "21")))))
 
+;; conformance_suite/insert_new_field.py
+(check-judgment-holds* (⊢p ((class C object) (def f ((c C)) dynamic (define/assign (attribute c "x") 42)))))
+
 ;; conformance_suite/int_is_inhabitable.py
 (check-judgment-holds* (⊢p ((define/assign x int 42))))
 
