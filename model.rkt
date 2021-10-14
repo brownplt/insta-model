@@ -22,6 +22,7 @@
    (return e)
    (define/assign e t e)
    (define/assign e e)
+   (def x ([x t] ...) t s ...)
    (delete e)
    pass
    e)
@@ -40,6 +41,7 @@
      (dict-syntax (e e) ...)
      (tuple-syntax t t)
      (subscript e e)
+     (attribute e string)
      (e e ...))
 
   (o2 +)

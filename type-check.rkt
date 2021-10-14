@@ -13,7 +13,7 @@
      (prim-class string)
      (prim-generic string)
      (generic string T ...)
-     (-> (T ...) T)
+     (-> (t ...) t)
      (class x_self x_parent
        ((string_field t_field) ...)
        ((string_method (t_arg ...) t_ret) ...))
@@ -102,31 +102,30 @@
 
 (define-judgment-form SP-tc
   #:mode (lookupo I I O)
-  #:contract (lookupo ((variable any) ...) variable any)
-  [---------------------- "Found"
-   (lookupo ((variable_1 any_1) ...
-             (variable_2 any_2)
-             (variable_3 any_3) ... )
-            variable_2
-            any_2)])
+  #:contract (lookupo ((any any) ...) any any)
+  [
+   ---------------------- "Found"
+   (lookupo ((any_key1 any_val1) ...
+             (any_key2 any_val2)
+             (any_key3 any_val3) ... )
+            any_key2
+            any_val2)])
 
 (define-judgment-form SP-tc
   #:mode (evalo I I O)
   #:contract (evalo Ψ t T)
-  
+
   [------------------------- "dynamic"
    (evalo Ψ dynamic dynamic)]
-  
+
   [------------------------- "None"
    (evalo Ψ None (prim-class "None"))]
 
   [(lookupo Ψ x (prim-generic "Callable"))
-   (evalo Ψ t_input T_input) ...
-   (evalo Ψ t_output T_output)
    ------------------------- "Callable"
    (evalo Ψ
           (subscript x (tuple-syntax t_input ... t_output))
-          (-> (T_input ...) T_output))]
+          (-> (t_input ...) t_output))]
 
   [(lookupo Ψ x (prim-generic "CheckedDict"))
    (evalo Ψ t_1 T_1)
@@ -135,7 +134,7 @@
    (evalo Ψ
           (subscript x (tuple-syntax t_1 t_2))
           (generic "CheckedDict" T_1 T_2))]
-  
+
   [(lookupo Ψ x T)
    ------------------------- "Lookup"
    (evalo Ψ x T)])
@@ -154,13 +153,14 @@
    (Ψ⊢T≲T Ψ T dynamic)]
 
   [(side-condition
-    (= (len (T_1i ...))
-       (len (T_0i ...))))
-   (Ψ⊢T≲T Ψ T_1i T_0i) ...
-   (Ψ⊢T≲T Ψ T_0o T_1o)
+    (= (len (t_0i ...))
+       (len (t_1i ...))))
+   (evalo Ψ t_0i T_0i) ... (evalo Ψ t_0o T_0o)
+   (evalo Ψ t_1i T_1i) ... (evalo Ψ t_1o T_1o)
+   (Ψ⊢T≲T Ψ T_1i T_0i) ... (Ψ⊢T≲T Ψ T_0o T_1o)
    ------------------------ "tag-callable"
-   (Ψ⊢T≲T Ψ (-> (T_0i ...) T_0o) (-> (T_1i ...) T_1o))]
-  
+   (Ψ⊢T≲T Ψ (-> (t_0i ...) t_0o) (-> (t_1i ...) t_1o))]
+
   [------------------------ "C≲object"
    (Ψ⊢T≲T Ψ T (base-class))]
 
@@ -190,7 +190,7 @@
   #:contract (Ψ⊢t≲t Ψ t t)
   ;; Is it sensible to use a value of type t_0 as as value of type t_1?
   ;; (a.k.a. consistent subtyping)
-  
+
   [(evalo Ψ t_1 T_1)
    (evalo Ψ t_2 T_2)
    (Ψ⊢T≲T Ψ T_1 T_2)
@@ -306,9 +306,9 @@
 
 (define-metafunction SP-tc
   collect-defs : Ψ s ... -> Γ
-  ;; What are the classes and variables defined at the top level?  
+  ;; What are the classes and variables defined at the top level?
   [(collect-defs Ψ) ()]
-  
+
   [(collect-defs Ψ (define/assign x t e) s ...)
    (extend (collect-defs Ψ s ...)
            (x T))
@@ -317,6 +317,10 @@
   [(collect-defs Ψ (define/assign x e) s ...)
    (extend (collect-defs Ψ s ...)
            (x dynamic))]
+
+  [(collect-defs Ψ (def x_fun ([x_arg t_arg] ...) t_ret s_body ...) s ...)
+   (extend (collect-defs Ψ s ...)
+           (x_fun (-> (t_arg ...) t_ret)))]
 
   ;; ignore the define/assign if the lhs is not a variable
   [(collect-defs Ψ (define/assign e t e) s ...)
@@ -328,17 +332,17 @@
 (define-judgment-form SP-tc
   #:mode (constructor-ofo I I O)
   #:contract (constructor-ofo Ψ T (T ...))
-  
+
   [---------------
    (constructor-ofo Ψ (base-class) ())]
-  
+
   [---------------
    (constructor-ofo Ψ (prim-class string) (dynamic))]
 
   [---------------
    (constructor-ofo Ψ (generic "CheckedDict" T_key T_val)
                     ((prim-class "dict")))]
-  
+
   [(where #f (member "__init__" (string_method ...)))
    (lookupo Ψ x_parent T)
    (constructor-ofo Ψ T (T_arg ...))
@@ -364,18 +368,19 @@
 (define-judgment-form SP-tc
   #:mode (flatten-classo I I O)
   #:contract (flatten-classo Ψ T flat-class)
+  
   [---------------------
    (flatten-classo
     Ψ
     (base-class)
     (()
      (("__init__" () None))))]
-  
+
   [---------------------
    (flatten-classo Ψ
-                  (prim-class string)
-                  (()
-                   (("__init__" () None))))]
+                   (prim-class string)
+                   (()
+                    (("__init__" () None))))]
 
   [(flatten-classo
     Ψ
@@ -394,7 +399,7 @@
 (define-judgment-form SP-tc
   #:mode (Ψ⊢T I I)
   #:contract (Ψ⊢T Ψ T)
-  ;; Is this class well-formed (not overriding member signatures incorrectly)? 
+  ;; Is this class well-formed (not overriding member signatures incorrectly)?
 
   [--------------------------------------
    (Ψ⊢T Ψ dynamic)]
@@ -412,18 +417,18 @@
 (define-metafunction SP-tc
   collect-mems : class-member ... -> (((string_field t_field) ...)
                                       ((string_method (t_arg ...) t_ret) ...))
-  ;; What are the fields and methods defined in this class?  
+  ;; What are the fields and methods defined in this class?
 
   [(collect-mems) (()
                    ())]
-  
+
   [(collect-mems (field string t) class-member ...)
    (((string t) any_field ...)
     (any_method ...))
    (where ((any_field ...)
            (any_method ...))
           (collect-mems class-member ...))]
-  
+
   [(collect-mems (method string_method x_self ((x_arg t_arg) ...) t_ret s ...) class-member ...)
    ((any_field ...)
     ((string_method (t_arg ...) t_ret) any_method ...))
@@ -442,41 +447,48 @@
   #:mode (ΨΓ⊢s⇐T I I I I)
   #:contract (ΨΓ⊢s⇐T Ψ Γ s T)
 
-  ;; Is the s well-formed under the type and class environment Γ?
+  ;; Is the statement s well-formed under the type and class environment Γ?
 
   [(ΨΓ⊢e⇐T Ψ Γ e T_ret)
    ------------------------ "return"
    (ΨΓ⊢s⇐T Ψ Γ (return e) T_ret)]
-  
+
   [(evalo Ψ t T)
    (ΨΓ⊢e⇐T Ψ Γ e T)
    ------------------------ "define/assign-check"
-   (ΨΓ⊢s⇐T Ψ Γ (define/assign x t e) T_ret)]
+   (ΨΓ⊢s⇐T Ψ Γ (define/assign x t e) _)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_lhs T)
    (ΨΓ⊢e⇐T Ψ Γ e_rhs T)
    (side-condition (not ,(redex-match? SP-tc x (term e_lhs))))
    ------------------------ "define/assign-synth"
-   (ΨΓ⊢s⇐T Ψ Γ (define/assign e_lhs e_rhs) T_ret)]
-  
+   (ΨΓ⊢s⇐T Ψ Γ (define/assign e_lhs e_rhs) _)]
+
+
+  [(evalo Ψ t_arg T_arg) ... (evalo Ψ t_ret T_ret)
+   (where Γ_body (extend Γ [x_arg T_arg] ...))
+   (ΨΓ⊢s⇐T Ψ Γ_body s T_ret) ...
+   ------------------------ "def"
+   (ΨΓ⊢s⇐T Ψ Γ (def x_fun ([x_arg t_arg] ...) t_ret s ...) _)]
+
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
    ------------------------ "delete"
-   (ΨΓ⊢s⇐T Ψ Γ (delete e) T_ret)]
+   (ΨΓ⊢s⇐T Ψ Γ (delete e) _)]
 
 
   [------------------------ "pass"
-   (ΨΓ⊢s⇐T Ψ Γ pass T_ret)]
+   (ΨΓ⊢s⇐T Ψ Γ pass _)]
 
-  
+
   [(ΨΓ⊢class-member Ψ Γ class-member) ...
    ------------------------ "class"
-   (ΨΓ⊢s⇐T Ψ Γ (class x_cls x_sup class-member ...) T_ret)]
+   (ΨΓ⊢s⇐T Ψ Γ (class x_cls x_sup class-member ...) _)]
 
- 
+
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
    ------------------------ "exp"
-   (ΨΓ⊢s⇐T Ψ Γ e T_ret)])
+   (ΨΓ⊢s⇐T Ψ Γ e _)])
 
 
 (define-judgment-form SP-tc
@@ -497,11 +509,7 @@
                      any_2 ...)
                     any_methods))]
 
-  [(evalo Ψ t_ci T_ci) ...
-   (evalo Ψ t_co T_co)
-   (evalo Ψ t_pi T_pi) ...
-   (evalo Ψ t_po T_po)
-   (where #f (Ψ⊢T≲T Ψ (-> (T_ci ...) T_co) (-> (T_pi ...) T_po)))
+  [(where #f (Ψ⊢T≲T Ψ (-> (t_ci ...) t_co) (-> (t_pi ...) t_po)))
    ;; don't worry about constructors
    (where #t (≠ string_0 "__init__"))
    ------------------"method-incompatible"
@@ -551,7 +559,7 @@
   #:mode (ΨΓ⊢e⇒T I I I O)
   #:contract (ΨΓ⊢e⇒T Ψ Γ e T)
   ;; Is e well-formed under Γ and usable as a t?
-  
+
   [(lookupo Ψ x T)
    ------------------------ "ground-class"
    (ΨΓ⊢e⇒T Ψ Γ x (type T))]
@@ -559,14 +567,14 @@
   [(evalo Ψ (subscript x (tuple-syntax t ...)) (generic string T ...))
    ------------------------ "generic"
    (ΨΓ⊢e⇒T Ψ Γ (subscript x (tuple-syntax t ...)) (type (generic string T ...)))]
-  
+
   [(lookupo Γ x T)
    ------------------------ "variable"
    (ΨΓ⊢e⇒T Ψ Γ x T)]
-  
+
   [----------------------- "None"
    (ΨΓ⊢e⇒T Ψ Γ None (prim-class "None"))]
-  
+
   [----------------------- "integer"
    (ΨΓ⊢e⇒T Ψ Γ integer (lookup (base-Ψ) int))]
 
@@ -585,7 +593,7 @@
    (ΨΓ⊢e⇐T Ψ Γ e_key dynamic)
    ----------------------- "lookup-PyDict"
    (ΨΓ⊢e⇒T Ψ Γ (subscript e_map e_key) dynamic)]
-  
+
   [(ΨΓ⊢e⇒T Ψ Γ e_map (generic "CheckedDict" T_key T_val))
    (ΨΓ⊢e⇐T Ψ Γ e_key T_key)
    ----------------------- "lookup-CheckedDict"
@@ -599,22 +607,39 @@
    (ΨΓ⊢e⇐T Ψ Γ e_arg T_arg) ...
    ----------------------- "class construction"
    (ΨΓ⊢e⇒T Ψ Γ (e_cls e_arg ...) T_cls)]
+
+  [(ΨΓ⊢e⇒T Ψ Γ e_ins T_ins)
+   (flatten-classo Ψ T_ins flat-class)
+   (where ((any_field ...) any_methods) flat-class)
+   (where t_fld (lookup (any_field ... [string_fld dynamic]) string_fld))
+   (evalo Ψ t_fld T_fld)
+   ----------------------- "field"
+   (ΨΓ⊢e⇒T Ψ Γ (attribute e_ins string_fld) T_fld)]
+
+  [(ΨΓ⊢e⇒T Ψ Γ e_fun (-> (t_arg ...) t_ret))
+   (side-condition
+    (= (len (t_arg ...))
+       (len (e_arg ...))))
+   (evalo Ψ t_arg T_arg) ... (evalo Ψ t_ret T_ret)
+   (ΨΓ⊢e⇐T Ψ Γ e_arg T_arg) ...
+   ----------------------- "function application"
+   (ΨΓ⊢e⇒T Ψ Γ (e_fun e_arg ...) T_ret)]
   )
 
 ; (extend Γ (x t) ...) add (x t) to Γ so that x is found before other x-s
 (module+ test
   (test-equal (term (extend () (x int))) (term ((x int)))))
 
- 
+
 ; (lookup Γ x) retrieves x's type from Γ
 (module+ test
   (test-equal (term (lookup ((x int) (x None) (y int)) x)) (term int))
   (test-equal (term (lookup ((x int) (x None) (y int)) y)) (term int)))
 
 (define-metafunction SP-tc
-  lookup : ((x any) ...) x -> any
-  [(lookup ((x_1 any_1) ... (x any) (x_2 any_2) ...) x)
-   any
-   (side-condition (term (not (member x (x_1 ...)))))]
+  lookup : ((any any) ...) any -> any
+  [(lookup ((any_k1 any_v1) ... (any_k any_v) (any_k2 any_v2) ...) any_k)
+   any_v
+   (side-condition (term (not (member any_k (any_k1 ...)))))]
   [(lookup any_1 any_2)
    ,(error 'lookup "can't find ~e in ~e" (term any_2) (term any_1))])

@@ -138,7 +138,27 @@ def ast_to_sexp(node):
             ast_to_sexp(node.left),
             string('__add__'),
             ast_to_sexp(node.right)]
+    elif isinstance(node, ast.FunctionDef):
+        return [
+            symbol('def'),
+            symbol(str(node.name)),
+            arguments_to_sexp(node.args),
+            expr_to_type(node.returns),
+            *[ ast_to_sexp(stmt) for stmt in node.body ]
+        ]
     assert False, str(node)
+
+def arg_to_sexp(a):
+    return [symbol(str(a.arg)), expr_to_type(a.annotation)]
+
+def arguments_to_sexp(args):
+    assert args.posonlyargs == []
+    assert args.vararg == None
+    assert args.kwonlyargs == []
+    assert args.kw_defaults == []
+    assert args.kwarg == None
+    assert args.defaults == []
+    return [ arg_to_sexp(a) for a in args.args ]
 
 def python_file_to_sexp(test_file):
     with open(test_file) as f:

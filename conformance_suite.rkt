@@ -85,6 +85,15 @@
 ;; conformance_suite/int_is_inhabitable.py
 (check-judgment-holds* (⊢p ((define/assign x int 42))))
 
+;; conformance_suite/lookup_declared_field_neg.py
+(check-not-judgment-holds* (⊢p ((class C object (field "x" str)) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
+
+;; conformance_suite/lookup_declared_field_pos.py
+(check-judgment-holds* (⊢p ((class C object (field "x" int)) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
+
+;; conformance_suite/lookup_undeclared_field.py
+(check-judgment-holds* (⊢p ((class C object) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
+
 ;; conformance_suite/methods_check_inputs.py
 (check-not-judgment-holds* (⊢p ((class C object (method "m" self ((x int)) dynamic (return None))) ((attribute (C) "m") "foo"))))
 

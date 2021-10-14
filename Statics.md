@@ -110,14 +110,16 @@ Overriding a method requires that the new input type is a supertype of the old o
 
 ## Instances
 
-Looking up a declared field is valid.
-TODO
+Looking up a declared field has the expected type.
+- [lookup_declared_field_pos.py](conformance_suite/lookup_declared_field_pos.py)
+- [lookup_declared_field_neg.py](conformance_suite/lookup_declared_field_neg.py)
+
+Looking up an undeclared field falls back to `dynamic`.
+- [lookup_undeclared_field.py](conformance_suite/lookup_undeclared_field.py)
 
 Looking up a declared parent field is valid.
 TODO
 
-Looking up an undeclared field is invalid.
-TODO
 
 TODO: field update
 
