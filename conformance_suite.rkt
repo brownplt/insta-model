@@ -61,6 +61,12 @@
 ;; conformance_suite/PyDict_update.py
 (check-judgment-holds* (⊢p ((import-from "__static__" (PyDict)) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "bar") "hello"))))
 
+;; conformance_suite/assign_declared_field_neg.py
+(check-not-judgment-holds* (⊢p ((class B object (field "x" str)) (class C B) (def f ((c C)) dynamic (define/assign (attribute c "x") 42)))))
+
+;; conformance_suite/assign_declared_field_pos.py
+(check-judgment-holds* (⊢p ((class B object (field "x" int)) (class C B) (def f ((c C)) dynamic (define/assign (attribute c "x") 42)))))
+
 ;; conformance_suite/bool_is_a_subtype_of_int_neg.py
 (check-not-judgment-holds* (⊢p ((define/assign x bool 42))))
 

@@ -121,8 +121,9 @@ Looking up a declared parent field has the expected type.
 - [lookup_parent_field_pos.py](conformance_suite/lookup_parent_field_pos.py)
 - [lookup_parent_field_neg.py](conformance_suite/lookup_parent_field_neg.py)
 
-
-TODO: field update
+Assigning to a declared field requires matched type, even if that field is declared in the parent class.
+- [assign_declared_field_pos.py](conformance_suite/assign_declared_field_pos.py)
+- [assign_declared_field_neg.py](conformance_suite/assign_declared_field_neg.py)
 
 TODO: insert new field?
 
