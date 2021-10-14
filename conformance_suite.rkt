@@ -91,6 +91,12 @@
 ;; conformance_suite/lookup_declared_field_pos.py
 (check-judgment-holds* (⊢p ((class C object (field "x" int)) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
 
+;; conformance_suite/lookup_parent_field_neg.py
+(check-not-judgment-holds* (⊢p ((class B object (field "x" str)) (class C B) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
+
+;; conformance_suite/lookup_parent_field_pos.py
+(check-judgment-holds* (⊢p ((class B object (field "x" int)) (class C B) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
+
 ;; conformance_suite/lookup_undeclared_field.py
 (check-judgment-holds* (⊢p ((class C object) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
 

@@ -117,8 +117,9 @@ Looking up a declared field has the expected type.
 Looking up an undeclared field falls back to `dynamic`.
 - [lookup_undeclared_field.py](conformance_suite/lookup_undeclared_field.py)
 
-Looking up a declared parent field is valid.
-TODO
+Looking up a declared parent field has the expected type.
+- [lookup_parent_field_pos.py](conformance_suite/lookup_parent_field_pos.py)
+- [lookup_parent_field_neg.py](conformance_suite/lookup_parent_field_neg.py)
 
 
 TODO: field update
