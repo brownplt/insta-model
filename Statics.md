@@ -128,7 +128,9 @@ Assigning to a declared field requires matched type, even if that field is decla
 Inserting new fields is allowed.
 - [insert_new_field.py](conformance_suite/insert_new_field.py)
 
-TODO: delete field?
+Deleting fields is allowed.
+- [delete_declared_fields.py](conformance_suite/delete_declared_fields.py)
+- [delete_undeclared_fields.py](conformance_suite/delete_undeclared_fields.py)
 
 TODO: method call
 
