@@ -108,10 +108,16 @@ Overriding a method requires that the new input type is a supertype of the old o
 - [override_instance_method_contravariant_inputs_neg.py](conformance_suite/override_instance_method_contravariant_inputs_neg.py)
 - [override_instance_method_contravariant_inputs_pos.py](conformance_suite/override_instance_method_contravariant_inputs_pos.py)
 
-
 ## Instances
 
-TODO: field lookup
+Looking up a declared field is valid.
+TODO
+
+Looking up a declared parent field is valid.
+TODO
+
+Looking up an undeclared field is invalid.
+TODO
 
 TODO: field update
 
