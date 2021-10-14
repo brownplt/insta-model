@@ -211,6 +211,24 @@ ensure that all uses of those values are compatible.
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
 
+\subsection{Goals and Limitations}
+
+The designers of Static Python hope to eventually build a system that is sound for arbitrary Python code,
+but are not there yet.
+The known side channels include:
+eval, the locals and globals dicts (the latter can be accessed through frame objects at the moment),
+and mutable closure cells.
+Our model does not cover these either.
+We essentially ban all these features, rejecting any program in which they appear.
+Code mining in JS (and perhaps the newer R work?) suggests that at least eval
+uses can be rewritten without too much pain. The few exceptions would point
+to language weaknesses / call for new semantically-descriptive features.
+
+FILL do we stop at strict modules?\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
+A strict module is 100\% repeatable and isolated from the side effects of other modules.
+
+
+
 \subsection{Surface Language}
 
 
@@ -272,6 +290,15 @@ programmers can keep using unsound types when working toward a deadline.
 
 Conjecture that soundness will find bugs too, and lead to more reliable products.
 Too soon to say.
+
+
+\subsection{Communication}
+
+How did we communicate effectively?
+Starting point was GT survey [CITE].
+Moved forward with example programs, see emails and github issues.
+Our formalism had to cover their unit tests.
+FILL
 
 
 \bibliography{bg}
