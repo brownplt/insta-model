@@ -132,7 +132,11 @@ Deleting fields is allowed.
 - [delete_declared_fields.py](conformance_suite/delete_declared_fields.py)
 - [delete_undeclared_fields.py](conformance_suite/delete_undeclared_fields.py)
 
-TODO: method call
+Declared methods check expected things.
+- [methods_work.py](conformance_suite/methods_work.py)
+- [methods_check_input_arity.py](conformance_suite/methods_check_input_arity.py)
+- [methods_check_input_types.py](conformance_suite/methods_check_input_types.py)
+- [methods_check_output_types.py](conformance_suite/methods_check_output_types.py)
 
 ## Subtyping
 

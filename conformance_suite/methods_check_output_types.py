@@ -1,4 +1,4 @@
-# methods_check_outputs.py
+# methods_check_output_types.py
 # This should fail.
 
 class C:

@@ -1,4 +1,4 @@
-# methods_check_inputs.py
+# methods_check_input_types.py
 # This should fail.
 
 class C:

@@ -115,11 +115,17 @@
 ;; conformance_suite/lookup_undeclared_field.py
 (check-judgment-holds* (⊢p ((class C object) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
 
-;; conformance_suite/methods_check_inputs.py
+;; conformance_suite/methods_check_input_arity.py
+(check-not-judgment-holds* (⊢p ((class C object (method "m" self ((x dynamic)) dynamic pass)) (def f () dynamic ((attribute (C) "m") 1 2)))))
+
+;; conformance_suite/methods_check_input_types.py
 (check-not-judgment-holds* (⊢p ((class C object (method "m" self ((x int)) dynamic (return None))) ((attribute (C) "m") "foo"))))
 
-;; conformance_suite/methods_check_outputs.py
+;; conformance_suite/methods_check_output_types.py
 (check-not-judgment-holds* (⊢p ((class C object (method "m" self () int (return "foo"))))))
+
+;; conformance_suite/methods_work.py
+(check-judgment-holds* (⊢p ((class C object (method "m" self ((x int)) str (return "foo"))) (define/assign s str ((attribute (C) "m") 42)))))
 
 ;; conformance_suite/override_instance_field.py
 (check-not-judgment-holds* (⊢p ((class C object (field "x" int)) (class D C (field "x" int)))))
