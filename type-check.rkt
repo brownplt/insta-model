@@ -7,7 +7,9 @@
 (define-extended-language SP-tc StaticPython
   ;; class environment
   (Ψ ((x T) ...))
-  ;; type values (classes + dynamic)
+  ;; types
+  (t .... (quote T))
+  ;; type values (classes and dynamic)
   (T dynamic
      (base-class)
      (prim-class string)
@@ -103,7 +105,7 @@
 (define-judgment-form SP-tc
   #:mode (lookupo I I O)
   #:contract (lookupo ((any any) ...) any any)
-  [
+  [(where #f (member any_key2 (any_key1 ...)))
    ---------------------- "Found"
    (lookupo ((any_key1 any_val1) ...
              (any_key2 any_val2)
@@ -114,6 +116,9 @@
 (define-judgment-form SP-tc
   #:mode (evalo I I O)
   #:contract (evalo Ψ t T)
+
+  [------------------------- "quotation"
+   (evalo Ψ (quote T) T)]
 
   [------------------------- "dynamic"
    (evalo Ψ dynamic dynamic)]
@@ -368,7 +373,7 @@
 (define-judgment-form SP-tc
   #:mode (flatten-classo I I O)
   #:contract (flatten-classo Ψ T flat-class)
-  
+
   [---------------------
    (flatten-classo
     Ψ
@@ -408,8 +413,8 @@
    (Ψ⊢T Ψ (prim-generic string))]
 
   ;; no incompatible override
-  [(flatten-classo Ψ T any)
-   (⊢flat-class Ψ any)
+  [(flatten-classo Ψ T flat-class)
+   (⊢flat-class Ψ flat-class)
    --------------------------------------
    (Ψ⊢T Ψ T)])
 
@@ -465,7 +470,8 @@
    (ΨΓ⊢s⇐T Ψ Γ (define/assign e_lhs e_rhs) _)]
 
 
-  [(evalo Ψ t_arg T_arg) ... (evalo Ψ t_ret T_ret)
+  [(evalo Ψ t_arg T_arg) ...
+   (evalo Ψ t_ret T_ret)
    (where Γ_body (extend Γ [x_arg T_arg] ...))
    (ΨΓ⊢s⇐T Ψ Γ_body s T_ret) ...
    ------------------------ "def"
@@ -610,11 +616,16 @@
 
   [(ΨΓ⊢e⇒T Ψ Γ e_ins T_ins)
    (flatten-classo Ψ T_ins flat-class)
-   (where ((any_field ...) any_methods) flat-class)
-   (where t_fld (lookup (any_field ... [string_fld dynamic]) string_fld))
-   (evalo Ψ t_fld T_fld)
-   ----------------------- "field"
-   (ΨΓ⊢e⇒T Ψ Γ (attribute e_ins string_fld) T_fld)]
+   (where (([string_field t_field] ...)
+           ([string_method (t_arg ...) t_ret] ...))
+          flat-class)
+   (lookupo ([string_field t_field] ...
+             [string_method (quote (-> (t_arg ...) t_ret))] ...
+             [string_mem dynamic])
+            string_mem t_mem)
+   (evalo Ψ t_mem T_mem)
+   ----------------------- "access member"
+   (ΨΓ⊢e⇒T Ψ Γ (attribute e_ins string_mem) T_mem)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_fun (-> (t_arg ...) t_ret))
    (side-condition
