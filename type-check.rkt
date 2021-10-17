@@ -562,6 +562,20 @@
   )
 
 (define-judgment-form SP-tc
+  #:mode (as-fun I I O)
+  #:contract (as-fun T number T)
+
+  [(where #t (= (len (t_arg ...)) number))
+   ------------------------ "fun-as-fun"
+   (as-fun (-> (t_arg ...) t_ret) number (-> (t_arg ...) t_ret))]
+
+  [(where (t_arg ...) ,(make-list (term number) (term dynamic)))
+   (where t_ret dynamic)
+   ------------------------ "dyn-as-fun"
+   (as-fun dynamic number (-> (t_arg ...) t_ret))]
+)
+
+(define-judgment-form SP-tc
   #:mode (ΨΓ⊢e⇒T I I I O)
   #:contract (ΨΓ⊢e⇒T Ψ Γ e T)
   ;; Is e well-formed under Γ and usable as a t?
@@ -627,11 +641,10 @@
    ----------------------- "access member"
    (ΨΓ⊢e⇒T Ψ Γ (attribute e_ins string_mem) T_mem)]
 
-  [(ΨΓ⊢e⇒T Ψ Γ e_fun (-> (t_arg ...) t_ret))
-   (side-condition
-    (= (len (t_arg ...))
-       (len (e_arg ...))))
-   (evalo Ψ t_arg T_arg) ... (evalo Ψ t_ret T_ret)
+  [(ΨΓ⊢e⇒T Ψ Γ e_fun T_fun)
+   (as-fun T_fun (len (e_arg ...)) (-> (t_arg ...) t_ret))
+   (evalo Ψ t_arg T_arg) ...
+   (evalo Ψ t_ret T_ret)
    (ΨΓ⊢e⇐T Ψ Γ e_arg T_arg) ...
    ----------------------- "function application"
    (ΨΓ⊢e⇒T Ψ Γ (e_fun e_arg ...) T_ret)]

@@ -88,6 +88,18 @@
 ;; conformance_suite/delete_undeclared_field.py
 (check-judgment-holds* (⊢p ((class C object) (def f ((c C)) dynamic (delete (attribute c "x"))))))
 
+;; conformance_suite/dynamic_as_CheckedDict.py
+(check-judgment-holds* (⊢p ((import-from "__static__" (CheckedDict)) (def id ((x dynamic)) (subscript CheckedDict (tuple-syntax str int)) (return x)))))
+
+;; conformance_suite/dynamic_as_callable.py
+(check-judgment-holds* (⊢p ((def f ((x dynamic)) dynamic (return (x (x 2) (x "foo")))))))
+
+;; conformance_suite/dynamic_as_int.py
+(check-judgment-holds* (⊢p ((def id ((x dynamic)) int (return x)))))
+
+;; conformance_suite/dynamic_as_user-defined_class.py
+(check-judgment-holds* (⊢p ((class C object) (def id ((x dynamic)) C (return x)))))
+
 ;; conformance_suite/init_checks_arity.py
 (check-not-judgment-holds* (⊢p ((class Person object (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 (Person "Alice" 21 #f)))))
 

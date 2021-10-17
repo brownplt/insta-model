@@ -150,3 +150,11 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 
 - [child_is_a_subtype_of_parent_neg.py](conformance_suite/child_is_a_subtype_of_parent_neg.py)
 - [child_is_a_subtype_of_parent_pos.py](conformance_suite/child_is_a_subtype_of_parent_pos.py)
+
+## The dynamic type
+
+TODO: `dynamic` is compatible with any type
+- [dynamic_as_int.py](conformance_suite/dynamic_as_int.py)
+- [dynamic_as_callable.py](conformance_suite/dynamic_as_callable.py)
+- [dynamic_as_CheckedDict.py](conformance_suite/dynamic_as_CheckedDict.py)
+- [dynamic_as_user-defined_class.py](conformance_suite/dynamic_as_user-defined_class.py)
