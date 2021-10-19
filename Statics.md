@@ -153,7 +153,7 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 
 ## The dynamic type
 
-TODO: `dynamic` is compatible with any type
+`dynamic` is compatible with any type
 - [dynamic_as_int.py](conformance_suite/dynamic_as_int.py)
 - [dynamic_as_callable.py](conformance_suite/dynamic_as_callable.py)
 - [dynamic_as_CheckedDict.py](conformance_suite/dynamic_as_CheckedDict.py)
