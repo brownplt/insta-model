@@ -18,7 +18,7 @@
   
   ;; statements
   (s
-   (class x_child x_parent class-member ...)
+   (class x_child (x_parent ...) class-member ...)
    (return e)
    (define/assign e t e)
    (define/assign e e)

@@ -62,7 +62,7 @@ def ast_to_sexp(node):
         return [ast_to_sexp(e) for e in node.body]
     elif isinstance(node, ast.ClassDef):
         if len(node.bases) == 0:
-            bases = symbol('object')
+            bases = [symbol('object')]
         else:
             bases = [ast_to_sexp(b) for b in node.bases]
         return [

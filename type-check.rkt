@@ -16,7 +16,7 @@
      (prim-generic string)
      (generic string T ...)
      (-> (t ...) t)
-     (class x_self x_parent
+     (class x_self (x_parent ...)
        ((string_field t_field) ...)
        ((string_method (t_arg ...) t_ret) ...))
      ;; classes themselves, useful in instance construction
@@ -32,12 +32,12 @@
   base-Ψ : -> Ψ
   [(base-Ψ) ((object (base-class))
              (float
-              (class float object
+              (class float (object)
                 ()
                 (("__init__" (dynamic) None)
                  ("__add__" (float float) float))))
-             (int (class int float () ()))
-             (bool (class bool int () ()))
+             (int (class int (float) () ()))
+             (bool (class bool (int) () ()))
              (str (prim-class "str"))
              (dict (prim-class "dict"))
              (Callable (prim-generic "Callable")))])
@@ -66,38 +66,38 @@
           (subscript Callable (tuple-syntax bool int))))
   (check-judgment-holds*
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ())))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ())))
           D C)
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ())))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ())))
           (subscript Callable (tuple-syntax int D))
           (subscript Callable (tuple-syntax int C)))
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ())))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ())))
           (subscript Callable (tuple-syntax C int))
           (subscript Callable (tuple-syntax D int)))
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ()))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ()))
                   (CheckedDict (prim-generic "CheckedDict")))
           (subscript CheckedDict (tuple-syntax int str))
           (subscript CheckedDict (tuple-syntax int str))))
   (check-not-judgment-holds*
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ())))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ())))
           C D)
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ())))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ())))
           (subscript Callable (tuple-syntax int C))
           (subscript Callable (tuple-syntax int D)))
    (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C object () ()))
-                  (D (class D C () ())))
+                  (C (class C (object) () ()))
+                  (D (class D (C) () ())))
           (subscript Callable (tuple-syntax D int))
           (subscript Callable (tuple-syntax C int))))
   )
@@ -175,11 +175,11 @@
   [------------------------ "refl"
    (Ψ⊢T≲T Ψ T T)]
 
-  [(where (class x_self-1 x_parent-1
+  [(where (class x_self-1 (x_parent-1)
             any_field-spec-1
             any_method-spec-1)
           T_1)
-   (where (class x_self-2 x_parent-2
+   (where (class x_self-2 (x_parent-2)
             any_field-spec-2
             any_method-spec-2)
           T_2)
@@ -300,10 +300,10 @@
   collect-clss : Ψ s ... -> Ψ
   ;; What are the defined classes?
   [(collect-clss Ψ_0) Ψ_0]
-  [(collect-clss Ψ_0 (class x_child x_parent class-member ...) s ...)
+  [(collect-clss Ψ_0 (class x_child (x_parent) class-member ...) s ...)
    Ψ_1
    (where (any_fields any_methods) (collect-mems class-member ...))
-   (where T (class x_child x_parent any_fields any_methods))
+   (where T (class x_child (x_parent) any_fields any_methods))
    (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T)) s ...))]
   [(collect-clss Ψ_0 s_1 s_2 ...)
    (collect-clss Ψ_0 s_2 ...)])
@@ -345,8 +345,9 @@
    (constructor-ofo Ψ (prim-class string) (dynamic))]
 
   [---------------
-   (constructor-ofo Ψ (generic "CheckedDict" T_key T_val)
-                    ((prim-class "dict")))]
+   (constructor-ofo Ψ
+                    (generic "CheckedDict" T_key T_val)
+                    (dynamic))]
 
   [(where #f (member "__init__" (string_method ...)))
    (lookupo Ψ x_parent T)
@@ -354,7 +355,7 @@
    ---------------
    (constructor-ofo
     Ψ
-    (class x_self x_parent
+    (class x_self (x_parent)
       any_fields-spec
       ((string_method (t_arg ...) t_ret) ...))
     (T_arg ...))]
@@ -363,7 +364,7 @@
    ---------------
    (constructor-ofo
     Ψ
-    (class x_self x_parent
+    (class x_self (x_parent)
       any_fields-spec
       (any_method-1 ...
        ("__init__" (t_arg ...) t_ret)
@@ -395,7 +396,7 @@
    -----------------------
    (flatten-classo
     Ψ
-    (class x_self x_parent
+    (class x_self (x_parent)
       (any_new-field ...)
       (any_new-method ...))
     ((any_new-field ... any_field ...)
@@ -472,7 +473,9 @@
 
   [(evalo Ψ t_arg T_arg) ...
    (evalo Ψ t_ret T_ret)
-   (where Γ_body (extend Γ [x_arg T_arg] ...))
+   (where ([x_loc T_loc] ...)
+          (collect-defs Ψ s ...))
+   (where Γ_body (extend Γ  [x_loc T_loc] ... [x_arg T_arg] ...))
    (ΨΓ⊢s⇐T Ψ Γ_body s T_ret) ...
    ------------------------ "def"
    (ΨΓ⊢s⇐T Ψ Γ (def x_fun ([x_arg t_arg] ...) t_ret s ...) _)]
@@ -489,7 +492,7 @@
 
   [(ΨΓ⊢class-member Ψ Γ class-member) ...
    ------------------------ "class"
-   (ΨΓ⊢s⇐T Ψ Γ (class x_cls x_sup class-member ...) _)]
+   (ΨΓ⊢s⇐T Ψ Γ (class x_cls (x_sup) class-member ...) _)]
 
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
@@ -507,7 +510,10 @@
    (¬⊢flat-class Ψ ((any_0 ... (string t_field) any_1 ...)
                     (any_1 ... (string (t_arg ...) t_ret) any_2 ...)))]
 
-  [------------------"field-twice"
+  [(evalo Ψ t_0 T_0)
+   (evalo Ψ t_1 T_1)
+   (where #t (≠ T_0 T_1))
+   ------------------"field-twice"
    (¬⊢flat-class Ψ ((any_0 ...
                      (string_0 t_0)
                      any_1 ...
