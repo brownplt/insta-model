@@ -123,7 +123,7 @@ engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-h
 
 In short, academic researchers are working to close the performance gap
 without overly restricting the promise of gradual typing.
-Industry researchers are, for the most part, sidestepping the problem with unsound types.
+Industry researchers are sidestepping the problem with unsound types---for the most part.
 
 This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
 The \SP{} team at Instagram has developed a sound type system for a subset of
@@ -139,26 +139,30 @@ Static Python.
 
 \begin{itemize}
   \item
-    Evidence that gradual soundness can work.
-    \SP{} performs well on a microbenchmark suite and, more importantly, in production.
-    The effort needed to convert code to \SP{} is low thanks to its novel application
-    of concrete types.
+    Evidence that gradual soundness delivers fast performance incrementally,
+    as programmers migrate to sound types.
+    \SP{} can be applied to a codebase with no refactoring and no performance overhead.
+    After refactoring to sound types, \SP{} performs well on a microbenchmark
+    suite and in production.
   \item
     A formal description and analysis of the \SP{} core language.
-    The analysis includes a proof of soundness and (perhaps) a metric for
-    the relative cost of a type migration.
+    The analysis includes a proof of type soundness,
+    a proof that optimization soundly improves code,
+    and [FILL perhaps] a metric to quantify the refactoring cost and optimization benefit
+    of a type migration.
   \item
-    A full list of the limitations in \SP{} relative to idealized gradual type
-    systems and an informal description of the programming discipline that Instagram
-    follows in their gradually sound codebase.
+    A list of the expressiveness limitations in \SP{} relative to
+    idealized gradual type systems,
+    and an informal description of the programming discipline that Instagram
+    follows in their gradually-sound codebase.
 \end{itemize}
 
 
 \paragraph*{Significance}
 
-We have written this paper to promote two future directions.
-First, we want to encourage system-builders to reproduce the essentials of
-\SP{} in another context and measure the net performance.
+We have written this paper with two audiences in mind.
+First, we want to encourage system-builders to reproduce the compelling
+\SP{} language design in another context and measure performance.
 Second, we want to lend focus to theoretical research on gradual typing.
 The restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
 may be worthwhile assumptions for theory going forward.
