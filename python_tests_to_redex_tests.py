@@ -27,6 +27,8 @@ def expr_to_type(expr: ast.expr):
         return expr_to_type(expr.value)
     elif isinstance(expr, ast.Tuple):
         return [symbol('tuple-syntax')] + [expr_to_type(e) for e in expr.elts]
+    elif isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
+        return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right) ]
     else:
         raise Exception("Can't deal with {}".format(expr))
 
@@ -60,15 +62,13 @@ def ast_to_sexp(node):
         return [ast_to_sexp(e) for e in node.body]
     elif isinstance(node, ast.ClassDef):
         if len(node.bases) == 0:
-            base = symbol('object')
-        elif len(node.bases) == 1:
-            base = ast_to_sexp(node.bases[0])
+            bases = symbol('object')
         else:
-            raise Exception("Can't deal with multiple base classes")
+            bases = [ast_to_sexp(b) for b in node.bases]
         return [
             symbol('class'),
             symbol(node.name),
-            symbol(base)
+            bases
         ] + [
             stmt_to_class_member(s) for s in node.body if not isinstance(s, ast.Pass)
         ]
@@ -78,13 +78,19 @@ def ast_to_sexp(node):
         else:
             return [symbol('return'), ast_to_sexp(node.value)]
     elif isinstance(node, ast.AnnAssign):
-        assert node.value is not None
-        return [
-            symbol('define/assign'),
-            symbol(str(node.target.id)),
-            expr_to_type(node.annotation),
-            ast_to_sexp(node.value)
-        ]
+        if node.value is None:
+            return [
+                symbol('claim'),
+                symbol(str(node.target.id)),
+                expr_to_type(node.annotation)
+            ]
+        else:
+            return [
+                symbol('define/assign'),
+                symbol(str(node.target.id)),
+                expr_to_type(node.annotation),
+                ast_to_sexp(node.value)
+            ]
     elif isinstance(node, ast.Assign):
         assert len(node.targets) == 1
         return [
@@ -146,6 +152,56 @@ def ast_to_sexp(node):
             expr_to_type(node.returns),
             *[ ast_to_sexp(stmt) for stmt in node.body ]
         ]
+    elif isinstance(node, ast.If):
+        return [
+            symbol('if'),
+            ast_to_sexp(node.test),
+            [
+                ast_to_sexp(s)
+                for s in node.body
+            ],
+            [
+                ast_to_sexp(s)
+                for s in node.orelse
+            ]
+        ]
+    elif isinstance(node, ast.BoolOp):
+        return [
+            ast_to_sexp(node.op)
+        ] + [
+            ast_to_sexp(v)
+            for v in node.values
+        ]
+    elif isinstance(node, ast.Or):
+        return symbol('or')
+    elif isinstance(node, ast.Compare):
+        everything = False
+        left = ast_to_sexp(node.left)
+        for (op, right) in zip(node.ops, node.comparators):
+            op = ast_to_sexp(op)
+            right = ast_to_sexp(right)
+            everything = [
+                symbol('and'),
+                everything,
+                [ op, left, right ]
+            ]
+            left = right
+        return everything
+    elif isinstance(node, ast.Is):
+        return symbol('is')
+    elif isinstance(node, ast.Gt):
+        return symbol('>')
+    elif isinstance(node, ast.While):
+        return [
+            symbol('while'),
+            ast_to_sexp(node.test),
+            list(map(ast_to_sexp, node.body)),
+            list(map(ast_to_sexp, node.orelse))
+        ]
+    elif isinstance(node, ast.Break):
+        return symbol('break')
+    elif isinstance(node, ast.Continue):
+        return symbol('continue')
     assert False, str(node)
 
 def arg_to_sexp(a):
@@ -194,6 +250,8 @@ def sexp_to_str(sexp):
     elif isinstance(sexp, string):
         return '"' + repr(sexp)[1:-1] + '"'
     elif isinstance(sexp, int):
+        return str(sexp)
+    elif isinstance(sexp, float):
         return str(sexp)
     else:
         assert False, "Can't deal with {}".format(repr(sexp))

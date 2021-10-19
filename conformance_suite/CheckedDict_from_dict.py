@@ -1,4 +1,4 @@
-# CheckedDict_from_dict_pos.py
+# CheckedDict_from_dict.py
 # This should pass.
 from __static__ import CheckedDict
 
