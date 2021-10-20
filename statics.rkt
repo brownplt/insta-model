@@ -4,7 +4,7 @@
 (require "model.rkt")
 (provide (all-defined-out))
 
-(define-extended-language SP-tc StaticPython
+(define-extended-language SP-statics SP
   ;; class environment
   (Ψ ((x T) ...))
   ;; types
@@ -28,7 +28,7 @@
                ((string_method (t_arg ...) t_ret) ...)))
   (flat-class+☠ flat-class ☠))
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   base-Ψ : -> Ψ
   [(base-Ψ) ((object (base-class))
              (float
@@ -102,7 +102,7 @@
           (subscript Callable (tuple-syntax C int))))
   )
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (lookupo I I O)
   #:contract (lookupo ((any any) ...) any any)
   [(where #f (member any_key2 (any_key1 ...)))
@@ -113,7 +113,7 @@
             any_key2
             any_val2)])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (evalo I I O)
   #:contract (evalo Ψ t T)
 
@@ -144,7 +144,7 @@
    ------------------------- "Lookup"
    (evalo Ψ x T)])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (Ψ⊢T≲T I I I)
   #:contract (Ψ⊢T≲T Ψ T T)
   ;; Is it sensible to use a value of class C_0 as as a value of
@@ -190,7 +190,7 @@
    (Ψ⊢T≲T Ψ T_1 T_2)]
   )
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (Ψ⊢t≲t I I I)
   #:contract (Ψ⊢t≲t Ψ t t)
   ;; Is it sensible to use a value of type t_0 as as value of type t_1?
@@ -202,35 +202,35 @@
    ------------------------
    (Ψ⊢t≲t Ψ t_1 t_2)])
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   member : any (any ...) -> boolean
   [(member any_0 (any_1 ... any_0 any_2 ...)) #t]
   [(member any_0 (any_1 ...)) #f])
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   not : boolean -> boolean
   [(not #t) #f]
   [(not #f) #t])
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   len : (any ...) -> number
   [(len (any ...)) ,(length (term (any ...)))])
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   = : any any -> boolean
   [(= any any) #t]
   [(= any_0 any_1) #f])
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   ≠ : any any -> boolean
   [(≠ any_0 any_1) (not (= any_0 any_1))])
 
-(define-metafunction SP-tc
-  extend : ((variable any) ...) (variable any) ... -> ((variable any) ...)
-  [(extend ((variable_known any_known) ...) (variable_new any_new) ...)
-   ((variable_new any_new) ...(variable_known any_known) ...)])
+(define-metafunction SP-statics
+  extend : ((any any) ...) (any any) ... -> ((any any) ...)
+  [(extend ((any_knownKey any_knownVal) ...) (any_newKey any_newVal) ...)
+   ((any_newKey any_newVal) ... (any_knownKey any_knownVal) ...)])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (⊢flat-class I I)
   #:contract (⊢flat-class Ψ flat-class)
 
@@ -240,7 +240,7 @@
    -----------------
    (⊢flat-class Ψ flat-class)])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (⊢p I)
   #:contract (⊢p program)
   ;; Is program well-formed?
@@ -260,7 +260,7 @@
    (term (collect-imports ((object (base-class)))))
    (term ((object (base-class))))))
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   collect-imports : Ψ import-type ... -> any
   [(collect-imports Ψ_0) Ψ_0]
   [(collect-imports
@@ -296,7 +296,7 @@
   [(collect-imports any ...)
    #f])
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   collect-clss : Ψ s ... -> Ψ
   ;; What are the defined classes?
   [(collect-clss Ψ_0) Ψ_0]
@@ -309,7 +309,7 @@
    (collect-clss Ψ_0 s_2 ...)])
 
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   collect-defs : Ψ s ... -> Γ
   ;; What are the classes and variables defined at the top level?
   [(collect-defs Ψ) ()]
@@ -334,7 +334,7 @@
   [(collect-defs Ψ s_fst s_rst ...)
    (collect-defs Ψ s_rst ...)])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (constructor-ofo I I O)
   #:contract (constructor-ofo Ψ T (T ...))
 
@@ -371,7 +371,7 @@
        any_method-2 ...))
     (T_arg ...))])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (flatten-classo I I O)
   #:contract (flatten-classo Ψ T flat-class)
 
@@ -402,7 +402,7 @@
     ((any_new-field ... any_field ...)
      (any_new-method ... any_method ...)))])
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (Ψ⊢T I I)
   #:contract (Ψ⊢T Ψ T)
   ;; Is this class well-formed (not overriding member signatures incorrectly)?
@@ -420,7 +420,7 @@
    (Ψ⊢T Ψ T)])
 
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   collect-mems : class-member ... -> (((string_field t_field) ...)
                                       ((string_method (t_arg ...) t_ret) ...))
   ;; What are the fields and methods defined in this class?
@@ -449,7 +449,7 @@
            (define/assign x int 42)
            dynamic)))
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (ΨΓ⊢s⇐T I I I I)
   #:contract (ΨΓ⊢s⇐T Ψ Γ s T)
 
@@ -466,7 +466,7 @@
 
   [(ΨΓ⊢e⇒T Ψ Γ e_lhs T)
    (ΨΓ⊢e⇐T Ψ Γ e_rhs T)
-   (side-condition (not ,(redex-match? SP-tc x (term e_lhs))))
+   (side-condition (not ,(redex-match? SP-statics x (term e_lhs))))
    ------------------------ "define/assign-synth"
    (ΨΓ⊢s⇐T Ψ Γ (define/assign e_lhs e_rhs) _)]
 
@@ -500,7 +500,7 @@
    (ΨΓ⊢s⇐T Ψ Γ e _)])
 
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (¬⊢flat-class I I)
   #:contract (¬⊢flat-class Ψ flat-class)
 
@@ -534,7 +534,7 @@
                    any_2 ...)))])
 
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (ΨΓ⊢class-member I I I)
   #:contract (ΨΓ⊢class-member Ψ Γ class-member)
 
@@ -556,7 +556,7 @@
            (lookup (base-Ψ) int))))
 
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (ΨΓ⊢e⇐T I I I I)
   #:contract (ΨΓ⊢e⇐T Ψ Γ e T)
   ;; Is e well-formed under Γ and usable as a t?
@@ -567,7 +567,7 @@
    (ΨΓ⊢e⇐T Ψ Γ e T_2)]
   )
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (as-fun I I O)
   #:contract (as-fun T number T)
 
@@ -581,7 +581,7 @@
    (as-fun dynamic number (-> (t_arg ...) t_ret))]
 )
 
-(define-judgment-form SP-tc
+(define-judgment-form SP-statics
   #:mode (ΨΓ⊢e⇒T I I I O)
   #:contract (ΨΓ⊢e⇒T Ψ Γ e T)
   ;; Is e well-formed under Γ and usable as a t?
@@ -666,7 +666,7 @@
   (test-equal (term (lookup ((x int) (x None) (y int)) x)) (term int))
   (test-equal (term (lookup ((x int) (x None) (y int)) y)) (term int)))
 
-(define-metafunction SP-tc
+(define-metafunction SP-statics
   lookup : ((any any) ...) any -> any
   [(lookup ((any_k1 any_v1) ... (any_k any_v) (any_k2 any_v2) ...) any_k)
    any_v

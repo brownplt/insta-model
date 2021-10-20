@@ -44,9 +44,10 @@ def read_tests(file_path):
 def translate_simple_compile_test(test):
 
     def check_content(parsed_test):
-        # assert not 'Optional' in test
-        # assert not 'while' in test
-        # assert not ' | ' in test
+        assert not '...' in test
+        assert not 'Optional' in test
+        assert not 'while' in test
+        assert not ' | ' in test
         assert not 'int8' in test
         assert not 'int64' in test
         assert not 'box' in test
@@ -107,6 +108,8 @@ def translate_simple_compile_test(test):
     lines = test.split('\n')
     first_line = lines[0]
     name = first_line[4:first_line.index("(self)")]
+    assert not '_kw' in name
+    assert not 'mixed_args' in name
     parsed_test = ast.parse(test, type_comments=True)
     content = check_content(parsed_test)
     return (name, content)

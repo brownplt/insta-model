@@ -3,7 +3,7 @@
 (require redex-abbrevs)
 (provide (all-defined-out))
 
-(define-language StaticPython
+(define-language SP
 
   ;; program
   (program
@@ -13,19 +13,19 @@
 
   ;; type imports
   (import-type
-   (import-from "__static__" (any ...))
-   (import-from "typing" (any ...)))
+   (import-from "__static__" (string ...))
+   (import-from "typing" (string ...)))
   
   ;; statements
   (s
    (class x_child (x_parent ...) class-member ...)
    (return e)
+   (claim e t)
    (define/assign e t e)
    (define/assign e e)
    (def x ([x t] ...) t s ...)
-   (delete e)
    pass
-   e)
+   (expr e))
 
   (class-member
    (field string t)
@@ -39,8 +39,8 @@
   (e x
      c
      (dict-syntax (e e) ...)
-     (tuple-syntax t t)
      (subscript e e)
+     (subscript x (tuple-syntax t ...))
      (attribute e string)
      (e e ...))
 

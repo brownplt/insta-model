@@ -28,7 +28,7 @@ def expr_to_type(expr: ast.expr):
     elif isinstance(expr, ast.Tuple):
         return [symbol('tuple-syntax')] + [expr_to_type(e) for e in expr.elts]
     elif isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
-        return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right) ]
+        return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right)]
     else:
         raise Exception("Can't deal with {}".format(expr))
 
@@ -114,7 +114,7 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Call):
         return [ast_to_sexp(node.func)] + [ast_to_sexp(a) for a in node.args]
     elif isinstance(node, ast.ImportFrom):
-        return [symbol('import-from'), string(node.module), [symbol(a.name) for a in node.names]]
+        return [symbol('import-from'), string(node.module), [string(a.name) for a in node.names]]
     elif isinstance(node, ast.Dict):
         return [
             symbol('dict-syntax')
@@ -134,15 +134,24 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Tuple):
         return [symbol('tuple-syntax')] + [ast_to_sexp(e) for e in node.elts]
     elif isinstance(node, ast.Delete):
+        assert len(node.targets) == 1
+        target = node.targets[0]
+        return [
+            symbol('delete'),
+            ast_to_sexp(target)
+        ]
+
         return [symbol('delete'), ast_to_sexp(node.targets[0])]
     elif isinstance(node, ast.Attribute):
         return [symbol('attribute'), ast_to_sexp(node.value), string(node.attr)]
     elif isinstance(node, ast.BinOp):
         assert isinstance(node.op, ast.Add)
         return [
-            symbol('method-call'),
-            ast_to_sexp(node.left),
-            string('__add__'),
+            [
+                symbol('attribute'),
+                ast_to_sexp(node.left),
+                string('__add__')
+            ],
             ast_to_sexp(node.right)]
     elif isinstance(node, ast.FunctionDef):
         return [
@@ -150,7 +159,7 @@ def ast_to_sexp(node):
             symbol(str(node.name)),
             arguments_to_sexp(node.args),
             expr_to_type(node.returns),
-            *[ ast_to_sexp(stmt) for stmt in node.body ]
+            *[ast_to_sexp(stmt) for stmt in node.body]
         ]
     elif isinstance(node, ast.If):
         return [
@@ -183,7 +192,7 @@ def ast_to_sexp(node):
             everything = [
                 symbol('and'),
                 everything,
-                [ op, left, right ]
+                [op, left, right]
             ]
             left = right
         return everything
@@ -204,8 +213,10 @@ def ast_to_sexp(node):
         return symbol('continue')
     assert False, str(node)
 
+
 def arg_to_sexp(a):
     return [symbol(str(a.arg)), expr_to_type(a.annotation)]
+
 
 def arguments_to_sexp(args):
     assert args.posonlyargs == []
@@ -214,7 +225,8 @@ def arguments_to_sexp(args):
     assert args.kw_defaults == []
     assert args.kwarg == None
     assert args.defaults == []
-    return [ arg_to_sexp(a) for a in args.args ]
+    return [arg_to_sexp(a) for a in args.args]
+
 
 def python_file_to_sexp(test_file):
     with open(test_file) as f:
@@ -264,13 +276,13 @@ def main():
         'conformance_suite') for f in files if f.endswith('.py')]
     test_files.sort()
     # output redex test
-    with open('conformance_suite.rkt', 'w') as f:
+    with open('test-statics.rkt', 'w') as f:
         f.write('\n'.join([
             '#lang racket',
             '(require redex)',
             '(require redex-abbrevs)',
             '(require "model.rkt")',
-            '(require "type-check.rkt")',
+            '(require "statics.rkt")',
             ''
         ]))
         for test_file in test_files:
