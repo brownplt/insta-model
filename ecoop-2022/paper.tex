@@ -185,10 +185,9 @@ Running \SP{} code is no different than standard Python.
 The main Cinder executable generates bytecode and performs
 optimizations on the fly, same as CPython.
 
-There are a few restrictions on classes
-and a few optional types that programmers may wish to use,
-but otherwise Python programs can run via \SP{}.
-%% TODO awk
+Almost all Python programs can run under \SP{} with no changes.
+The few exceptions are due to restrictions that \SP{} puts
+on classes to promote fast-running bytecode.
 
 
 \subsection{Example Program}
@@ -231,7 +230,7 @@ but otherwise Python programs can run via \SP{}.
   \label{fig:sp-example}
 \end{figure}
 
-\Cref{fig:sp-example} (left) presents a first example program
+\Cref{fig:sp-example} presents a first example program
 that defines a function \code{f} and calls it from typed code.
 The syntax is normal Python with type annotations.
 Only the import statement makes special use of \SP{};
@@ -245,7 +244,7 @@ include a few run-time casts:
 \begin{itemize}
   \item
     The function \code{f} must check that its arguments match the \code{PyDict} domain annotation.
-    Concretely, this check accepts any dictionary.
+    Concretely, this check accepts any Python dictionary.
   \item
     Because the domain check does not validate the contents of an incoming dictionary,
     the dict access must check that its result matches the function codomain.
@@ -264,6 +263,7 @@ is a central theme of \SP{}.
 
 \subsection{Language Pipeline}
 
+[FILL]
 
 \begin{enumerate}
   \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
@@ -274,6 +274,8 @@ is a central theme of \SP{}.
 
 \subsection{Type Dynamic}
 
+[FILL]
+
 The dynamic type is an important part of Static Python.
 Dynamic avoids the need for whole-sale migration,
 lets programmers work around dynamic features like splatting,
@@ -283,6 +285,7 @@ and is in some cases necessary for optimal performance (evidence?).
 \subsection{Checked Types}
 
 %% more to say about the style of migration in SP?
+[FILL]
 
 Enabling sound types on a function has a ripple effect on callers.
 All untyped callers are now forced to supply type-correct inputs; may call for
@@ -298,23 +301,92 @@ Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
 
 
-\subsection{Restrictions}
+\subsection{Virtual Method Tables}
 
-No overloading.
-At most one method per class and name.
-Ensures that receiver type does not affect dispatch.
-
-Overrides must be compatible, if done in static code.
-What's the reason?
+\SP{} adds vtables to Python.
+[FILL]
 
 
 
-\subsection{Additional Options}
+\subsection{Code Restrictions}
+
+\SP{} imposes several restrictions on classes and objects
+to support efficient compilation:
+
+\begin{itemize}
+  \item \textbf{First-order Classes}.
+    In order to benefit from types, class definitions must be defined at the top level of a module.
+    Nested classes are supported by the language, but have type \code{Dynamic} according
+    to the type checker.
+
+  \item \textbf{No overloading}.
+    Methods cannot be overloaded; each combination of a class
+    and a name can refer to at most one method.
+    This ensures that method resolution depends only on the
+    type of the receiver object.
+    % resolution does NOT depend on result type (T doesn't matter in `x:T = o.m()`)
+    % Q. does resolution depend on args?
+
+  %\item \textbf{Single Inheritance}.
+  %  Multiple inheritance is not supported.
+  %  But, it might someday be supported.
+
+  \item \textbf{Compatible method overrides}.
+    Methods may be overridden, either by \SP{} classes or
+    untyped Python classes.
+    Overrides that appear in \emph{the same} \SP{} file as the class definition, however,
+    must supply a method whose type is a static subtype of the previous method.
+    In particular, a parent method that returns type \code{int} cannot be
+    overridden by a child method that returns type \code{Dynamic}.
+    %% TODO what does this enable ... optimizations in the same file?
+
+  % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
+  % but the normal field access syntax skips any overrides (o.f)
+
+  \item \textbf{Compatible field overrides}.
+    Similarly, object fields and class variables may be overridden
+    only with subtype-compatible values.
+    In fact, \SP{} compiles fields using Python slots
+    declarations (\code{\_\_slots\_\_}).
+    This declaration prevent new fields from arising at runtime,
+    but saves space and speeds up field accesses.
+
+
+\end{itemize}
+
+
+\subsection{Type Restrictions}
+
+Certain types are not supported:
+
+\begin{itemize}
+  \item \textbf{Parameterized Classes}.
+    At present, \SP{} treats all class parameters as type \code{Dynamic}.
+    The team plans to lift this restriction (\cref{s:future}).
+
+  \item \textbf{Callable}.
+    The type system cannot yet express first-class functions.
+    The team plans to lift this restriction~(\cref{s:future}),
+    but there is little internal pressure to do so.
+
+  \item \textbf{Dynamic Checked Types}.
+    A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
+    keys or values.
+    [FILL] no desire, and makes runtime checks much simpler.
+
+  \item \textbf{Recursive Types}.
+    Sadly this is normal for Python type checkers.
+
+\end{itemize}
+
+
+\subsection{Additional Features}
 
 strict modules
 
 decorator to force inlining, for 1-line functions
 
+ctypes for primitives, unboxed representation
 
 
 \section{Model}
@@ -381,6 +453,7 @@ and Reticulated Python~\cite{vsc-dls-2019}.
 
 
 \section{Future Work}
+\label{s:future}
 
 Adapt SP ideas to a new setting, test performance takeaways.
 
