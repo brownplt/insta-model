@@ -44,6 +44,9 @@ def read_tests(file_path):
 def translate_simple_compile_test(test):
 
     def check_content(parsed_test):
+        # assert not 'Optional' in test
+        # assert not 'while' in test
+        # assert not ' | ' in test
         assert not 'int8' in test
         assert not 'int64' in test
         assert not 'box' in test
