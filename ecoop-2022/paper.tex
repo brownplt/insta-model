@@ -80,6 +80,7 @@
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
+\newcommand{\code}[1]{\texttt{#1}}
 
 
 \begin{abstract}
@@ -123,7 +124,7 @@ engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-h
 
 In short, academic researchers are working to close the performance gap
 without overly restricting the promise of gradual typing.
-Industry researchers are, for the most part, sidestepping the problem with unsound types.
+Industry researchers are sidestepping the problem with unsound types---for the most part.
 
 This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
 The \SP{} team at Instagram has developed a sound type system for a subset of
@@ -139,48 +140,141 @@ Static Python.
 
 \begin{itemize}
   \item
-    Evidence that gradual soundness can work.
-    \SP{} performs well on a microbenchmark suite and, more importantly, in production.
-    The effort needed to convert code to \SP{} is low thanks to its novel application
-    of concrete types.
+    Evidence that gradual soundness delivers fast performance incrementally,
+    as programmers migrate to sound types.
+    \SP{} can be applied to a codebase with no refactoring and no performance overhead.
+    After refactoring to sound types, \SP{} performs well on a microbenchmark
+    suite and in production.
   \item
     A formal description and analysis of the \SP{} core language.
-    The analysis includes a proof of soundness and (perhaps) a metric for
-    the relative cost of a type migration.
+    The analysis includes a proof of type soundness,
+    a proof that optimization soundly improves code,
+    and [FILL perhaps] a metric to quantify the refactoring cost and optimization benefit
+    of a type migration.
   \item
-    A full list of the limitations in \SP{} relative to idealized gradual type
-    systems and an informal description of the programming discipline that Instagram
-    follows in their gradually sound codebase.
+    A list of the expressiveness limitations in \SP{} relative to
+    idealized gradual type systems,
+    and an informal description of the programming discipline that Instagram
+    follows in their gradually-sound codebase.
 \end{itemize}
 
 
 \paragraph*{Significance}
 
-We have written this paper to promote two future directions.
-First, we want to encourage system-builders to reproduce the essentials of
-\SP{} in another context and measure the net performance.
+We have written this paper with two audiences in mind.
+First, we want to encourage system-builders to reproduce the compelling
+\SP{} language design in another context and measure performance.
 Second, we want to lend focus to theoretical research on gradual typing.
 The restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
 may be worthwhile assumptions for theory going forward.
-On the flip side, there are issues in today's \SP{} that might
-be addressed by future research.
+On the flip side, future research may find a way to lift restrictions
+that \SP{} currently adopts.
 
 
-\section{A Tour of Static Python}
+\section{\SP{} and the Cinder JIT}
 \label{s:tour}
 %% purpose = SP looks like Pyre, adds soundness to certain types
+
+\SP{} is a type checker and bytecode compiler.
+It validates programs written in ordinary Python syntax
+and generates type-specific bytecode for the Cinder JIT compiler.
+Cinder is a fork of CPython 3.8 that introduces a method-based
+JIT and several bytecode instructions.
+
+Running \SP{} code is no different than standard Python.
+The main Cinder executable generates bytecode and performs
+optimizations on the fly, same as CPython.
+
+Almost all Python programs can run under \SP{} with no changes.
+The few exceptions are due to restrictions that \SP{} puts
+on classes to promote fast-running bytecode.
+
+
+\subsection{Example Program}
+
+\begin{figure}
+  %% TODO replace with a real program
+%  \begin{minipage}[t]{0.5\columnwidth}
+  \begin{verbatim}
+    from __static__ import PyDict
+
+    def f(x: PyDict[str, int]):
+      return x["A"]
+
+    f({"A": 1}) # ==> 1
+  \end{verbatim}
+%  \end{minipage}\begin{minipage}[t]{0.5\columnwidth}
+%  \begin{verbatim}
+%    from __static__ import PyDict
+%
+%    def f(x: PyDict[str, int]):
+%      check_args(x, PyDict)
+%      return cast(x["A"], int)
+%
+%    invoke_function(f, {"A": 1}) # ==> 1
+%  \end{verbatim}
+%  %  ....
+%  %  CHECK_ARGS
+%  %  ....
+%  %  INVOKE_FUNCTION
+%  \end{minipage}
+%  \begin{verbatim}
+%    from __static__ import CheckedDict
+%
+%    def f(x: CheckedDict[str, int]):
+%      return x["A"]
+%
+%    f(CheckedDict({"A": 1}))
+%  \end{verbatim}
+  \caption{A first \SP{} program}
+  \label{fig:sp-example}
+\end{figure}
+
+\Cref{fig:sp-example} presents a first example program
+that defines a function \code{f} and calls it from typed code.
+The syntax is normal Python with type annotations.
+Only the import statement makes special use of \SP{};
+it imports a type \code{PyDict} that describes Python dictionaries.
+
+Although this program is typed, a different untyped module is free
+to import the function \code{f} and invoke it with any sort of
+argument.
+For this reason, the compiled version of \cref{fig:sp-example} must
+include a few run-time casts:
+\begin{itemize}
+  \item
+    The function \code{f} must check that its arguments match the \code{PyDict} domain annotation.
+    Concretely, this check accepts any Python dictionary.
+  \item
+    Because the domain check does not validate the contents of an incoming dictionary,
+    the dict access must check that its result matches the function codomain.
+\end{itemize}
+These checks ensure a kind of type soundness.
+
+\SP{} also uses types to drive optimizations.
+Because the call to \code{f} in \cref{fig:sp-example} appears in typed code,
+there is no need to check that it sends type-correct inputs.
+Thus, the compiled call uses a Cinder bytecode instruction to skip past the
+domain check and immediately enter the function body.
+
+The tension between checks that enforce soundness and optimizations allowed by soundness
+is a central theme of \SP{}.
 
 
 \subsection{Language Pipeline}
 
-\begin{itemize}
-  \item Pyre as a recommended, optional pre-check
+[FILL]
+
+\begin{enumerate}
+  \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
   \item SP type checker
-  \item custom bytecode
-\end{itemize}
+  \item Custom bytecode, Cinder JIT
+\end{enumerate}
 
 
 \subsection{Type Dynamic}
+
+[FILL]
 
 The dynamic type is an important part of Static Python.
 Dynamic avoids the need for whole-sale migration,
@@ -188,9 +282,10 @@ lets programmers work around dynamic features like splatting,
 and is in some cases necessary for optimal performance (evidence?).
 
 
-\subsection{Migration Issues}
+\subsection{Checked Types}
 
 %% more to say about the style of migration in SP?
+[FILL]
 
 Enabling sound types on a function has a ripple effect on callers.
 All untyped callers are now forced to supply type-correct inputs; may call for
@@ -204,6 +299,94 @@ The worst case is changing an annotation to a expect a checked data structure:
 \end{enumerate}
 Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
+
+
+\subsection{Virtual Method Tables}
+
+\SP{} adds vtables to Python.
+[FILL]
+
+
+
+\subsection{Code Restrictions}
+
+\SP{} imposes several restrictions on classes and objects
+to support efficient compilation:
+
+\begin{itemize}
+  \item \textbf{First-order Classes}.
+    In order to benefit from types, class definitions must be defined at the top level of a module.
+    Nested classes are supported by the language, but have type \code{Dynamic} according
+    to the type checker.
+
+  \item \textbf{No overloading}.
+    Methods cannot be overloaded; each combination of a class
+    and a name can refer to at most one method.
+    This ensures that method resolution depends only on the
+    type of the receiver object.
+    % resolution does NOT depend on result type (T doesn't matter in `x:T = o.m()`)
+    % Q. does resolution depend on args?
+
+  %\item \textbf{Single Inheritance}.
+  %  Multiple inheritance is not supported.
+  %  But, it might someday be supported.
+
+  \item \textbf{Compatible method overrides}.
+    Methods may be overridden, either by \SP{} classes or
+    untyped Python classes.
+    Overrides that appear in \emph{the same} \SP{} file as the class definition, however,
+    must supply a method whose type is a static subtype of the previous method.
+    In particular, a parent method that returns type \code{int} cannot be
+    overridden by a child method that returns type \code{Dynamic}.
+    %% TODO what does this enable ... optimizations in the same file?
+
+  % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
+  % but the normal field access syntax skips any overrides (o.f)
+
+  \item \textbf{Compatible field overrides}.
+    Similarly, object fields and class variables may be overridden
+    only with subtype-compatible values.
+    In fact, \SP{} compiles fields using Python slots
+    declarations (\code{\_\_slots\_\_}).
+    This declaration prevent new fields from arising at runtime,
+    but saves space and speeds up field accesses.
+
+
+\end{itemize}
+
+
+\subsection{Type Restrictions}
+
+Certain types are not supported:
+
+\begin{itemize}
+  \item \textbf{Parameterized Classes}.
+    At present, \SP{} treats all class parameters as type \code{Dynamic}.
+    The team plans to lift this restriction (\cref{s:future}).
+
+  \item \textbf{Callable}.
+    The type system cannot yet express first-class functions.
+    The team plans to lift this restriction~(\cref{s:future}),
+    but there is little internal pressure to do so.
+
+  \item \textbf{Dynamic Checked Types}.
+    A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
+    keys or values.
+    [FILL] no desire, and makes runtime checks much simpler.
+
+  \item \textbf{Recursive Types}.
+    Sadly this is normal for Python type checkers.
+
+\end{itemize}
+
+
+\subsection{Additional Features}
+
+strict modules
+
+decorator to force inlining, for 1-line functions
+
+ctypes for primitives, unboxed representation
 
 
 \section{Model}
@@ -270,6 +453,7 @@ and Reticulated Python~\cite{vsc-dls-2019}.
 
 
 \section{Future Work}
+\label{s:future}
 
 Adapt SP ideas to a new setting, test performance takeaways.
 
