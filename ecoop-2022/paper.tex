@@ -80,6 +80,7 @@
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
+\newcommand{\code}[1]{\texttt{#1}}
 
 
 \begin{abstract}
@@ -170,18 +171,105 @@ On the flip side, future research may find a way to lift restrictions
 that \SP{} currently adopts.
 
 
-\section{A Tour of Static Python}
+\section{\SP{} and the Cinder JIT}
 \label{s:tour}
 %% purpose = SP looks like Pyre, adds soundness to certain types
+
+\SP{} is a type checker and bytecode compiler.
+It validates programs written in ordinary Python syntax
+and generates type-specific bytecode for the Cinder JIT compiler.
+Cinder is a fork of CPython 3.8 that introduces a method-based
+JIT and several bytecode instructions.
+
+Running \SP{} code is no different than standard Python.
+The main Cinder executable generates bytecode and performs
+optimizations on the fly, same as CPython.
+
+There are a few restrictions on classes
+and a few optional types that programmers may wish to use,
+but otherwise Python programs can run via \SP{}.
+%% TODO awk
+
+
+\subsection{Example Program}
+
+\begin{figure}
+  %% TODO replace with a real program
+%  \begin{minipage}[t]{0.5\columnwidth}
+  \begin{verbatim}
+    from __static__ import PyDict
+
+    def f(x: PyDict[str, int]):
+      return x["A"]
+
+    f({"A": 1}) # ==> 1
+  \end{verbatim}
+%  \end{minipage}\begin{minipage}[t]{0.5\columnwidth}
+%  \begin{verbatim}
+%    from __static__ import PyDict
+%
+%    def f(x: PyDict[str, int]):
+%      check_args(x, PyDict)
+%      return cast(x["A"], int)
+%
+%    invoke_function(f, {"A": 1}) # ==> 1
+%  \end{verbatim}
+%  %  ....
+%  %  CHECK_ARGS
+%  %  ....
+%  %  INVOKE_FUNCTION
+%  \end{minipage}
+%  \begin{verbatim}
+%    from __static__ import CheckedDict
+%
+%    def f(x: CheckedDict[str, int]):
+%      return x["A"]
+%
+%    f(CheckedDict({"A": 1}))
+%  \end{verbatim}
+  \caption{A first \SP{} program}
+  \label{fig:sp-example}
+\end{figure}
+
+\Cref{fig:sp-example} (left) presents a first example program
+that defines a function \code{f} and calls it from typed code.
+The syntax is normal Python with type annotations.
+Only the import statement makes special use of \SP{};
+it imports a type \code{PyDict} that describes Python dictionaries.
+
+Although this program is typed, a different untyped module is free
+to import the function \code{f} and invoke it with any sort of
+argument.
+For this reason, the compiled version of \cref{fig:sp-example} must
+include a few run-time casts:
+\begin{itemize}
+  \item
+    The function \code{f} must check that its arguments match the \code{PyDict} domain annotation.
+    Concretely, this check accepts any dictionary.
+  \item
+    Because the domain check does not validate the contents of an incoming dictionary,
+    the dict access must check that its result matches the function codomain.
+\end{itemize}
+These checks ensure a kind of type soundness.
+
+\SP{} also uses types to drive optimizations.
+Because the call to \code{f} in \cref{fig:sp-example} appears in typed code,
+there is no need to check that it sends type-correct inputs.
+Thus, the compiled call uses a Cinder bytecode instruction to skip past the
+domain check and immediately enter the function body.
+
+The tension between checks that enforce soundness and optimizations allowed by soundness
+is a central theme of \SP{}.
 
 
 \subsection{Language Pipeline}
 
-\begin{itemize}
+
+\begin{enumerate}
   \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
   \item SP type checker
-  \item Custom bytecode
-\end{itemize}
+  \item Custom bytecode, Cinder JIT
+\end{enumerate}
 
 
 \subsection{Type Dynamic}
@@ -192,7 +280,7 @@ lets programmers work around dynamic features like splatting,
 and is in some cases necessary for optimal performance (evidence?).
 
 
-\subsection{Migration Issues}
+\subsection{Checked Types}
 
 %% more to say about the style of migration in SP?
 
@@ -208,6 +296,25 @@ The worst case is changing an annotation to a expect a checked data structure:
 \end{enumerate}
 Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
+
+
+\subsection{Restrictions}
+
+No overloading.
+At most one method per class and name.
+Ensures that receiver type does not affect dispatch.
+
+Overrides must be compatible, if done in static code.
+What's the reason?
+
+
+
+\subsection{Additional Options}
+
+strict modules
+
+decorator to force inlining, for 1-line functions
+
 
 
 \section{Model}
