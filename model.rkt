@@ -24,7 +24,8 @@
    (define/assign e e)
    (def x ([x t] ...) t s ...)
    pass
-   e)
+   (expr e)
+   (delete e))
 
   (class-member
    (field string t)
@@ -42,7 +43,6 @@
      (subscript e e)
      (subscript x (tuple-syntax t ...))
      (attribute e string)
-     (delete e)
      (e e ...))
 
   (o2 +)

@@ -101,7 +101,10 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Pass):
         return symbol('pass')
     elif isinstance(node, ast.Expr):
-        return ast_to_sexp(node.value)
+        return [
+            symbol('expr'),
+            ast_to_sexp(node.value)
+        ]
     elif isinstance(node, ast.Name):
         return symbol(str(node.id))
     elif isinstance(node, ast.Constant):
@@ -112,6 +115,7 @@ def ast_to_sexp(node):
         else:
             return node.value
     elif isinstance(node, ast.Call):
+        assert node.keywords == []
         return [ast_to_sexp(node.func)] + [ast_to_sexp(a) for a in node.args]
     elif isinstance(node, ast.ImportFrom):
         return [symbol('import-from'), string(node.module), [string(a.name) for a in node.names]]
@@ -200,6 +204,8 @@ def ast_to_sexp(node):
         return symbol('is')
     elif isinstance(node, ast.Gt):
         return symbol('>')
+    elif isinstance(node, ast.Eq):
+        return symbol('==')
     elif isinstance(node, ast.While):
         return [
             symbol('while'),
