@@ -110,6 +110,7 @@ def translate_simple_compile_test(test):
     name = first_line[4:first_line.index("(self)")]
     assert not '_kw' in name
     assert not 'mixed_args' in name
+    assert not 'redefine' in name
     parsed_test = ast.parse(test, type_comments=True)
     content = check_content(parsed_test)
     return (name, content)

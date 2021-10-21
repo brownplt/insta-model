@@ -11,10 +11,9 @@
     define-class ...
     s ...))
 
-  ;; type imports
+  ;; imports
   (import-type
-   (import-from "__static__" (string ...))
-   (import-from "typing" (string ...)))
+   (import-from string (string ...)))
   
   ;; statements
   (s
@@ -25,7 +24,7 @@
    (define/assign e e)
    (def x ([x t] ...) t s ...)
    pass
-   (expr e))
+   e)
 
   (class-member
    (field string t)
@@ -34,7 +33,8 @@
   (c integer
      boolean
      string
-     None)
+     None
+     NotImplemented)
 
   (e x
      c
@@ -42,6 +42,7 @@
      (subscript e e)
      (subscript x (tuple-syntax t ...))
      (attribute e string)
+     (delete e)
      (e e ...))
 
   (o2 +)

@@ -193,12 +193,6 @@
 ;; conformance_suite/test_multiple_dynamic_base_class.py
 (check-judgment-holds* (⊢p ((import-from "something" ("A" "B")) (class C (A B) (method "__init__" self () dynamic pass)))))
 
-;; conformance_suite/test_redefine_local_type.py
-(check-not-judgment-holds* (⊢p ((class C (object)) (class D (object)) (def f () dynamic (define/assign x C (C)) (define/assign x D (D))))))
-
-;; conformance_suite/test_redefine_type.py
-(check-not-judgment-holds* (⊢p ((class C (object)) (class D (object)) (def f ((a dynamic)) dynamic (define/assign x C (C)) (define/assign x D (D))))))
-
 ;; conformance_suite/test_static_import_star.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" ("*")))))
 

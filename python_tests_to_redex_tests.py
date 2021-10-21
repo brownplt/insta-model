@@ -234,7 +234,25 @@ def python_file_to_sexp(test_file):
         return ast_to_sexp(p)
 
 
-def python_file_to_redex_test(test_file):
+def python_file_to_redex_static_test(test_file):
+    print("Working on " + test_file)
+    spec = open(test_file).readlines()[1]
+    if spec == '# This should pass.\n':
+        check = symbol('check-judgment-holds*')
+    elif spec == '# This should fail.\n':
+        check = symbol('check-not-judgment-holds*')
+    else:
+        assert False, repr(spec)
+    return [
+        check,
+        [
+            symbol('⊢p'),
+            python_file_to_sexp(test_file)
+        ]
+    ]
+
+def python_file_to_redex_dynamic_test(test_file):
+    assert False, "NotImplemented"
     print("Working on " + test_file)
     spec = open(test_file).readlines()[1]
     if spec == '# This should pass.\n':
@@ -286,7 +304,7 @@ def main():
             ''
         ]))
         for test_file in test_files:
-            test = python_file_to_redex_test(test_file)
+            test = python_file_to_redex_static_test(test_file)
             f.write('\n')
             f.write(';; ' + test_file + '\n')
             f.write(sexp_to_str(test))

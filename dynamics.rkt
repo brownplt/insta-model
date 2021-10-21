@@ -7,12 +7,11 @@
 
 (define-extended-language SP-dynamics SP-statics
   ;; primitive values
-  (u number
-     boolean
+  (c ....
      (prim-method string v_self))
   ;; (all) values
-  (v (ref l)
-     u)
+  (v c
+     (address l))
   ;; heaps
   (Σ ((l h+☠) ...))
   ;; heap labels
@@ -20,16 +19,18 @@
   ;; heap values
   (h v
      (x_class (v_slot ...) ([string_dict v_dict] ...))
-     number)
+     (function ([x_arg t_arg] ...) t_ret s_body ...))
   ;; heap values or uninitialized memory
   (h+☠ h ☠)
   ;; values may go into expressions
-  (e .... v (var l))
+  (e ....
+     v (var l)
+     ;; introduced by funcion calls
+     (local s ...))
   ;; program execution states
   (p (Ψ Σ (s ...)))
   ;; program execution states with hole
-  (P (Ψ Σ (hole s ...))
-     (Ψ Σ (S s ...)))
+  (P (Ψ Σ (S s ...)))
   ;; statements with hole
   (S (return E)
      (define/assign (var l) E)
@@ -42,18 +43,27 @@
      (subscript v E)
      (attribute E string)
      (v ... E e ...)
+     (local S s ...)
      hole)
   )
 
 (define-metafunction SP-dynamics
-  alloc : Σ h+☠ -> (Σ l)
-  [(alloc Σ h+☠)
-   ,(let* ([used-labels (list->set (map first (term Σ)))]
-           [l (for/first ([i (in-naturals)]
-                          #:unless (set-member? used-labels i))
-                i)]
-           [Σ (term (extend Σ [,l h+☠]))])
-      (term (,Σ ,l)))])
+  alloc-one : Σ h+☠ -> (Σ l)
+  [(alloc-one Σ_1 h+☠)
+   (Σ_2 l)
+   (where ([l_used h+☠_used] ...) Σ_1)
+   (where l ,(for/first ([i (in-naturals)]
+                          #:unless (set-member? (list->set (term (l_used ...))) i))
+               i))
+   (where Σ_2 (extend Σ_1 [l h+☠]))])
+
+(define-metafunction SP-dynamics
+  alloc : Σ h+☠ ... -> (Σ l ...)
+  [(alloc Σ) (Σ)]
+  [(alloc Σ_1 h+☠_1 h+☠_2 ...)
+   (Σ_3 l_1 l_2 ...)
+   (where (Σ_2 l_1) (alloc-one Σ_1 h+☠_1))
+   (where (Σ_3 l_2 ...) (alloc Σ_2 h+☠_2 ...))])
 
 (define-metafunction SP-dynamics
   update : Σ l h -> Σ
@@ -62,9 +72,9 @@
 
 (require redex/tut-subst)
 (define-metafunction SP-dynamics
-  subst : x any_v any_term -> any
-  [(subst x any_v any_term)
-   ,(subst/proc x? (list (term x)) (list (term any_v)) (term any_term))])
+  subst : (x ...) (any_v ...) any_term -> any
+  [(subst (x ...) (any_v ...) any_term)
+   ,(subst/proc x? (term (x ...)) (term (any_v ...)) (term any_term))])
 (define x? (redex-match SP-dynamics x))
 
 (define-metafunction SP-dynamics
@@ -78,6 +88,7 @@
   (reduction-relation
    SP-dynamics
    #:domain (Ψ Σ (s ...))
+   ;; expressions
    (--> (in-hole (Ψ Σ (S s ...)) (var l))
         (in-hole (Ψ Σ (S s ...)) (lookup Σ l))
         "lookup variable")
@@ -90,15 +101,36 @@
                  v_ret)
         (where (Σ_2 v_ret) (delta Σ_1 string v_self v_arg ...))
         "delta")
+   (--> (in-hole (Ψ Σ_1 (S s ...)) ((address l_fun) v_arg ...))
+        (in-hole (Ψ Σ_2 (S s ...)) (local s_body2 ...))
+        (judgment-holds (lookupo Σ_1 l_fun (function ([x_arg t_arg] ...) t_ret s_body1 ...)))
+        (where (Σ_2 l_arg ...) (alloc Σ_1 v_arg ...))
+        (where (s_body2 ...) (subst (x_arg ...) ((var l_arg) ...) (s_body1 ...)))
+        "enter function")
+   (--> (in-hole (Ψ Σ (S s ...)) (local (return v) s ...))
+        (in-hole (Ψ Σ (S s ...)) v)
+        "leave function")
+   ;; statements
+   (--> (in-hole (Ψ Σ_1 (hole s_1 ...)) (def x_fun ([x_arg t_arg] ...) t_ret s_body ...))
+        (Ψ Σ_3 (s_2 ...))
+        (where (Σ_2 l_fun) (alloc Σ_1 (function ([x_arg t_arg] ...) t_ret s_body ...)))
+        (where (Σ_3 l_var) (alloc Σ_2 (address l_fun)))
+        (where (s_2 ...) (subst (x_fun) ((var l_var)) (s_1 ...)))
+        "def function")
    (--> (in-hole (Ψ Σ_1 (hole s_1 ...)) (claim x t))
         (Ψ Σ_2 (s_2 ...))
         (where (Σ_2 l) (alloc Σ_1 ☠))
-        (where (s_2 ...) (subst x (var l) (s_1 ...)))
+        (where (s_2 ...) (subst (x) ((var l)) (s_1 ...)))
         "claim variable")
    (--> (in-hole (Ψ Σ_1 (hole s ...)) (define/assign (var l) v))
         (Ψ Σ_2 (s ...))
         (where Σ_2 (update Σ_1 l v))
-        "define/assign")))
+        "define/assign")
+   ;; let values go
+   #;
+   (--> (Ψ Σ ((expr v) s ...))
+        (Ψ Σ (s ...))
+        "skip values")))
 
 (module+ test
   (test-->>
@@ -145,4 +177,26 @@
           ((1 #t)
            (0 2))
           ((expr 3)))))
+  (test-->>
+   red
+   (term ((base-Ψ)
+          ()
+          ((def f ([x int]) int
+             (return ((attribute x "__add__") 3)))
+           (expr (f 2)))))
+   (term ((base-Ψ)
+          ((2 2)
+           (1 (address 0))
+           (0
+            (function
+             ((x int))
+             int
+             (return ((attribute x "__add__") 3)))))
+          ((expr 5)))))
+  (test-->>
+   red
+   (term ((import-from "__static__" ("PyDict" "CheckedDict"))
+          (define/assign x (subscript CheckedDict (tuple-syntax str int))
+            ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1))))
+          (delete (subscript x "foo")))))
   (test-results))

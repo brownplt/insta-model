@@ -20,7 +20,7 @@
        ((string_field t_field) ...)
        ((string_method (t_arg ...) t_ret) ...))
      ;; classes themselves, useful in instance construction
-     (type T))
+     (class T))
   ;; type environment
   (Γ ((x T) ...))
   ;; a handy concept that is useful when I want to check well-formness of classes
@@ -31,6 +31,10 @@
 (define-metafunction SP-statics
   base-Ψ : -> Ψ
   [(base-Ψ) ((object (base-class))
+             (type
+              (class type (object)
+                ()
+                ()))
              (float
               (class float (object)
                 ()
@@ -261,50 +265,52 @@
    (term ((object (base-class))))))
 
 (define-metafunction SP-statics
+  collect-one-import : Ψ string_mod string_var -> any
+  [(collect-one-import Ψ "__static__" "PyDict")
+   (extend Ψ [PyDict (prim-class "dict")])]
+  [(collect-one-import Ψ "__static__" "CheckedDict")
+   (extend Ψ [CheckedDict (prim-generic "CheckedDict")])]
+  ;; cast doesn't extend Ψ
+  [(collect-one-import Ψ "__static__" "cast")
+   Ψ]
+  ;; everything else doesn't exist (TODO)
+  [(collect-one-import Ψ "__static__" string)
+   #f]
+  ;; everything else is dynamic
+  [(collect-one-import Ψ string_mod string_var)
+   (extend Ψ [,(string->symbol (term string_var)) dynamic])])
+
+(define-metafunction SP-statics
   collect-imports : Ψ import-type ... -> any
-  [(collect-imports Ψ_0) Ψ_0]
+  [(collect-imports Ψ) Ψ]
+  [(collect-imports Ψ (import-from string ()) import-type ...)
+   (collect-imports Ψ import-type ...)]
   [(collect-imports
-    Ψ_0
-    (import-from "__static__" (PyDict))
-    import-type_0 ...)
+    Ψ_1
+    (import-from string_mod (string_var1 string_var2 ...))
+    import-type ...)
    (collect-imports
-    (extend Ψ_0 (PyDict (prim-class "dict")))
-    import-type_0 ...)]
-  [(collect-imports
-    Ψ_0
-    (import-from "__static__" (CheckedDict))
-    import-type_0 ...)
-   (collect-imports
-    (extend Ψ_0 (CheckedDict (prim-generic "CheckedDict")))
-    import-type_0 ...)]
-  [(collect-imports
-    Ψ_0
-    (import-from "__static__" (cast))  ;; TODO: cast are skipped
-    import-type_0 ...)
-   (collect-imports
-    Ψ_0
-    import-type_0 ...)]
-  [(collect-imports
-    Ψ_0
-    (import-from string_0 (x_0 x_1 x_2 ...))
-    import-type_0 ...)
-   (collect-imports
-    Ψ_0
-    (import-from string_0 (x_0))
-    (import-from string_0 (x_1 x_2 ...))
-    import-type_0 ...)]
-  [(collect-imports any ...)
-   #f])
+    Ψ_2
+    (import-from string_mod (string_var2 ...))
+    import-type ...)
+   (where Ψ_2 (collect-one-import Ψ_1 string_mod string_var1))]
+  [(collect-imports any ...) #f])
 
 (define-metafunction SP-statics
   collect-clss : Ψ s ... -> Ψ
   ;; What are the defined classes?
   [(collect-clss Ψ_0) Ψ_0]
+  ;; single inheritance
   [(collect-clss Ψ_0 (class x_child (x_parent) class-member ...) s ...)
    Ψ_1
    (where (any_fields any_methods) (collect-mems class-member ...))
-   (where T (class x_child (x_parent) any_fields any_methods))
-   (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T)) s ...))]
+   (where T_child (class x_child (x_parent) any_fields any_methods))
+   (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T_child)) s ...))]
+  ;; multi inheritance
+  [(collect-clss Ψ_0 (class x_child (x_parent1 x_parent2 ...) class-member ...) s ...)
+   Ψ_1
+   (where T_child dynamic)
+   (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T_child)) s ...))]
   [(collect-clss Ψ_0 s_1 s_2 ...)
    (collect-clss Ψ_0 s_2 ...)])
 
@@ -492,7 +498,7 @@
 
   [(ΨΓ⊢class-member Ψ Γ class-member) ...
    ------------------------ "class"
-   (ΨΓ⊢s⇐T Ψ Γ (class x_cls (x_sup) class-member ...) _)]
+   (ΨΓ⊢s⇐T Ψ Γ (class x_child (x_parent ...) class-member ...) _)]
 
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
@@ -588,11 +594,11 @@
 
   [(lookupo Ψ x T)
    ------------------------ "ground-class"
-   (ΨΓ⊢e⇒T Ψ Γ x (type T))]
+   (ΨΓ⊢e⇒T Ψ Γ x (class T))]
 
   [(evalo Ψ (subscript x (tuple-syntax t ...)) (generic string T ...))
    ------------------------ "generic"
-   (ΨΓ⊢e⇒T Ψ Γ (subscript x (tuple-syntax t ...)) (type (generic string T ...)))]
+   (ΨΓ⊢e⇒T Ψ Γ (subscript x (tuple-syntax t ...)) (class (generic string T ...)))]
 
   [(lookupo Γ x T)
    ------------------------ "variable"
@@ -625,7 +631,7 @@
    ----------------------- "lookup-CheckedDict"
    (ΨΓ⊢e⇒T Ψ Γ (subscript e_map e_key) T_val)]
 
-  [(ΨΓ⊢e⇒T Ψ Γ e_cls (type T_cls))
+  [(ΨΓ⊢e⇒T Ψ Γ e_cls (class T_cls))
    (constructor-ofo Ψ T_cls (T_arg ...))
    (side-condition
     (= (len (T_arg ...))
