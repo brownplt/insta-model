@@ -175,22 +175,36 @@ that \SP{} currently adopts.
 \label{s:tour}
 %% purpose = SP looks like Pyre, adds soundness to certain types
 
+% {Language Pipeline}
+% \begin{enumerate}
+%   \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
+%   \item SP type checker
+%   \item Custom bytecode, Cinder JIT
+% \end{enumerate}
+
 \SP{} is a type checker and bytecode compiler.
 It validates programs written in ordinary Python syntax
-and generates type-specific bytecode for the Cinder JIT compiler.
-Cinder is a fork of CPython 3.8 that introduces a method-based
-JIT and several bytecode instructions.
+and generates type-specific bytecode for the Cinder runtime system.
+Cinder is an extension of CPython 3.8 that adds a method-based
+JIT compiler, virtual method tables, and several bytecode instructions.
+In sum, the projects consists of both a new type system (\SP{})
+and a new language (Cinder = Python extended to leverage types).
 
-Running \SP{} code is no different than standard Python.
+Running \SP{} code is no different than standard Python,
+though it takes place on a different platform.
 The main Cinder executable generates bytecode and performs
 optimizations on the fly, same as CPython.
+This is one of the main advantages of \SP{} over mypyc,
+which implements type-directed optimizations for CPython
+by compiling source code to C extension modules.
 
 Almost all Python programs can run under \SP{} with no changes.
 The few exceptions are due to restrictions that \SP{} puts
 on classes to promote fast-running bytecode.
+In general, switching to \SP{} requires minimal effort.
+Any additional work that developers are willing to invest
+in refining their types is rewarded by performance gains.
 
-
-\subsection{Example Program}
 
 \begin{figure}
   %% TODO replace with a real program
@@ -261,15 +275,6 @@ The tension between checks that enforce soundness and optimizations allowed by s
 is a central theme of \SP{}.
 
 
-\subsection{Language Pipeline}
-
-[FILL]
-
-\begin{enumerate}
-  \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
-  \item SP type checker
-  \item Custom bytecode, Cinder JIT
-\end{enumerate}
 
 
 \subsection{Type Dynamic}
@@ -301,11 +306,29 @@ Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
 
 
-\subsection{Virtual Method Tables}
+\subsection{Runtime Changes}
 
-\SP{} adds vtables to Python.
-[FILL]
+\begin{itemize}
+  \item
+    \textbf{VTables}
+    Cinder adds virtual method tables to all classes.
 
+  \item
+    \textbf{Bytecode Optimization}
+    (could use a full section)
+
+  %\item
+  %  \textbf{Shadow Frames}
+  %  (CinderDoc/static_python.rst)
+  %  magic import that signals to the Static
+  %  Python compiler to enable “shadow frame” mode in the Cinder JIT. This
+  %  improves performance of function calls by avoiding the creation of full
+  %  Python frame objects until they are definitely needed (e.g. if an
+  %  exception is raised.) In the future this should become default.
+
+
+
+\end{itemize}
 
 
 \subsection{Code Restrictions}
@@ -373,6 +396,7 @@ Certain types are not supported:
     A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
     keys or values.
     [FILL] no desire, and makes runtime checks much simpler.
+    %% NB can't do ChkDict[ChkDict[_,_],_] either but that's because ChkDict is unhashable for now
 
   \item \textbf{Recursive Types}.
     Sadly this is normal for Python type checkers.
