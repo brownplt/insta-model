@@ -464,6 +464,10 @@ Build an automatic migration tool for Checked data.
 Build a static analysis that hoists transient annotations to an early, shared point.
 Take care to give quality error messages.
 
+Optimize Python integer operations (in addition to the ctypes).
+Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
+or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
+
 
 \section{Conclusion}
 \label{s:conclusion}
