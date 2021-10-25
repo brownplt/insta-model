@@ -21,7 +21,6 @@
    (return e)
    (claim e t)
    (define/assign e t e)
-   (define/assign e e)
    (def x ([x t] ...) t s ...)
    pass
    (expr e)
@@ -29,7 +28,7 @@
 
   (class-member
    (field string t)
-   (method string_method x_self ((x_arg t_arg) ...) t_ret s ...))
+   (method string_method x_self ((x_arg t) ...) t s ...))
 
   (c integer
      boolean

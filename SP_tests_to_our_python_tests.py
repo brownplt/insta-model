@@ -162,6 +162,7 @@ for test in read_tests(input_file):
         assert not ' | ' in test
         assert not 'double' in test
         assert not 'int8' in test
+        assert not 'int32' in test
         assert not 'int64' in test
         assert not 'box' in test
         assert not 'cbool' in test

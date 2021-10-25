@@ -5,106 +5,81 @@
 (provide (all-defined-out))
 
 (define-extended-language SP-statics SP
-  ;; class environment
-  (Ψ ((x T) ...))
-  ;; types
+  ;; a global environment that maps class names to their definitions
+  (Ψ ((any T) ...))
+  ;; a local environment that maps variables to their types
+  (Γ ((x T) ...))
+  ;; syntactic types
   (t .... (quote T))
-  ;; type values (classes and dynamic)
+  ;; semantic types / type values
   (T dynamic
-     (base-class)
-     (prim-class string)
+     (the-object-class) ;; the object class
      (prim-generic string)
      (generic string T ...)
-     (-> (t ...) t)
-     (class x_self (x_parent ...)
-       ((string_field t_field) ...)
-       ((string_method (t_arg ...) t_ret) ...))
+     (-> ([x+☠ t] ...) t)
+     (class any (x_parent ...)
+       ((string_field t) ...)
+       ((string_method ([x+☠ t] ...) t) ...))
      ;; classes themselves, useful in instance construction
      (class T))
-  ;; type environment
-  (Γ ((x T) ...))
   ;; a handy concept that is useful when I want to check well-formness of classes
   (flat-class (((string_field t_field) ...)
-               ((string_method (t_arg ...) t_ret) ...)))
-  (flat-class+☠ flat-class ☠))
+               ((string_method ([x+☠ t] ...) t) ...)))
+  ;; optional flat-class
+  (flat-class+☠ flat-class ☠)
+  ;; optional variable
+  (x+☠ ☠ x)
+  ;; primtive class names
+  (prim-class-name
+   "dynamic"
+   "object"
+   "float"
+   "int"
+   "bool"
+   "str"
+   "dict"
+   "None-class")
+  )
+
+(define-metafunction SP-statics
+  prim-class : prim-class-name -> T
+  [(prim-class prim-class-name)
+   (lookup (base-Ψ) ,(string->symbol (term prim-class-name)))])
 
 (define-metafunction SP-statics
   base-Ψ : -> Ψ
-  [(base-Ψ) ((object (base-class))
+  [(base-Ψ) ((object (the-object-class))
              (type
-              (class type (object)
+              (class "type" (object)
                 ()
                 ()))
              (float
-              (class float (object)
+              (class "float" (object)
                 ()
-                (("__init__" (dynamic) None)
-                 ("__add__" (float float) float))))
-             (int (class int (float) () ()))
-             (bool (class bool (int) () ()))
-             (str (prim-class "str"))
-             (dict (prim-class "dict"))
-             (Callable (prim-generic "Callable")))])
+                (("__init__" ([☠ dynamic]) None)
+                 ("__add__" ([☠ float] [☠ float]) float))))
+             (int (class "int" (float) () ()))
+             (bool (class "bool" (int) () ()))
+             (str
+              (class "str" (object)
+                ()
+                (("__init__" ([☠ dynamic]) None))))
+             (dict
+              (class "dict" (object)
+                ()
+                (("__init__" ([☠ dynamic]) None)
+                 ("__getitem__" ([☠ dynamic]) dynamic))))
+             (Callable (prim-generic "Callable"))
+             (None-class
+              (class "None" (object)
+                ()
+                (("__init__" ([☠ dynamic]) None)))))])
 
-(module+ test
-  (check-not-judgment-holds*
-   (Ψ⊢t≲t () bool bool)
-   (Ψ⊢t≲t () int int)
-   (Ψ⊢t≲t () str str)
-   (Ψ⊢t≲t () bool int)
-   (Ψ⊢t≲t () bool float))
-  (check-judgment-holds*
-   (Ψ⊢t≲t (base-Ψ) bool bool)
-   (Ψ⊢t≲t (base-Ψ) int int)
-   (Ψ⊢t≲t (base-Ψ) str str)
-   (Ψ⊢t≲t (base-Ψ) None None)
-   (Ψ⊢t≲t (base-Ψ) int dynamic)
-   (Ψ⊢t≲t (base-Ψ) dynamic int)
-   (Ψ⊢t≲t (base-Ψ) bool int)
-   (Ψ⊢t≲t (base-Ψ) bool float)
-   (Ψ⊢t≲t (base-Ψ)
-          (subscript Callable (tuple-syntax int bool))
-          (subscript Callable (tuple-syntax int int)))
-   (Ψ⊢t≲t (base-Ψ)
-          (subscript Callable (tuple-syntax int int))
-          (subscript Callable (tuple-syntax bool int))))
-  (check-judgment-holds*
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ())))
-          D C)
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ())))
-          (subscript Callable (tuple-syntax int D))
-          (subscript Callable (tuple-syntax int C)))
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ())))
-          (subscript Callable (tuple-syntax C int))
-          (subscript Callable (tuple-syntax D int)))
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ()))
-                  (CheckedDict (prim-generic "CheckedDict")))
-          (subscript CheckedDict (tuple-syntax int str))
-          (subscript CheckedDict (tuple-syntax int str))))
-  (check-not-judgment-holds*
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ())))
-          C D)
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ())))
-          (subscript Callable (tuple-syntax int C))
-          (subscript Callable (tuple-syntax int D)))
-   (Ψ⊢t≲t (extend (base-Ψ)
-                  (C (class C (object) () ()))
-                  (D (class D (C) () ())))
-          (subscript Callable (tuple-syntax D int))
-          (subscript Callable (tuple-syntax C int))))
-  )
+(define-metafunction SP-statics
+  base-Γ : -> Γ
+  [(base-Γ)
+   ([x (class T)] ...)
+   (where ([x T] ...) (base-Ψ))])
 
 (define-judgment-form SP-statics
   #:mode (lookupo I I O)
@@ -117,24 +92,34 @@
             any_key2
             any_val2)])
 
+(define-metafunction SP-statics
+  lookup : ((any any) ...) any -> any
+  [(lookup any_env any_key)
+   any_val
+   (judgment-holds (lookupo any_env any_key any_val))]
+  [(lookup any_env any_key)
+   ,(error 'lookup "can't find ~e in ~e" (term any_key) (term any_env))])
+
 (define-judgment-form SP-statics
   #:mode (evalo I I O)
   #:contract (evalo Ψ t T)
 
+  ;; Compute type values from type expressions
+
+  [----
+   (evalo Ψ dynamic dynamic)]
+
   [------------------------- "quotation"
    (evalo Ψ (quote T) T)]
 
-  [------------------------- "dynamic"
-   (evalo Ψ dynamic dynamic)]
-
   [------------------------- "None"
-   (evalo Ψ None (prim-class "None"))]
+   (evalo Ψ None (prim-class "None-class"))]
 
   [(lookupo Ψ x (prim-generic "Callable"))
    ------------------------- "Callable"
    (evalo Ψ
           (subscript x (tuple-syntax t_input ... t_output))
-          (-> (t_input ...) t_output))]
+          (-> ([☠ t_input] ...) t_output))]
 
   [(lookupo Ψ x (prim-generic "CheckedDict"))
    (evalo Ψ t_1 T_1)
@@ -145,7 +130,7 @@
           (generic "CheckedDict" T_1 T_2))]
 
   [(lookupo Ψ x T)
-   ------------------------- "Lookup"
+   ------------------------- "Lookup"  ;; TODO: this doesn't look right to me. We should use Γ
    (evalo Ψ x T)])
 
 (define-judgment-form SP-statics
@@ -168,43 +153,28 @@
    (evalo Ψ t_1i T_1i) ... (evalo Ψ t_1o T_1o)
    (Ψ⊢T≲T Ψ T_1i T_0i) ... (Ψ⊢T≲T Ψ T_0o T_1o)
    ------------------------ "tag-callable"
-   (Ψ⊢T≲T Ψ (-> (t_0i ...) t_0o) (-> (t_1i ...) t_1o))]
+   (Ψ⊢T≲T Ψ (-> ([x+☠ t_0i] ...) t_0o) (-> ([x+☠ t_1i] ...) t_1o))]
 
   [------------------------ "C≲object"
-   (Ψ⊢T≲T Ψ T (base-class))]
-
-  [------------------------ "primitive"
-   (Ψ⊢T≲T Ψ (prim-class string) (prim-class string))]
+   (Ψ⊢T≲T Ψ T (the-object-class))]
 
   [------------------------ "refl"
    (Ψ⊢T≲T Ψ T T)]
 
-  [(where (class x_self-1 (x_parent-1)
+  [(where (class any_self-1 (x_parent-1)
             any_field-spec-1
             any_method-spec-1)
           T_1)
-   (where (class x_self-2 (x_parent-2)
+   (where (class any_self-2 (x_parent-2)
             any_field-spec-2
             any_method-spec-2)
           T_2)
-   (where #t (≠ x_self-1 x_self-2))
+   (where #t (≠ any_self-1 any_self-2))
    (lookupo Ψ x_parent-1 T_super)
    (Ψ⊢T≲T Ψ T_super T_2)
    ------------------------ "super"
    (Ψ⊢T≲T Ψ T_1 T_2)]
   )
-
-(define-judgment-form SP-statics
-  #:mode (Ψ⊢t≲t I I I)
-  #:contract (Ψ⊢t≲t Ψ t t)
-  ;; Is it sensible to use a value of type t_0 as as value of type t_1?
-  ;; (a.k.a. consistent subtyping)
-
-  [(evalo Ψ t_1 T_1)
-   (evalo Ψ t_2 T_2)
-   (Ψ⊢T≲T Ψ T_1 T_2)
-   ------------------------
-   (Ψ⊢t≲t Ψ t_1 t_2)])
 
 (define-metafunction SP-statics
   member : any (any ...) -> boolean
@@ -252,17 +222,20 @@
    (where Ψ_1 (collect-imports Ψ_0 import-type ...))
    (where Ψ_2 (collect-clss Ψ_1 s ...))
    (where Ψ Ψ_2)
-   (where ((x T) ...) Ψ)
-   (Ψ⊢T Ψ T) ...
-   (where Γ (collect-defs Ψ s ...))
+   ;(where #f ,(and (writeln (term Ψ)) #f))
+   (where ([any T_cls] ...) Ψ)
+   (Ψ⊢T Ψ T_cls) ...
+   (where ([x_typ T_typ] ...) (collect-defs Ψ s ...))
+   (where Γ (extend (base-Γ) [x_typ T_typ] ...))
+   (Ψ⊢Γ Ψ Γ)
    (ΨΓ⊢s⇐T Ψ Γ s dynamic) ...
    ------------------------
    (⊢p (import-type ... s ...))])
 
 (module+ test
   (test-equal
-   (term (collect-imports ((object (base-class)))))
-   (term ((object (base-class))))))
+   (term (collect-imports ((object (the-object-class)))))
+   (term ((object (the-object-class))))))
 
 (define-metafunction SP-statics
   collect-one-import : Ψ string_mod string_var -> any
@@ -273,9 +246,12 @@
   ;; cast doesn't extend Ψ
   [(collect-one-import Ψ "__static__" "cast")
    Ψ]
-  ;; everything else doesn't exist (TODO)
+  ;; There are no more things from __static__ doesn't exist (TODO)
   [(collect-one-import Ψ "__static__" string)
    #f]
+  ;; typing provides Any
+  [(collect-one-import Ψ "typing" "Any")
+   (extend Ψ [Any dynamic])]
   ;; everything else is dynamic
   [(collect-one-import Ψ string_mod string_var)
    (extend Ψ [,(string->symbol (term string_var)) dynamic])])
@@ -309,15 +285,18 @@
   ;; multi inheritance
   [(collect-clss Ψ_0 (class x_child (x_parent1 x_parent2 ...) class-member ...) s ...)
    Ψ_1
-   (where T_child dynamic)
+   (where x_parent dynamic)
+   (where (any_fields any_methods) (collect-mems class-member ...))
+   (where T_child (class x_child (x_parent) any_fields any_methods))
    (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T_child)) s ...))]
   [(collect-clss Ψ_0 s_1 s_2 ...)
    (collect-clss Ψ_0 s_2 ...)])
 
-
 (define-metafunction SP-statics
   collect-defs : Ψ s ... -> Γ
   ;; What are the classes and variables defined at the top level?
+  ;; TODO: non-top-level collect-defs need to be different
+  
   [(collect-defs Ψ) ()]
 
   [(collect-defs Ψ (define/assign x t e) s ...)
@@ -325,13 +304,14 @@
            (x T))
    (judgment-holds (evalo Ψ t T))]
 
-  [(collect-defs Ψ (define/assign x e) s ...)
-   (extend (collect-defs Ψ s ...)
-           (x dynamic))]
-
   [(collect-defs Ψ (def x_fun ([x_arg t_arg] ...) t_ret s_body ...) s ...)
    (extend (collect-defs Ψ s ...)
-           (x_fun (-> (t_arg ...) t_ret)))]
+           (x_fun (-> ([x_arg t_arg] ...) t_ret)))]
+
+  [(collect-defs Ψ (class x_cls (x_parent ...) class-member ...) s ...)
+   (extend (collect-defs Ψ s ...)
+           (x_cls (class T_cls)))
+   (judgment-holds (evalo Ψ x_cls T_cls))]
 
   ;; ignore the define/assign if the lhs is not a variable
   [(collect-defs Ψ (define/assign e t e) s ...)
@@ -341,68 +321,55 @@
    (collect-defs Ψ s_rst ...)])
 
 (define-judgment-form SP-statics
-  #:mode (constructor-ofo I I O)
-  #:contract (constructor-ofo Ψ T (T ...))
+  #:mode (¬Ψ⊢Γ I I)
+  #:contract (¬Ψ⊢Γ Ψ Γ)
+  [(where #f (Ψ⊢T≲T Ψ T_new T_old))
+   ---------------------
+   (¬Ψ⊢Γ Ψ ([x_1 T_1] ... [x T_new] [x_2 T_2] ... [x T_old] [x_3 T_3] ... ))])
 
-  [---------------
-   (constructor-ofo Ψ (base-class) ())]
+(define-judgment-form SP-statics
+  #:mode (Ψ⊢Γ I I)
+  #:contract (Ψ⊢Γ Ψ Γ)
+  [(where #f (¬Ψ⊢Γ Ψ Γ))
+   ---------------------
+   (Ψ⊢Γ Ψ Γ)])
 
-  [---------------
-   (constructor-ofo Ψ (prim-class string) (dynamic))]
-
-  [---------------
-   (constructor-ofo Ψ
-                    (generic "CheckedDict" T_key T_val)
-                    (dynamic))]
-
-  [(where #f (member "__init__" (string_method ...)))
-   (lookupo Ψ x_parent T)
-   (constructor-ofo Ψ T (T_arg ...))
-   ---------------
-   (constructor-ofo
-    Ψ
-    (class x_self (x_parent)
-      any_fields-spec
-      ((string_method (t_arg ...) t_ret) ...))
-    (T_arg ...))]
-
-  [(evalo Ψ t_arg T_arg) ...
-   ---------------
-   (constructor-ofo
-    Ψ
-    (class x_self (x_parent)
-      any_fields-spec
-      (any_method-1 ...
-       ("__init__" (t_arg ...) t_ret)
-       any_method-2 ...))
-    (T_arg ...))])
+(define-metafunction SP-statics
+  flatten-class : Ψ T -> flat-class
+  [(flatten-class Ψ T)
+   flat-class
+   (judgment-holds (flatten-classo Ψ T flat-class))]
+  [(flatten-class Ψ T)
+   ,(error "can't flatten ~a" (term T))])
 
 (define-judgment-form SP-statics
   #:mode (flatten-classo I I O)
   #:contract (flatten-classo Ψ T flat-class)
 
-  [---------------------
+  [--------------------- "checkeddict"
    (flatten-classo
     Ψ
-    (base-class)
+    (generic "CheckedDict" T_key T_val)
+    (()
+     (("__init__" ([☠ (quote (prim-class "dict"))]) None)
+      ("__getitem__" ([☠ (quote T_key)]) (quote T_val)))))]
+
+  [--------------------- "object"
+   (flatten-classo
+    Ψ
+    (the-object-class)
     (()
      (("__init__" () None))))]
-
-  [---------------------
-   (flatten-classo Ψ
-                   (prim-class string)
-                   (()
-                    (("__init__" () None))))]
 
   [(flatten-classo
     Ψ
     (lookup Ψ x_parent)
     ((any_field ...)
      (any_method ...)))
-   -----------------------
+   ----------------------- "extended class"
    (flatten-classo
     Ψ
-    (class x_self (x_parent)
+    (class any_self (x_parent)
       (any_new-field ...)
       (any_new-method ...))
     ((any_new-field ... any_field ...)
@@ -470,17 +437,17 @@
    ------------------------ "define/assign-check"
    (ΨΓ⊢s⇐T Ψ Γ (define/assign x t e) _)]
 
-  [(ΨΓ⊢e⇒T Ψ Γ e_lhs T)
-   (ΨΓ⊢e⇐T Ψ Γ e_rhs T)
-   (side-condition (not ,(redex-match? SP-statics x (term e_lhs))))
-   ------------------------ "define/assign-synth"
-   (ΨΓ⊢s⇐T Ψ Γ (define/assign e_lhs e_rhs) _)]
-
+  [(where #f ,(redex-match? SP-statics x (term e_1)))
+   (ΨΓ⊢e⇒T Ψ Γ e_1 T)
+   (ΨΓ⊢e⇐T Ψ Γ e_2 T)
+   ------------------------ "define/assign-field-update"
+   (ΨΓ⊢s⇐T Ψ Γ (define/assign e_1 dynamic e_2) _)]
 
   [(evalo Ψ t_arg T_arg) ...
    (evalo Ψ t_ret T_ret)
-   (where ([x_loc T_loc] ...)
-          (collect-defs Ψ s ...))
+   (where Γ_ext (collect-defs Ψ s ...))
+   (Ψ⊢Γ Ψ Γ_ext)
+   (where ([x_loc T_loc] ...) Γ_ext)
    (where Γ_body (extend Γ  [x_loc T_loc] ... [x_arg T_arg] ...))
    (ΨΓ⊢s⇐T Ψ Γ_body s T_ret) ...
    ------------------------ "def"
@@ -498,12 +465,12 @@
 
   [(ΨΓ⊢class-member Ψ Γ class-member) ...
    ------------------------ "class"
-   (ΨΓ⊢s⇐T Ψ Γ (class x_child (x_parent ...) class-member ...) _)]
+   (ΨΓ⊢s⇐T Ψ Γ (class any_child (x_parent ...) class-member ...) _)]
 
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
-   ------------------------ "exp"
-   (ΨΓ⊢s⇐T Ψ Γ e _)])
+   ------------------------ "expr"
+   (ΨΓ⊢s⇐T Ψ Γ (expr e) _)])
 
 
 (define-judgment-form SP-statics
@@ -513,8 +480,8 @@
   ;; Is this flat-class ill-formed under the class environment K?
 
   [------------------"field-and-method"
-   (¬⊢flat-class Ψ ((any_0 ... (string t_field) any_1 ...)
-                    (any_1 ... (string (t_arg ...) t_ret) any_2 ...)))]
+   (¬⊢flat-class Ψ ((any_0 ... (string any_fieldspec ...) any_1 ...)
+                    (any_1 ... (string any_methodspec ...) any_2 ...)))]
 
   [(evalo Ψ t_0 T_0)
    (evalo Ψ t_1 T_1)
@@ -527,16 +494,16 @@
                      any_2 ...)
                     any_methods))]
 
-  [(where #f (Ψ⊢T≲T Ψ (-> (t_ci ...) t_co) (-> (t_pi ...) t_po)))
+  [(where #f (Ψ⊢T≲T Ψ (-> ([x+☠_c t_ci] ...) t_co) (-> ([x+☠_p t_pi] ...) t_po)))
    ;; don't worry about constructors
    (where #t (≠ string_0 "__init__"))
    ------------------"method-incompatible"
    (¬⊢flat-class Ψ
                  (any_fields
                   (any_0 ...
-                   (string_0 (t_ci ...) t_co)
+                   (string_0 ([x+☠_c t_ci] ...) t_co)
                    any_1 ...
-                   (string_0 (t_pi ...) t_po)
+                   (string_0 ([x+☠_p t_pi] ...) t_po)
                    any_2 ...)))])
 
 
@@ -574,27 +541,90 @@
   )
 
 (define-judgment-form SP-statics
-  #:mode (as-fun I I O)
-  #:contract (as-fun T number T)
+  #:mode (constructor-ofo I I O)
+  #:contract (constructor-ofo Ψ T ([x+☠_arg t_arg] ...))
+
+  [---------------
+   (constructor-ofo Ψ (the-object-class) ())]
+
+  [---------------
+   (constructor-ofo Ψ (generic "CheckedDict" T_key T_val) ([☠ dynamic]))]
+
+  [(where #f (member "__init__" (string_method ...)))
+   (evalo Ψ x_parent T)
+   (constructor-ofo Ψ T ([x+☠_arg T_arg] ...))
+   ---------------
+   (constructor-ofo
+    Ψ
+    (class any_self (x_parent)
+      any_fields-spec
+      ((string_method ([x+☠_mtd t_mtdarg] ...) t_mthret) ...))
+    ([x+☠_arg T_arg] ...))]
+
+  [(evalo Ψ t_arg T_arg) ...
+   ---------------
+   (constructor-ofo
+    Ψ
+    (class any_self (x_parent)
+      any_fields-spec
+      (any_method-1 ...
+       ("__init__" ([x+☠_arg t_arg] ...) t_ret)
+       any_method-2 ...))
+    ([x+☠_arg T_arg] ...))])
+
+(define-judgment-form SP-statics
+  #:mode (as-fun I I I O)
+  #:contract (as-fun Ψ T number T)
+
+  [(constructor-ofo Ψ T ([x+☠_arg t_arg] ...))
+   (where #t (= (len ([x+☠_arg t_arg] ...)) number))
+   ------------------------ "class-as-fun"
+   (as-fun Ψ
+           (class T)
+           number
+           (-> ([x+☠_arg t_arg] ...) (quote T)))]
 
   [(where #t (= (len (t_arg ...)) number))
    ------------------------ "fun-as-fun"
-   (as-fun (-> (t_arg ...) t_ret) number (-> (t_arg ...) t_ret))]
+   (as-fun Ψ
+           (-> ([x+☠_arg t_arg] ...) t_ret)
+           number
+           (-> ([x+☠_arg t_arg] ...) t_ret))]
 
   [(where (t_arg ...) ,(make-list (term number) (term dynamic)))
-   (where t_ret dynamic)
+   (where t_ret (the-dynamic-type))
    ------------------------ "dyn-as-fun"
-   (as-fun dynamic number (-> (t_arg ...) t_ret))]
+   (as-fun Ψ (the-dynamic-type) number (-> ([☠ t_arg] ...) t_ret))]
 )
+
+(define-metafunction SP-statics
+  lookup-member : Ψ T string -> T
+  [(lookup-member Ψ T string)
+   (lookup ([string_field t_field] ...
+            [string_method (-> ([x+☠ t_arg] ...) t_ret)] ...)
+           string)
+   (where (([string_field t_field] ...)
+           ([string_method ([x+☠ t_arg] ...) t_ret] ...))
+          (flatten-class Ψ T))])
+
+(define-judgment-form SP-statics
+  #:mode (as-subscriptable I I O O)
+  #:contract (as-subscriptable Ψ T T T)
+
+  [---
+   (as-subscriptable Ψ dynamic dynamic dynamic)]
+
+  [(where T_getitem (lookup-member Ψ T_map "__getitem__"))
+   (as-fun Ψ T_getitem 1 (-> ([any t_key]) t_val))
+   (evalo Ψ t_key T_key)
+   (evalo Ψ t_val T_val)
+   ---
+   (as-subscriptable Ψ T_map T_key T_val)])
 
 (define-judgment-form SP-statics
   #:mode (ΨΓ⊢e⇒T I I I O)
   #:contract (ΨΓ⊢e⇒T Ψ Γ e T)
-  ;; Is e well-formed under Γ and usable as a t?
-
-  [(lookupo Ψ x T)
-   ------------------------ "ground-class"
-   (ΨΓ⊢e⇒T Ψ Γ x (class T))]
+  ;; Is e well-formed under Γ and usable as a T?
 
   [(evalo Ψ (subscript x (tuple-syntax t ...)) (generic string T ...))
    ------------------------ "generic"
@@ -605,7 +635,7 @@
    (ΨΓ⊢e⇒T Ψ Γ x T)]
 
   [----------------------- "None"
-   (ΨΓ⊢e⇒T Ψ Γ None (prim-class "None"))]
+   (ΨΓ⊢e⇒T Ψ Γ None (prim-class "None-class"))]
 
   [----------------------- "integer"
    (ΨΓ⊢e⇒T Ψ Γ integer (lookup (base-Ψ) int))]
@@ -619,34 +649,21 @@
   [(ΨΓ⊢e⇐T Ψ Γ e_key dynamic) ...
    (ΨΓ⊢e⇐T Ψ Γ e_value dynamic) ...
    ----------------------- "PyDict"
-   (ΨΓ⊢e⇒T Ψ Γ (dict-syntax (e_key e_value) ...) (prim-class "dict"))]
-
-  [(ΨΓ⊢e⇒T Ψ Γ e_map (prim-class "dict"))
-   (ΨΓ⊢e⇐T Ψ Γ e_key dynamic)
-   ----------------------- "lookup-PyDict"
-   (ΨΓ⊢e⇒T Ψ Γ (subscript e_map e_key) dynamic)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ e_map (generic "CheckedDict" T_key T_val))
+   (ΨΓ⊢e⇒T Ψ Γ (dict-syntax [e_key e_value] ...) (prim-class "dict"))]
+  
+  [(ΨΓ⊢e⇒T Ψ Γ e_map T_map)
+   (as-subscriptable Ψ T_map T_key T_val)
    (ΨΓ⊢e⇐T Ψ Γ e_key T_key)
-   ----------------------- "lookup-CheckedDict"
+   ----------------------- "subscription"
    (ΨΓ⊢e⇒T Ψ Γ (subscript e_map e_key) T_val)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ e_cls (class T_cls))
-   (constructor-ofo Ψ T_cls (T_arg ...))
-   (side-condition
-    (= (len (T_arg ...))
-       (len (e_arg ...))))
-   (ΨΓ⊢e⇐T Ψ Γ e_arg T_arg) ...
-   ----------------------- "class construction"
-   (ΨΓ⊢e⇒T Ψ Γ (e_cls e_arg ...) T_cls)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_ins T_ins)
    (flatten-classo Ψ T_ins flat-class)
    (where (([string_field t_field] ...)
-           ([string_method (t_arg ...) t_ret] ...))
+           ([string_method ([x+☠_arg t_arg] ...) t_ret] ...))
           flat-class)
    (lookupo ([string_field t_field] ...
-             [string_method (quote (-> (t_arg ...) t_ret))] ...
+             [string_method (quote (-> ([x+☠_arg t_arg] ...) t_ret))] ...
              [string_mem dynamic])
             string_mem t_mem)
    (evalo Ψ t_mem T_mem)
@@ -654,7 +671,7 @@
    (ΨΓ⊢e⇒T Ψ Γ (attribute e_ins string_mem) T_mem)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_fun T_fun)
-   (as-fun T_fun (len (e_arg ...)) (-> (t_arg ...) t_ret))
+   (as-fun Ψ T_fun (len (e_arg ...)) (-> ([x+☠_arg t_arg] ...) t_ret))
    (evalo Ψ t_arg T_arg) ...
    (evalo Ψ t_ret T_ret)
    (ΨΓ⊢e⇐T Ψ Γ e_arg T_arg) ...
@@ -672,10 +689,3 @@
   (test-equal (term (lookup ((x int) (x None) (y int)) x)) (term int))
   (test-equal (term (lookup ((x int) (x None) (y int)) y)) (term int)))
 
-(define-metafunction SP-statics
-  lookup : ((any any) ...) any -> any
-  [(lookup ((any_k1 any_v1) ... (any_k any_v) (any_k2 any_v2) ...) any_k)
-   any_v
-   (side-condition (term (not (member any_k (any_k1 ...)))))]
-  [(lookup any_1 any_2)
-   ,(error 'lookup "can't find ~e in ~e" (term any_2) (term any_1))])

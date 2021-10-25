@@ -96,6 +96,7 @@ def ast_to_sexp(node):
         return [
             symbol('define/assign'),
             ast_to_sexp(node.targets[0]),
+            symbol('dynamic'),
             ast_to_sexp(node.value)
         ]
     elif isinstance(node, ast.Pass):

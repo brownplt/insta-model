@@ -17,10 +17,10 @@
 (check-judgment-holds* (⊢p ((import-from "__static__" ("CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax int str)) ((subscript CheckedDict (tuple-syntax int str)) 42)))))
 
 ;; conformance_suite/CheckedDict_lookup_key_neg.py
-(check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (subscript x 2))))
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (expr (subscript x 2)))))
 
 ;; conformance_suite/CheckedDict_lookup_key_pos.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (subscript x "foo"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (expr (subscript x "foo")))))
 
 ;; conformance_suite/CheckedDict_lookup_val_neg.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign y str (subscript x "foo")))))
@@ -29,16 +29,16 @@
 (check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign y int (subscript x "foo")))))
 
 ;; conformance_suite/CheckedDict_update_key_neg.py
-(check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x 2) 3))))
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x 2) dynamic 3))))
 
 ;; conformance_suite/CheckedDict_update_key_pos.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") 3))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") dynamic 3))))
 
 ;; conformance_suite/CheckedDict_update_val_neg.py
-(check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") "2"))))
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") dynamic "2"))))
 
 ;; conformance_suite/CheckedDict_update_val_pos.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") 2))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") dynamic 2))))
 
 ;; conformance_suite/None_is_inhabitable.py
 (check-judgment-holds* (⊢p ((define/assign x None None))))
@@ -47,25 +47,25 @@
 (check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "bar")))))
 
 ;; conformance_suite/PyDict_insert.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "new") "hello"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "new") dynamic "hello"))))
 
 ;; conformance_suite/PyDict_is_inhabitable.py
 (check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))))))
 
 ;; conformance_suite/PyDict_lookup_bad_key.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (subscript x "bar"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "bar")))))
 
 ;; conformance_suite/PyDict_lookup_good_key.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (subscript x "bar"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "bar")))))
 
 ;; conformance_suite/PyDict_update.py
-(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "bar") "hello"))))
+(check-judgment-holds* (⊢p ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "bar") dynamic "hello"))))
 
 ;; conformance_suite/assign_declared_field_neg.py
-(check-not-judgment-holds* (⊢p ((class B (object) (field "x" str)) (class C (B)) (def f ((c C)) dynamic (define/assign (attribute c "x") 42)))))
+(check-not-judgment-holds* (⊢p ((class B (object) (field "x" str)) (class C (B)) (def f ((c C)) dynamic (define/assign (attribute c "x") dynamic 42)))))
 
 ;; conformance_suite/assign_declared_field_pos.py
-(check-judgment-holds* (⊢p ((class B (object) (field "x" int)) (class C (B)) (def f ((c C)) dynamic (define/assign (attribute c "x") 42)))))
+(check-judgment-holds* (⊢p ((class B (object) (field "x" int)) (class C (B)) (def f ((c C)) dynamic (define/assign (attribute c "x") dynamic 42)))))
 
 ;; conformance_suite/bool_is_a_subtype_of_int_neg.py
 (check-not-judgment-holds* (⊢p ((define/assign x bool 42))))
@@ -100,14 +100,17 @@
 ;; conformance_suite/dynamic_as_user-defined_class.py
 (check-judgment-holds* (⊢p ((class C (object)) (def id ((x dynamic)) C (return x)))))
 
+;; conformance_suite/empty_program.py
+(check-judgment-holds* (⊢p ()))
+
 ;; conformance_suite/init_checks_arity.py
-(check-not-judgment-holds* (⊢p ((class Person (object) (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 (Person "Alice" 21 #f)))))
+(check-not-judgment-holds* (⊢p ((class Person (object) (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 dynamic (Person "Alice" 21 #f)))))
 
 ;; conformance_suite/init_checks_type.py
-(check-not-judgment-holds* (⊢p ((class Person (object) (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 (Person "Alice" "21")))))
+(check-not-judgment-holds* (⊢p ((class Person (object) (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 dynamic (Person "Alice" "21")))))
 
 ;; conformance_suite/insert_new_field.py
-(check-judgment-holds* (⊢p ((class C (object)) (def f ((c C)) dynamic (define/assign (attribute c "x") 42)))))
+(check-judgment-holds* (⊢p ((class C (object)) (def f ((c C)) dynamic (define/assign (attribute c "x") dynamic 42)))))
 
 ;; conformance_suite/int_is_inhabitable.py
 (check-judgment-holds* (⊢p ((define/assign x int 42))))
@@ -128,10 +131,10 @@
 (check-judgment-holds* (⊢p ((class C (object)) (def expectInt ((i int)) dynamic pass) (def f ((c C)) dynamic (return (expectInt (attribute c "x")))))))
 
 ;; conformance_suite/methods_check_input_arity.py
-(check-not-judgment-holds* (⊢p ((class C (object) (method "m" self ((x dynamic)) dynamic pass)) (def f () dynamic ((attribute (C) "m") 1 2)))))
+(check-not-judgment-holds* (⊢p ((class C (object) (method "m" self ((x dynamic)) dynamic pass)) (def f () dynamic (expr ((attribute (C) "m") 1 2))))))
 
 ;; conformance_suite/methods_check_input_types.py
-(check-not-judgment-holds* (⊢p ((class C (object) (method "m" self ((x int)) dynamic (return None))) ((attribute (C) "m") "foo"))))
+(check-not-judgment-holds* (⊢p ((class C (object) (method "m" self ((x int)) dynamic (return None))) (expr ((attribute (C) "m") "foo")))))
 
 ;; conformance_suite/methods_check_output_types.py
 (check-not-judgment-holds* (⊢p ((class C (object) (method "m" self () int (return "foo"))))))
@@ -184,11 +187,50 @@
 ;; conformance_suite/test_bool_int.py
 (check-judgment-holds* (⊢p ((def f () dynamic (define/assign x int #t) (return x)))))
 
+;; conformance_suite/test_cast_unknown_type.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("cast")) (def f () dynamic (expr (cast abc 42))))))
+
+;; conformance_suite/test_cast_wrong_args.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("cast")) (def f () dynamic (expr (cast 42))))))
+
+;; conformance_suite/test_clen_bad_arg.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("clen")) (def f ((l dynamic)) dynamic (expr (clen l))))))
+
+;; conformance_suite/test_duplicate_function_replaces_class.py
+(check-not-judgment-holds* (⊢p ((class X (object)) (def X () dynamic pass))))
+
+;; conformance_suite/test_duplicate_function_replaces_function.py
+(check-not-judgment-holds* (⊢p ((def f () dynamic pass) (def f () dynamic pass))))
+
 ;; conformance_suite/test_incompat_override.py
 (check-not-judgment-holds* (⊢p ((class C (object) (field "x" int)) (class D (C) (method "x" self () dynamic pass)))))
 
+;; conformance_suite/test_incompat_override_method_arg_name.py
+(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self ((x str)) int (return 42))) (class B (A) (method "m" self ((y str)) int (return 0))))))
+
+;; conformance_suite/test_incompat_override_method_arg_type.py
+(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self ((x str)) int (return 42))) (class B (A) (method "m" self ((x int)) int (return 0))))))
+
 ;; conformance_suite/test_incompat_override_method_arg_type_okay.py
 (check-judgment-holds* (⊢p ((class A (object) (method "m" self ((x str)) int (return 42))) (class B (A) (method "m" self ((x object)) int (return 0))))))
+
+;; conformance_suite/test_incompat_override_method_num_args.py
+(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () int (return 42))) (class B (A) (method "m" self ((x int)) int (return 0))))))
+
+;; conformance_suite/test_incompat_override_method_ret_type.py
+(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () str (return "hello"))) (class B (A) (method "m" self () int (return 0))))))
+
+;; conformance_suite/test_incompat_override_method_starargs.py
+(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () int (return 42))) (class B (A) (method "m" self () int (return 0))))))
+
+;; conformance_suite/test_incompat_override_method_starkwargs.py
+(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () int (return 42))) (class B (A) (method "m" self () int (return 0))))))
+
+;; conformance_suite/test_inline_arg_type_mismatch.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("inline")) (def f ((x int)) bool (return (and #f (== x 1)))) (def g ((arg str)) bool (return (f arg))))))
+
+;; conformance_suite/test_inline_return_type_mismatch.py
+(check-not-judgment-holds* (⊢p ((import-from "__static__" ("inline")) (def f () int (return 1)) (def g () str (return (f))))))
 
 ;; conformance_suite/test_multiple_dynamic_base_class.py
 (check-judgment-holds* (⊢p ((import-from "something" ("A" "B")) (class C (A B) (method "__init__" self () dynamic pass)))))
@@ -202,8 +244,20 @@
 ;; conformance_suite/test_type_type_final.py
 (check-judgment-holds* (⊢p ((class A (type)))))
 
+;; conformance_suite/test_unannotated_assign_no_later_declare.py
+(check-not-judgment-holds* (⊢p ((def f ((flag dynamic)) dynamic (define/assign x dynamic None) (if flag ((define/assign x str "foo")) ())))))
+
+;; conformance_suite/test_verify_positional_args.py
+(check-not-judgment-holds* (⊢p ((def x ((a int) (b str)) None pass) (expr (x "a" 2)))))
+
+;; conformance_suite/test_verify_positional_args_failure_method.py
+(check-not-judgment-holds* (⊢p ((class C (object) (method "x" self ((a int) (b str)) None pass)) (expr ((attribute (C) "x") "a" 2)))))
+
 ;; conformance_suite/test_verify_positional_args_method.py
-(check-judgment-holds* (⊢p ((class C (object) (method "x" self ((a int) (b str)) None pass)) ((attribute (C) "x") 2 "hi"))))
+(check-judgment-holds* (⊢p ((class C (object) (method "x" self ((a int) (b str)) None pass)) (expr ((attribute (C) "x") 2 "hi")))))
 
 ;; conformance_suite/test_verify_positional_args_unordered.py
 (check-judgment-holds* (⊢p ((def x ((a int) (b str)) None (return (y a b))) (def y ((a int) (b str)) None pass))))
+
+;; conformance_suite/test_verify_too_many_args.py
+(check-not-judgment-holds* (⊢p ((def x () dynamic (return 42)) (expr (x 1)))))
