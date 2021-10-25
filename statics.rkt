@@ -70,6 +70,7 @@
                 (("__init__" ([☠ dynamic]) None)
                  ("__getitem__" ([☠ dynamic]) dynamic))))
              (Callable (prim-generic "Callable"))
+             (CheckedDict (prim-generic "CheckedDict"))
              (None-class
               (class "None" (object)
                 ()
@@ -269,6 +270,7 @@
   [(collect-one-import Ψ string_mod string_var)
    (extend Ψ [,(string->symbol (term string_var)) dynamic])])
 
+;; TODO: collect-imports should change Γ rather than Ψ
 (define-metafunction SP-statics
   collect-imports : Ψ import-type ... -> any
   [(collect-imports Ψ) Ψ]

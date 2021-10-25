@@ -47,7 +47,7 @@ def parse_simple_test(test):
     #         codestr = """
     #         code goes here
     #         """
-    #         a_statement_that_specify_what_to_check
+    #         one_statement_that_specify_what_to_check
     parsed_test = ast.parse(test, type_comments=True)
 
     assert isinstance(parsed_test, ast.Module)
@@ -84,9 +84,14 @@ def translate_simple_compile_test(test):
     code, spec = parse_simple_test(test)
 
     # process spec
-    pass_spec = '\n'.join([
+    pass_spec1 = '\n'.join([
         '',
         '    self.compile(codestr)',
+        ''
+    ])
+    pass_spec2 = '\n'.join([
+        '',
+        '    self.compile(codestr, modname="foo")',
         ''
     ])
     fail_spec = '\n'.join([
@@ -102,7 +107,7 @@ def translate_simple_compile_test(test):
             '',
             ''
         ]) + code
-    elif test.endswith(pass_spec):
+    elif test.endswith(pass_spec1) or test.endswith(pass_spec2):
         content = '\n'.join([
             '# {}.py'.format(name),
             '# This should pass.',
@@ -115,6 +120,13 @@ def translate_simple_compile_test(test):
 
 
 def translate_less_simple_compile_test(test):
+    # Capture tests that look like
+    #     def test_name(self) -> None:
+    #         codestr = """
+    #             some code
+    #         """
+    #         with ....:
+    #             self.compile(codestr)
     code, spec = parse_simple_test(test)
 
     assert isinstance(spec, ast.With)
@@ -138,7 +150,6 @@ def translate_less_simple_compile_test(test):
         '',
         ''
     ]) + code
-
     return (name, content)
 
 
@@ -146,15 +157,18 @@ for test in read_tests(input_file):
     lines = test.split('\n')
     first_line = lines[0]
     try:
+        # The `.index("(self)")` actually skips a bunch of tests.
         name = first_line[4:first_line.index("(self)")]
         # Skip a bunch of things that we don't care
         assert not '_kw' in name
         assert not 'mixed_args' in name
-        assert not 'redefine' in name
         assert not 'assign_chained' in name
+        assert not 'chain_assign' in name
         # Skip more
         assert not 'reveal_type' in test # TODO
         assert not '@staticmethod' in test # TODO
+        assert not '@final' in test # TODO
+        assert not 'nonlocal' in test
         assert not 'global' in test
         assert not '...' in test
         assert not 'Optional' in test
@@ -178,6 +192,8 @@ for test in read_tests(input_file):
         try:
             (name, content) = translate_less_simple_compile_test(test)
         except AssertionError:
+            print(name)
+            # exit(1)
             continue
 
     output_path = output_path_prefix + name + ".py"

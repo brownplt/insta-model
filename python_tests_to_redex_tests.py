@@ -127,6 +127,13 @@ def ast_to_sexp(node):
             [ast_to_sexp(k), ast_to_sexp(v)]
             for k, v in zip(node.keys, node.values)
         ]
+    elif isinstance(node, ast.Set):
+        return [
+            symbol('set-syntax')
+        ] + [
+            ast_to_sexp(v)
+            for v in node.elts
+        ]
     elif isinstance(node, ast.Subscript):
         return [
             symbol("subscript"),
@@ -203,6 +210,8 @@ def ast_to_sexp(node):
         return everything
     elif isinstance(node, ast.Is):
         return symbol('is')
+    elif isinstance(node, ast.In):
+        return symbol('in')
     elif isinstance(node, ast.Gt):
         return symbol('>')
     elif isinstance(node, ast.Eq):
