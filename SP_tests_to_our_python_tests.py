@@ -167,6 +167,7 @@ for test in read_tests(input_file):
         assert not 'box' in test
         assert not 'cbool' in test
         assert not 'Array' in test
+        assert not '*args' in test
     except AssertionError:
         continue
     except ValueError:

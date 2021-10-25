@@ -22,6 +22,7 @@
    (claim e t)
    (define/assign e t e)
    (def x ([x t] ...) t s ...)
+   (if e (s ...) (s ...))
    pass
    (expr e)
    (delete e))

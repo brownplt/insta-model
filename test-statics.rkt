@@ -220,12 +220,6 @@
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () str (return "hello"))) (class B (A) (method "m" self () int (return 0))))))
 
-;; conformance_suite/test_incompat_override_method_starargs.py
-(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () int (return 42))) (class B (A) (method "m" self () int (return 0))))))
-
-;; conformance_suite/test_incompat_override_method_starkwargs.py
-(check-not-judgment-holds* (⊢p ((class A (object) (method "m" self () int (return 42))) (class B (A) (method "m" self () int (return 0))))))
-
 ;; conformance_suite/test_inline_arg_type_mismatch.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" ("inline")) (def f ((x int)) bool (return (and #f (== x 1)))) (def g ((arg str)) bool (return (f arg))))))
 

@@ -215,6 +215,16 @@
    (⊢flat-class Ψ flat-class)])
 
 (define-judgment-form SP-statics
+  #:mode (Γ-overrides I I)
+  #:contract (Γ-overrides Ψ Γ)
+
+  [;(where #f (Ψ⊢T≲T Ψ T_1 T_2))
+   --------------------------
+   (Γ-overrides
+    Ψ
+    (any_1 ... [x T_1] any_2 ... [x T_2] any_3 ...))])
+
+(define-judgment-form SP-statics
   #:mode (⊢p I)
   #:contract (⊢p program)
   ;; Is program well-formed?
@@ -222,12 +232,15 @@
    (where Ψ_1 (collect-imports Ψ_0 import-type ...))
    (where Ψ_2 (collect-clss Ψ_1 s ...))
    (where Ψ Ψ_2)
-   ;(where #f ,(and (writeln (term Ψ)) #f))
    (where ([any T_cls] ...) Ψ)
    (Ψ⊢T Ψ T_cls) ...
    (where ([x_typ T_typ] ...) (collect-defs Ψ s ...))
    (where Γ (extend (base-Γ) [x_typ T_typ] ...))
    (Ψ⊢Γ Ψ Γ)
+   (where #f (Γ-overrides Ψ Γ))
+   #;(where #f ,(and (writeln (term Ψ))
+                   (writeln (term Γ))
+                   #f))
    (ΨΓ⊢s⇐T Ψ Γ s dynamic) ...
    ------------------------
    (⊢p (import-type ... s ...))])
@@ -276,12 +289,14 @@
   collect-clss : Ψ s ... -> Ψ
   ;; What are the defined classes?
   [(collect-clss Ψ_0) Ψ_0]
+  
   ;; single inheritance
   [(collect-clss Ψ_0 (class x_child (x_parent) class-member ...) s ...)
    Ψ_1
    (where (any_fields any_methods) (collect-mems class-member ...))
    (where T_child (class x_child (x_parent) any_fields any_methods))
-   (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T_child)) s ...))]
+   (where Ψ_1 (collect-clss (extend Ψ_0 [x_child T_child]) s ...))]
+
   ;; multi inheritance
   [(collect-clss Ψ_0 (class x_child (x_parent1 x_parent2 ...) class-member ...) s ...)
    Ψ_1
@@ -289,6 +304,7 @@
    (where (any_fields any_methods) (collect-mems class-member ...))
    (where T_child (class x_child (x_parent) any_fields any_methods))
    (where Ψ_1 (collect-clss (extend Ψ_0 (x_child T_child)) s ...))]
+  
   [(collect-clss Ψ_0 s_1 s_2 ...)
    (collect-clss Ψ_0 s_2 ...)])
 
@@ -395,7 +411,7 @@
 
 (define-metafunction SP-statics
   collect-mems : class-member ... -> (((string_field t_field) ...)
-                                      ((string_method (t_arg ...) t_ret) ...))
+                                      ((string_method ([x t_arg] ...) t_ret) ...))
   ;; What are the fields and methods defined in this class?
 
   [(collect-mems) (()
@@ -408,9 +424,11 @@
            (any_method ...))
           (collect-mems class-member ...))]
 
-  [(collect-mems (method string_method x_self ((x_arg t_arg) ...) t_ret s ...) class-member ...)
+  [(collect-mems
+    (method string_method x_self ([x_arg t_arg] ...) t_ret s ...)
+    class-member ...)
    ((any_field ...)
-    ((string_method (t_arg ...) t_ret) any_method ...))
+    ((string_method ([x_arg t_arg] ...) t_ret) any_method ...))
    (where ((any_field ...)
            (any_method ...))
           (collect-mems class-member ...))])
@@ -545,24 +563,27 @@
   #:contract (constructor-ofo Ψ T ([x+☠_arg t_arg] ...))
 
   [---------------
-   (constructor-ofo Ψ (the-object-class) ())]
+   (constructor-ofo Ψ
+                    (the-object-class)
+                    ())]
 
   [---------------
-   (constructor-ofo Ψ (generic "CheckedDict" T_key T_val) ([☠ dynamic]))]
+   (constructor-ofo Ψ
+                    (generic "CheckedDict" T_key T_val)
+                    ([☠ dynamic]))]
 
   [(where #f (member "__init__" (string_method ...)))
    (evalo Ψ x_parent T)
-   (constructor-ofo Ψ T ([x+☠_arg T_arg] ...))
+   (constructor-ofo Ψ T ([x+☠_arg t_arg] ...))
    ---------------
    (constructor-ofo
     Ψ
     (class any_self (x_parent)
       any_fields-spec
       ((string_method ([x+☠_mtd t_mtdarg] ...) t_mthret) ...))
-    ([x+☠_arg T_arg] ...))]
+    ([x+☠_arg t_arg] ...))]
 
-  [(evalo Ψ t_arg T_arg) ...
-   ---------------
+  [---------------
    (constructor-ofo
     Ψ
     (class any_self (x_parent)
@@ -570,7 +591,7 @@
       (any_method-1 ...
        ("__init__" ([x+☠_arg t_arg] ...) t_ret)
        any_method-2 ...))
-    ([x+☠_arg T_arg] ...))])
+    ([x+☠_arg t_arg] ...))])
 
 (define-judgment-form SP-statics
   #:mode (as-fun I I I O)
@@ -592,20 +613,24 @@
            (-> ([x+☠_arg t_arg] ...) t_ret))]
 
   [(where (t_arg ...) ,(make-list (term number) (term dynamic)))
-   (where t_ret (the-dynamic-type))
+   (where t_ret dynamic)
    ------------------------ "dyn-as-fun"
-   (as-fun Ψ (the-dynamic-type) number (-> ([☠ t_arg] ...) t_ret))]
+   (as-fun Ψ dynamic number (-> ([☠ t_arg] ...) t_ret))]
 )
 
 (define-metafunction SP-statics
   lookup-member : Ψ T string -> T
   [(lookup-member Ψ T string)
-   (lookup ([string_field t_field] ...
-            [string_method (-> ([x+☠ t_arg] ...) t_ret)] ...)
-           string)
+   T_mem
    (where (([string_field t_field] ...)
            ([string_method ([x+☠ t_arg] ...) t_ret] ...))
-          (flatten-class Ψ T))])
+          (flatten-class Ψ T))
+   (where t_mem
+          (lookup ([string_field t_field] ...
+                   [string_method '(-> ([x+☠ t_arg] ...) t_ret)] ...
+                   [string dynamic])
+                  string))
+   (judgment-holds (evalo Ψ t_mem T_mem))])
 
 (define-judgment-form SP-statics
   #:mode (as-subscriptable I I O O)
@@ -658,16 +683,8 @@
    (ΨΓ⊢e⇒T Ψ Γ (subscript e_map e_key) T_val)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_ins T_ins)
-   (flatten-classo Ψ T_ins flat-class)
-   (where (([string_field t_field] ...)
-           ([string_method ([x+☠_arg t_arg] ...) t_ret] ...))
-          flat-class)
-   (lookupo ([string_field t_field] ...
-             [string_method (quote (-> ([x+☠_arg t_arg] ...) t_ret))] ...
-             [string_mem dynamic])
-            string_mem t_mem)
-   (evalo Ψ t_mem T_mem)
-   ----------------------- "access member"
+   (where T_mem (lookup-member Ψ T_ins string_mem))
+   ----------------------- "attribute / access member"
    (ΨΓ⊢e⇒T Ψ Γ (attribute e_ins string_mem) T_mem)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_fun T_fun)
