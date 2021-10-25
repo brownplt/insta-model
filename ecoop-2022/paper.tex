@@ -84,8 +84,9 @@
 
 
 \begin{abstract}
-  Soundness, migratory typing.
-  Novel run-time check strategy, combines concrete and transient for ergonomics.
+  TBD
+%  Soundness, migratory typing.
+%  Novel run-time check strategy, combines concrete and transient for ergonomics.
 \end{abstract}
 
 
@@ -162,13 +163,13 @@ Static Python.
 \paragraph*{Significance}
 
 We have written this paper with two audiences in mind.
-First, we want to encourage system-builders to reproduce the compelling
+First, we want to encourage system-builders to reproduce the
 \SP{} language design in another context and measure performance.
 Second, we want to lend focus to theoretical research on gradual typing.
-The restrictions that \SP{} adopts (relative to the ideal promise of gradual typing)
+The restrictions that \SP{} adopts
 may be worthwhile assumptions for theory going forward.
-On the flip side, future research may find a way to lift restrictions
-that \SP{} currently adopts.
+On the flip side, future research may find a way to lift some of
+the restrictions currently in \SP{}.
 
 
 \section{\SP{} and the Cinder JIT}
@@ -184,27 +185,28 @@ that \SP{} currently adopts.
 
 \SP{} is a type checker and bytecode compiler.
 It validates programs written in ordinary Python syntax
-and generates type-specific bytecode for the Cinder runtime system.
+and generates type-specific instructions for the Cinder runtime system.
+The type system can express common Python idioms and is guaranteed
+sound through run-time checks, which in turn enable optimizations.
+The type system also includes a dynamic type as an escape hatch to
+untyped behavior.
+An unannotated variable behaves exactly as it would in Python.
+
 Cinder is an extension of CPython 3.8 that adds a method-based
-JIT compiler, virtual method tables, and several bytecode instructions.
-In sum, the projects consists of both a new type system (\SP{})
-and a new language (Cinder = Python extended to leverage types).
+JIT compiler, virtual method tables, and several bytecode instructions
+to directly express type checks and type-based optimizations.
+These enhancements take full advantage of \SP{} type information;
+they are built on top of CPython so that untyped code runs on
+the platform.
 
-Running \SP{} code is no different than standard Python,
-though it takes place on a different platform.
-The main Cinder executable generates bytecode and performs
-optimizations on the fly, same as CPython.
-This is one of the main advantages of \SP{} over mypyc,
-which implements type-directed optimizations for CPython
-by compiling source code to C extension modules.
-
-Almost all Python programs can run under \SP{} with no changes.
-The few exceptions are due to restrictions that \SP{} puts
-on classes to promote fast-running bytecode.
-In general, switching to \SP{} requires minimal effort.
-Any additional work that developers are willing to invest
-in refining their types is rewarded by performance gains.
-
+Using \SP{} and Cinder is as easy as installing a new version
+of CPython.
+The main executable compiles programs to bytecode on the fly,
+same as CPython, allowing standard developer tools to work.
+By contrast, the only effective way to get type-directed optimizations
+without changing CPython is to use C extension modules,
+which introduce an extra compilation step and get in the way
+of tooling~(\cref{s:related}).
 
 \begin{figure}
   %% TODO replace with a real program
@@ -244,8 +246,8 @@ in refining their types is rewarded by performance gains.
   \label{fig:sp-example}
 \end{figure}
 
-\Cref{fig:sp-example} presents a first example program
-that defines a function \code{f} and calls it from typed code.
+\Cref{fig:sp-example} presents a first example program.
+It defines a function \code{f} and calls it from typed code.
 The syntax is normal Python with type annotations.
 Only the import statement makes special use of \SP{};
 it imports a type \code{PyDict} that describes Python dictionaries.
@@ -261,23 +263,30 @@ include a few run-time casts:
     Concretely, this check accepts any Python dictionary.
   \item
     Because the domain check does not validate the contents of an incoming dictionary,
-    the dict access must check that its result matches the function codomain.
+    the dict access (\code{x["A"]}) must check that its result matches the function codomain.
 \end{itemize}
-These checks ensure a kind of type soundness.
+These checks ensure a \emph{shape-level} notion of type soundness~(\cite{s:model}).
+In short: if an expression has type \code{T} and reduces to a value, then the value
+matches the top-level constructor, or shape, of the type.
+The shape for a Python dictionary is merely \code{dict}.
+Other types have deeper shapes; for example, \SP{} includes a \code{ChkDict}
+type that predicts the keys and values in a special kind of dictionary.
 
-\SP{} also uses types to drive optimizations.
+Thanks to these checks, \SP{} can leverage type soundness to generate efficient code.
 Because the call to \code{f} in \cref{fig:sp-example} appears in typed code,
 there is no need to check that it sends type-correct inputs.
 Thus, the compiled call uses a Cinder bytecode instruction to skip past the
 domain check and immediately enter the function body.
 
-The tension between checks that enforce soundness and optimizations allowed by soundness
-is a central theme of \SP{}.
+The checks and optimizations in this example illustrate the general balancing act
+of \SP{}.
+Type soundness requires run-time checks, but also enables optimizations.
+The gamble is that the optizations help more that the checks hurt.
 
 
+\subsection{Type System Highlights}
 
-
-\subsection{Type Dynamic}
+\subsubsection{Type Dynamic}
 
 [FILL]
 
@@ -287,7 +296,7 @@ lets programmers work around dynamic features like splatting,
 and is in some cases necessary for optimal performance (evidence?).
 
 
-\subsection{Checked Types}
+\subsubsection{Checked Types}
 
 %% more to say about the style of migration in SP?
 [FILL]
@@ -306,43 +315,29 @@ Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
 
 
-\subsection{Runtime Changes}
+\subsubsection{CTypes}
+
+[FILL]
+CTypes for primitives, unboxed representation.
+Casts and unboxes happen at the boundary to Python.
+Straightforward, not included in model.
+Important for optimizations.
+
+% https://github.com/facebookincubator/cinder/issues/52
+
+
+
+\subsubsection{Restrictions}
+
+OO restrictions:
 
 \begin{itemize}
-  \item
-    \textbf{VTables}
-    Cinder adds virtual method tables to all classes.
-
-  \item
-    \textbf{Bytecode Optimization}
-    (could use a full section)
-
-  %\item
-  %  \textbf{Shadow Frames}
-  %  (CinderDoc/static_python.rst)
-  %  magic import that signals to the Static
-  %  Python compiler to enable “shadow frame” mode in the Cinder JIT. This
-  %  improves performance of function calls by avoiding the creation of full
-  %  Python frame objects until they are definitely needed (e.g. if an
-  %  exception is raised.) In the future this should become default.
-
-
-
-\end{itemize}
-
-
-\subsection{Code Restrictions}
-
-\SP{} imposes several restrictions on classes and objects
-to support efficient compilation:
-
-\begin{itemize}
-  \item \textbf{First-order Classes}.
+  \item \textbf{First-order Typed Classes}.
     In order to benefit from types, class definitions must be defined at the top level of a module.
     Nested classes are supported by the language, but have type \code{Dynamic} according
     to the type checker.
 
-  \item \textbf{No overloading}.
+  \item \textbf{No Overloading}.
     Methods cannot be overloaded; each combination of a class
     and a name can refer to at most one method.
     This ensures that method resolution depends only on the
@@ -378,9 +373,7 @@ to support efficient compilation:
 \end{itemize}
 
 
-\subsection{Type Restrictions}
-
-Certain types are not supported:
+Type restrictions:
 
 \begin{itemize}
   \item \textbf{Parameterized Classes}.
@@ -404,13 +397,54 @@ Certain types are not supported:
 \end{itemize}
 
 
+
+
+\subsection{Runtime System Highlights}
+
+\begin{itemize}
+  \item
+    \textbf{VTables}
+    Cinder adds virtual method tables to typed classes.
+    ``The v-tables are only used for the \code{INVOKE\_METHOD} opcode, which
+    the static compiler will only emit against a statically known static type.'' -Carl
+
+%    No, there’s no overload resolution by arguments in Python. This difference
+%    in behavior isn’t so much desired as just a consequence of making
+%    `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
+%    the callable is placed on the stack, then the arguments, then there is a
+%    `CALL_FUNCTION` (with number of args in oparg) to perform the call. This
+%    means that first the callable is resolved, then the arguments. But with
+%    `INVOKE_METHOD` we want to resolve the callable as part of the invoke
+%    itself, since this gives us opportunity to inline-cache the target of the
+%    call instead of always having to call something dynamic and unknown that’s
+%    on the stack. So that necessarily implies that first the arguments are
+%    resolved and placed on the stack, then the callable is resolved as part of
+%    the `INVOKE_METHOD`. -Carl
+
+  \item
+    \textbf{Bytecode Optimization}
+    (could use a full section)
+
+  %\item
+  %  \textbf{Shadow Frames}
+  %  (CinderDoc/static_python.rst)
+  %  magic import that signals to the Static
+  %  Python compiler to enable “shadow frame” mode in the Cinder JIT. This
+  %  improves performance of function calls by avoiding the creation of full
+  %  Python frame objects until they are definitely needed (e.g. if an
+  %  exception is raised.) In the future this should become default.
+
+
+\end{itemize}
+
+
 \subsection{Additional Features}
+
+% things we did not model ... is that worth making a distinction here?
 
 strict modules
 
 decorator to force inlining, for 1-line functions
-
-ctypes for primitives, unboxed representation
 
 
 \section{Model}
@@ -467,6 +501,7 @@ to add soundness?
 
 
 \section{Related Work}
+\label{s:related}
 
 Nom~\cite{mt-oopsla-2017} is foundational.
 Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
@@ -475,6 +510,9 @@ PyPy is another runtime for Python
 Pycket is built on PyPy and improves both Typed Racket~\cite{bbst-oopsla-2017}
 and Reticulated Python~\cite{vsc-dls-2019}.
 
+This is one of the main advantages of \SP{} over mypyc,
+which implements type-directed optimizations for CPython
+by compiling source code to C extension modules.
 
 \section{Future Work}
 \label{s:future}
