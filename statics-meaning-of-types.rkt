@@ -246,10 +246,10 @@
   [(union Ψ T_1 T_2) dynamic])
 
 (define-metafunction SP-statics
-  remove-None : Ψ T -> T
-  [(remove-None Ψ ("optional" cid)) (instancesof cid)]
-  [(remove-None Ψ (instancesof cid)) (instancesof cid)]
-  [(remove-None Ψ T) T])
+  remove-None : T -> T
+  [(remove-None ("optional" cid)) (instancesof cid)]
+  [(remove-None (instancesof cid)) (instancesof cid)]
+  [(remove-None T) T])
 
 (module+ test
   (test-match SP-statics C (term (lookup-class () "object")))

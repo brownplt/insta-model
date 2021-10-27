@@ -418,11 +418,17 @@
 
   ;; Is the statement s well-formed under the type and class environment Γ?
 
-  [(evalo Ψ Γ t T)
+  [(where #t (≠ t dynamic))
+   (evalo Ψ Γ t T)
    (ΨΓ⊢e⇐T Ψ Γ e_1 T)
    (ΨΓ⊢e⇐T Ψ Γ e_2 T)
-   ------------------------ "define/assign"
+   ------------------------ "define/assign annotated"
    (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 t e_2) _)]
+
+  [(ΨΓ⊢e⇒T Ψ Γ e_1 T)
+   (ΨΓ⊢e⇐T Ψ Γ e_2 T)
+   ------------------------ "define/assign unannotated"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 dynamic e_2) _)]
 
   [(evalo Ψ Γ t_arg T_arg) ...
    (evalo Ψ Γ t_ret T_ret)
@@ -511,7 +517,7 @@
 
   [(ΨΓ⊢e⇒T Ψ Γ x T)
    (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x (instancesof "None")]) (s_thn ...) T+☠)
-   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x (remove-None Ψ T)]) (s_els ...) T+☠)
+   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x (remove-None T)]) (s_els ...) T+☠)
    ------------------ "if is"
    (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (is x None) (s_thn ...) (s_els ...) T+☠)]
 
