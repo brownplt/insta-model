@@ -12,6 +12,7 @@
             "bool"
             "str"
             "dict"
+            "set"
             "None"
             ("CheckedDict" cid cid)
             "type")
@@ -19,10 +20,18 @@
   (cid prim-cid
        ;; user defined class
        number)
+  ;; cid or dynamic
+  (cid+dynamic+☠
+   ;; parent class
+   cid
+   ;; subclass from a dynamic class
+   dynamic
+   ;; the root / object class
+   ☠)
   ;; class description
   (C (class any
        ;; parents
-       (cid ...)
+       cid+dynamic+☠
        ;; fields
        ((string T) ...)
        ;; methods

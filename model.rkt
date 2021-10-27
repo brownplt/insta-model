@@ -40,9 +40,12 @@
   (e x
      c
      (dict-syntax (e e) ...)
+     (set-syntax e ...)
      (subscript e e)
      (subscript x (tuple-syntax t ...))
      (attribute e string)
+     (in e e)
+     (and e e)
      (e e ...))
 
   (o2 +)

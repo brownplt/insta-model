@@ -107,6 +107,8 @@
               (term (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])))
   (test-equal (term (collect-one-import (base-Γ) "__static__" "cast"))
               (term (extend (base-Γ) [cast (type-op "cast")])))
+  (test-equal (term (collect-one-import (base-Γ) "__static__" "inline"))
+              (term (base-Γ)))
   (test-equal (term (collect-one-import (base-Γ) "typing" "Any"))
               (term (extend (base-Γ) [Any dynamic])))
   (test-equal (term (collect-one-import (base-Γ) "typing" "Final"))
@@ -122,6 +124,9 @@
   ;; cast
   [(collect-one-import Γ "__static__" "cast")
    (extend Γ [cast (type-op "cast")])]
+  ;; skip inline
+  [(collect-one-import Γ "__static__" "inline")
+   Γ]
   ;; There are no more things from __static__ doesn't exist
   [(collect-one-import Γ "__static__" string)
    #f]
@@ -164,16 +169,16 @@
                      (extend (base-Γ) [foo (-> ([arg (instancesof "str")]) (instancesof "int"))]))))
   (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
                                            (class C (object))))
-              (term ((extend (base-Ψ) [0 (class C ("object") () ())])
+              (term ((extend (base-Ψ) [0 (class C "object" () ())])
                      (extend (base-Γ) [C (classitself 0)]))))
   (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
                                            (class C (object) (field "x" int))))
-              (term ((extend (base-Ψ) [0 (class C ("object") (["x" (instancesof "int")]) ())])
+              (term ((extend (base-Ψ) [0 (class C "object" (["x" (instancesof "int")]) ())])
                      (extend (base-Γ) [C (classitself 0)]))))
   (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
-                                           (class B (object))
+                                           (class B ())
                                            (class C (object))))
-              (term ((extend (base-Ψ) [1 (class C ("object") () ())] [0 (class B ("object") () ())])
+              (term ((extend (base-Ψ) [1 (class C "object" () ())] [0 (class B "object" () ())])
                      (extend (base-Γ) [C (classitself 1)] [B (classitself 0)])))))
 
 (define-metafunction SP-statics
@@ -204,6 +209,12 @@
    (¬⊢s* (s ...))])
 
 (define-metafunction SP-statics
+  compute-parent : T ... -> cid+dynamic+☠
+  [(compute-parent) "object"]
+  [(compute-parent (instancesof cid)) cid]
+  [(compute-parent T ...) dynamic])
+
+(define-metafunction SP-statics
   collect-defs-and-clss : Ψ Γ s ... -> (Ψ Γ)
   ;; What are the classes and variables defined at the top level?
   
@@ -226,7 +237,7 @@
   ;; define class
   [(collect-defs-and-clss Ψ_1 Γ_1 (class x (t_par ...) class-member ...) s ...)
    (collect-defs-and-clss Ψ_2 Γ_2 s ...)
-   (judgment-holds (evalo* Ψ_1 Γ_1 (t_par ...) ((instancesof cid_par) ...)))
+   (judgment-holds (evalo* Ψ_1 Γ_1 (t_par ...) (T_par ...)))
    (where (((string_fld t_fld) ...)
            ((string_mth ([x_arg t_arg] ...) t_ret) ...))
           (collect-mems class-member ...))
@@ -237,7 +248,7 @@
    (judgment-holds (evalo* Ψ_1 Γ_1
                            (t_ret ...)
                            (T_ret ...)))
-   (where C (class x (cid_par ...)
+   (where C (class x (compute-parent T_par ...)
               ((string_fld T_fld) ...)
               ((string_mth ([x_arg T_arg] ...) T_ret) ...)))
    (where (Ψ_2 cid) (Ψ-alloc Ψ_1 C))
@@ -418,6 +429,7 @@
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) 42 (instancesof "int"))
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) "foo" (instancesof "str"))
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) (dict-syntax) (instancesof "dict"))
+   (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) (set-syntax) (instancesof "set"))
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) (subscript (dict-syntax ("foo" 1)) "foo") dynamic)
    (ΨΓ⊢e⇐T (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
            (subscript CheckedDict (tuple-syntax str int))
@@ -443,11 +455,11 @@
    (as-fun (base-Ψ) (-> ([x (instancesof "int")]) (instancesof "str")) 1 (-> ([x (instancesof "int")]) (instancesof "str")))
    (as-fun (base-Ψ) (classitself "object") 0 (-> () (instancesof "object")))
    (as-fun (base-Ψ) (classitself "str") 1 (-> ([☠ dynamic]) (instancesof "str")))
-   (as-fun (extend (base-Ψ) [0 (class MyClass ("object") () ())])
+   (as-fun (extend (base-Ψ) [0 (class MyClass "object" () ())])
            (classitself 0) 0 (-> () (instancesof 0)))
-   (as-fun (extend (base-Ψ) [0 (class MyClass ("str") () ())])
+   (as-fun (extend (base-Ψ) [0 (class MyClass "str" () ())])
            (classitself 0) 1 (-> ([☠ dynamic]) (instancesof 0)))
-   (as-fun (extend (base-Ψ) [0 (class MyClass ("object") () (["__init__" ([x (instancesof "int")]) dynamic]))])
+   (as-fun (extend (base-Ψ) [0 (class MyClass "object" () (["__init__" ([x (instancesof "int")]) dynamic]))])
            (classitself 0) 1 (-> ([x (instancesof "int")]) (instancesof 0))))
   (check-not-judgment-holds*
    (as-fun (base-Ψ) (-> ([x dynamic]) dynamic) 0 any)
@@ -499,7 +511,12 @@
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) #t (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) 42 (instancesof "int"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) "foo" (instancesof "str"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (set-syntax) (instancesof "set"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (set-syntax "foo" 42) (instancesof "set"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (in None (set-syntax "foo" 42)) (instancesof "bool"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (and #t #f) dynamic)
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (dict-syntax) (instancesof "dict"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (dict-syntax [42 "foo"] ["bar" 120]) (instancesof "dict"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (subscript (dict-syntax ("foo" 1)) "foo") dynamic)
    (ΨΓ⊢e⇒T (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
            (subscript CheckedDict (tuple-syntax str int))
@@ -511,6 +528,16 @@
   #:mode (ΨΓ⊢e⇒T I I I O)
   #:contract (ΨΓ⊢e⇒T Ψ Γ e T)
   ;; Is e well-formed under Γ and usable as a T?
+
+  ;; binop in
+  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_2 "__contains__") e_1) T)
+   ------------------------ "binop in"
+   (ΨΓ⊢e⇒T Ψ Γ (in e_1 e_2) T)]
+
+  ;; binop and
+  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__and__") e_2) T)
+   ------------------------ "binop and"
+   (ΨΓ⊢e⇒T Ψ Γ (and e_1 e_2) T)]
 
   [(where (subscript x (tuple-syntax t ...)) e)
    (evalo Ψ Γ e (instancesof cid))
@@ -535,8 +562,12 @@
 
   [(ΨΓ⊢e⇐T Ψ Γ e_key dynamic) ...
    (ΨΓ⊢e⇐T Ψ Γ e_value dynamic) ...
-   ----------------------- "PyDict"
+   ----------------------- "dict"
    (ΨΓ⊢e⇒T Ψ Γ (dict-syntax [e_key e_value] ...) (instancesof "dict"))]
+
+  [(ΨΓ⊢e⇐T Ψ Γ e_elt dynamic) ...
+   ----------------------- "set"
+   (ΨΓ⊢e⇒T Ψ Γ (set-syntax e_elt ...) (instancesof "set"))]
   
   [(ΨΓ⊢e⇒T Ψ Γ e_map T_map)
    (as-subscriptable Ψ T_map T_key T_val)

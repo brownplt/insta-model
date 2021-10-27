@@ -218,11 +218,7 @@
 (check-judgment-holds* (⊢p ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559))))
 
 ;; conformance_suite/test_final_generic_types.py
-(check-judgment-holds* (⊢p ((import-from "typing" ("Final"))
-                            (def g ((i int)) int (return i))
-                            (def f () int
-                              (define/assign x (subscript Final int) 3735928559)
-                              (return (g x))))))
+(check-judgment-holds* (⊢p ((import-from "typing" ("Final")) (def g ((i int)) int (return i)) (def f () int (define/assign x (subscript Final int) 3735928559) (return (g x))))))
 
 ;; conformance_suite/test_frozenset_constant.py
 (check-judgment-holds* (⊢p ((import-from "__static__" ("inline")) (def i ((s str)) bool (return (and #f (in i (set-syntax "a" "b"))))) (def t () bool (return (i "p"))))))

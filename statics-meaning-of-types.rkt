@@ -15,8 +15,8 @@
       i)))
 
 (module+ test
-  (test-equal (term (Ψ-alloc (base-Ψ) (class C ("object") () ())))
-              (term ((extend (base-Ψ) [0 (class C ("object") () ())])
+  (test-equal (term (Ψ-alloc (base-Ψ) (class C "object" () ())))
+              (term ((extend (base-Ψ) [0 (class C "object" () ())])
                      0))))
 (define-metafunction SP-statics
   Ψ-alloc : Ψ C -> (Ψ cid)
@@ -125,7 +125,7 @@
   [------------------------- "refl"
    (Ψ⊢cid<:cid Ψ cid cid)]
 
-  [(where (class any_desc (cid_par) any_spec ...) (lookup-class Ψ cid_slf))
+  [(where (class any_desc cid_par any_spec ...) (lookup-class Ψ cid_slf))
    (Ψ⊢cid<:cid Ψ cid_par cid_bnd)
    ------------------------ "super"
    (Ψ⊢cid<:cid Ψ cid_slf cid_bnd)]
@@ -183,6 +183,8 @@
   (test-match SP-statics C (term (lookup-class () "bool")))
   (test-match SP-statics C (term (lookup-class () "str")))
   (test-match SP-statics C (term (lookup-class () "None")))
+  (test-match SP-statics C (term (lookup-class () "dict")))
+  (test-match SP-statics C (term (lookup-class () "set")))
   (test-match SP-statics C (term (lookup-class () ("CheckedDict" "str" "int")))))
 (define-metafunction SP-statics
   lookup-class : Ψ cid -> C
@@ -190,33 +192,38 @@
   ;; primitive/builtin classes are handled here
   [(lookup-class Ψ "object")
    (class object
-     ()
+     ☠
      ()
      (("__init__" () (instancesof "None"))))]
   [(lookup-class Ψ "type")
-   (class type ("object") () ())]
+   (class type "object" () ())]
   [(lookup-class Ψ "float")
    (class float
-     ("object")
+     "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
       ("__add__" ([☠ (instancesof "float")] [☠ (instancesof "float")]) (instancesof "float"))))]
   [(lookup-class Ψ "int")
-   (class int ("float") () ())]
+   (class int "float" () ())]
   [(lookup-class Ψ "bool")
-   (class bool ("int") () ())]
+   (class bool "int" () ())]
   [(lookup-class Ψ "str")
-   (class str ("object") () (("__init__" ([☠ dynamic]) dynamic)))]
+   (class str "object" () (("__init__" ([☠ dynamic]) dynamic)))]
   [(lookup-class Ψ "dict")
-   (class dict ("object")
+   (class dict "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
       ("__getitem__" ([☠ dynamic]) dynamic)))]
+  [(lookup-class Ψ "set")
+   (class dict "object"
+     ()
+     (("__init__" ([☠ dynamic]) dynamic)
+      ("__contains__" ([☠ dynamic]) (instancesof "bool"))))]
   [(lookup-class Ψ "None")
-   (class None ("object") () ())]
+   (class None "object" () ())]
   [(lookup-class Ψ ("CheckedDict" cid_key cid_val))
    (class ("CheckedDict" cid_key cid_val)
-     ("object")
+     "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
       ("__getitem__" ([☠ (instancesof cid_key)]) (instancesof cid_val))))]
@@ -237,15 +244,17 @@
            (any_mth2 ...))
           (flatten-class* Ψ cid_2 ...))])
 (define-metafunction SP-statics
-  flatten-class : Ψ cid -> flat-class
+  flatten-class : Ψ cid+dynamic+☠ -> flat-class
   [(flatten-class Ψ cid_slf)
    ((any_slffld ... any_parfld ...)
     (any_slfmth ... any_parmth ...))
-   (where (class any (cid_par ...) (any_slffld ...) (any_slfmth ...))
+   (where (class any cid+dynamic+☠ (any_slffld ...) (any_slfmth ...))
           (lookup-class Ψ cid_slf))
    (where ((any_parfld ...)
            (any_parmth ...))
-          (flatten-class* Ψ cid_par ...))])
+          (flatten-class Ψ cid+dynamic+☠))]
+  [(flatten-class Ψ ☠) (() ())]
+  [(flatten-class Ψ dynamic) (() ())])
 
 (module+ test
   (test-equal (term (lookup-member () ("CheckedDict" "str" "int") "__getitem__"))
@@ -269,6 +278,7 @@
    (constructor-ofo (base-Ψ) "object" ())
    (constructor-ofo (base-Ψ) "int" ([☠ dynamic]))
    (constructor-ofo (base-Ψ) "dict" ([☠ dynamic]))
+   (constructor-ofo (base-Ψ) "set" ([☠ dynamic]))
    (constructor-ofo (base-Ψ) ("CheckedDict" "str" "int") ([☠ dynamic]))))
 (define-judgment-form SP-statics
   #:mode (constructor-ofo I I O)
