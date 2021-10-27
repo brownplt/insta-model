@@ -142,6 +142,12 @@
 ;; conformance_suite/methods_work.py
 (check-judgment-holds* (⊢p ((class C (object) (method "m" self ((x int)) str (return "foo"))) (define/assign s str ((attribute (C) "m") 42)))))
 
+;; conformance_suite/optional_is_inhabitable_1.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (define/assign x (subscript Optional int) 42))))
+
+;; conformance_suite/optional_is_inhabitable_2.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (define/assign x (subscript Optional int) None))))
+
 ;; conformance_suite/override_instance_field_with_imprecise_type.py
 (check-not-judgment-holds* (⊢p ((import-from "typing" ("Any")) (class C (object) (field "x" str)) (class D (C) (field "x" Any)))))
 

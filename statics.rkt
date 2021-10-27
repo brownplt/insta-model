@@ -79,7 +79,11 @@
    (⊢p ((def expectInt ((i int)) dynamic pass)
         (expr expectInt)))
    (⊢p ((import-from "__static__" ("cast"))
-        (expr (cast bool #t))))))
+        (expr (cast bool #t))))
+   (⊢p ((import-from "__static__" ("Optional"))
+        (define/assign x (subscript Optional int) 2)))
+   (⊢p ((import-from "__static__" ("Optional"))
+        (define/assign x (subscript Optional int) None)))))
 (define-judgment-form SP-statics
   #:mode (⊢p I)
   #:contract (⊢p program)

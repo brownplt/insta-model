@@ -16,6 +16,15 @@ This file describes the static semantics (type system) of the idealized Static P
 
 - [str_is_inhabitable.py](conformance_suite/str_is_inhabitable.py)
 
+## Optional
+
+`Optional[T]` is inhabitable.
+
+- [optional_is_inhabitable_1.py](conformance_suite/optional_is_inhabitable_1.py)
+- [optional_is_inhabitable_2.py](conformance_suite/optional_is_inhabitable_2.py)
+
+TODO: more optional tests.
+
 ## PyDict
 
 `PyDict` is inhabitable.
