@@ -17,7 +17,7 @@
   
   ;; statements
   (s
-   (class x_child (x_parent ...) class-member ...)
+   (class x_child (t ...) class-member ...)
    (return e)
    (claim e t)
    (define/assign e t e)
@@ -51,6 +51,7 @@
   (t dynamic
      None ;; nonterminal x doesn't cover this because we mentioned None in c
      (subscript x (tuple-syntax t ...))
+     (subscript x t)
      x)
 
   (x variable-not-otherwise-mentioned))

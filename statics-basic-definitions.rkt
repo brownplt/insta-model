@@ -5,38 +5,50 @@
 (provide (all-defined-out))
 
 (define-extended-language SP-statics SP
-  ;; a global environment that maps class names to their definitions
-  (Ψ ((any T) ...))
+  ;; primitive class ids
+  (prim-cid "object"
+            "float"
+            "int"
+            "bool"
+            "str"
+            "dict"
+            "None"
+            ("CheckedDict" cid cid)
+            "type")
+  ;; class id, an unique data that specify which class it is
+  (cid prim-cid
+       ;; user defined class
+       number)
+  ;; class description
+  (C (class any
+       ;; parents
+       (cid ...)
+       ;; fields
+       ((string T) ...)
+       ;; methods
+       ((string ([x+☠ T] ...) T) ...)))
+  ;; a handy concept that is useful when I want to check well-formness of classes
+  (flat-class (((string T) ...)
+               ((string ([x+☠ T] ...) T) ...)))
+  ;; optional flat-class
+  (flat-class+☠ flat-class ☠)
+  ;; a global environment that maps class ids to their definitions
+  (Ψ ((cid C) ...))
   ;; a local environment that maps variables to their types
   (Γ ((x T) ...))
   ;; syntactic types
   (t .... (quote T))
   ;; semantic types / type values
   (T dynamic
-     (the-object-class) ;; the object class
-     (prim-generic string)
-     (generic string T ...)
-     (-> ([x+☠ t] ...) t)
-     (class any (x_parent ...)
-       ((string_field t) ...)
-       ((string_method ([x+☠ t] ...) t) ...))
+     (-> ([x+☠ T] ...) T)
+     ;; class instances
+     (instancesof cid)
      ;; classes themselves, useful in instance construction
-     (class T))
-  ;; a handy concept that is useful when I want to check well-formness of classes
-  (flat-class (((string_field t_field) ...)
-               ((string_method ([x+☠ t] ...) t) ...)))
-  ;; optional flat-class
-  (flat-class+☠ flat-class ☠)
+     (classitself cid)
+     ;; special types
+     (prim-generic string)
+     (type-op "cast")
+     )
   ;; optional variable
   (x+☠ ☠ x)
-  ;; primtive class names
-  (prim-class-name
-   "dynamic"
-   "object"
-   "float"
-   "int"
-   "bool"
-   "str"
-   "dict"
-   "None-class")
   )

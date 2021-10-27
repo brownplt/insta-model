@@ -5,6 +5,14 @@
 (require "statics-basic-definitions.rkt")
 (provide (all-defined-out))
 
+(define-judgment-form SP-statics
+  #:mode (show I)
+  #:contract (show any)
+
+  [(where #f ,(and (writeln (term any)) #f))
+   ------------------
+   (show any)])
+
 (define-metafunction SP-statics
   member : any (any ...) -> boolean
   [(member any_0 (any_1 ... any_0 any_2 ...)) #t]
