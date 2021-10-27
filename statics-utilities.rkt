@@ -1,7 +1,7 @@
 #lang racket
 (require redex)
 (require redex-abbrevs)
-(require "model.rkt")
+(require "grammar.rkt")
 (require "statics-basic-definitions.rkt")
 (provide (all-defined-out))
 

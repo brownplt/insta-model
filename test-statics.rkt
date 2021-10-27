@@ -1,7 +1,7 @@
 #lang racket
 (require redex)
 (require redex-abbrevs)
-(require "model.rkt")
+(require "grammar.rkt")
 (require "statics.rkt")
 
 ;; conformance_suite/CheckedDict_delete_neg.py

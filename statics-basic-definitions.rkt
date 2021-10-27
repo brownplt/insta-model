@@ -1,7 +1,7 @@
 #lang racket
 (require redex)
 (require redex-abbrevs)
-(require "model.rkt")
+(require "grammar.rkt")
 (provide (all-defined-out))
 
 (define-extended-language SP-statics SP
