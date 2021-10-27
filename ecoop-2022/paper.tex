@@ -185,7 +185,7 @@ the restrictions currently in \SP{}.
 
 \SP{} is a type checker and bytecode compiler.
 It validates programs written in ordinary Python syntax
-and generates type-specific instructions for the Cinder runtime system.
+and generates type-specific instructions for the Cinder runtime.
 The type system can express common Python idioms and is guaranteed
 sound through run-time checks, which in turn enable optimizations.
 The type system also includes a dynamic type as an escape hatch to
@@ -315,17 +315,6 @@ Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
 
 
-\subsubsection{CTypes}
-
-[FILL]
-CTypes for primitives, unboxed representation.
-Casts and unboxes happen at the boundary to Python.
-Straightforward, not included in model.
-Important for optimizations.
-
-% https://github.com/facebookincubator/cinder/issues/52
-
-
 
 \subsubsection{Restrictions}
 
@@ -434,6 +423,9 @@ Type restrictions:
   %  Python frame objects until they are definitely needed (e.g. if an
   %  exception is raised.) In the future this should become default.
 
+  \item
+    \textbf{Checked Dict}
+    Implementation too, to support the types.
 
 \end{itemize}
 
@@ -445,6 +437,38 @@ Type restrictions:
 strict modules
 
 decorator to force inlining, for 1-line functions
+
+
+\subsubsection{Primitive Types}
+
+For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types.
+The basic primitives describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
+Two additional primitives, \code{Array} and \code{Vector}, describe collections.
+Cinder implements these types with unboxed C numbers and C arrays, which cost
+(and do!) much less than their Python counterparts.
+
+% For now, programmers have to write and manage primitive types.
+% In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
+
+Primitives are carefully limited by the type system.
+Neither a module-level nor a closure-level variable may have a primitive
+type---because untyped code can mutate such variables.
+Primitive types are incompatible with the dynamic type,
+and there are no implicit upcasts from primitives
+to a matching Python type.
+Even a conjunction disallows mixing; for example, the \code{and} operator
+requires either two Python booleans or two primitive booleans.
+
+The only way for Python values and primitive values to interact
+is through dedicated conversion functions.
+Cinder handles conversions at the boundaries between \SP{} code
+and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere else.
+Within typed code, programmers must satisfy the type checker with
+appropriate conversions.
+
+
+% https://github.com/facebookincubator/cinder/issues/52
+
 
 
 \section{Model}
@@ -504,15 +528,27 @@ to add soundness?
 \label{s:related}
 
 Nom~\cite{mt-oopsla-2017} is foundational.
+
+\citet{pmmwplck-oopsla-2013} core calculus for Python language, foundational.
+
 Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
 
 PyPy is another runtime for Python
 Pycket is built on PyPy and improves both Typed Racket~\cite{bbst-oopsla-2017}
 and Reticulated Python~\cite{vsc-dls-2019}.
 
-This is one of the main advantages of \SP{} over mypyc,
+Type systems for Python ...
+mypy pyre pytype;
+Reticulated;
+
+Optimizing type systems for Python ...
+Reticulated;
+mypyc;
+Developer experience is one of the main advantages of \SP{} over mypyc,
 which implements type-directed optimizations for CPython
 by compiling source code to C extension modules.
+
+
 
 \section{Future Work}
 \label{s:future}
