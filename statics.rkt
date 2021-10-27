@@ -87,6 +87,7 @@
   [(where Ψ_1 (base-Ψ))
    (where Γ_1 (base-Γ))
    (where Γ_2 (collect-imports Γ_1 import-type ...))
+   (where #f (¬⊢s* (s ...)))
    (where (Ψ_2 Γ_3) (collect-defs-and-clss Ψ_1 Γ_2 s ...))
    (where ([cid C] ...) Ψ_2)
    (Ψ⊢cid Ψ_2 cid) ...
@@ -108,6 +109,8 @@
               (term (extend (base-Γ) [cast (type-op "cast")])))
   (test-equal (term (collect-one-import (base-Γ) "typing" "Any"))
               (term (extend (base-Γ) [Any dynamic])))
+  (test-equal (term (collect-one-import (base-Γ) "typing" "Final"))
+              (term (extend (base-Γ) [Final (prim-generic "Final")])))
   (test-equal (term (collect-one-import (base-Γ) "other_module" "whatever"))
               (term (extend (base-Γ) [whatever dynamic]))))
 (define-metafunction SP-statics
@@ -125,6 +128,9 @@
   ;; typing provides Any
   [(collect-one-import Γ "typing" "Any")
    (extend Γ [Any dynamic])]
+  ;; typing provides Final
+  [(collect-one-import Γ "typing" "Final")
+   (extend Γ [Final (prim-generic "Final")])]
   ;; everything else is dynamic
   [(collect-one-import Γ string_mod string_var)
    (extend Γ [,(string->symbol (term string_var)) dynamic])])
@@ -169,6 +175,34 @@
                                            (class C (object))))
               (term ((extend (base-Ψ) [1 (class C ("object") () ())] [0 (class B ("object") () ())])
                      (extend (base-Γ) [C (classitself 1)] [B (classitself 0)])))))
+
+(define-metafunction SP-statics
+  collect-ext : s ... -> ([x any] ...)
+  ;; What are the classes and variables defined at the top level?
+  [(collect-ext) ()]
+  [(collect-ext (define/assign x t e) s ...)
+   (extend (collect-ext s ...) [x define/assign])]
+  [(collect-ext (def x ([x_arg t_arg] ...) t_ret s_body ...) s ...)
+   (extend (collect-ext s ...) [x def/class])]
+  [(collect-ext (class x (t_par ...) class-member ...) s ...)
+   (extend (collect-ext s ...) [x def/class])]
+  [(collect-ext s_1 s_2 ...)
+   (collect-ext s_2 ...)])
+
+(define-judgment-form SP-statics
+  #:mode (¬⊢s* I)
+  #:contract (¬⊢s* (s ...))
+
+  [(where (any_1 ... [x def/class] any_2 ... [x any] any_3 ...)
+          (collect-ext s ...))
+   ---------------------- "def/class-L"
+   (¬⊢s* (s ...))]
+
+  [(where (any_1 ... [x any] any_2 ... [x def/class] any_3 ...)
+          (collect-ext s ...))
+   ---------------------- "def/class-R"
+   (¬⊢s* (s ...))])
+
 (define-metafunction SP-statics
   collect-defs-and-clss : Ψ Γ s ... -> (Ψ Γ)
   ;; What are the classes and variables defined at the top level?
@@ -190,9 +224,9 @@
    (where Γ_2 (extend Γ_1 [x_fun T]))]
 
   ;; define class
-  [(collect-defs-and-clss Ψ_1 Γ_1 (class x (t_parent ...) class-member ...) s ...)
+  [(collect-defs-and-clss Ψ_1 Γ_1 (class x (t_par ...) class-member ...) s ...)
    (collect-defs-and-clss Ψ_2 Γ_2 s ...)
-   (judgment-holds (evalo* Ψ_1 Γ_1 (t_parent ...) ((instancesof cid_parent) ...)))
+   (judgment-holds (evalo* Ψ_1 Γ_1 (t_par ...) ((instancesof cid_par) ...)))
    (where (((string_fld t_fld) ...)
            ((string_mth ([x_arg t_arg] ...) t_ret) ...))
           (collect-mems class-member ...))
@@ -203,7 +237,7 @@
    (judgment-holds (evalo* Ψ_1 Γ_1
                            (t_ret ...)
                            (T_ret ...)))
-   (where C (class x (cid_parent ...)
+   (where C (class x (cid_par ...)
               ((string_fld T_fld) ...)
               ((string_mth ([x_arg T_arg] ...) T_ret) ...)))
    (where (Ψ_2 cid) (Ψ-alloc Ψ_1 C))

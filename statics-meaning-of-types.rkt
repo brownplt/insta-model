@@ -90,6 +90,12 @@
           (subscript x (tuple-syntax t_key t_val))
           (instancesof ("CheckedDict" cid_key cid_val)))]
 
+  ;; TODO this doesn't look right. We should do something
+  [(lookupo Γ x (prim-generic "Final"))
+   (evalo Ψ Γ t T)
+   ------------------------- "Final"
+   (evalo Ψ Γ (subscript x t) T)]
+
   [(lookupo Γ x (classitself cid))
    ------------------------- "Lookup class"
    (evalo Ψ Γ x (instancesof cid))]

@@ -36,6 +36,9 @@
   (Ψ ((cid C) ...))
   ;; a local environment that maps variables to their types
   (Γ ((x T) ...))
+  ;; extension to scope
+  (ext ([x kind] ...))
+  (kind def/cls var)
   ;; syntactic types
   (t .... (quote T))
   ;; semantic types / type values
