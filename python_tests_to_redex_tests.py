@@ -31,7 +31,7 @@ def expr_to_type(expr: ast.expr):
         return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right)]
     elif isinstance(expr, ast.Constant):
         assert isinstance(expr.value, str)
-        return [string(expr.value)]
+        return string(expr.value)
     else:
         raise Exception("Can't deal with {}".format(expr))
 

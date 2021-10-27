@@ -50,6 +50,8 @@
   (kind def/cls var)
   ;; syntactic types
   (t .... (quote T))
+  ;;
+  (T+☠ T ☠)
   ;; semantic types / type values
   (T dynamic
      ;; class instances

@@ -17,7 +17,7 @@
   
   ;; statements
   (s
-   (class x_child (t ...) class-member ...)
+   (class x (t ...) class-member ...)
    (return e)
    (claim e t)
    (define/assign e t e)
@@ -29,7 +29,7 @@
 
   (class-member
    (field string t)
-   (method string_method x_self ((x_arg t) ...) t s ...))
+   (method string_method x_self ((x t) ...) t s ...))
 
   (c integer
      boolean
@@ -39,16 +39,22 @@
 
   (e x
      c
-     (dict-syntax (e e) ...)
+     (reveal-type any ... e)
      (set-syntax e ...)
+     (dict-syntax (e e) ...)
      (subscript e e)
      (subscript x (tuple-syntax t ...))
      (attribute e string)
+     (bool-op ob e ...)
      (unary-op o1 e)
      (bin-op o2 e e)
      (in e e)
-     (and e e)
+     (is e e)
+     (is-not e e)
+     (if e e e)
      (e e ...))
+
+  (ob and)
 
   (o1 -)
 
@@ -59,6 +65,7 @@
      None ;; nonterminal x doesn't cover this because we mentioned None in c
      (subscript x (tuple-syntax t ...))
      (subscript x t)
+     string  ;; same as x
      x)
 
   (x variable-not-otherwise-mentioned))

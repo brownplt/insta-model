@@ -164,6 +164,8 @@ for test in read_tests(input_file):
         assert not 'mixed_args' in name
         assert not 'assign_chained' in name
         assert not 'chain_assign' in name
+        assert not 'test_if_else_optional_return_two_branches' in name
+        # ⬆️ This test uses an unbound identifier
         # Skip more
         assert not ' | ' in test# TODO
         assert not 'while' in test # TODO

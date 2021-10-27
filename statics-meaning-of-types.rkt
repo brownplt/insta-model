@@ -56,6 +56,7 @@
 
 (module+ test
   (check-judgment-holds*
+   (evalo (base-Ψ) (base-Γ) "int" (instancesof "int"))
    (evalo (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
           (subscript CheckedDict (tuple-syntax str int))
           (instancesof ("CheckedDict" "str" "int")))))
@@ -64,9 +65,6 @@
   #:contract (evalo Ψ Γ t T)
 
   ;; Compute type values from type expressions
-
-  [------------------------- "quotation"
-   (evalo Ψ Γ (quote T) T)]
 
   [----
    (evalo Ψ Γ dynamic dynamic)]
@@ -100,6 +98,10 @@
    (evalo Ψ Γ t (instancesof cid))
    ------------------------- "Optional"
    (evalo Ψ Γ (subscript x t) ("optional" cid))]
+
+  [(evalo Ψ Γ ,(string->symbol (term string)) T)
+   ------------------------- "Lookup string"
+   (evalo Ψ Γ string T)]
 
   [(lookupo Γ x (classitself cid))
    ------------------------- "Lookup class"
@@ -199,6 +201,57 @@
   )
 
 (module+ test
+  (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "int")))
+              (term (instancesof "int")))
+  (test-equal (term (union (base-Ψ) (instancesof "int") dynamic))
+              (term dynamic))
+  (test-equal (term (union (base-Ψ) dynamic (instancesof "int")))
+              (term dynamic))
+  (test-equal (term (union (base-Ψ) (instancesof "float") (instancesof "int")))
+              (term (instancesof "float")))
+  (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "float")))
+              (term (instancesof "float")))
+  (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "str")))
+              (term dynamic))
+  (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "None")))
+              (term ("optional" "int")))
+  (test-equal (term (union (base-Ψ) (instancesof "None") (instancesof "int")))
+              (term ("optional" "int")))
+  (test-equal (term (union (base-Ψ) (instancesof "None") ("optional" "int")))
+              (term ("optional" "int")))
+  (test-equal (term (union (base-Ψ) ("optional" "int") (instancesof "None")))
+              (term ("optional" "int")))
+  (test-equal (term (union (base-Ψ) ("optional" "int") ("optional" "float")))
+              (term ("optional" "float"))))
+(define-metafunction SP-statics
+  union : Ψ T T -> T
+  [(union Ψ T T) T]
+  [(union Ψ dynamic T) dynamic]
+  [(union Ψ T dynamic) dynamic]
+  [(union Ψ (instancesof cid_1) (instancesof cid_2))
+   (instancesof cid_2)
+   (judgment-holds (Ψ⊢cid<:cid Ψ cid_1 cid_2))]
+  [(union Ψ (instancesof cid_1) (instancesof cid_2))
+   (instancesof cid_1)
+   (judgment-holds (Ψ⊢cid<:cid Ψ cid_2 cid_1))]
+  [(union Ψ (instancesof cid) (instancesof "None"))
+   ("optional" cid)]
+  [(union Ψ (instancesof "None") (instancesof cid))
+   ("optional" cid)]
+  [(union Ψ (instancesof cid_1) (instancesof cid_2)) dynamic]
+  [(union Ψ ("optional" cid) (instancesof "None")) ("optional" cid)]
+  [(union Ψ (instancesof "None") ("optional" cid)) ("optional" cid)]
+  [(union Ψ ("optional" cid_1) ("optional" cid_2))
+   (union Ψ (instancesof "None") (union Ψ (instancesof cid_1) (instancesof cid_2)))]
+  [(union Ψ T_1 T_2) dynamic])
+
+(define-metafunction SP-statics
+  remove-None : Ψ T -> T
+  [(remove-None Ψ ("optional" cid)) (instancesof cid)]
+  [(remove-None Ψ (instancesof cid)) (instancesof cid)]
+  [(remove-None Ψ T) T])
+
+(module+ test
   (test-match SP-statics C (term (lookup-class () "object")))
   (test-match SP-statics C (term (lookup-class () "type")))
   (test-match SP-statics C (term (lookup-class () "float")))
@@ -224,8 +277,15 @@
    (class float
      "object"
      ()
-     (("__init__" ([☠ dynamic]) dynamic)
-      ("__add__" ([☠ (instancesof "float")] [☠ (instancesof "float")]) (instancesof "float"))))]
+     (["__init__"
+       ([☠ dynamic])
+       dynamic]
+      ["__neg__"
+       ()
+       (instancesof "float")]
+      ["__add__"
+       ([☠ (instancesof "float")])
+       (instancesof "float")]))]
   [(lookup-class Ψ "int")
    (class int "float" () ())]
   [(lookup-class Ψ "bool")
@@ -280,11 +340,11 @@
   [(flatten-class Ψ dynamic) (() ())])
 
 (module+ test
-  (test-equal (term (lookup-member () ("CheckedDict" "str" "int") "__getitem__"))
+  (test-equal (term (lookup-member () (instancesof ("CheckedDict" "str" "int")) "__getitem__"))
               (term (-> ([☠ (instancesof "str")]) (instancesof "int")))))
 (define-metafunction SP-statics
-  lookup-member : Ψ cid string -> T
-  [(lookup-member Ψ cid string)
+  lookup-member : Ψ T string -> T+☠
+  [(lookup-member Ψ (instancesof cid) string)
    T_mem
    (where C (lookup-class Ψ cid))
    (where (([string_fld T_fld] ...)
@@ -294,7 +354,9 @@
           (lookup ([string_fld T_fld] ...
                    [string_mth (-> ([x+☠_arg T_arg] ...) T_ret)] ...
                    [string dynamic])
-                  string))])
+                  string))]
+  [(lookup-member Ψ dynamic string) dynamic]
+  [(lookup-member Ψ T string) ☠])
 
 (module+ test
   (check-judgment-holds*
@@ -307,6 +369,6 @@
   #:mode (constructor-ofo I I O)
   #:contract (constructor-ofo Ψ cid ([x+☠_arg T_arg] ...))
 
-  [(where (-> ([x+☠_arg T_arg] ...) T_ret) (lookup-member Ψ cid "__init__"))
+  [(where (-> ([x+☠_arg T_arg] ...) T_ret) (lookup-member Ψ (instancesof cid) "__init__"))
    ---------------
    (constructor-ofo Ψ cid ([x+☠_arg T_arg] ...))])

@@ -167,3 +167,7 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 - [dynamic_as_callable.py](conformance_suite/dynamic_as_callable.py)
 - [dynamic_as_CheckedDict.py](conformance_suite/dynamic_as_CheckedDict.py)
 - [dynamic_as_user-defined_class.py](conformance_suite/dynamic_as_user-defined_class.py)
+
+## Scope
+
+TODO: understand function scope. Parameter vs local variables, etc.

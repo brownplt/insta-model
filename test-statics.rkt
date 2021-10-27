@@ -250,9 +250,6 @@
 ;; conformance_suite/test_if_else_optional_return_in_if_assignment_in_else.py
 (check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) int (if (is-not x None) ((return 2)) ((define/assign x dynamic 1))) (return x)))))
 
-;; conformance_suite/test_if_else_optional_return_two_branches.py
-(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic self))) (def f ((x (subscript Optional C))) dynamic (if (is x None) ((if a ((return 0)) ((return 2)))) ()) (return (attribute x "field"))))))
-
 ;; conformance_suite/test_if_optional.py
 (check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic 42))) (def f ((x (subscript Optional C))) dynamic (if (is-not x None) ((return (attribute x "field"))) ()) (return None)))))
 
@@ -290,7 +287,7 @@
 (check-judgment-holds* (⊢p ((import-from "something" ("A" "B")) (class C (A B) (method "__init__" self () dynamic pass)))))
 
 ;; conformance_suite/test_optional_assign.py
-(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "f" self ((x (subscript Optional ("C")))) dynamic (if (is x None) ((return self)) ((define/assign p (subscript Optional ("C")) x))))))))
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "f" self ((x (subscript Optional "C"))) dynamic (if (is x None) ((return self)) ((define/assign p (subscript Optional "C") x))))))))
 
 ;; conformance_suite/test_optional_assign_none.py
 (check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class B (object)) (def f ((x (subscript Optional B))) dynamic (define/assign a (subscript Optional B) None)))))
