@@ -441,14 +441,12 @@ decorator to force inlining, for 1-line functions
 
 \subsubsection{Primitive Types}
 
-For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types.
-The basic primitives describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
-Two additional primitives, \code{Array} and \code{Vector}, describe collections.
-Cinder implements these types with unboxed C numbers and C arrays, which cost
-(and do!) much less than their Python counterparts.
-
-% For now, programmers have to write and manage primitive types.
-% In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
+For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
+that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
+Cinder implements these types with unboxed C values, which are much simpler and cheaper
+than their Python counterparts.
+\SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives efficiently.
+These are not themselves primitive.
 
 Primitives are carefully limited by the type system.
 Neither a module-level nor a closure-level variable may have a primitive
@@ -458,7 +456,6 @@ and there are no implicit upcasts from primitives
 to a matching Python type.
 Even a conjunction disallows mixing; for example, the \code{and} operator
 requires either two Python booleans or two primitive booleans.
-
 The only way for Python values and primitive values to interact
 is through dedicated conversion functions.
 Cinder handles conversions at the boundaries between \SP{} code
@@ -466,6 +463,8 @@ and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere
 Within typed code, programmers must satisfy the type checker with
 appropriate conversions.
 
+% For now, programmers have to write and manage primitive types.
+% In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
 
 % https://github.com/facebookincubator/cinder/issues/52
 
@@ -529,7 +528,7 @@ to add soundness?
 
 Nom~\cite{mt-oopsla-2017} is foundational.
 
-\citet{pmmwplck-oopsla-2013} core calculus for Python language, foundational.
+Full Monty(?)~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational.
 
 Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
 
