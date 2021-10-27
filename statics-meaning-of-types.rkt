@@ -248,6 +248,7 @@
 (define-metafunction SP-statics
   remove-None : T -> T
   [(remove-None ("optional" cid)) (instancesof cid)]
+  [(remove-None (instancesof "None")) dynamic]  ;; If we want to be pedantic, should be bottom
   [(remove-None (instancesof cid)) (instancesof cid)]
   [(remove-None T) T])
 
