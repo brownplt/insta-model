@@ -29,6 +29,9 @@ def expr_to_type(expr: ast.expr):
         return [symbol('tuple-syntax')] + [expr_to_type(e) for e in expr.elts]
     elif isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
         return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right)]
+    elif isinstance(expr, ast.Constant):
+        assert isinstance(expr.value, str)
+        return [string(expr.value)]
     else:
         raise Exception("Can't deal with {}".format(expr))
 
@@ -87,7 +90,7 @@ def ast_to_sexp(node):
         else:
             return [
                 symbol('define/assign'),
-                symbol(str(node.target.id)),
+                ast_to_sexp(node.target),
                 expr_to_type(node.annotation),
                 ast_to_sexp(node.value)
             ]
@@ -156,15 +159,23 @@ def ast_to_sexp(node):
         return [symbol('delete'), ast_to_sexp(node.targets[0])]
     elif isinstance(node, ast.Attribute):
         return [symbol('attribute'), ast_to_sexp(node.value), string(node.attr)]
-    elif isinstance(node, ast.BinOp):
-        assert isinstance(node.op, ast.Add)
+    elif isinstance(node, ast.UnaryOp):
         return [
-            [
-                symbol('attribute'),
-                ast_to_sexp(node.left),
-                string('__add__')
-            ],
-            ast_to_sexp(node.right)]
+            symbol('unary-op'),
+            ast_to_sexp(node.op),
+            ast_to_sexp(node.operand)
+        ]
+    elif isinstance(node, ast.BinOp):
+        return [
+            symbol('bin-op'),
+            ast_to_sexp(node.op),
+            ast_to_sexp(node.left),
+            ast_to_sexp(node.right)
+        ]
+    elif isinstance(node, ast.Add):
+        return symbol('+')
+    elif isinstance(node, ast.USub):
+        return symbol('-')
     elif isinstance(node, ast.FunctionDef):
         return [
             symbol('def'),
@@ -188,6 +199,7 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.BoolOp):
         return [
+            symbol('bool-op'),
             ast_to_sexp(node.op)
         ] + [
             ast_to_sexp(v)
@@ -195,6 +207,8 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.Or):
         return symbol('or')
+    elif isinstance(node, ast.And):
+        return symbol('And')
     elif isinstance(node, ast.Compare):
         everything = False
         left = ast_to_sexp(node.left)
@@ -210,12 +224,21 @@ def ast_to_sexp(node):
         return everything
     elif isinstance(node, ast.Is):
         return symbol('is')
+    elif isinstance(node, ast.IsNot):
+        return symbol('is-not')
     elif isinstance(node, ast.In):
         return symbol('in')
     elif isinstance(node, ast.Gt):
         return symbol('>')
     elif isinstance(node, ast.Eq):
         return symbol('==')
+    elif isinstance(node, ast.IfExp):
+        return [
+            symbol('if'),
+            ast_to_sexp(node.test),
+            ast_to_sexp(node.body),
+            ast_to_sexp(node.orelse)
+        ]
     elif isinstance(node, ast.While):
         return [
             symbol('while'),

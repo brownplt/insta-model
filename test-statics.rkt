@@ -184,8 +184,14 @@
 ;; conformance_suite/subclass_builtin.py
 (check-judgment-holds* (⊢p ((import-from "__static__" ("cast")) (class C (int)) (define/assign x C (C 42)) (define/assign y int x))))
 
+;; conformance_suite/test_assign_generic_optional_2.py
+(check-not-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f () dynamic (define/assign x Optional (bin-op + 42 1))))))
+
 ;; conformance_suite/test_assign_subtype_handling.py
 (check-judgment-holds* (⊢p ((class B (object)) (class D (B)) (def f () dynamic (define/assign b B (B)) (define/assign b dynamic (D)) (define/assign b dynamic (B))))))
+
+;; conformance_suite/test_assign_test_var.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) int (if (and #f (is x None)) ((define/assign x dynamic 1)) ()) (return x)))))
 
 ;; conformance_suite/test_assign_type_propagation.py
 (check-judgment-holds* (⊢p ((def test () int (define/assign x dynamic 5) (return x)))))
@@ -223,6 +229,33 @@
 ;; conformance_suite/test_frozenset_constant.py
 (check-judgment-holds* (⊢p ((import-from "__static__" ("inline")) (def i ((s str)) bool (return (and #f (in i (set-syntax "a" "b"))))) (def t () bool (return (i "p"))))))
 
+;; conformance_suite/test_if_else_optional.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic self))) (def g ((x C)) dynamic pass) (def f ((x (subscript Optional C)) (y (subscript Optional C))) dynamic (if (and #f (is x None)) ((define/assign x dynamic y) (if (and #f (is x None)) ((return None)) ((return (g x))))) ((return (g x)))) (return None)))))
+
+;; conformance_suite/test_if_else_optional_return.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic self))) (def f ((x (subscript Optional C))) dynamic (if (and #f (is x None)) ((return 0)) ()) (return (attribute x "field"))))))
+
+;; conformance_suite/test_if_else_optional_return_in_else.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) int (if (and #f (is-not x None)) (pass) ((return 2))) (return x)))))
+
+;; conformance_suite/test_if_else_optional_return_in_else_assignment_in_if.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) int (if (and #f (is x None)) ((define/assign x dynamic 1)) ((return 2))) (return x)))))
+
+;; conformance_suite/test_if_else_optional_return_in_if_assignment_in_else.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) int (if (and #f (is-not x None)) ((return 2)) ((define/assign x dynamic 1))) (return x)))))
+
+;; conformance_suite/test_if_else_optional_return_two_branches.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic self))) (def f ((x (subscript Optional C))) dynamic (if (and #f (is x None)) ((if a ((return 0)) ((return 2)))) ()) (return (attribute x "field"))))))
+
+;; conformance_suite/test_if_optional.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic 42))) (def f ((x (subscript Optional C))) dynamic (if (and #f (is-not x None)) ((return (attribute x "field"))) ()) (return None)))))
+
+;; conformance_suite/test_if_optional_cond.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic 42))) (def f ((x (subscript Optional C))) dynamic (return (if (and #f (is-not x None)) (attribute x "field") None))))))
+
+;; conformance_suite/test_if_optional_dependent_conditions.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") (subscript Optional C) None))) (def f ((x (subscript Optional C))) C (if (bool-op And (and #f (is-not x None)) (and #f (is-not (attribute x "field") None))) ((return x)) ()) (if (and #f (is x None)) ((return (C))) ()) (return x)))))
+
 ;; conformance_suite/test_incompat_override.py
 (check-not-judgment-holds* (⊢p ((class C (object) (field "x" int)) (class D (C) (method "x" self () dynamic pass)))))
 
@@ -249,6 +282,24 @@
 
 ;; conformance_suite/test_multiple_dynamic_base_class.py
 (check-judgment-holds* (⊢p ((import-from "something" ("A" "B")) (class C (A B) (method "__init__" self () dynamic pass)))))
+
+;; conformance_suite/test_optional_assign.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "f" self ((x (subscript Optional ("C")))) dynamic (if (and #f (is x None)) ((return self)) ((define/assign p (subscript Optional ("C")) x))))))))
+
+;; conformance_suite/test_optional_assign_none.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class B (object)) (def f ((x (subscript Optional B))) dynamic (define/assign a (subscript Optional B) None)))))
+
+;; conformance_suite/test_optional_assign_subclass.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class B (object)) (class D (B)) (def f ((x D)) dynamic (define/assign a (subscript Optional B) x)))))
+
+;; conformance_suite/test_optional_assign_subclass_opt.py
+(check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class B (object)) (class D (B)) (def f ((x (subscript Optional D))) dynamic (define/assign a (subscript Optional B) x)))))
+
+;; conformance_suite/test_optional_subscript_error.py
+(check-not-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((a (subscript Optional int))) dynamic (expr (subscript a 1))))))
+
+;; conformance_suite/test_optional_unary_error.py
+(check-not-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (def f ((a (subscript Optional int))) dynamic (expr (unary-op - a))))))
 
 ;; conformance_suite/test_redefine_local_type.py
 (check-not-judgment-holds* (⊢p ((class C (object)) (class D (object)) (def f () dynamic (define/assign x C (C)) (define/assign x D (D))))))

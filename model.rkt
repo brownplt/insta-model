@@ -44,9 +44,13 @@
      (subscript e e)
      (subscript x (tuple-syntax t ...))
      (attribute e string)
+     (unary-op o1 e)
+     (bin-op o2 e e)
      (in e e)
      (and e e)
      (e e ...))
+
+  (o1 +)
 
   (o2 +)
 

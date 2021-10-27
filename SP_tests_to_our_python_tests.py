@@ -165,15 +165,14 @@ for test in read_tests(input_file):
         assert not 'assign_chained' in name
         assert not 'chain_assign' in name
         # Skip more
+        assert not ' | ' in test# TODO
+        assert not 'while' in test # TODO
         assert not 'reveal_type' in test # TODO
         assert not '@staticmethod' in test # TODO
         assert not '@final' in test # TODO
         assert not 'nonlocal' in test
         assert not 'global' in test
         assert not '...' in test
-        assert not 'Optional' in test
-        assert not 'while' in test
-        assert not ' | ' in test
         assert not 'double' in test
         assert not 'int8' in test
         assert not 'int32' in test
