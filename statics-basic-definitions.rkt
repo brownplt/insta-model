@@ -28,6 +28,7 @@
    dynamic
    ;; the root / object class
    ☠)
+  (C+☠ C ☠)
   ;; class description
   (C (class any
        ;; parents
@@ -42,7 +43,7 @@
   ;; optional flat-class
   (flat-class+☠ flat-class ☠)
   ;; a global environment that maps class ids to their definitions
-  (Ψ ((cid C) ...))
+  (Ψ ((cid C+☠) ...))
   ;; a local environment that maps variables to their types
   (Γ ((x T) ...))
   ;; extension to scope

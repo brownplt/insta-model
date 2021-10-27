@@ -237,61 +237,79 @@
   [(compute-parent T ...) dynamic])
 
 (define-metafunction SP-statics
-  collect-defs-and-clss : Ψ Γ s ... -> (Ψ Γ)
+  collect-variables : Ψ Γ s ... -> Γ
   ;; What are the classes and variables defined at the top level?
   
-  [(collect-defs-and-clss Ψ Γ) (Ψ Γ)]
+  [(collect-variables Ψ Γ) Γ]
 
   ;; define variable
-  [(collect-defs-and-clss Ψ Γ_1 (define/assign x t e) s ...)
-   (collect-defs-and-clss Ψ Γ_2 s ...)
+  [(collect-variables Ψ Γ_1 (define/assign x t e) s ...)
+   (collect-variables Ψ Γ_2 s ...)
    (judgment-holds (evalo Ψ Γ_1 t T))
    (where Γ_2 (extend Γ_1 [x T]))]
 
   ;; define function
-  [(collect-defs-and-clss Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s_body ...) s ...)
-   (collect-defs-and-clss Ψ Γ_2 s ...)
+  [(collect-variables Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s_body ...) s ...)
+   (collect-variables Ψ Γ_2 s ...)
    (judgment-holds (evalo* Ψ Γ_1 (t_arg ...) (T_arg ...)))
    (judgment-holds (evalo Ψ Γ_1 t_ret T_ret))
    (where T (-> ([x_arg T_arg] ...) T_ret))
    (where Γ_2 (extend Γ_1 [x_fun T]))]
 
-  ;; define class
-  [(collect-defs-and-clss Ψ_1 Γ_1 (class x (t_par ...) class-member ...) s ...)
-   (collect-defs-and-clss Ψ_2 Γ_2 s ...)
-   (judgment-holds (evalo* Ψ_1 Γ_1 (t_par ...) (T_par ...)))
+  [(collect-variables Ψ_1 Γ_1 (def any ...) s ...)
+   ,(error "should not come here" (term (Ψ_1 Γ_1 (def any ...))))]
+
+  ;; ignore the define/assign if the lhs is not a variable
+  [(collect-variables Ψ Γ (define/assign e t e) s ...)
+   (collect-variables Ψ Γ s ...)]
+
+  ;; handle if branches, TODO: this might be a bit simplisitic
+  [(collect-variables Ψ Γ (if e (s_thn ...) (s_els ...)) s ...)
+   (collect-variables Ψ Γ s_thn ... s_els ... s ...)]
+  
+  [(collect-variables Ψ Γ s_1 s_2 ...)
+   (collect-variables Ψ Γ s_2 ...)])
+
+(module+ test
+  (test-equal (term (declare-clss (base-Ψ) (base-Γ)))
+              (term ((base-Ψ) (base-Γ)))))
+(define-metafunction SP-statics
+  declare-clss : Ψ Γ s ... -> (Ψ Γ)
+  [(declare-clss Ψ_1 Γ_1 (class x any ...) s ...)
+   (declare-clss Ψ_2 Γ_2 s ...)
+   (where (Ψ_2 cid) (Ψ-alloc Ψ_1 ☠))
+   (where Γ_2 (extend Γ_1 [x (classitself cid)]))]
+  [(declare-clss Ψ Γ) (Ψ Γ)]
+  [(declare-clss Ψ Γ s_1 s_2 ...)
+   (declare-clss Ψ Γ s_2 ...)])
+
+(define-metafunction SP-statics
+  initialize-clss : Ψ Γ s ... -> Ψ
+  [(initialize-clss Ψ_1 Γ s_1 ... (class x (t_par ...) class-member ...) s_2 ...)
+   (initialize-clss Ψ_2 Γ s_1 ... s_2 ...)
    (where (((string_fld t_fld) ...)
            ((string_mth ([x_arg t_arg] ...) t_ret) ...))
           (collect-mems class-member ...))
-   (judgment-holds (evalo* Ψ_1 Γ_1 (t_fld ...) (T_fld ...)))
-   (judgment-holds (evalo** Ψ_1 Γ_1
-                            ((t_arg ...) ...)
-                            ((T_arg ...) ...)))
-   (judgment-holds (evalo* Ψ_1 Γ_1
-                           (t_ret ...)
-                           (T_ret ...)))
+   (judgment-holds (evalo* Ψ_1 Γ (t_fld ...) (T_fld ...)))
+   (judgment-holds (evalo** Ψ_1 Γ ((t_arg ...) ...) ((T_arg ...) ...)))
+   (judgment-holds (evalo* Ψ_1 Γ (t_ret ...) (T_ret ...)))
+   (judgment-holds (evalo* Ψ_1 Γ (t_par ...) (T_par ...)))
    (where C (class x (compute-parent T_par ...)
               ((string_fld T_fld) ...)
               ((string_mth ([x_arg T_arg] ...) T_ret) ...)))
-   (where (Ψ_2 cid) (Ψ-alloc Ψ_1 C))
-   (where Γ_2 (extend Γ_1 [x (classitself cid)]))]
+   (where (classitself cid) (lookup Γ x))
+   (where Ψ_2 (Ψ-init Ψ_1 cid C))]
+  [(initialize-clss Ψ Γ s ...) Ψ])
 
-  [(collect-defs-and-clss Ψ_1 Γ_1 (def any ...) s ...)
-   ,(error "should not come here" (term (Ψ_1 Γ_1 (def any ...))))]
+(define-metafunction SP-statics
+  collect-defs-and-clss : Ψ Γ s ... -> (Ψ Γ)
+  ;; What are the classes and variables defined at the top level?
 
-  [(collect-defs-and-clss Ψ_1 Γ_1 (class any ...) s ...)
-   ,(error "should not come here" (term (Ψ_1 Γ_1 (class any ...))))]
-
-  ;; ignore the define/assign if the lhs is not a variable
-  [(collect-defs-and-clss Ψ Γ (define/assign e t e) s ...)
-   (collect-defs-and-clss Ψ Γ s ...)]
-
-  ;; handle if branches, TODO: this might be a bit simplisitic
-  [(collect-defs-and-clss Ψ Γ (if e (s_thn ...) (s_els ...)) s ...)
-   (collect-defs-and-clss Ψ Γ s_thn ... s_els ... s ...)]
-  
-  [(collect-defs-and-clss Ψ Γ s_fst s_rst ...)
-   (collect-defs-and-clss Ψ Γ s_rst ...)])
+  [(collect-defs-and-clss Ψ_1 Γ_1 s ...)
+   (Ψ_3 Γ_3)
+   (where (Ψ_2 Γ_2) (declare-clss Ψ_1 Γ_1 s ...))
+   (where Ψ_3 (initialize-clss Ψ_2 Γ_2 s ...))
+   (where Γ_3 (collect-variables Ψ_3 Γ_2 s ...))])
 
 (define-metafunction SP-statics
   collect-local-defs-and-clss : Ψ Γ s ... -> Γ
@@ -430,15 +448,13 @@
    ------------------------ "define/assign unannotated"
    (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 dynamic e_2) _)]
 
-  [(evalo Ψ Γ t_arg T_arg) ...
-   (evalo Ψ Γ t_ret T_ret)
-   (where Γ_ext (collect-local-defs-and-clss Ψ Γ s ...))
-   (Ψ⊢Γ Ψ Γ_ext)
-   (where ([x_loc T_loc] ...) Γ_ext)
-   (where Γ_body (extend Γ  [x_loc T_loc] ... [x_arg T_arg] ...))
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ_body (s ...) T_ret)
+  [(evalo Ψ Γ_1 t_arg T_arg) ...
+   (evalo Ψ Γ_1 t_ret T_ret)
+   (where Γ_2 (extend Γ_1 [x_arg T_arg] ...))
+   (where Γ_3 (collect-local-defs-and-clss Ψ Γ_2 s ...))
+   (ΨΓ⊢s*⇐T+☠ Ψ Γ_3 (s ...) T_ret)
    ------------------------ "def"
-   (ΨΓ⊢s⇐T+☠ Ψ Γ (def x_fun ([x_arg t_arg] ...) t_ret s ...) _)]
+   (ΨΓ⊢s⇐T+☠ Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s ...) _)]
 
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
@@ -567,12 +583,14 @@
   [-------------------------
    (ΨΓ⊢class-member Ψ Γ (field string t))]
 
-  [(evalo Ψ Γ t_arg T_arg) ...
-   (evalo Ψ Γ t_ret T_ret)
-   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x_self dynamic] [x_arg T_arg] ...) (s ...) T_ret)
+  [(evalo Ψ Γ_1 t_arg T_arg) ...
+   (evalo Ψ Γ_1 t_ret T_ret)
+   (where Γ_2 (extend Γ_1 [x_self dynamic] [x_arg T_arg] ...))
+   (where Γ_3 (collect-local-defs-and-clss Ψ Γ_2 s ...))
+   (ΨΓ⊢s*⇐T+☠ Ψ Γ_3 (s ...) T_ret)
    ;; TODO: the type of self looks weird
    -------------------------
-   (ΨΓ⊢class-member Ψ Γ (method string_method x_self ([x_arg t_arg] ...) t_ret s ...))])
+   (ΨΓ⊢class-member Ψ Γ_1 (method string_method x_self ([x_arg t_arg] ...) t_ret s ...))])
 
 (module+ test
   (check-judgment-holds*

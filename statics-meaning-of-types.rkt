@@ -19,11 +19,16 @@
               (term ((extend (base-Ψ) [0 (class C "object" () ())])
                      0))))
 (define-metafunction SP-statics
-  Ψ-alloc : Ψ C -> (Ψ cid)
-  [(Ψ-alloc Ψ_1 C)
+  Ψ-alloc : Ψ C+☠ -> (Ψ cid)
+  [(Ψ-alloc Ψ_1 C+☠)
    (Ψ_2 number)
    (where number ,(first-free-cid (term Ψ_1)))
-   (where Ψ_2 (extend Ψ_1 [number C]))])
+   (where Ψ_2 (extend Ψ_1 [number C+☠]))])
+
+(define-metafunction SP-statics
+  Ψ-init : Ψ cid C -> Ψ
+  [(Ψ-init (any_1 ... [cid ☠] any_2 ...) cid C)
+   (any_1 ... [cid C] any_2 ...)])
 
 (define-metafunction SP-statics
   base-Ψ : -> Ψ
