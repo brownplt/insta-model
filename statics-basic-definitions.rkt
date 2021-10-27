@@ -52,12 +52,15 @@
   (t .... (quote T))
   ;; semantic types / type values
   (T dynamic
-     (-> ([x+☠ T] ...) T)
      ;; class instances
      (instancesof cid)
      ;; classes themselves, useful in instance construction
      (classitself cid)
-     ;; special types
+     ;; procedures
+     (-> ([x+☠ T] ...) T)
+     ;; special types, e.g. optional
+     ("optional" cid)
+     ;; These are not really types but type-level things
      (prim-generic string)
      (type-op "cast")
      )

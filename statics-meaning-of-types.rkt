@@ -96,6 +96,11 @@
    ------------------------- "Final"
    (evalo Ψ Γ (subscript x t) T)]
 
+  [(lookupo Γ x (prim-generic "Optional"))
+   (evalo Ψ Γ t (instancesof cid))
+   ------------------------- "Optional"
+   (evalo Ψ Γ (subscript x t) ("optional" cid))]
+
   [(lookupo Γ x (classitself cid))
    ------------------------- "Lookup class"
    (evalo Ψ Γ x (instancesof cid))]
@@ -139,7 +144,12 @@
    (Ψ⊢T≲T (base-Ψ) (instancesof "str") dynamic)
    (Ψ⊢T≲T (base-Ψ) dynamic (instancesof "str"))
    (Ψ⊢T≲T (base-Ψ) (prim-generic "CheckedDict") dynamic)
-   (Ψ⊢T≲T (base-Ψ) (-> () (instancesof "int")) (-> () (instancesof "float"))))
+   (Ψ⊢T≲T (base-Ψ) (-> () (instancesof "int")) (-> () (instancesof "float")))
+   ;; optional types
+   (Ψ⊢T≲T (base-Ψ) (instancesof "int") ("optional" "int"))
+   (Ψ⊢T≲T (base-Ψ) (instancesof "None") ("optional" "int"))
+   (Ψ⊢T≲T (base-Ψ) ("optional" "int") ("optional" "float"))
+   (Ψ⊢T≲T (base-Ψ) ("optional" "int") (instancesof "object")))
   (check-not-judgment-holds*
    (Ψ⊢T≲T (base-Ψ) (-> () (instancesof "str")) (-> () (instancesof "int")))
    (Ψ⊢T≲T (base-Ψ) (-> () (instancesof "float")) (-> () (instancesof "int")))
@@ -152,6 +162,7 @@
   ;; (a.k.a. consistent subtyping)
 
   [------------------------ "dynamic-L"
+   ;; TODO: I think T must be of form (instancesof cid)
    (Ψ⊢T≲T Ψ dynamic T)]
 
   [------------------------ "dynamic-R"
@@ -173,6 +184,18 @@
   [(Ψ⊢cid<:cid Ψ cid_1 cid_2)
    ------------------------ "super"
    (Ψ⊢T≲T Ψ (instancesof cid_1) (instancesof cid_2))]
+ 
+  [(Ψ⊢T≲T Ψ T (instancesof cid))
+   ------------------------ "Optional[cid]-R1"
+   (Ψ⊢T≲T Ψ T ("optional" cid))]
+  
+  [------------------------ "Optional[cid]-R2"
+   (Ψ⊢T≲T Ψ (instancesof "None") ("optional" cid))]
+
+  [(Ψ⊢T≲T Ψ (instancesof "None") T)
+   (Ψ⊢T≲T Ψ (instancesof cid) T)
+   ------------------------ "Optional[cid]-L"
+   (Ψ⊢T≲T Ψ ("optional" cid) T)]
   )
 
 (module+ test

@@ -208,20 +208,23 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Or):
         return symbol('or')
     elif isinstance(node, ast.And):
-        return symbol('And')
+        return symbol('and')
     elif isinstance(node, ast.Compare):
-        everything = False
+        everything = []
         left = ast_to_sexp(node.left)
         for (op, right) in zip(node.ops, node.comparators):
             op = ast_to_sexp(op)
             right = ast_to_sexp(right)
-            everything = [
-                symbol('and'),
-                everything,
-                [op, left, right]
-            ]
+            everything.append([op, left, right])
             left = right
-        return everything
+        fst = everything[0]
+        for rst in everything[1:]:
+            fst = [
+                symbol('and'),
+                fst,
+                rst
+            ]
+        return fst
     elif isinstance(node, ast.Is):
         return symbol('is')
     elif isinstance(node, ast.IsNot):

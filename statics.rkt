@@ -113,6 +113,8 @@
               (term (extend (base-Γ) [Any dynamic])))
   (test-equal (term (collect-one-import (base-Γ) "typing" "Final"))
               (term (extend (base-Γ) [Final (prim-generic "Final")])))
+  (test-equal (term (collect-one-import (base-Γ) "typing" "Optional"))
+              (term (extend (base-Γ) [Optional (prim-generic "Optional")])))
   (test-equal (term (collect-one-import (base-Γ) "other_module" "whatever"))
               (term (extend (base-Γ) [whatever dynamic]))))
 (define-metafunction SP-statics
@@ -136,6 +138,9 @@
   ;; typing provides Final
   [(collect-one-import Γ "typing" "Final")
    (extend Γ [Final (prim-generic "Final")])]
+  ;; typing provides Optional
+  [(collect-one-import Γ "typing" "Optional")
+   (extend Γ [Optional (prim-generic "Optional")])]
   ;; everything else is dynamic
   [(collect-one-import Γ string_mod string_var)
    (extend Γ [,(string->symbol (term string_var)) dynamic])])
