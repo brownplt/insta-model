@@ -153,9 +153,8 @@ Static Python.
     and [FILL perhaps] a metric to quantify the refactoring cost and optimization benefit
     of a type migration.
   \item
-    A list of the expressiveness limitations in \SP{} relative to
-    idealized gradual type systems,
-    and an informal description of the programming discipline that Instagram
+    In-depth discussions of the expressiveness limitations in \SP{} relative to
+    idealized gradual type systems, and the programming discipline that Instagram
     follows in their gradually-sound codebase.
 \end{itemize}
 
@@ -295,6 +294,17 @@ Dynamic avoids the need for whole-sale migration,
 lets programmers work around dynamic features like splatting,
 and is in some cases necessary for optimal performance (evidence?).
 
+No way to write the dynamic type.
+Instead, it fills in for absent annotations.
+Either totally missing or a missing generic parameter.
+
+%% TODO are there any types C[T0, T1] where you might want C[dyn, T1]? how to express?
+
+Cannot appear everywhere ... ChkDict can't hold a Dynamic,
+and primitives are incompatible with Dynamic. 
+
+Dynamic behavior is always (?) the same as normal Python.
+
 
 \subsubsection{Checked Types}
 
@@ -327,7 +337,7 @@ OO restrictions:
     to the type checker.
 
   \item \textbf{No Overloading}.
-    Methods cannot be overloaded; each combination of a class
+    Methods cannot be overloaded. Each combination of a class
     and a name can refer to at most one method.
     This ensures that method resolution depends only on the
     type of the receiver object.
