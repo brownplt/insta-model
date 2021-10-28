@@ -116,10 +116,13 @@ def translate_simple_compile_test(test):
         ]) + code
     else:
         assert False
+
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
     return (name, content)
 
 
-def translate_less_simple_compile_test(test):
+def translate_less_simple_compile_test(test: str):
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -150,6 +153,8 @@ def translate_less_simple_compile_test(test):
         '',
         ''
     ]) + code
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
     return (name, content)
 
 
@@ -168,9 +173,9 @@ for test in read_tests(input_file):
         # ⬆️ This test uses an unbound identifier
         # Skip more
         assert not 'while' in test # TODO
-        assert not 'reveal_type' in test # TODO
         assert not '@staticmethod' in test # TODO
         assert not '@final' in test # TODO
+        assert not 'reveal_type' in test # TODO
         assert not 'nonlocal' in test
         assert not 'global' in test
         assert not '...' in test
@@ -192,7 +197,7 @@ for test in read_tests(input_file):
         try:
             (name, content) = translate_less_simple_compile_test(test)
         except AssertionError:
-            print(name)
+            print("SKIPPED", name)
             # exit(1)
             continue
 
