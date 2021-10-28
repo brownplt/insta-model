@@ -167,7 +167,6 @@ for test in read_tests(input_file):
         assert not 'test_if_else_optional_return_two_branches' in name
         # ⬆️ This test uses an unbound identifier
         # Skip more
-        assert not ' | ' in test# TODO
         assert not 'while' in test # TODO
         assert not 'reveal_type' in test # TODO
         assert not '@staticmethod' in test # TODO

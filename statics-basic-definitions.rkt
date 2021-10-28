@@ -69,4 +69,6 @@
      )
   ;; optional variable
   (x+☠ ☠ x)
+  ;; variable context
+  (vctx global local)
   )

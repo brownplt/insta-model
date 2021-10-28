@@ -217,6 +217,12 @@
 ;; conformance_suite/test_clen_bad_arg.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" ("clen")) (def f ((l dynamic)) dynamic (expr (clen l))))))
 
+;; conformance_suite/test_compile_dict_get_typed.py
+(check-judgment-holds* (⊢p ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (42 "abc")))) (define/assign y (or-syntax str None) ((attribute x "get") 42))))))
+
+;; conformance_suite/test_compile_dict_setdefault_typed.py
+(check-judgment-holds* (⊢p ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (42 "abc")))) (define/assign y (or-syntax str None) ((attribute x "setdefault") 100 "foo"))))))
+
 ;; conformance_suite/test_duplicate_function_replaces_class.py
 (check-not-judgment-holds* (⊢p ((class X (object)) (def X () dynamic pass))))
 
@@ -286,6 +292,15 @@
 ;; conformance_suite/test_multiple_dynamic_base_class.py
 (check-judgment-holds* (⊢p ((import-from "something" ("A" "B")) (class C (A B) (method "__init__" self () dynamic pass)))))
 
+;; conformance_suite/test_narrow_or.py
+(check-judgment-holds* (⊢p ((def f ((x (or-syntax int None))) int (if (bool-op or (is x None) (> x 1)) ((define/assign x dynamic 1)) ()) (return x)))))
+
+;; conformance_suite/test_none_compare.py
+(check-not-judgment-holds* (⊢p ((def f ((x (or-syntax int None))) dynamic (if (> x 1) ((define/assign x dynamic 1)) ()) (return x)))))
+
+;; conformance_suite/test_none_compare_reverse.py
+(check-not-judgment-holds* (⊢p ((def f ((x (or-syntax int None))) dynamic (if (> 1 x) ((define/assign x dynamic 1)) ()) (return x)))))
+
 ;; conformance_suite/test_optional_assign.py
 (check-judgment-holds* (⊢p ((import-from "typing" ("Optional")) (class C (object) (method "f" self ((x (subscript Optional "C"))) dynamic (if (is x None) ((return self)) ((define/assign p (subscript Optional "C") x))))))))
 
@@ -315,6 +330,9 @@
 
 ;; conformance_suite/test_static_import_unknown.py
 (check-not-judgment-holds* (⊢p ((import-from "__static__" ("does_not_exist")))))
+
+;; conformance_suite/test_type_of_or.py
+(check-judgment-holds* (⊢p ((def f ((x int) (y str)) (or-syntax int str) (return (bool-op or x y))))))
 
 ;; conformance_suite/test_type_type_final.py
 (check-judgment-holds* (⊢p ((class A (type)))))

@@ -61,10 +61,18 @@
 
 (module+ test
   (check-judgment-holds*
-   (evalo (base-Ψ) (base-Γ) "int" (instancesof "int"))
+   (evalo (base-Ψ) (base-Γ) dynamic dynamic)
+   (evalo (base-Ψ) (base-Γ) None (instancesof "None"))
    (evalo (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
           (subscript CheckedDict (tuple-syntax str int))
-          (instancesof ("CheckedDict" "str" "int")))))
+          (instancesof ("CheckedDict" "str" "int")))
+   (evalo (base-Ψ) (extend (base-Γ) [Optional (prim-generic "Optional")])
+          (subscript Optional int)
+          ("optional" "int"))
+   (evalo (base-Ψ) (base-Γ) (or-syntax int None) ("optional" "int"))
+   (evalo (base-Ψ) (base-Γ) (or-syntax int str) dynamic)
+   (evalo (base-Ψ) (base-Γ) "int" (instancesof "int"))
+   (evalo (base-Ψ) (base-Γ) int (instancesof "int"))))
 (define-judgment-form SP-statics
   #:mode (evalo I I I O)
   #:contract (evalo Ψ Γ t T)
@@ -103,6 +111,11 @@
    (evalo Ψ Γ t (instancesof cid))
    ------------------------- "Optional"
    (evalo Ψ Γ (subscript x t) ("optional" cid))]
+
+  [(evalo Ψ Γ t_1 T_1)
+   (evalo Ψ Γ t_2 T_2)
+   ------------------------- "or-syntax union type"
+   (evalo Ψ Γ (or-syntax t_1 t_2) (union Ψ T_1 T_2))]
 
   [(evalo Ψ Γ ,(string->symbol (term string)) T)
    ------------------------- "Lookup string"
@@ -250,11 +263,36 @@
    (union Ψ (instancesof "None") (union Ψ (instancesof cid_1) (instancesof cid_2)))]
   [(union Ψ T_1 T_2) dynamic])
 
+;;TODO: test
+(define-metafunction SP-statics
+  intersection : Ψ T T -> T+☠
+  [(intersection Ψ T T) T]
+  [(intersection Ψ dynamic T) T]
+  [(intersection Ψ T dynamic) T]
+  [(intersection Ψ (instancesof cid_1) (instancesof cid_2))
+   (instancesof cid_1)
+   (judgment-holds (Ψ⊢cid<:cid Ψ cid_1 cid_2))]
+  [(intersection Ψ (instancesof cid_1) (instancesof cid_2))
+   (instancesof cid_2)
+   (judgment-holds (Ψ⊢cid<:cid Ψ cid_2 cid_1))]
+  [(intersection Ψ ("optional" cid) (instancesof "None")) (instancesof "None")]
+  [(intersection Ψ (instancesof "None") ("optional" cid)) (instancesof "None")]
+  [(intersection Ψ ("optional" cid_1) ("optional" cid_2))
+   (union Ψ (instancesof "None") T)
+   (where T (intersection Ψ (instancesof cid_1) (instancesof cid_2)))]
+  [(intersection Ψ T_1 T_2) ☠])
+
+(module+ test
+  (test-equal (term (remove-None ("optional" "int")))
+              (term (instancesof "int")))
+  (test-equal (term (remove-None (instancesof "None")))
+              (term dynamic))
+  (test-equal (term (remove-None (instancesof "int")))
+              (term (instancesof "int"))))
 (define-metafunction SP-statics
   remove-None : T -> T
   [(remove-None ("optional" cid)) (instancesof cid)]
   [(remove-None (instancesof "None")) dynamic]  ;; If we want to be pedantic, should be bottom
-  [(remove-None (instancesof cid)) (instancesof cid)]
   [(remove-None T) T])
 
 (module+ test
@@ -286,6 +324,12 @@
      (["__init__"
        ([☠ dynamic])
        dynamic]
+      ["__gt__"
+       ([☠ (instancesof "float")])
+       (instancesof "bool")]
+      ["__eq__"
+       ([☠ (instancesof "float")])
+       (instancesof "bool")]
       ["__neg__"
        ()
        (instancesof "float")]

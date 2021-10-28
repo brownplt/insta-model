@@ -86,12 +86,12 @@
         (define/assign x (subscript Optional int) None)))
    (⊢p ((if #t
             ((define/assign x int 2))
-            ((define/assign x int 3)))
+            ((define/assign x dynamic 3)))
         (define/assign y int x)))
    (⊢p ((def f () None
           (if #t
               ((define/assign x int 2))
-              ((define/assign x int 3)))
+              ((define/assign x dynamic 3)))
           (define/assign y int x))))))
 (define-judgment-form SP-statics
   #:mode (⊢p I)
@@ -218,7 +218,8 @@
   #:mode (¬⊢s* I)
   #:contract (¬⊢s* (s ...))
 
-  ;; Are there any conflicting expressions?
+  ;; Are there any conflicting definitions? If a variable is bound to a class or a function,
+  ;; it can't be rebound to other things.
 
   [(where (any_1 ... [x def/class] any_2 ... [x any] any_3 ...)
           (collect-ext s ...))
@@ -236,39 +237,76 @@
   [(compute-parent (instancesof cid)) cid]
   [(compute-parent T ...) dynamic])
 
+(module+ test
+  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ)))
+              (term (extend (base-Γ))))
+  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (claim x int)))
+              (term (extend (base-Γ) [x (instancesof "int")])))
+  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (define/assign x int 42)))
+              (term (extend (base-Γ) [x (instancesof "int")])))
+  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (def f () int (return 42))))
+              (term (extend (base-Γ) [f (-> () (instancesof "int"))])))
+  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (define/assign x int 42) (define/assign x dynamic 3)))
+              (term (extend (base-Γ) [x (instancesof "int")]))))
+
 (define-metafunction SP-statics
-  collect-variables : Ψ Γ s ... -> Γ
+  collect-global-variables : Ψ Γ s ... -> any
+  ;; What are the classes and variables defined at the top level?
+  [(collect-global-variables Ψ Γ s ...)
+   (collect-variables-helper Ψ Γ global () s ...)])
+
+(define-metafunction SP-statics
+  collect-variables-helper : Ψ Γ vctx (x ...) s ... -> any  ;; in fact, Γ | #f
   ;; What are the classes and variables defined at the top level?
   
-  [(collect-variables Ψ Γ) Γ]
+  [(collect-variables-helper Ψ Γ vctx (x ...)) Γ]
 
+  ;; declare variable
+  [(collect-variables-helper Ψ Γ_1 vctx (x_old ...) (claim x t) s ...)
+   (collect-variables-helper Ψ Γ_2 vctx (x x_old ...) s ...)
+   (where #f (member x (x_old ...)))
+   (judgment-holds (evalo Ψ Γ_1 t T))
+   (where Γ_2 (extend Γ_1 [x T]))]
+  
   ;; define variable
-  [(collect-variables Ψ Γ_1 (define/assign x t e) s ...)
-   (collect-variables Ψ Γ_2 s ...)
+  [(collect-variables-helper Ψ Γ_1 vctx (x_old ...) (define/assign x t e) s ...)
+   (collect-variables-helper Ψ Γ_2 vctx (x x_old ...) s ...)
+   (where #f (member x (x_old ...)))
    (judgment-holds (evalo Ψ Γ_1 t T))
    (where Γ_2 (extend Γ_1 [x T]))]
 
+  ;; later definition can't redeclare
+  [(collect-variables-helper Ψ Γ_1 vctx (x_1 ... x x_2 ...) (define/assign x dynamic e) s ...)
+   (collect-variables-helper Ψ Γ_1 vctx (x_1 ... x x_2 ...) s ...)]
+  [(collect-variables-helper Ψ Γ_1 vctx (x_1 ... x x_2 ...) (define/assign x t e) s ...)
+   #f]
+
   ;; define function
-  [(collect-variables Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s_body ...) s ...)
-   (collect-variables Ψ Γ_2 s ...)
+  [(collect-variables-helper Ψ Γ_1 vctx (x_old ...) (def x ([x_arg t_arg] ...) t_ret s_body ...) s ...)
+   (collect-variables-helper Ψ Γ_2 vctx (x x_old ...) s ...)
+   (where #f (member x (x_old ...)))
    (judgment-holds (evalo* Ψ Γ_1 (t_arg ...) (T_arg ...)))
    (judgment-holds (evalo Ψ Γ_1 t_ret T_ret))
    (where T (-> ([x_arg T_arg] ...) T_ret))
-   (where Γ_2 (extend Γ_1 [x_fun T]))]
+   (where Γ_2 (extend Γ_1 [x T]))]
 
-  [(collect-variables Ψ_1 Γ_1 (def any ...) s ...)
+  [(collect-variables-helper Ψ_1 Γ_1 vctx (x_old ...) (def any ...) s ...)
    ,(error "should not come here" (term (Ψ_1 Γ_1 (def any ...))))]
 
-  ;; ignore the define/assign if the lhs is not a variable
-  [(collect-variables Ψ Γ (define/assign e t e) s ...)
-   (collect-variables Ψ Γ s ...)]
+  ;; in local context, this function is responsible for collecting class definitions because we don't
+  ;; update Ψ anymore.
+  ;; These nested classes are typed as dynamic
+  [(collect-variables-helper Ψ Γ_1 local (x_old ...) (class x (t ...) class-member ...) s ...)
+   (collect-variables-helper Ψ Γ_2 local (x x_old ...) s ...)
+   (where #f (member x (x_old ...)))
+   (where Γ_2 (extend Γ_1 [x dynamic]))]
 
   ;; handle if branches, TODO: this might be a bit simplisitic
-  [(collect-variables Ψ Γ (if e (s_thn ...) (s_els ...)) s ...)
-   (collect-variables Ψ Γ s_thn ... s_els ... s ...)]
+  [(collect-variables-helper Ψ Γ vctx (x_old ...) (if e (s_thn ...) (s_els ...)) s ...)
+   (collect-variables-helper Ψ Γ vctx (x_old ...) s_thn ... s_els ... s ...)]
   
-  [(collect-variables Ψ Γ s_1 s_2 ...)
-   (collect-variables Ψ Γ s_2 ...)])
+  [(collect-variables-helper Ψ Γ vctx (x_old ...) s_1 s_2 ...)
+   (collect-variables-helper Ψ Γ vctx (x_old ...) s_2 ...)])
 
 (module+ test
   (test-equal (term (declare-clss (base-Ψ) (base-Γ)))
@@ -301,51 +339,23 @@
    (where Ψ_2 (Ψ-init Ψ_1 cid C))]
   [(initialize-clss Ψ Γ s ...) Ψ])
 
+
 (define-metafunction SP-statics
-  collect-defs-and-clss : Ψ Γ s ... -> (Ψ Γ)
+  collect-defs-and-clss : Ψ Γ s ... -> any ;; (Ψ Γ)
   ;; What are the classes and variables defined at the top level?
 
   [(collect-defs-and-clss Ψ_1 Γ_1 s ...)
    (Ψ_3 Γ_3)
    (where (Ψ_2 Γ_2) (declare-clss Ψ_1 Γ_1 s ...))
    (where Ψ_3 (initialize-clss Ψ_2 Γ_2 s ...))
-   (where Γ_3 (collect-variables Ψ_3 Γ_2 s ...))])
+   (where Γ_3 (collect-global-variables Ψ_3 Γ_2 s ...))]
+  [(collect-defs-and-clss Ψ_1 Γ_1 s ...) #f])
 
 (define-metafunction SP-statics
-  collect-local-defs-and-clss : Ψ Γ s ... -> Γ
+  collect-local-defs-and-clss : Ψ Γ s ... -> any
   ;; What are the classes and variables defined at the top level?
-  
-  [(collect-local-defs-and-clss Ψ Γ) Γ]
-
-  ;; define variable
-  [(collect-local-defs-and-clss Ψ Γ_1 (define/assign x t e) s ...)
-   (collect-local-defs-and-clss Ψ Γ_2 s ...)
-   (judgment-holds (evalo Ψ Γ_1 t T))
-   (where Γ_2 (extend Γ_1 [x T]))]
-
-  ;; define function
-  [(collect-local-defs-and-clss Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s_body ...) s ...)
-   (collect-local-defs-and-clss Ψ Γ_2 s ...)
-   (where T (-> ([x_arg T_arg] ...) T_ret))
-   (judgment-holds (evalo Ψ Γ_1 (t_arg ...) (T_arg ...)))
-   (judgment-holds (evalo Ψ Γ_1 t_ret T_ret))
-   (where Γ_2 (extend Γ_1 [x T]))]
-
-  ;; local define class doesn't go into Ψ, they are treated as dynamic
-  [(collect-local-defs-and-clss Ψ Γ_1 (class x (t_parent ...) class-member ...) s ...)
-   (collect-local-defs-and-clss Ψ Γ_2 s ...)
-   (where Γ_2 (extend Γ_1 [x dynamic]))]
-
-  ;; ignore the define/assign if the lhs is not a variable
-  [(collect-local-defs-and-clss Ψ Γ (define/assign e t e) s ...)
-   (collect-local-defs-and-clss Ψ Γ s ...)]
-  
-  ;; handle if branches, TODO: this might be a bit simplisitic
-  [(collect-local-defs-and-clss Ψ Γ (if e (s_thn ...) (s_els ...)) s ...)
-   (collect-local-defs-and-clss Ψ Γ s_thn ... s_els ... s ...)]
-
-  [(collect-local-defs-and-clss Ψ Γ s_fst s_rst ...)
-   (collect-local-defs-and-clss Ψ Γ s_rst ...)])
+  [(collect-local-defs-and-clss Ψ Γ s ...)
+   (collect-variables-helper Ψ Γ local () s ...)])
 
 (define-judgment-form SP-statics
   #:mode (¬Ψ⊢Γ I I)
@@ -435,24 +445,15 @@
   #:contract (ΨΓ⊢s⇐T+☠ Ψ Γ s T+☠)
 
   ;; Is the statement s well-formed under the type and class environment Γ?
-
-  [(where #t (≠ t dynamic))
-   (evalo Ψ Γ t T)
-   (ΨΓ⊢e⇐T Ψ Γ e_1 T)
-   (ΨΓ⊢e⇐T Ψ Γ e_2 T)
-   ------------------------ "define/assign annotated"
-   (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 t e_2) _)]
-
+  
   [(ΨΓ⊢e⇒T Ψ Γ e_1 T)
    (ΨΓ⊢e⇐T Ψ Γ e_2 T)
-   ------------------------ "define/assign unannotated"
-   (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 dynamic e_2) _)]
+   ------------------------ "define/assign"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 t e_2) _)]
 
-  [(evalo Ψ Γ_1 t_arg T_arg) ...
-   (evalo Ψ Γ_1 t_ret T_ret)
-   (where Γ_2 (extend Γ_1 [x_arg T_arg] ...))
-   (where Γ_3 (collect-local-defs-and-clss Ψ Γ_2 s ...))
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ_3 (s ...) T_ret)
+  [(evalo Ψ Γ_1 t_ret T_ret)
+   (where Γ_2 (collect-local-defs-and-clss Ψ Γ_1 (claim x_arg t_arg) ... s ...))
+   (ΨΓ⊢s*⇐T+☠ Ψ Γ_2 (s ...) T_ret)
    ------------------------ "def"
    (ΨΓ⊢s⇐T+☠ Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s ...) _)]
 
@@ -513,6 +514,14 @@
    --------------------- "return"
    (ΨΓ⊢s*⇐T+☠ Ψ Γ ((return e) s ...) T)]
 
+  [(ΨΓ⊢e⇒T Ψ Γ e T_1)
+   (evalo Ψ Γ t T_2)
+   (Ψ⊢T≲T Ψ T_1 T_2)
+   (where T (intersection Ψ T_1 T_2))
+   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x T]) (s ...) T+☠)
+   --------------------- "define/assign"
+   (ΨΓ⊢s*⇐T+☠ Ψ Γ ((define/assign x t e) s ...) T+☠)]
+
   [(ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e (s_thn ... s ...) (s_els ... s ...) T+☠)
    --------------------- "if"
    (ΨΓ⊢s*⇐T+☠ Ψ Γ ((if e (s_thn ...) (s_els ...)) s ...) T+☠)]
@@ -538,13 +547,18 @@
    (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (is x None) (s_thn ...) (s_els ...) T+☠)]
 
   [(ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e (s_thn ...) (s_els ...) T+☠)
-   ------------------ "if and-base"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op and e) (s_thn ...) (s_els ...) T+☠)]
+   ------------------ "if bool-op-base"
+   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op ob e) (s_thn ...) (s_els ...) T+☠)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_1 (instancesof "bool"))
    (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e_1 ((if (bool-op and e_2 e_3 ...) (s_thn ...) (s_els ...))) (s_els ...) T+☠)
-   ------------------ "if and-step"
+   ------------------ "if and"
    (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op and e_1 e_2 e_3 ...) (s_thn ...) (s_els ...) T+☠)]
+
+  [(ΨΓ⊢e⇒T Ψ Γ e_1 (instancesof "bool"))
+   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e_1 (s_thn ...) ((if (bool-op or e_2 e_3 ...) (s_thn ...) (s_els ...))) T+☠)
+   ------------------ "if or"
+   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op or e_1 e_2 e_3 ...) (s_thn ...) (s_els ...) T+☠)]
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
    (ΨΓ⊢s*⇐T+☠ Ψ Γ (s_thn ...) T+☠)
@@ -583,11 +597,9 @@
   [-------------------------
    (ΨΓ⊢class-member Ψ Γ (field string t))]
 
-  [(evalo Ψ Γ_1 t_arg T_arg) ...
-   (evalo Ψ Γ_1 t_ret T_ret)
-   (where Γ_2 (extend Γ_1 [x_self dynamic] [x_arg T_arg] ...))
-   (where Γ_3 (collect-local-defs-and-clss Ψ Γ_2 s ...))
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ_3 (s ...) T_ret)
+  [(evalo Ψ Γ_1 t_ret T_ret)
+   (where Γ_2 (collect-local-defs-and-clss Ψ Γ_1 (claim x_self dynamic) (claim x_arg t_arg) ... s ...))
+   (ΨΓ⊢s*⇐T+☠ Ψ Γ_2 (s ...) T_ret)
    ;; TODO: the type of self looks weird
    -------------------------
    (ΨΓ⊢class-member Ψ Γ_1 (method string_method x_self ([x_arg t_arg] ...) t_ret s ...))])
@@ -690,8 +702,11 @@
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (attribute (dict-syntax) "__getitem__") (-> ([☠ dynamic]) dynamic))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (unary-op - 2) (instancesof "float"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bin-op + 2 3) (instancesof "float"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (> 2 3) (instancesof "bool"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (== 2 3) (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (in None (set-syntax "foo" 42)) (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bool-op and #t #f) dynamic)
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bool-op or #t #f) dynamic)
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (int "123") (instancesof "int"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (is "foo" None) (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (is-not 42 "x") (instancesof "bool"))
@@ -749,6 +764,14 @@
    ------------------------ "is-not"
    (ΨΓ⊢e⇒T Ψ Γ (is-not e_1 e_2) (instancesof "bool"))]
 
+  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__gt__") e_2) T)
+   ------------------------ "gt"
+   (ΨΓ⊢e⇒T Ψ Γ (> e_1 e_2) T)]
+
+  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__eq__") e_2) T)
+   ------------------------ "eq"
+   (ΨΓ⊢e⇒T Ψ Γ (== e_1 e_2) T)]
+
   [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_2 "__contains__") e_1) T)
    ------------------------ "in"
    (ΨΓ⊢e⇒T Ψ Γ (in e_1 e_2) T)]
@@ -756,6 +779,10 @@
   [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__and__") e_2) T)
    ------------------------ "and"
    (ΨΓ⊢e⇒T Ψ Γ (bool-op and e_1 e_2) T)]
+
+  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__or__") e_2) T)
+   ------------------------ "or"
+   (ΨΓ⊢e⇒T Ψ Γ (bool-op or e_1 e_2) T)]
   
   [(where (subscript x (tuple-syntax t ...)) e)
    (evalo Ψ Γ e (instancesof cid))

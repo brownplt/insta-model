@@ -48,13 +48,16 @@
      (bool-op ob e ...)
      (unary-op o1 e)
      (bin-op o2 e e)
+     (oc e e)
      (in e e)
      (is e e)
      (is-not e e)
      (if e e e)
      (e e ...))
 
-  (ob and)
+  (ob and or)
+
+  (oc > ==)
 
   (o1 -)
 
@@ -65,6 +68,7 @@
      None ;; nonterminal x doesn't cover this because we mentioned None in c
      (subscript x (tuple-syntax t ...))
      (subscript x t)
+     (or-syntax t t)
      string  ;; same as x
      x)
 
