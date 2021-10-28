@@ -12,6 +12,7 @@ input_file = "tests.py"
 skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
 output_path_prefix = "./conformance_suite/"
+skipped_tests_path_prefix = "./skipped_tests/"
 
 
 def read_tests(file_path):
@@ -141,7 +142,7 @@ def translate_less_simple_compile_test(test: str):
     assert isinstance(body.func.value, ast.Name)
     assert str(body.func.value.id) == 'self'
     assert str(body.func.attr) == 'compile'
-    assert len(body.args) == 1
+    assert len(body.args) in {1, 2}
     assert body.keywords == []
     arg = body.args[0]
     assert isinstance(arg, ast.Name)
@@ -159,51 +160,52 @@ def translate_less_simple_compile_test(test: str):
 
 
 for test in read_tests(input_file):
+    if 'reveal_type' in test: continue 
+    if 'nonlocal' in test: continue
+    if 'global' in test: continue
+    if '...' in test: continue
+    if 'double' in test: continue
+    if 'int8' in test: continue
+    if 'int32' in test: continue
+    if 'int64' in test: continue
+    if 'box' in test: continue
+    if 'cbool' in test: continue
+    if 'Array' in test: continue
+    if '*args' in test: continue
+
     lines = test.split('\n')
     first_line = lines[0]
     try:
-        # The `.index("(self)")` actually skips a bunch of tests.
+        # This line actually skips a bunch of tests.
         name = first_line[4:first_line.index("(self)")]
-        # Skip a bunch of things that we don't care
-        assert not '_kw' in name
-        assert not 'mixed_args' in name
+        if '_kw' in name: continue
+        if 'mixed_args' in name: continue
+        if 'varargs' in name: continue
+        if 'test_if_else_optional_return_two_branches' in name: continue
+        # ⬆️ This test uses an unbound identifier
+    except Exception:
+        continue
+
+    # Skip more
+    try:
+        # TODO: these are tests that we care but don't support right now.
+        assert not 'while' in test
+        assert not '@staticmethod' in test
+        assert not '@final' in test
         assert not 'assign_chained' in name
         assert not 'chain_assign' in name
-        assert not 'test_if_else_optional_return_two_branches' in name
-        # ⬆️ This test uses an unbound identifier
-        # Skip more
-        assert not 'while' in test # TODO
-        assert not '@staticmethod' in test # TODO
-        assert not '@final' in test # TODO
-        assert not 'reveal_type' in test # TODO
-        assert not 'nonlocal' in test
-        assert not 'global' in test
-        assert not '...' in test
-        assert not 'double' in test
-        assert not 'int8' in test
-        assert not 'int32' in test
-        assert not 'int64' in test
-        assert not 'box' in test
-        assert not 'cbool' in test
-        assert not 'Array' in test
-        assert not '*args' in test
-    except AssertionError:
-        continue
-    except ValueError:
-        continue
-    try:
-        (name, content) = translate_simple_compile_test(test)
-    except AssertionError:
         try:
-            (name, content) = translate_less_simple_compile_test(test)
+            (name, content) = translate_simple_compile_test(test)
         except AssertionError:
-            print("SKIPPED", name)
-            # exit(1)
-            continue
-
-    output_path = output_path_prefix + name + ".py"
-    output_file = open(output_path, 'w')
-    output_file.write(content)
-    print(test)
-    print('-' * 10)
+            (name, content) = translate_less_simple_compile_test(test)
+        output_path = output_path_prefix + name + ".py"
+        output_file = open(output_path, 'w')
+        output_file.write(content)
+        print(test)
+        print('-' * 10)
+    except Exception:
+        print("SKIPPED", name)
+        skipped_tests_path = skipped_tests_path_prefix + name + ".py"
+        skipped_tests_file = open(skipped_tests_path, 'w')
+        skipped_tests_file.write(test)
     
