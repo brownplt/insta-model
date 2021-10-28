@@ -147,11 +147,10 @@ Static Python.
     After refactoring to sound types, \SP{} performs well on a microbenchmark
     suite and in production.
   \item
-    A formal description and analysis of the \SP{} core language.
-    The analysis includes a proof of type soundness,
-    a proof that optimization soundly improves code,
-    and [FILL perhaps] a metric to quantify the refactoring cost and optimization benefit
-    of a type migration.
+    A formal description of the \SP{} core language and an analysis of its soundness
+    and optimizations.
+    Soundness is not uniform across all types.
+    Some are fully sound while others are constructor sound.
   \item
     In-depth discussions of the expressiveness limitations in \SP{} relative to
     idealized gradual type systems, and the programming discipline that Instagram
@@ -294,13 +293,10 @@ Dynamic avoids the need for whole-sale migration,
 lets programmers work around dynamic features like splatting,
 and is in some cases necessary for optimal performance (evidence?).
 
-No way to write the dynamic type.
-Instead, it fills in for absent annotations.
-Either totally missing or a missing generic parameter.
+Can't really write the dynamic type.
+But ANY unbound id. or non-type object gets interpreted as the dynamic type for now.
 
-%% TODO are there any types C[T0, T1] where you might want C[dyn, T1]? how to express?
-
-Cannot appear everywhere ... ChkDict can't hold a Dynamic,
+Cannot appear everywhere ... ChkDict can't hold a Dynamic (or rather, you can declare this type and cannot instantiate it),
 and primitives are incompatible with Dynamic. 
 
 Dynamic behavior is always (?) the same as normal Python.
@@ -527,10 +523,43 @@ to add soundness?
 \label{s:eval}
 
 
-\subsection{Benchmarks}
+\subsection{Microbenchmarks}
+
+richards etc.
 
 
 \subsection{Production Experience}
+
+
+\section{Design Principles}
+
+\subsection{Nominal, Checked Types}
+
+CheckedDict enables strong type checks and optimizations, but is incredibly painful to use.
+It is painful even though ChkDict supports the full dict API
+(any context that uses a Python dict can use a ChkDict without code changes).
+
+The problem is that the ChkDict type rejects all Python values.
+It accepts only ChkDict values, built through a special constructor
+that installs a tag for type tests and guards writes.
+Suppose that \code{f} is an untyped dict function.
+As is, it can process ChkDict but gets no benefit from type checks nor from optimizations.
+Adding a ChkDict domain type enables optimizations within \code{f} but raises a non-local
+problem: all callers of \code{f} must be sure to create a ChkDict.
+These ChkDicts must also be monomorphic to match whatever type \code{f} chose.
+It can take many edits to get a program running again after adding a ChkDict type.
+
+Lessons:
+\begin{itemize}
+  \item
+    Nominal types are not compatible with structual values, such as Python values.
+    Programmers are forced to edit old code to use such types ... unless the recent Nom work has a better idea~\cite{mt-oopsla-2021}
+  \item
+    Monomorphic nominal types are even worse.
+    Editing old code to fit their rigid constraints may not be feasible.
+
+\end{itemize}
+
 
 
 \section{Related Work}
@@ -565,6 +594,11 @@ by compiling source code to C extension modules.
 Adapt SP ideas to a new setting, test performance takeaways.
 
 Improve SP with generic types, structural types (lambda), \ldots.
+
+Use confined GT to relax ChkDict ... let programmers decide whether
+the type should reject or convert untyped data.
+Maybe a ChkDict function could compile to an "overloaded" version with
+fast and slow paths for ChkDict vs normal dict.
 
 Build an automatic migration tool for Checked data.
 
