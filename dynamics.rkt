@@ -28,12 +28,18 @@
      (set-syntax v ...)
      (dict-syntax (v v) ...)
      (function ρ ([x T] ...) T s ...)
-     (class (l ...) ([string l] ...))
-     (prim-op string))
+     (class (l ...) ([string l] ...) ...)
+     ;; for builtin_function_or_method. We don't really need this
+     ;; because c includes string
+     string
+     ;; methods, the first l is the method itself, the second l is the self object
+     (l l))
   ;; values are just heap addresses
   (v (ref l))
   ;; at runtime immediate values can go into expressions.
-  (e .... v)
+  (e .... v
+     (let ([x e]) e)
+     (escape ρ e))
   ;; expression contexts
   (E hole
      (tuple-syntax v ... E e ...)
@@ -47,7 +53,9 @@
      (is-not v E)
      (if E e e)
      (v ... E e ...)
-     (reveal-type any ... E))
+     (reveal-type any ... E)
+     (let ([x E]) e)
+     (escape ρ E))
   ;; statement contexts
   (S (return E)
      (claim x t)
@@ -86,30 +94,40 @@
    ("NoneType" None)]
   [(lookup-Σ Σ "float")
    ("type" (class ("object")
-             (["__init__" "float.__init__"]
-              ["__gt__" "float.__gt__"]
+             (["__gt__" "float.__gt__"]
               ["__eq__" "float.__eq__"]
               ["__neq__" "float.__neq__"]
               ["__add__" "float.__add__"])))]
   [(lookup-Σ Σ "int")
-   ("type" (class ("float")
-             (["__init__" "int.__init__"])))]
+   ("type" (class ("float") ()))]
   [(lookup-Σ Σ "bool")
-   ("type" (class ("int")
-             (["__init__" "bool.__init__"])))]
+   ("type" (class ("int") ()))]
   [(lookup-Σ Σ "str")
-   ("type" (class ("object")
-             (["__init__" "str.__init__"])))]
+   ("type" (class ("object") ()))]
   [(lookup-Σ Σ "tuple")
-   ("type" (class ("object") (["__init__" "tuple.__init__"])))]
+   ("type" (class ("object") ()))]
   [(lookup-Σ Σ "set")
-   ("type" (class ("object") (["__init__" "set.__init__"])))]
+   ("type" (class ("object") ()))]
   [(lookup-Σ Σ "dict")
-   ("type" (class ("object") (["__init__" "dict.__init__"])))]
+   ("type" (class ("object") ()))]
   [(lookup-Σ Σ "object")
-   ("type" (class () (["__init__" "object.__init__"])))]
+   ("type" (class () (["__new__" "object.__new__"]
+                      ["__init__" "object.__init__"])))]
   [(lookup-Σ Σ "type")
-   ("type" (class ("object") ()))])
+   ("type" (class ("object") ()))]
+  [(lookup-Σ Σ "object.__new__")
+   ("builtin_function_or_method" "object.__new__")]
+  [(lookup-Σ Σ "object.__init__")
+   ("wrapper_descriptor" "object.__init__")])
+
+(define-metafunction SP-dynamics
+  delta : Σ string v ... -> (Σ v)
+  [(delta Σ "object.__new__" (ref "int") (ref (con string)))
+   (Σ (ref (con ,(string->number (term string)))))]
+  [(delta Σ "object.__new__" (ref "str") (ref (con number)))
+   (Σ (ref (con ,(format "~a" (term number)))))]
+  [(delta Σ "object.__init__" v_slf v_arg ...)
+   (Σ v_slf)])
 
 (define-metafunction SP-dynamics
   base-Σ : -> Σ
@@ -168,7 +186,12 @@
    (get-attr Σ (ref l_par) string_key)
    (where ("type" (class (l_par)
                     ([string l] ...)))
-          (lookup-Σ Σ l_slf))])
+          (lookup-Σ Σ l_slf))]
+  [(get-attr Σ_1 (ref l_ins) string_key)
+   (Σ_3 (ref l_insval))
+   (where (l_cls g_ins) (lookup-Σ Σ_1 l_ins))
+   (where (Σ_2 (ref l_clsval)) (get-attr Σ_1 (ref l_cls) string_key))
+   (where (Σ_3 l_insval) (alloc Σ_2 ("method" (l_clsval l_ins))))])
 
 (module+ test
   (test-->> e→e
@@ -228,14 +251,20 @@
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (attribute int "__add__")))
             (term ((base-Σ) (base-ρ) (ref "float.__add__"))))
-  #; ;; TODO
   (test-->> e→e
-            (term ((base-Σ) (base-ρ) (int "123")))
-            (term ((base-Σ) (base-ρ) (ref (con 123)))))
-  #; ;; TODO
+            (term ((base-Σ)
+                   (base-ρ)
+                   (int "123")))
+            (term ((extend (base-Σ) [0 ("method" ("object.__init__" (con 123)))])
+                   (base-ρ)
+                   (ref (con 123)))))
   (test-->> e→e
-            (term ((base-Σ) (base-ρ) (str 1.0)))
-            (term ((base-Σ) (base-ρ) (ref (con "1.0"))))))
+            (term ((base-Σ)
+                   (base-ρ)
+                   (str 1.0)))
+            (term ((extend (base-Σ) [0 ("method" ("object.__init__" (con "1.0")))])
+                   (base-ρ)
+                   (ref (con "1.0"))))))
   
 (define e→e
   (reduction-relation
@@ -279,10 +308,33 @@
         (in-hole (Σ_2 ρ E) v_val)
         (where (Σ_2 v_val) (get-attr Σ_1 v_map string))
         "attribute")
-   #; ;; TODO
+   (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
+        (in-hole (Σ ρ E) (let ([x_ins ((attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...)])
+                             (let ([x_tmp ((attribute x_ins "__init__") x_ins v_arg ...)])
+                               x_ins)))
+        (where ("type" g) (lookup-Σ Σ l_prc))
+        (where x_ins ,(gensym 'ins))
+        (where x_tmp ,(gensym 'tmp))
+        "class call")
    (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ_2 ρ E) e_ret)
-        (where h_prc (lookup Σ_1 l_prc))
-        (where (Σ_2 e_ret) (call Σ_1 v_prc v_arg ...))
-        "procedure call (builtin heap value)")
+        (in-hole (Σ_2 ρ E) v_ret)
+        (where ("builtin_function_or_method" string) (lookup-Σ Σ_1 l_prc))
+        (where (Σ_2 v_ret) (delta Σ_1 string v_arg ...))
+        "builtin_function_or_method call")
+   (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
+        (in-hole (Σ_2 ρ E) v_ret)
+        (where ("wrapper_descriptor" string) (lookup-Σ Σ_1 l_prc))
+        (where (Σ_2 v_ret) (delta Σ_1 string v_arg ...))
+        "wrapper_descriptor")
+   (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
+        (in-hole (Σ ρ E) ((ref l_mth) (ref l_slf) v_arg ...))
+        (where ("method" (l_mth l_slf)) (lookup-Σ Σ l_prc))
+        "method call")
+   (--> (in-hole (Σ ρ_1 E) (let ([x v]) e))
+        (in-hole (Σ ρ_2 E) (escape ρ_1 e))
+        (where ρ_2 (extend ρ_1 [x v]))
+        "let")
+   (--> (in-hole (Σ ρ_1 E) (escape ρ_2 v))
+        (in-hole (Σ ρ_2 E) v)
+        "escape")
    ))
