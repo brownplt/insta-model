@@ -43,6 +43,7 @@
     [bool (classitself "bool")]
     [str (classitself "str")]
     [dict (classitself "dict")]
+    [set (classitself "set")]
     [type (classitself "type")])])
 
 (define-judgment-form SP-statics

@@ -6,6 +6,9 @@
 (require "statics-utilities.rkt")
 (require "statics-meaning-of-types.rkt")
 (provide (all-defined-out))
+(provide (all-from-out "statics-basic-definitions.rkt"))
+(provide (all-from-out "statics-utilities.rkt"))
+(provide (all-from-out "statics-meaning-of-types.rkt"))
 
 (module+ test
   (check-judgment-holds*

@@ -19,7 +19,7 @@
   (s
    (class x (t ...) class-member ...)
    (return e)
-   (claim e t)
+   (claim x t)
    (define/assign e t e)
    (def x ([x t] ...) t s ...)
    (if e (s ...) (s ...))
@@ -31,29 +31,29 @@
    (field string t)
    (method string_method x_self ((x t) ...) t s ...))
 
-  (c integer
+  (c number
      boolean
      string
-     None
-     NotImplemented)
+     None)
 
   (e x
      c
-     (reveal-type any ... e)
+     (tuple-syntax e ...)
      (set-syntax e ...)
      (dict-syntax (e e) ...)
-     (subscript e e)
-     (subscript x (tuple-syntax t ...))
-     (attribute e string)
-     (bool-op ob e ...)
-     (unary-op o1 e)
-     (bin-op o2 e e)
-     (oc e e)
-     (in e e)
      (is e e)
      (is-not e e)
      (if e e e)
-     (e e ...))
+     (attribute e string)
+     (e e ...)
+     (reveal-type any ... e)
+     ;; sugars
+     (oc e e)
+     (in e e)
+     (subscript e e)
+     (bool-op ob e ...)
+     (unary-op o1 e)
+     (bin-op o2 e e))
 
   (ob and or)
 
