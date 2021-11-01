@@ -81,7 +81,38 @@
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\defeq}{=}
+\newcommand{\mfeq}{=}
+\newcommand{\langmid}{\mathrel{\mathbf{\Big\vert}}}
+\newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 
+\newcommand{\typefont}[1]{\mathsf{#1}}
+\newcommand{\paramtype}[2]{#1[#2]}
+\newcommand{\sptype}{\typefont{T}}
+\newcommand{\sptclass}{\typefont{C}}
+\newcommand{\sptint}{\typefont{Int}}
+\newcommand{\sptfloat}{\typefont{Float}}
+\newcommand{\sptdyn}{\typefont{Dynamic}}
+\newcommand{\sptobject}{\typefont{Object}}
+\newcommand{\sptnone}{\typefont{NoneType}}
+\newcommand{\sptinstanceof}[1]{\paramtype{\typefont{Instance}}{#1}}
+\newcommand{\sptfun}[2]{#1 \rightarrow #2}
+\newcommand{\sptunion}[2]{#1 \cup #2}
+\newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
+\newcommand{\sptpydict}[2]{\paramtype{\typefont{PyDict}}{#1, #2}}
+\newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
+
+\newcommand{\spexpr}{e}
+\newcommand{\spvalue}{v}
+
+\newcommand{\sprred}{\rightarrow^*}
+
+\newcommand{\mfapply}[2]{#1\,(#2)}
+\newcommand{\mffont}[1]{\mathit{#1}}
+\newcommand{\mftypeF}[1]{\mfapply{\mffont{F}}{#1}}
+\newcommand{\mfopt}[1]{\mfapply{\mffont{opt}}{#1}}
+
+\newcommand{\sperror}{\mathrm{Error}}
 
 \begin{abstract}
   TBD
@@ -501,8 +532,86 @@ A strict module is 100\% repeatable and isolated from the side effects of other 
 
 \subsection{Surface Language}
 
+\begin{figure}[t]
+  %% ported types from redex model
+  \begin{langarray}
+    \sptype & \defeq &
+      \sptdyn \langmid
+      \sptnone \langmid
+      \sptclass \langmid
+      \sptinstanceof{\sptclass} \langmid
+      \sptfun{\sptype}{\sptype} \langmid
+      \sptunion{\sptclass}{\sptclass}
+  \\
+    \sptclass & \defeq &
+      \sptint \langmid
+      \sptfloat \langmid
+      \sptobject \langmid
+      \sptpydict{\sptclass}{\sptclass} \langmid
+      \sptchkdict{\sptclass}{\sptclass} \langmid
+      \mbox{(user defined class)}
+  \end{langarray}
+
+  \begin{center}\parbox{0.8\columnwidth}{
+    Abbreviation: $\sptoptional{\sptclass} \defeq \sptunion{\sptclass}{\sptnone}$
+
+    EXCEPT THAT $\sptoptional{\sptclass}$ may be a generic parameter just like any other class $\sptclass$
+
+    Function types cannot expect or return other function types.
+  }\end{center}
+
+  \caption{Surface Types}
+  \label{f:surface-types}
+\end{figure}
+
 
 \subsection{Evaluation Language, Optimizations}
+
+\begin{figure}[t]
+  \(
+    \mftypeF{\sptype_0}
+    \mfeq
+    \left\{\begin{array}{ll}
+      \sptpydict{}{} & \mbox{if $\sptype_0 = \sptpydict{\sptclass}{\sptclass}$}
+    \\
+      \sptype_0 & \mbox{otherwise}
+    \end{array}\right.
+  \)
+
+  \caption{Surface Types to Evaluation Types}
+  \label{f:surface-to-eval-types}
+\end{figure}
+
+
+\subsection{Properties}
+
+\begin{theorem}[Type Soundness]
+  If\ \(\vdash \spexpr_0 : \sptype_0\)
+  then one of the following holds:
+  \begin{itemize}
+    \item
+      \(\spexpr_0 \sprred \spvalue_0
+        \mbox{ and }
+        \vdash \spvalue_0 : \mftypeF{\sptype_0}
+      \)
+    \item
+      \(\spexpr_0\) diverges
+    \item
+      \(\spexpr_0 \sprred \sperror\)
+  \end{itemize}
+\end{theorem}
+
+\begin{theorem}[Optimization Soundness]
+  If\ \(\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
+  then\ \(\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
+\end{theorem}
+
+\begin{theorem}[Optimization Effectiveness]
+  FILL how do we know optimizations are useful rather than trivial?
+  %% - length of eval(e) vs. eval(opt(e)) might be longer (good) or shorter (bad)
+  %%   for general heuristic opts.
+  %% - is [opt(e) != e] true for interesting programs?
+\end{theorem}
 
 
 \subsection{Bug Reports}
