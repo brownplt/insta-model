@@ -6,54 +6,118 @@
 (define-extended-language SP-core SP
 
   ;; program
-  (program- (import-type ... s- ...))
+  (program (import-type ... d s))
+
+  ;; declaration
+  (d ([x t] ...))
 
   ;; statements
-  (s- (class x (t- ...) m- ...)
-      (return e-)
-      (claim x t-)
-      (define/assign x t- e-)
-      (define/assign (attribute e- string) t- e-)
-      (def x ([x t-] ...) t- s-)
-      (if e- s- s-)
-      (begin s- ...)
-      pass
-      (expr e-)
-      (delete x)
-      (delete (attribute e- string))
-      )
+  (s (define/assign x t e)
+     (define/assign (attribute e string) t e)
+     (def x ([x t] ...) t d s)
+     (class x (t ...) m ...)
+     (if e s s)
+     (begin s ...)
+     (delete x)
+     (delete (attribute e string))
+     (return e)
+     (expr e)
+     pass
+     )
 
-  (m- (field string t-)
-      (method string x ((x t-) ...) t- s-))
+  (m (field string t)
+     (method string x ([x t] ...) t d s))
 
   ;; type expression
-  (t- dynamic
-      None ;; nonterminal x doesn't cover this because we mentioned None in c
-      ((attribute x string) (tuple-syntax t- ...))
-      ((attribute x string) t)
-      (or-syntax t- t-)
-      x)
+  (t dynamic
+     None ;; nonterminal x doesn't cover this because we mentioned None in c
+     ((attribute x string) (tuple-syntax t ...))
+     ((attribute x string) t)
+     (or-syntax t t)
+     x
+     ;; new stufff
+     (def ([x t] ...) t)
+     (class x (t ...) m ...)
+     )
 
-  (e- x
-      c
-      (tuple-syntax e- ...)
-      (set-syntax e- ...)
-      (dict-syntax (e- e-) ...)
-      (is e- e-)
-      (is-not e- e-)
-      (if e- e- e-)
-      (attribute e- string)
-      (e- e- ...)
-      (reveal-type any ... e-)
-      (bool-op ob e- e-)))
+  (e x
+     c
+     (tuple-syntax e ...)
+     (set-syntax e ...)
+     (dict-syntax (e e) ...)
+     (is e e)
+     (is-not e e)
+     (if e e e)
+     (attribute e string)
+     (e e ...)
+     (reveal-type any ... e)
+     (bool-op ob e e)))
 
 
 ;; The remaining part of this file describe the desugaring process.
 ;; Desugaring is context-insensitive -- it doesn't rely on the type of
-;; terms. This process remove two kinds of constructs:
+;; terms. This process remove three kinds of constructs:
 ;;   - operators (except is and is-not because they are primitive)
 ;;   - subscription
 ;;   - restrict assignment targets to variables and attributes
+;; And lift variable declaration to the beginning of each block
+
+(define-metafunction SP-core
+  append : (any ...) (any ...) -> (any ...)
+  [(append (any_1 ...) (any_2 ...))
+   (any_1 ... any_2 ...)])
+
+(module+ test
+  (test-equal (term (lift-claims (define/assign xyz int 42)))
+              (term ([xyz int])))
+  (test-equal (term (lift-claims (define/assign (attribute objx "unknown") int 42)))
+              (term ()))
+  (test-equal (term (lift-claims (def func ([n int]) str () (return None))))
+              (term ([func (def ([n int]) str)])))
+  (test-equal (term (lift-claims (class MyClass (int str))))
+              (term ([MyClass (class MyClass (int str))])))
+  (test-equal (term (lift-claims (if (bool-op and 0 1)
+                                     (define/assign x int 42)
+                                     (define/assign y str "foo"))))
+              (term ([x int] [y str])))
+  (test-equal (term (lift-claims (begin (define/assign x int 42)(define/assign y str "foo"))))
+              (term ([x int] [y str])))
+  (test-equal (term (lift-claims (delete xyz)))
+              (term ()))
+  (test-equal (term (lift-claims (delete (attribute x "__class__"))))
+              (term ()))
+  (test-equal (term (lift-claims (return 42)))
+              (term ()))
+  (test-equal (term (lift-claims (expr "foo")))
+              (term ()))
+  (test-equal (term (lift-claims pass))
+              (term ()))
+  )
+(define-metafunction SP-core
+  lift-claims : s -> d
+  [(lift-claims (define/assign x t e)) ([x t])]
+  [(lift-claims (define/assign (attribute e_obj string_mem) t_mem e_mem))
+   ()]
+  [(lift-claims (def x ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
+   ([x (def ([x_arg t_arg] ...) t_ret)])]
+  [(lift-claims (class x (t ...) m ...))
+   ([x (class x (t ...) m ...)])]
+  [(lift-claims (if e_cnd s_thn s_els))
+   (append (lift-claims s_thn) (lift-claims s_els))]
+  [(lift-claims (begin))
+   ()]
+  [(lift-claims (begin s_1 s_2 ...))
+   (append (lift-claims s_1) (lift-claims (begin s_2 ...)))]
+  [(lift-claims (delete x))
+   ()]
+  [(lift-claims (delete (attribute e string)))
+   ()]
+  [(lift-claims (return e))
+   ()]
+  [(lift-claims (expr e))
+   ()]
+  [(lift-claims pass)
+   ()])
 
 (module+ test
   (test-equal (term (method-name <)) (term "__lt__"))
@@ -94,102 +158,106 @@
               (term ((attribute 2 "__neg__")))))
 
 (define-metafunction SP-core
-  desugar-e : e -> e-
+  desugar-e : e+ -> e
   [(desugar-e x) x]
   [(desugar-e c) c]
-  [(desugar-e (tuple-syntax e ...))
-   (tuple-syntax (desugar-e e) ...)]
-  [(desugar-e (set-syntax e ...))
-   (set-syntax (desugar-e e) ...)]
-  [(desugar-e (dict-syntax [e_key e_val] ...))
-   (dict-syntax [(desugar-e e_key) (desugar-e e_val)] ...)]
-  [(desugar-e (is e_1 e_2))
-   (is (desugar-e e_1) (desugar-e e_2))]
-  [(desugar-e (is-not e_1 e_2))
-   (is-not (desugar-e e_1) (desugar-e e_2))]
-  [(desugar-e (if e_cnd e_thn e_els))
-   (if (desugar-e e_cnd) (desugar-e e_thn) (desugar-e e_els))]
-  [(desugar-e (attribute e string))
-   (attribute (desugar-e e) string)]
-  [(desugar-e (e_fun e_arg ...))
-   ((desugar-e e_fun) (desugar-e e_arg) ...)]
-  [(desugar-e (reveal-type any ... e))
-   (reveal-type any ... (desugar-e e))]
+  [(desugar-e (tuple-syntax e+ ...))
+   (tuple-syntax (desugar-e e+) ...)]
+  [(desugar-e (set-syntax e+ ...))
+   (set-syntax (desugar-e e+) ...)]
+  [(desugar-e (dict-syntax [e+_key e+_val] ...))
+   (dict-syntax [(desugar-e e+_key) (desugar-e e+_val)] ...)]
+  [(desugar-e (is e+_1 e+_2))
+   (is (desugar-e e+_1) (desugar-e e+_2))]
+  [(desugar-e (is-not e+_1 e+_2))
+   (is-not (desugar-e e+_1) (desugar-e e+_2))]
+  [(desugar-e (if e+_cnd e+_thn e+_els))
+   (if (desugar-e e+_cnd) (desugar-e e+_thn) (desugar-e e+_els))]
+  [(desugar-e (attribute e+ string))
+   (attribute (desugar-e e+) string)]
+  [(desugar-e (e+_fun e+_arg ...))
+   ((desugar-e e+_fun) (desugar-e e+_arg) ...)]
+  [(desugar-e (reveal-type any ... e+))
+   (reveal-type any ... (desugar-e e+))]
   ;; All below are interesting cases
-  [(desugar-e (oc e_1 e_2))
-   ((attribute (desugar-e e_1) (method-name oc)) (desugar-e e_2))]
-  [(desugar-e (in e_1 e_2))
-   ((attribute (desugar-e e_2) "__contains__") (desugar-e e_1))]
-  [(desugar-e (subscript e_1 e_2))
-   ((attribute (desugar-e e_1) "__getitem__") (desugar-e e_2))]
-  [(desugar-e (bool-op ob e))
-   (desugar-e e)]
-  [(desugar-e (bool-op ob e_1 e_2 ...))
-   (bool-op ob (desugar-e e_1) (desugar-e (bool-op ob e_2 ...)))]
-  [(desugar-e (bin-op o2 e_1 e_2))
-   ((attribute (desugar-e e_1) (method-name o2)) (desugar-e e_2))]
-  [(desugar-e (unary-op - e))
-   ((attribute (desugar-e e) "__neg__"))])
+  [(desugar-e (oc e+_1 e+_2))
+   ((attribute (desugar-e e+_1) (method-name oc)) (desugar-e e+_2))]
+  [(desugar-e (in e+_1 e+_2))
+   ((attribute (desugar-e e+_2) "__contains__") (desugar-e e+_1))]
+  [(desugar-e (subscript e+_1 e+_2))
+   ((attribute (desugar-e e+_1) "__getitem__") (desugar-e e+_2))]
+  [(desugar-e (bool-op ob e+))
+   (desugar-e e+)]
+  [(desugar-e (bool-op ob e+_1 e+_2 ...))
+   (bool-op ob (desugar-e e+_1) (desugar-e (bool-op ob e+_2 ...)))]
+  [(desugar-e (bin-op o2 e+_1 e+_2))
+   ((attribute (desugar-e e+_1) (method-name o2)) (desugar-e e+_2))]
+  [(desugar-e (unary-op - e+))
+   ((attribute (desugar-e e+) "__neg__"))])
 
 (module+ test
-  (test-match SP-core s- (term (desugar-s (define/assign (subscript x 2) dynamic 3))))
-  (test-match SP-core s- (term (desugar-s (def f ((c C)) dynamic ((define/assign (attribute c "x") dynamic 42)))))))
+  (test-match SP-core s (term (desugar-s (define/assign (subscript x 2) dynamic 3))))
+  (test-match SP-core s (term (desugar-s (def f ((c C)) dynamic
+                                           (begin
+                                             (define/assign (attribute c "x") dynamic 42)))))))
 (define-metafunction SP-core
-  desugar-s : s -> s-
-  [(desugar-s (class x (t ...) m ...))
-   (class x (t ...) (desugar-m m) ...)]
-  [(desugar-s (def x ([x_arg t_arg] ...) t_ret s))
-   (def x ([x_arg (desugar-t t_arg)] ...) (desugar-t t_ret) (desugar-s s))]
-  [(desugar-s (claim x e))
-   (claim x (desugar-e e))]
-  [(desugar-s (define/assign x t e))
-   (define/assign x (desugar-t t) (desugar-e e))]
-  [(desugar-s (define/assign (attribute e_map string_key) t e_val))
-   (define/assign (attribute (desugar-e e_map) string_key) (desugar-t t) (desugar-e e_val))]
+  desugar-s : s+ -> s
+  [(desugar-s (class x (t+ ...) m+ ...))
+   (class x ((desugar-t t+) ...) (desugar-m m+) ...)]
+  [(desugar-s (def x ([x_arg t+_arg] ...) t+_ret s+))
+   (def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims s) s)
+   (where s (desugar-s s+))]
+  [(desugar-s (claim x e+))
+   (claim x (desugar-e e+))]
+  [(desugar-s (define/assign x t+ e+))
+   (define/assign x (desugar-t t+) (desugar-e e+))]
+  [(desugar-s (define/assign (attribute e+_map string_key) t+ e+_val))
+   (define/assign (attribute (desugar-e e+_map) string_key) (desugar-t t+) (desugar-e e+_val))]
   ;; Interesting case
-  [(desugar-s (define/assign (subscript e_map e_key) dynamic e_val))
-   (expr ((attribute e_map "__setitem__") (desugar-e e_val)))]
-  [(desugar-s (return e))
-   (return (desugar-e e))]
-  [(desugar-s (if e s_thn s_els))
-   (if (desugar-e e) (desugar-s s_thn) (desugar-s s_els))]
-  [(desugar-s (begin s ...))
-   (begin (desugar-s s) ...)]
+  [(desugar-s (define/assign (subscript e+_map e+_key) dynamic e+_val))
+   (expr ((attribute e+_map "__setitem__") (desugar-e e+_val)))]
+  [(desugar-s (return e+))
+   (return (desugar-e e+))]
+  [(desugar-s (if e+ s+_thn s+_els))
+   (if (desugar-e e+) (desugar-s s+_thn) (desugar-s s+_els))]
+  [(desugar-s (begin s+ ...))
+   (begin (desugar-s s+) ...)]
   [(desugar-s pass)
    pass]
   [(desugar-s (delete x))
    (delete x)]
-  [(desugar-s (delete (attribute e string)))
-   (delete (attribute (desugar-e e) string))]
+  [(desugar-s (delete (attribute e+ string)))
+   (delete (attribute (desugar-e e+) string))]
   ;; Interesting case
-  [(desugar-s (delete (subscript e_map e_key)))
-   (expr ((attribute (desugar-e e_map) "__delitem__") (desugar-e e_key)))]
-  [(desugar-s (expr e))
-   (expr (desugar-e e))]
+  [(desugar-s (delete (subscript e+_map e+_key)))
+   (expr ((attribute (desugar-e e+_map) "__delitem__") (desugar-e e+_key)))]
+  [(desugar-s (expr e+))
+   (expr (desugar-e e+))]
   )
 
 (define-metafunction SP-core
-  desugar-m : m -> m-
-  [(desugar-m (field string t))
-   (field string t)]
-  [(desugar-m (method string x_slf ([x_arg t_arg] ...) t_ret s))
-   (method string x_slf ([x_arg (desugar-t t_arg)] ...) (desugar-t t_ret) (desugar-s s))])
+  desugar-m : m+ -> m
+  [(desugar-m (field string t+))
+   (field string t+)]
+  [(desugar-m (method string x_slf ([x_arg t+_arg] ...) t+_ret s+))
+   (method string x_slf ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims s) s)
+   (where s (desugar-s s+))])
 
 (define-metafunction SP-core
-  desugar-t : t -> t-
+  desugar-t : t+ -> t
   [(desugar-t dynamic) dynamic]
   [(desugar-t None) None]
-  [(desugar-t (subscript x (tuple-syntax t ...)))
-   ((attribute x "__getitem__") (tuple-syntax (desugar-t t) ...))]
-  [(desugar-t (subscript x t))
-   ((attribute x "__getitem__") (desugar-t t))]
-  [(desugar-t (or-syntax t_lft t_rht))
-   (or-syntax (desugar-t t_lft) (desugar-t t_rht))]
+  [(desugar-t (subscript x (tuple-syntax t+ ...)))
+   ((attribute x "__getitem__") (tuple-syntax (desugar-t t+) ...))]
+  [(desugar-t (subscript x t+))
+   ((attribute x "__getitem__") (desugar-t t+))]
+  [(desugar-t (or-syntax t+_lft t+_rht))
+   (or-syntax (desugar-t t+_lft) (desugar-t t+_rht))]
   [(desugar-t string) ,(string->symbol (term string))]
   [(desugar-t x) x])
 
 (define-metafunction SP-core
-  desugar-program : program -> program-
-  [(desugar-program (import-type ... s ...))
-   (import-type ... (desugar-s s) ...)])
-
+  desugar-program : program+ -> program
+  [(desugar-program (import-type ... s+ ...))
+   (import-type ... (lift-claims s) s)
+   (where s (desugar-s (begin s+ ...)))])
