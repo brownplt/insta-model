@@ -1,6 +1,5 @@
 #lang racket
 (require redex)
-(require redex-abbrevs)
 (require "grammar.rkt")
 (provide (all-defined-out))
 
