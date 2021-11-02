@@ -360,7 +360,12 @@
      "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
-      ("__getitem__" ([☠ (instancesof cid_key)]) (instancesof cid_val))))]
+      ("__getitem__" ([☠ (instancesof cid_key)]) (instancesof cid_val))
+      ("__setitem__" ([☠ (instancesof cid_key)]
+                      [☠ (instancesof cid_val)])
+                     (instancesof "None"))
+      ("__delitem__" ([☠ (instancesof cid_key)])
+                     (instancesof "None"))))]
   ;; lookup user-defined classes
   [(lookup-class Ψ number)
    (lookup Ψ number)])

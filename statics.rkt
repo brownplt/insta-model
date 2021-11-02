@@ -11,65 +11,68 @@
 (provide (all-from-out "statics-meaning-of-types.rkt"))
 
 (module+ test
+  (test-equal (term (exist-incompatible-overrides? (base-Ψ)
+                                                   ((["x" (instancesof "int")])
+                                                    (["x" () (instancesof "int")]))))
+              #t)
+  (test-equal (term (exist-incompatible-overrides? (base-Ψ)
+                                                   ((["x" (instancesof "int")]
+                                                     ["x" (instancesof "str")])
+                                                    ())))
+              #t)
+  (test-equal (term (exist-incompatible-overrides? (base-Ψ)
+                                                   (()
+                                                    (["x" () (instancesof "str")]
+                                                     ["x" () (instancesof "int")]))))
+   #t)
+  (test-equal
+   (term (exist-incompatible-overrides? (base-Ψ) ((["x" (instancesof "int")]
+                                                   ["x" dynamic])
+                                                  ())))
+   #t)
+  (test-equal
+   (term (exist-incompatible-overrides? (base-Ψ) ((["x" (instancesof "int")]
+                                                   ["x" (instancesof "int")])
+                                                  ())))
+   #f))
+(define-metafunction SP-statics
+  exist-incompatible-overrides? : Ψ flat-class -> boolean
+  ;; a member name is both bound to a field and a method
+  [(exist-incompatible-overrides? Ψ ((any_0 ... (string any_fieldspec ...) any_1 ...)
+                                     (any_1 ... (string any_methodspec ...) any_2 ...)))
+   #t]
+  ;; a field is declared twice
+  [(exist-incompatible-overrides? Ψ ((any_0 ... (string T_0) any_1 ... (string T_1) any_2 ...)
+                                     any_methods))
+   #t
+   (where #t (≠ T_0 T_1))]
+  ;; where a non-init method is overwritten in an incompatible way
+  [(exist-incompatible-overrides? Ψ (any_fields
+                                     (any_0 ...
+                                      [string_0 ([x+☠_c T_arg1] ...) T_ret1]
+                                      any_1 ...
+                                      [string_0 ([x+☠_p T_arg2] ...) T_ret2]
+                                      any_2 ...)))
+   #t
+   (where #f (Ψ⊢T≲T Ψ (-> ([x+☠_c T_arg1] ...) T_ret1) (-> ([x+☠_p T_arg2] ...) T_ret2)))
+   (where #t (≠ string_0 "__init__"))]
+  [(exist-incompatible-overrides? Ψ flat-class) #f])
+
+(module+ test
   (check-judgment-holds*
-   (¬⊢flat-class (base-Ψ) ((["x" (instancesof "int")])
-                           (["x" () (instancesof "int")])))
-   (¬⊢flat-class (base-Ψ) ((["x" (instancesof "int")] ["x" (instancesof "str")])
-                           ()))
-   (¬⊢flat-class (base-Ψ) (()
-                           (["x" () (instancesof "str")] ["x" () (instancesof "int")])))
-   (¬⊢flat-class (base-Ψ) ((["x" (instancesof "int")] ["x" dynamic])
-                           ()))))
-(define-judgment-form SP-statics
-  #:mode (¬⊢flat-class I I)
-  #:contract (¬⊢flat-class Ψ flat-class)
-
-  ;; Is this flat-class ill-formed under the class environment K?
-
-  [------------------"field-and-method"
-   (¬⊢flat-class Ψ ((any_0 ... (string any_fieldspec ...) any_1 ...)
-                    (any_1 ... (string any_methodspec ...) any_2 ...)))]
-
-  [(where #t (≠ T_0 T_1))
-   ------------------"field-twice"
-   (¬⊢flat-class Ψ ((any_0 ...
-                     (string_0 T_0)
-                     any_1 ...
-                     (string_0 T_1)
-                     any_2 ...)
-                    any_methods))]
-
-  [(where #f (Ψ⊢T≲T Ψ (-> ([x+☠_c T_arg1] ...) T_ret1) (-> ([x+☠_p T_arg2] ...) T_ret2)))
-   ;; don't worry about constructors
-   (where #t (≠ string_0 "__init__"))
-   ------------------"method-incompatible"
-   (¬⊢flat-class Ψ
-                 (any_fields
-                  (any_0 ...
-                   [string_0 ([x+☠_c T_arg1] ...) T_ret1]
-                   any_1 ...
-                   [string_0 ([x+☠_p T_arg2] ...) T_ret2]
-                   any_2 ...)))])
-
+   (⊢flat-class (base-Ψ) (() ()))
+   (⊢flat-class (base-Ψ) ((["x" (instancesof "int")]) ())))
+  (check-not-judgment-holds*
+   (⊢flat-class (base-Ψ) ((["x" (instancesof "int")] ["x" (instancesof "str")]) ()))))
 (define-judgment-form SP-statics
   #:mode (⊢flat-class I I)
   #:contract (⊢flat-class Ψ flat-class)
 
   ;; Is this flat-class well-formed under the class environment K?
 
-  [(where #f (¬⊢flat-class Ψ flat-class))
+  [(where #f (exist-incompatible-overrides? Ψ flat-class))
    -----------------
    (⊢flat-class Ψ flat-class)])
-
-(define-judgment-form SP-statics
-  #:mode (Γ-overrides I I)
-  #:contract (Γ-overrides Ψ Γ)
-
-  [;(where #f (Ψ⊢T≲T Ψ T_1 T_2))
-   --------------------------
-   (Γ-overrides
-    Ψ
-    (any_1 ... [x T_1] any_2 ... [x T_2] any_3 ...))])
 
 (define-judgment-form SP-statics
   #:mode (⊢p I)
@@ -84,7 +87,9 @@
    ;; classes are defined first
    (where (Ψ_2 Γ_3) (define-classes Ψ_1 Γ_2 d_cls))
    ;; then we define other things, functions and ordinary varibles
-   (where Γ_4 (define-others Ψ_2 Γ_3 d_oth))
+   (where ([x_var D_var] ...) d_oth)
+   (evalD Ψ_2 Γ_3 D_var T_var) ...
+   (where Γ_4 (extend Γ_3 [x_var T_var] ...))
    ;; every class is well-formed
    (where ([cid C] ...) Ψ_2)
    (Ψ⊢cid Ψ_2 cid) ...
@@ -93,6 +98,17 @@
    ------------------------
    (⊢p (import-type ... d s))])
 
+(module+ test
+  (test-equal (term (split-d ([x int]
+                              [y (class y (object)
+                                   (field "x" int)
+                                   (method "f" self () str () pass))]
+                              [z (def ([arg1 int] [arg2 str]) None)])))
+              (term (([y (class y (object)
+                           (field "x" int)
+                           (method "f" self () str () pass))])
+                     ([x int]
+                      [z (def ([arg1 int] [arg2 str]) None)])))))
 (define-metafunction SP-statics
   split-d : d -> (d d)
   ;; categorize declarations into classes adn others
@@ -100,17 +116,12 @@
   [(split-d ([x t] any ...))
    (d_cls (extend d_oth [x t]))
    (where (d_cls d_oth) (split-d (any ...)))]
-  [(split-d ([x (def ([x_arg t_arg]) t_ret)] any ...))
-   (d_cls (extend d_oth [x (def ([x_arg t_arg]) t_ret)]))
+  [(split-d ([x (def ([x_arg t_arg] ...) t_ret)] any ...))
+   (d_cls (extend d_oth [x (def ([x_arg t_arg] ...) t_ret)]))
    (where (d_cls d_oth) (split-d (any ...)))]
   [(split-d ([x (class x (t ...) m ...)] any ...))
    ((extend d_cls [x (class x (t ...) m ...)]) d_oth)
    (where (d_cls d_oth) (split-d (any ...)))])
-
-(module+ test
-  (test-equal
-   (term (collect-imports ()))
-   (term ())))
 
 (module+ test
   (test-equal (term (collect-one-import (base-Γ) "__static__" "PyDict"))
@@ -157,6 +168,13 @@
   [(collect-one-import Γ string_mod string_var)
    (extend Γ [,(string->symbol (term string_var)) dynamic])])
 
+(module+ test
+  (test-equal
+   (term (collect-imports ()))
+   (term ()))
+  (test-equal
+   (term (collect-imports () (import-from "__static__" ("PyDict"))))
+   (term ([PyDict (classitself "dict")]))))
 (define-metafunction SP-statics
   collect-imports : Γ import-type ... -> any  ;; actually (Ψ Γ) or #f
   [(collect-imports Γ) Γ]
@@ -173,6 +191,13 @@
    (where Γ_2 (collect-one-import Γ_1 string_mod string_var1))]
   [(collect-imports any ...) #f])
 
+(module+ test
+  (test-equal (term (some-redeclaration? ()))
+              (term #f))
+  (test-equal (term (some-redeclaration? ([x int] [x int])))
+              (term #t))
+  (test-equal (term (some-redeclaration? ([x int] [y int])))
+              (term #f)))
 (define-metafunction SP-statics
   some-redeclaration? : d -> boolean
   [(some-redeclaration? (any_1 ... [x any_fst] any_2 ... [x any_snd] any_3 ...))
@@ -186,32 +211,33 @@
   [(compute-parent (instancesof cid)) cid]
   [(compute-parent T ...) dynamic])
 
+(module+ test
+  (test-equal (term (define-classes (base-Ψ) (base-Γ) ()))
+              (term ((base-Ψ) (base-Γ))))
+  (test-equal (term (define-classes (base-Ψ) (base-Γ)
+                      ([C (class C ())]
+                       [D (class D ())])))
+              (term ((extend (base-Ψ)
+                             [1 (class D "object" () ())]
+                             [0 (class C "object" () ())])
+                     (extend (base-Γ)
+                             [D (classitself 1)]
+                             [C (classitself 0)]))))
+  (test-equal (term (define-classes (base-Ψ) (base-Γ)
+                      ([C (class C ())]
+                       [D (class D (C))])))
+              (term ((extend (base-Ψ)
+                             [1 (class D 0 () ())]
+                             [0 (class C "object" () ())])
+                     (extend (base-Γ)
+                             [D (classitself 1)]
+                             [C (classitself 0)])))))
 (define-metafunction SP-statics
   define-classes : Ψ Γ d -> (Ψ Γ)
   [(define-classes Ψ_1 Γ_1 d)
    (Ψ_3 Γ_2)
    (where (Ψ_2 Γ_2) (declare-classes Ψ_1 Γ_1 d))
    (where Ψ_3 (initialize-classes Ψ_2 Γ_2 d))])
-
-
-(module+ test
-  (test-equal (term (define-others (base-Ψ) (base-Γ) ()))
-              (term (extend (base-Γ))))
-  (test-equal (term (define-others (base-Ψ) (base-Γ) ([x int])))
-              (term (extend (base-Γ) [x (instancesof "int")])))
-  (test-equal (term (define-others (base-Ψ) (base-Γ) ([f (def () int)])))
-              (term (extend (base-Γ) [f (-> () (instancesof "int"))]))))
-(define-metafunction SP-statics
-  define-others : Ψ Γ d -> any
-  ;; What are the classes and variables defined at the top level?
-  [(define-others Ψ Γ ()) Γ]
-  [(define-others Ψ Γ ([x t] any ...))
-   (define-others Ψ (extend Γ [x T]) (any ...))
-   (judgment-holds (evalo Ψ Γ t T))]
-  [(define-others Ψ Γ ([x (def ([x_arg t_arg] ...) t_ret)] any ...))
-   (define-others Ψ (extend Γ [x (-> ([x_arg T_arg] ...) T_ret)]) (any ...))
-   (judgment-holds (evalo* Ψ Γ (t_arg ...) (T_arg ...)))
-   (judgment-holds (evalo Ψ Γ t_ret T_ret))])
 
 (define-metafunction SP-statics
   declare-classes : Ψ Γ d -> (Ψ Γ)
@@ -238,8 +264,8 @@
    (judgment-holds (evalo* Ψ_1 Γ (t_ret ...) (T_ret ...)))
    (judgment-holds (evalo* Ψ_1 Γ (t_par ...) (T_par ...)))
    (where C (class x (compute-parent T_par ...)
-              ((string_fld T_fld) ...)
-              ((string_mth ([x_arg T_arg] ...) T_ret) ...)))
+              ([string_fld T_fld] ...)
+              ([string_mth ([x_arg T_arg] ...) T_ret] ...)))
    (where (classitself cid) (lookup Γ x))
    (where Ψ_2 (Ψ-init Ψ_1 cid C))])
 
@@ -276,9 +302,14 @@
   )
 
 
+(module+ test
+  (test-equal (term (collect-mems (field "x" int)
+                                  (method "f" self ([x int] [y str]) None () pass)))
+              (term ((["x" int])
+                     (["f" ([x int] [y str]) None])))))
 (define-metafunction SP-statics
-  collect-mems : m ... -> (((string_field t_field) ...)
-                           ((string_method ([x t_arg] ...) t_ret) ...))
+  collect-mems : m ... -> (([string t] ...)
+                           ([string ([x t] ...) t] ...))
   ;; What are the fields and methods defined in this class?
 
   [(collect-mems) (()
@@ -292,7 +323,7 @@
           (collect-mems m ...))]
 
   [(collect-mems
-    (method string_method x_self ([x_arg t_arg] ...) t_ret s ...)
+    (method string_method x_slf ([x_arg t_arg] ...) t_ret d s)
     m ...)
    ((any_field ...)
     ((string_method ([x_arg t_arg] ...) t_ret) any_method ...))
@@ -326,7 +357,46 @@
    (ΨΓ⊢s⇐T+☠ (base-Ψ)
              (base-Γ)
              (expr None)
-             dynamic)))
+             dynamic)
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) ☠)
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) (instancesof "None"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) dynamic)
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) ("optional" "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin (return 42) (return "foo")) (instancesof "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
+             (begin
+               (if (is x None)
+                   (begin (return 42))
+                   (begin))
+               (return x))
+             (instancesof "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
+             (begin
+               (if (is-not x None)
+                   (begin)
+                   (begin (return 42)))
+               (return x))
+             (instancesof "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")] [y ("optional" "int")])
+             (if (bool-op and (is-not x None) (is-not y None))
+                 (begin (return ((attribute x "__add__") y)))
+                 (begin (return 42)))
+             (instancesof "float"))))
+
+(define-judgment-form SP-statics
+  #:mode (evalD I I I O)
+  #:contract (evalD Ψ Γ D T)
+
+  [(evalo Ψ Γ t T)
+   ----------------------
+   (evalD Ψ Γ t T)]
+
+  [(evalo* Ψ Γ (t_arg ...) (T_arg ...))
+   (evalo Ψ Γ t_ret T_ret)
+   ----------------------
+   (evalD Ψ Γ
+          (def ([x_arg t_arg] ...) t_ret)
+          (-> ([x_arg T_arg] ...) T_ret))])
 
 (define-judgment-form SP-statics
   #:mode (ΨΓ⊢s⇐T+☠ I I I I)
@@ -346,9 +416,9 @@
    (where d_2 (extend d_1 [x_arg t_arg] ...))
    (where d_3 (simplify-d d_2))
    (where #f (some-redeclaration? d_3))
-   (where (([x_cls any] ...) d_oth) (split-d d_3))
-   (where Γ_2 (define-others Ψ Γ_1 (extend d_oth [x_cls dynamic] ...)))
-   (ΨΓ⊢s⇐T+☠ Ψ Γ_2 s T_ret)
+   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d_3))
+   (evalD Ψ Γ_1 D_var T_var) ...
+   (ΨΓ⊢s⇐T+☠ Ψ (extend Γ_1 [x_cls dynamic] ... [x_var T_var] ...) s T_ret)
    ------------------------ "def"
    (ΨΓ⊢s⇐T+☠ Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret d_1 s) _)]
   
@@ -412,33 +482,6 @@
    (ΨΓ⊢s⇐T+☠ Ψ Γ (begin s_1 s_2 ...) T+☠)]
   )
 
-(module+ test
-  (check-judgment-holds*
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) ☠)
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) (instancesof "None"))
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) dynamic)
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) ("optional" "int"))
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin (return 42) (return "foo")) (instancesof "int"))
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
-             (begin
-               (if (is x None)
-                   (begin (return 42))
-                   (begin))
-               (return x))
-             (instancesof "int"))
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
-             (begin
-               (if (is-not x None)
-                   (begin)
-                   (begin (return 42)))
-               (return x))
-             (instancesof "int"))
-   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")] [y ("optional" "int")])
-             (if (bool-op and (is-not x None) (is-not y None))
-                 (begin (return ((attribute x "__add__") y)))
-                 (begin (return 42)))
-             (instancesof "float"))))
-
 
 (define-judgment-form SP-statics
   #:mode (ΨΓ⊢ifess⇐T+☠ I I I I I I)
@@ -470,7 +513,7 @@
    ------------------ "usual if"
    (ΨΓ⊢ifess⇐T+☠ Ψ Γ e s_thn s_els T+☠)])
 
-
+;; TODO merge the two if judgments
 (define-judgment-form SP-statics
   #:mode (ΨΓ⊢ifeee⇒T I I I I I O)
   #:contract (ΨΓ⊢ifeee⇒T Ψ Γ e e e T)

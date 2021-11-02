@@ -9,7 +9,12 @@
   (program (import-type ... d s))
 
   ;; declaration
-  (d ([x t] ...))
+  (d ([x D] ...))
+  
+  ;; rhs of declaration
+  (D t
+     (def ([x t] ...) t)
+     (class x (t ...) m ...))
 
   ;; statements
   (s (define/assign x t e)
@@ -34,11 +39,7 @@
      ((attribute x string) (tuple-syntax t ...))
      ((attribute x string) t)
      (or-syntax t t)
-     x
-     ;; new stufff
-     (def ([x t] ...) t)
-     (class x (t ...) m ...)
-     )
+     x)
 
   (e x
      c
@@ -62,6 +63,9 @@
 ;;   - restrict assignment targets to variables and attributes
 ;; And lift variable declaration to the beginning of each block
 
+(module+ test
+  (test-equal (term (append (x) (y z)))
+              (term (x y z))))
 (define-metafunction SP-core
   append : (any ...) (any ...) -> (any ...)
   [(append (any_1 ...) (any_2 ...))
@@ -96,11 +100,19 @@
 (define-metafunction SP-core
   lift-claims : s -> d
   [(lift-claims s) (simplify-d (lift-claims-helper s))])
+
+(module+ test
+  (test-equal (term (simplify-d ()))
+              (term ()))
+  (test-equal (term (simplify-d ([x int] [x dynamic])))
+              (term ([x int])))
+  (test-equal (term (simplify-d ([x (def () int)] [x dynamic])))
+              (term ([x (def () int)]))))
 (define-metafunction SP-core
   simplify-d : d -> d
   ;; Remove later dynamic redeclaration because they are just mutation
-  [(simplify-d (any_1 ... [x T] any_2 ... [x dynamic] any_3))
-   (simplify-d (any_1 ... [x T] any_2 ... any_3))]
+  [(simplify-d (any_1 ... [x D] any_2 ... [x dynamic] any_3 ...))
+   (simplify-d (any_1 ... [x D] any_2 ... any_3 ...))]
   [(simplify-d d) d])
 (define-metafunction SP-core
   lift-claims-helper : s -> d
@@ -151,6 +163,8 @@
               (term xyz))
   (test-equal (term (desugar-e 42))
               (term 42))
+  (test-equal (term (desugar-e (tuple-syntax 2 3)))
+              (term (tuple-syntax 2 3)))
   (test-equal (term (desugar-e (> (== 2 3) (>= 4 5))))
               (term ((attribute ((attribute 2 "__eq__") 3) "__gt__") ((attribute 4 "__ge__") 5))))
   (test-equal (term (desugar-e (in (== 2 3) (>= 4 5))))
@@ -205,10 +219,10 @@
    ((attribute (desugar-e e+) "__neg__"))])
 
 (module+ test
-  (test-match SP-core s (term (desugar-s (define/assign (subscript x 2) dynamic 3))))
-  (test-match SP-core s (term (desugar-s (def f ((c C)) dynamic
-                                           (begin
-                                             (define/assign (attribute c "x") dynamic 42)))))))
+  (test-equal (term (desugar-s (define/assign (subscript x 2) dynamic 3)))
+              (term (expr ((attribute x "__setitem__") 2 3))))
+  (test-equal (term (desugar-s (delete (subscript x 2))))
+              (term (expr ((attribute x "__delitem__") 2)))))
 (define-metafunction SP-core
   desugar-s : s+ -> s
   [(desugar-s (class x (t+ ...) m+ ...))
@@ -224,7 +238,7 @@
    (define/assign (attribute (desugar-e e+_map) string_key) (desugar-t t+) (desugar-e e+_val))]
   ;; Interesting case
   [(desugar-s (define/assign (subscript e+_map e+_key) dynamic e+_val))
-   (expr ((attribute e+_map "__setitem__") (desugar-e e+_val)))]
+   (expr ((attribute e+_map "__setitem__") (desugar-e e+_key) (desugar-e e+_val)))]
   [(desugar-s (return e+))
    (return (desugar-e e+))]
   [(desugar-s (if e+ s+_thn s+_els))
@@ -244,14 +258,32 @@
    (expr (desugar-e e+))]
   )
 
+(module+ test
+  (test-equal (term (desugar-m (field "my_field" (subscript Optional int))))
+              (term (field "my_field" ((attribute Optional "__getitem__") int)))))
 (define-metafunction SP-core
   desugar-m : m+ -> m
   [(desugar-m (field string t+))
-   (field string t+)]
+   (field string (desugar-t t+))]
   [(desugar-m (method string x_slf ([x_arg t+_arg] ...) t+_ret s+))
    (method string x_slf ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims s) s)
    (where s (desugar-s s+))])
 
+(module+ test
+  (test-equal (term (desugar-t dynamic))
+              (term dynamic))
+  (test-equal (term (desugar-t None))
+              (term None))
+  (test-equal (term (desugar-t (subscript CheckedDict (tuple-syntax str (subscript CheckedDict (tuple-syntax str int))))))
+              (term ((attribute CheckedDict "__getitem__")
+                     (tuple-syntax str ((attribute CheckedDict "__getitem__")
+                                        (tuple-syntax str int))))))
+  (test-equal (term (desugar-t (or-syntax int str)))
+              (term (or-syntax int str)))
+  (test-equal (term (desugar-t "MyClass"))
+              (term MyClass))
+  (test-equal (term (desugar-t MyClass))
+              (term MyClass)))
 (define-metafunction SP-core
   desugar-t : t+ -> t
   [(desugar-t dynamic) dynamic]
