@@ -8,11 +8,11 @@ from os import write
 from types import BuiltinMethodType
 from unittest.case import skip
 
-input_file = "../tests.py"
+input_file = "./tests.py"
 skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
-output_path_prefix = "../conformance_suite/"
-skipped_tests_path_prefix = "../skipped_tests/"
+output_path_prefix = "./conformance_suite/"
+skipped_tests_path_prefix = "./skipped_tests/"
 
 
 def read_tests(file_path):

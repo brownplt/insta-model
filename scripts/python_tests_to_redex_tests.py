@@ -292,7 +292,7 @@ def python_file_to_redex_desugar_test(spec, prog):
     return [
         symbol('test-match'),
         symbol('SP-core'),
-        symbol('program-'),
+        symbol('program'),
         [
             symbol('term'),
             [
@@ -313,7 +313,10 @@ def python_file_to_redex_static_test(spec, prog):
         check,
         [
             symbol('⊢p'),
-            prog
+            [
+                symbol('desugar-program'),
+                prog
+            ]
         ]
     ]
 
@@ -386,6 +389,7 @@ def main():
             '(require redex)',
             '(require redex-abbrevs)',
             '(require "grammar.rkt")',
+            '(require "desugar.rkt")',
             '(require "statics.rkt")',
             ''
         ]))
