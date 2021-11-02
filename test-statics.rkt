@@ -185,6 +185,21 @@
 ;; conformance_suite/override_instance_method_with_field.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class C (object) (method "x" self () dynamic pass)) (class D (C) (field "x" int))))))
 
+;; conformance_suite/redeclare_var_flatten_if.py
+(check-not-judgment-holds* (⊢p (desugar-program ((if #t (begin (define/assign x dynamic 2)) (begin (define/assign x int 3)))))))
+
+;; conformance_suite/redeclare_var_with_class.py
+(check-not-judgment-holds* (⊢p (desugar-program ((define/assign x int 2) (class x (object))))))
+
+;; conformance_suite/redeclare_var_with_def.py
+(check-not-judgment-holds* (⊢p (desugar-program ((define/assign x int 2) (def x () dynamic (begin pass))))))
+
+;; conformance_suite/redeclare_var_with_var_dyn_to_type.py
+(check-not-judgment-holds* (⊢p (desugar-program ((define/assign x dynamic 2) (define/assign x int 3)))))
+
+;; conformance_suite/redeclare_var_with_var_same_type.py
+(check-not-judgment-holds* (⊢p (desugar-program ((define/assign x int 2) (define/assign x int 3)))))
+
 ;; conformance_suite/str_is_inhabitable.py
 (check-judgment-holds* (⊢p (desugar-program ((define/assign x str "hello")))))
 

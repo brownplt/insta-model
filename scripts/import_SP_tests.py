@@ -142,7 +142,7 @@ def translate_less_simple_compile_test(test: str):
     assert isinstance(body.func.value, ast.Name)
     assert str(body.func.value.id) == 'self'
     assert str(body.func.attr) == 'compile'
-    assert len(body.args) in {1, 2}
+    # assert len(body.args) in {1, 2}
     assert body.keywords == []
     arg = body.args[0]
     assert isinstance(arg, ast.Name)

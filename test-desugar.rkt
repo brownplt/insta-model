@@ -182,6 +182,21 @@
 ;; conformance_suite/override_instance_method_with_field.py
 (test-match SP-core program (term (desugar-program ((class C (object) (method "x" self () dynamic pass)) (class D (C) (field "x" int))))))
 
+;; conformance_suite/redeclare_var_flatten_if.py
+(test-match SP-core program (term (desugar-program ((if #t (begin (define/assign x dynamic 2)) (begin (define/assign x int 3)))))))
+
+;; conformance_suite/redeclare_var_with_class.py
+(test-match SP-core program (term (desugar-program ((define/assign x int 2) (class x (object))))))
+
+;; conformance_suite/redeclare_var_with_def.py
+(test-match SP-core program (term (desugar-program ((define/assign x int 2) (def x () dynamic (begin pass))))))
+
+;; conformance_suite/redeclare_var_with_var_dyn_to_type.py
+(test-match SP-core program (term (desugar-program ((define/assign x dynamic 2) (define/assign x int 3)))))
+
+;; conformance_suite/redeclare_var_with_var_same_type.py
+(test-match SP-core program (term (desugar-program ((define/assign x int 2) (define/assign x int 3)))))
+
 ;; conformance_suite/str_is_inhabitable.py
 (test-match SP-core program (term (desugar-program ((define/assign x str "hello")))))
 
