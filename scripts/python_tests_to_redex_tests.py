@@ -182,7 +182,7 @@ def ast_to_sexp(node):
             symbol(str(node.name)),
             arguments_to_sexp(node.args),
             expr_to_type(node.returns),
-            *[ast_to_sexp(stmt) for stmt in node.body]
+            [ast_to_sexp(stmt) for stmt in node.body]
         ]
     elif isinstance(node, ast.If):
         return [
@@ -275,10 +275,34 @@ def python_file_to_sexp(test_file):
         p = ast.parse(f.read(), type_comments=True)
         return ast_to_sexp(p)
 
-
-def python_file_to_redex_static_test(test_file):
+def parse_python_file(test_file):
     print("Working on " + test_file)
+    name = test_file
     spec = open(test_file).readlines()[1]
+    prog = python_file_to_sexp(test_file)
+    if spec == '# This should pass.\n':
+        pass
+    elif spec == '# This should fail.\n':
+        pass
+    else:
+        assert False, repr(spec)
+    return name, spec, prog
+
+def python_file_to_redex_desugar_test(spec, prog):
+    return [
+        symbol('test-match'),
+        symbol('SP-core'),
+        symbol('program-'),
+        [
+            symbol('term'),
+            [
+                symbol('desugar-program'),
+                prog
+            ]
+        ]
+    ]
+
+def python_file_to_redex_static_test(spec, prog):
     if spec == '# This should pass.\n':
         check = symbol('check-judgment-holds*')
     elif spec == '# This should fail.\n':
@@ -289,7 +313,7 @@ def python_file_to_redex_static_test(test_file):
         check,
         [
             symbol('⊢p'),
-            python_file_to_sexp(test_file)
+            prog
         ]
     ]
 
@@ -329,14 +353,34 @@ def sexp_to_str(sexp):
         assert False, "Can't deal with {}".format(repr(sexp))
 
 
+path_to_conformance_suite = './conformance_suite'
+path_to_test_desugar = './test-desugar.rkt'
+path_to_test_statics = './test-statics.rkt'
+
 def main():
     import os
     # list all tests in the conformance_suite directory
     test_files = [os.path.join(d, f) for d, _, files in os.walk(
-        'conformance_suite') for f in files if f.endswith('.py')]
+        path_to_conformance_suite) for f in files if f.endswith('.py')]
     test_files.sort()
-    # output redex test
-    with open('test-statics.rkt', 'w') as f:
+    print(test_files)
+    parsed_test_files = [ parse_python_file(x) for x in test_files ]
+    # output test_desugar.rkt
+    with open(path_to_test_desugar, 'w') as f:
+        f.write('\n'.join([
+            '#lang racket',
+            '(require "desugar.rkt")',
+            '(require redex)',
+            ''
+        ]))
+        for name, spec, prog in parsed_test_files:
+            test = python_file_to_redex_desugar_test(spec, prog)
+            f.write('\n')
+            f.write(';; ' + name + '\n')
+            f.write(sexp_to_str(test))
+            f.write('\n')
+    # output test_statics.rkt
+    with open(path_to_test_statics, 'w') as f:
         f.write('\n'.join([
             '#lang racket',
             '(require redex)',
@@ -345,10 +389,10 @@ def main():
             '(require "statics.rkt")',
             ''
         ]))
-        for test_file in test_files:
-            test = python_file_to_redex_static_test(test_file)
+        for name, spec, prog in parsed_test_files:
+            test = python_file_to_redex_static_test(spec, prog)
             f.write('\n')
-            f.write(';; ' + test_file + '\n')
+            f.write(';; ' + name + '\n')
             f.write(sexp_to_str(test))
             f.write('\n')
 
