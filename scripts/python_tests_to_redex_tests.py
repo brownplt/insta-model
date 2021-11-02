@@ -182,17 +182,17 @@ def ast_to_sexp(node):
             symbol(str(node.name)),
             arguments_to_sexp(node.args),
             expr_to_type(node.returns),
-            [ast_to_sexp(stmt) for stmt in node.body]
+            [symbol('begin')] + [ast_to_sexp(stmt) for stmt in node.body]
         ]
     elif isinstance(node, ast.If):
         return [
             symbol('if'),
             ast_to_sexp(node.test),
-            [
+            [symbol('begin')] + [
                 ast_to_sexp(s)
                 for s in node.body
             ],
-            [
+            [symbol('begin')] + [
                 ast_to_sexp(s)
                 for s in node.orelse
             ]
@@ -353,7 +353,7 @@ def sexp_to_str(sexp):
         assert False, "Can't deal with {}".format(repr(sexp))
 
 
-path_to_conformance_suite = './conformance_suite'
+path_to_conformance_suite = 'conformance_suite'
 path_to_test_desugar = './test-desugar.rkt'
 path_to_test_statics = './test-statics.rkt'
 

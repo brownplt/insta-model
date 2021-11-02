@@ -21,13 +21,14 @@
      (define/assign x t e)
      (define/assign (attribute e string) t e)
      (define/assign (subscript e e) dynamic e) ;; sugar
-     (def x ([x t] ...) t (s ...))
-     (if e (s ...) (s ...))
+     (def x ([x t] ...) t s)
+     (if e s s)
      pass
      (expr e)
      (delete x)
      (delete (attribute e string))
      (delete (subscript e e)) ;; sugar
+     (begin s ...)
      )
 
   (m (field string t)

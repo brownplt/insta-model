@@ -45,7 +45,7 @@
       (attribute e- string)
       (e- e- ...)
       (reveal-type any ... e-)
-      (ob e- e-)))
+      (bool-op ob e- e-)))
 
 
 ;; The remaining part of this file describe the desugaring process.
@@ -87,7 +87,7 @@
   (test-equal (term (desugar-e (bool-op and 0)))
               (term 0))
   (test-equal (term (desugar-e (bool-op or 0 1)))
-              (term (or 0 1)))
+              (term (bool-op or 0 1)))
   (test-equal (term (desugar-e (bin-op + 2 3)))
               (term ((attribute 2 "__add__") 3)))
   (test-equal (term (desugar-e (unary-op - 2)))
@@ -125,7 +125,7 @@
   [(desugar-e (bool-op ob e))
    (desugar-e e)]
   [(desugar-e (bool-op ob e_1 e_2 ...))
-   (ob (desugar-e e_1) (desugar-e (bool-op ob e_2 ...)))]
+   (bool-op ob (desugar-e e_1) (desugar-e (bool-op ob e_2 ...)))]
   [(desugar-e (bin-op o2 e_1 e_2))
    ((attribute (desugar-e e_1) (method-name o2)) (desugar-e e_2))]
   [(desugar-e (unary-op - e))
@@ -138,8 +138,8 @@
   desugar-s : s -> s-
   [(desugar-s (class x (t ...) m ...))
    (class x (t ...) (desugar-m m) ...)]
-  [(desugar-s (def x ([x_arg t_arg] ...) t_ret (s ...)))
-   (def x ([x_arg (desugar-t t_arg)] ...) (desugar-t t_ret) (begin (desugar-s s) ...))]
+  [(desugar-s (def x ([x_arg t_arg] ...) t_ret s))
+   (def x ([x_arg (desugar-t t_arg)] ...) (desugar-t t_ret) (desugar-s s))]
   [(desugar-s (claim x e))
    (claim x (desugar-e e))]
   [(desugar-s (define/assign x t e))
@@ -151,8 +151,8 @@
    (expr ((attribute e_map "__setitem__") (desugar-e e_val)))]
   [(desugar-s (return e))
    (return (desugar-e e))]
-  [(desugar-s (if e (s_thn ...) (s_els ...)))
-   (if (desugar-e e) (begin (desugar-s s_thn) ...) (begin (desugar-s s_els) ...))]
+  [(desugar-s (if e s_thn s_els))
+   (if (desugar-e e) (desugar-s s_thn) (desugar-s s_els))]
   [(desugar-s (begin s ...))
    (begin (desugar-s s) ...)]
   [(desugar-s pass)
