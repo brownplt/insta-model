@@ -203,17 +203,29 @@
 ;; conformance_suite/subclass_builtin.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("cast")) (class C (int)) (define/assign x C (C 42)) (define/assign y int x)))))
 
+;; conformance_suite/test_assign_from_generic_optional.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class C (object)) (def f ((x Optional)) dynamic (begin (define/assign y (subscript Optional C) x)))))))
+
+;; conformance_suite/test_assign_generic_optional.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f () dynamic (begin (define/assign x Optional 42)))))))
+
 ;; conformance_suite/test_assign_generic_optional_2.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f () dynamic (begin (define/assign x Optional (bin-op + 42 1))))))))
 
 ;; conformance_suite/test_assign_subtype_handling.py
 (test-match SP-core program (term (desugar-program ((class B (object)) (class D (B)) (def f () dynamic (begin (define/assign b B (B)) (define/assign b dynamic (D)) (define/assign b dynamic (B))))))))
 
+;; conformance_suite/test_assign_subtype_handling_fail.py
+(test-match SP-core program (term (desugar-program ((class B (object)) (class D (B)) (def f () dynamic (begin (define/assign d D (D)) (define/assign d dynamic (B))))))))
+
 ;; conformance_suite/test_assign_test_var.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) int (begin (if (is x None) (begin (define/assign x dynamic 1)) (begin)) (return x)))))))
 
 ;; conformance_suite/test_assign_type_propagation.py
 (test-match SP-core program (term (desugar-program ((def test () int (begin (define/assign x dynamic 5) (return x)))))))
+
+;; conformance_suite/test_attr_generic_optional.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f ((x Optional)) dynamic (begin (return (attribute x "foo"))))))))
 
 ;; conformance_suite/test_bool_cast.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("cast")) (class D (object)) (def f ((x dynamic)) bool (begin (define/assign y bool (cast bool x)) (return y)))))))
@@ -227,14 +239,32 @@
 ;; conformance_suite/test_cast_wrong_args.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("cast")) (def f () dynamic (begin (expr (cast 42))))))))
 
-;; conformance_suite/test_clen_bad_arg.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("clen")) (def f ((l dynamic)) dynamic (begin (expr (clen l))))))))
+;; conformance_suite/test_compile_checked_dict_ann_differs.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x (subscript CheckedDict (tuple-syntax int int)) ((subscript CheckedDict (tuple-syntax str str)) (dict-syntax ("abc" "abc")))) (return x)))))))
+
+;; conformance_suite/test_compile_checked_dict_ann_differs_2.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x int ((subscript CheckedDict (tuple-syntax str str)) (dict-syntax ("abc" "abc")))) (return x)))))))
+
+;; conformance_suite/test_compile_checked_dict_with_annotation_wrong_key_type.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class B (object)) (def testfunc () dynamic (begin (define/assign x (subscript CheckedDict (tuple-syntax B int)) (dict-syntax ((object) 42))) (return x)))))))
+
+;; conformance_suite/test_compile_checked_dict_with_annotation_wrong_value_type.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class B (object)) (def testfunc () dynamic (begin (define/assign x (subscript CheckedDict (tuple-syntax B int)) (dict-syntax ((B) "hi"))) (return x)))))))
 
 ;; conformance_suite/test_compile_dict_get_typed.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (42 "abc")))) (define/assign y (or-syntax str None) ((attribute x "get") 42))))))))
 
 ;; conformance_suite/test_compile_dict_setdefault_typed.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (42 "abc")))) (define/assign y (or-syntax str None) ((attribute x "setdefault") 100 "foo"))))))))
+
+;; conformance_suite/test_compile_generic_dict_getitem_bad_type.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("abc" 42)))) (return (subscript x 42))))))))
+
+;; conformance_suite/test_compile_generic_dict_setitem_bad_type.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("abc" 42)))) (define/assign (subscript x 42) dynamic 42)))))))
+
+;; conformance_suite/test_compile_generic_dict_setitem_bad_type_2.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("abc" 42)))) (define/assign (subscript x "foo") dynamic "abc")))))))
 
 ;; conformance_suite/test_duplicate_function_replaces_class.py
 (test-match SP-core program (term (desugar-program ((class X (object)) (def X () dynamic (begin pass))))))
@@ -248,8 +278,26 @@
 ;; conformance_suite/test_final_generic.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559)))))
 
+;; conformance_suite/test_final_generic_reassign.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559) (define/assign x dynamic 1554098974)))))
+
 ;; conformance_suite/test_final_generic_types.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (def g ((i int)) int (begin (return i))) (def f () int (begin (define/assign x (subscript Final int) 3735928559) (return (g x))))))))
+
+;; conformance_suite/test_final_in_args.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (def f ((a Final)) None (begin pass))))))
+
+;; conformance_suite/test_final_reassign.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any" "Final")) (define/assign x (subscript Final Any) 3735928559) (define/assign x dynamic "something")))))
+
+;; conformance_suite/test_final_reassigned_in_tuple.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559) (define/assign y dynamic 3) (define/assign (tuple-syntax x y) dynamic (tuple-syntax 4 5))))))
+
+;; conformance_suite/test_final_returns.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (def f () (subscript Final int) (begin (return 1)))))))
+
+;; conformance_suite/test_final_uninitialized.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (claim x (subscript Final int))))))
 
 ;; conformance_suite/test_frozenset_constant.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("inline")) (def i ((s str)) bool (begin (return (in i (set-syntax "a" "b"))))) (def t () bool (begin (return (i "p"))))))))
@@ -296,11 +344,11 @@
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (test-match SP-core program (term (desugar-program ((class A (object) (method "m" self () str (return "hello"))) (class B (A) (method "m" self () int (return 0)))))))
 
-;; conformance_suite/test_inline_arg_type_mismatch.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("inline")) (def f ((x int)) bool (begin (return (== x 1)))) (def g ((arg str)) bool (begin (return (f arg))))))))
-
 ;; conformance_suite/test_inline_return_type_mismatch.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("inline")) (def f () int (begin (return 1))) (def g () str (begin (return (f))))))))
+
+;; conformance_suite/test_module_level_final_decl.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (claim x Final)))))
 
 ;; conformance_suite/test_multiple_dynamic_base_class.py
 (test-match SP-core program (term (desugar-program ((import-from "something" ("A" "B")) (class C (A B) (method "__init__" self () dynamic pass))))))
@@ -308,11 +356,23 @@
 ;; conformance_suite/test_narrow_or.py
 (test-match SP-core program (term (desugar-program ((def f ((x (or-syntax int None))) int (begin (if (bool-op or (is x None) (> x 1)) (begin (define/assign x dynamic 1)) (begin)) (return x)))))))
 
+;; conformance_suite/test_none_annotation.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f ((x (subscript Optional int))) None (begin (return x)))))))
+
+;; conformance_suite/test_none_attribute_error.py
+(test-match SP-core program (term (desugar-program ((def f () dynamic (begin (define/assign x dynamic None) (return (attribute x "foo"))))))))
+
+;; conformance_suite/test_none_call.py
+(test-match SP-core program (term (desugar-program ((def f () dynamic (begin (define/assign x dynamic None) (return (x))))))))
+
 ;; conformance_suite/test_none_compare.py
 (test-match SP-core program (term (desugar-program ((def f ((x (or-syntax int None))) dynamic (begin (if (> x 1) (begin (define/assign x dynamic 1)) (begin)) (return x)))))))
 
 ;; conformance_suite/test_none_compare_reverse.py
 (test-match SP-core program (term (desugar-program ((def f ((x (or-syntax int None))) dynamic (begin (if (> 1 x) (begin (define/assign x dynamic 1)) (begin)) (return x)))))))
+
+;; conformance_suite/test_none_subscript.py
+(test-match SP-core program (term (desugar-program ((def f () dynamic (begin (define/assign x dynamic None) (return (subscript x 0))))))))
 
 ;; conformance_suite/test_optional_assign.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class C (object) (method "f" self ((x (subscript Optional "C"))) dynamic (if (is x None) (begin (return self)) (begin (define/assign p (subscript Optional "C") x)))))))))
@@ -326,17 +386,23 @@
 ;; conformance_suite/test_optional_assign_subclass_opt.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class B (object)) (class D (B)) (def f ((x (subscript Optional D))) dynamic (begin (define/assign a (subscript Optional B) x)))))))
 
+;; conformance_suite/test_optional_error.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class C (object) (field "x" (subscript Optional "C")) (method "__init__" self ((set dynamic)) dynamic (if set (begin (define/assign (attribute self "x") dynamic self)) (begin (define/assign (attribute self "x") dynamic None)))) (method "f" self () (subscript Optional "C") (return (attribute (attribute self "x") "x"))))))))
+
 ;; conformance_suite/test_optional_subscript_error.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f ((a (subscript Optional int))) dynamic (begin (expr (subscript a 1))))))))
-
-;; conformance_suite/test_optional_unary_error.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (def f ((a (subscript Optional int))) dynamic (begin (expr (unary-op - a))))))))
 
 ;; conformance_suite/test_redefine_local_type.py
 (test-match SP-core program (term (desugar-program ((class C (object)) (class D (object)) (def f () dynamic (begin (define/assign x C (C)) (define/assign x D (D))))))))
 
 ;; conformance_suite/test_redefine_type.py
 (test-match SP-core program (term (desugar-program ((class C (object)) (class D (object)) (def f ((a dynamic)) dynamic (begin (define/assign x C (C)) (define/assign x D (D))))))))
+
+;; conformance_suite/test_return_outside_func.py
+(test-match SP-core program (term (desugar-program ((return 42)))))
+
+;; conformance_suite/test_spamobj_no_params.py
+(test-match SP-core program (term (desugar-program ((import-from "xxclassloader" ("spamobj")) (def f () dynamic (begin (define/assign x dynamic (spamobj))))))))
 
 ;; conformance_suite/test_static_import_star.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("*"))))))
@@ -353,17 +419,8 @@
 ;; conformance_suite/test_unannotated_assign_no_later_declare.py
 (test-match SP-core program (term (desugar-program ((def f ((flag dynamic)) dynamic (begin (define/assign x dynamic None) (if flag (begin (define/assign x str "foo")) (begin))))))))
 
-;; conformance_suite/test_verify_positional_args.py
-(test-match SP-core program (term (desugar-program ((def x ((a int) (b str)) None (begin pass)) (expr (x "a" 2))))))
-
-;; conformance_suite/test_verify_positional_args_failure_method.py
-(test-match SP-core program (term (desugar-program ((class C (object) (method "x" self ((a int) (b str)) None pass)) (expr ((attribute (C) "x") "a" 2))))))
-
 ;; conformance_suite/test_verify_positional_args_method.py
 (test-match SP-core program (term (desugar-program ((class C (object) (method "x" self ((a int) (b str)) None pass)) (expr ((attribute (C) "x") 2 "hi"))))))
 
 ;; conformance_suite/test_verify_positional_args_unordered.py
 (test-match SP-core program (term (desugar-program ((def x ((a int) (b str)) None (begin (return (y a b)))) (def y ((a int) (b str)) None (begin pass))))))
-
-;; conformance_suite/test_verify_too_many_args.py
-(test-match SP-core program (term (desugar-program ((def x () dynamic (begin (return 42))) (expr (x 1))))))

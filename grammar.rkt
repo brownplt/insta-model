@@ -14,13 +14,17 @@
   (import-type
    (import-from string (string ...)))
 
+  ;; targets of assignment
+  (target x
+          (attribute e+ string)
+          (subscript e+ e+)
+          (tuple-syntax target ...))
+
   ;; s+tatements
   (s+ (class x (t+ ...) m+ ...)
       (return e+)
       (claim x t+)
-      (define/assign x t+ e+)
-      (define/assign (attribute e+ string) t+ e+)
-      (define/assign (subscript e+ e+) dynamic e+) ;; sugar
+      (define/assign target t+ e+)
       (def x ([x t+] ...) t+ s+)
       (if e+ s+ s+)
       pass

@@ -253,6 +253,22 @@ def ast_to_sexp(node):
         return symbol('break')
     elif isinstance(node, ast.Continue):
         return symbol('continue')
+    elif isinstance(node, ast.With):
+        return [
+            symbol('with'),
+            [
+                ast_to_sexp(item) for item in node.items
+            ],
+            [ symbol('begin') ] + [
+                ast_to_sexp(stmt) for stmt in node.body
+            ]
+        ]
+    elif isinstance(node, ast.withitem):
+        return [
+            ast_to_sexp(node.context_expr),
+            symbol('as'),
+            ast_to_sexp(node.optional_vars)
+        ]
     assert False, str(node)
 
 

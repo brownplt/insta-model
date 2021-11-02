@@ -51,6 +51,7 @@ def parse_simple_test(test):
     #         one_statement_that_specify_what_to_check
     parsed_test = ast.parse(test, type_comments=True)
 
+    
     assert isinstance(parsed_test, ast.Module)
     assert len(parsed_test.body) == 1
     deffun = parsed_test.body[0]
@@ -74,6 +75,9 @@ def parse_simple_test(test):
     while all([line.startswith('    ') for line in code]):
         code = [line[4:] for line in code]
     code = '\n'.join(code)
+    
+    # TODO
+    assert not 'with' in code
 
     # process spec
     pass
@@ -133,6 +137,9 @@ def translate_less_simple_compile_test(test: str):
     #             self.compile(codestr)
     code, spec = parse_simple_test(test)
 
+    # TODO
+    assert not 'with' in code
+
     assert isinstance(spec, ast.With)
     assert len(spec.body) == 1
     assert isinstance(spec.body[0], ast.Expr)
@@ -143,7 +150,7 @@ def translate_less_simple_compile_test(test: str):
     assert str(body.func.value.id) == 'self'
     assert str(body.func.attr) == 'compile'
     # assert len(body.args) in {1, 2}
-    assert body.keywords == []
+    # assert body.keywords == []
     arg = body.args[0]
     assert isinstance(arg, ast.Name)
     assert str(arg.id) == 'codestr'
@@ -181,6 +188,8 @@ for test in read_tests(input_file):
         if '_kw' in name: continue
         if 'mixed_args' in name: continue
         if 'varargs' in name: continue
+        if 'async' in name: continue
+        if 'try:' in test: continue
         if 'test_if_else_optional_return_two_branches' in name: continue
         # ⬆️ This test uses an unbound identifier
     except Exception:
@@ -190,22 +199,39 @@ for test in read_tests(input_file):
     try:
         # TODO: these are tests that we care but don't support right now.
         assert not 'while' in test
+        assert not 'for ' in test
         assert not '@staticmethod' in test
         assert not '@final' in test
         assert not 'assign_chained' in name
         assert not 'chain_assign' in name
-        try:
-            (name, content) = translate_simple_compile_test(test)
-        except AssertionError:
-            (name, content) = translate_less_simple_compile_test(test)
-        output_path = output_path_prefix + name + ".py"
-        output_file = open(output_path, 'w')
-        output_file.write(content)
+        assert not 'chained_assign' in name
+        assert not 'test_compile_checked_dict_wrong_unknown_type' in name
+        # \up This test uses dict comprehension
+    except AssertionError:
         print(test)
         print('-' * 10)
-    except Exception:
         print("SKIPPED", name)
         skipped_tests_path = skipped_tests_path_prefix + name + ".py"
         skipped_tests_file = open(skipped_tests_path, 'w')
         skipped_tests_file.write(test)
+        continue
+    
+    # There files should be working
+    try:
+        (name, content) = translate_simple_compile_test(test)
+    except AssertionError:
+        # continue
+        try:
+            (name, content) = translate_less_simple_compile_test(test)
+        except Exception:
+            print(test)
+            print('-' * 10)
+            print("SKIPPED", name)
+            skipped_tests_path = skipped_tests_path_prefix + name + ".py"
+            skipped_tests_file = open(skipped_tests_path, 'w')
+            skipped_tests_file.write(test)
+            continue
+    output_path = output_path_prefix + name + ".py"
+    output_file = open(output_path, 'w')
+    output_file.write(content)
     

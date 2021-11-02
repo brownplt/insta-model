@@ -27,6 +27,7 @@
      (delete (attribute e string))
      (return e)
      (expr e)
+     (claim x t)
      pass
      )
 
@@ -116,6 +117,7 @@
   [(simplify-d d) d])
 (define-metafunction SP-core
   lift-claims-helper : s -> d
+  [(lift-claims-helper (claim x t)) ([x t])]
   [(lift-claims-helper (define/assign x t e)) ([x t])]
   [(lift-claims-helper (define/assign (attribute e_obj string_mem) t_mem e_mem))
    ()]
@@ -256,6 +258,8 @@
    (expr ((attribute (desugar-e e+_map) "__delitem__") (desugar-e e+_key)))]
   [(desugar-s (expr e+))
    (expr (desugar-e e+))]
+  [(desugar-s s+)  ;; TODO
+   (expr NotImplemented)]
   )
 
 (module+ test
