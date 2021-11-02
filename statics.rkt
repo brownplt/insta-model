@@ -1,7 +1,7 @@
 #lang racket
 (require redex)
 (require redex-abbrevs)
-(require "grammar.rkt")
+(require "desugar.rkt")
 (require "statics-basic-definitions.rkt")
 (require "statics-utilities.rkt")
 (require "statics-meaning-of-types.rkt")
@@ -71,31 +71,6 @@
     Ψ
     (any_1 ... [x T_1] any_2 ... [x T_2] any_3 ...))])
 
-(module+ test
-  (check-judgment-holds*
-   (⊢p ((class B (object))))
-   (⊢p ((class B (object))
-        (expr (B))))
-   (⊢p ((class B (object) (field "x" int))
-        (class C (B))
-        (expr (C))))
-   (⊢p ((def expectInt ((i int)) dynamic pass)
-        (expr expectInt)))
-   (⊢p ((import-from "__static__" ("cast"))
-        (expr (cast bool #t))))
-   (⊢p ((import-from "typing" ("Optional"))
-        (define/assign x (subscript Optional int) 2)))
-   (⊢p ((import-from "typing" ("Optional"))
-        (define/assign x (subscript Optional int) None)))
-   (⊢p ((if #t
-            ((define/assign x int 2))
-            ((define/assign x dynamic 3)))
-        (define/assign y int x)))
-   (⊢p ((def f () None
-          (if #t
-              ((define/assign x int 2))
-              ((define/assign x dynamic 3)))
-          (define/assign y int x))))))
 (define-judgment-form SP-statics
   #:mode (⊢p I)
   #:contract (⊢p program)
@@ -103,13 +78,34 @@
   [(where Ψ_1 (base-Ψ))
    (where Γ_1 (base-Γ))
    (where Γ_2 (collect-imports Γ_1 import-type ...))
-   (where #f (¬⊢s* (s ...)))
-   (where (Ψ_2 Γ_3) (collect-defs-and-clss Ψ_1 Γ_2 s ...))
+   ;; no redeclaration
+   (where #f (some-redeclaration? d))
+   (where (d_cls d_oth) (split-d d))
+   ;; classes are defined first
+   (where (Ψ_2 Γ_3) (define-classes Ψ_1 Γ_2 d_cls))
+   ;; then we define other things, functions and ordinary varibles
+   (where Γ_4 (define-others Ψ_2 Γ_3 d_oth))
+   ;; every class is well-formed
    (where ([cid C] ...) Ψ_2)
    (Ψ⊢cid Ψ_2 cid) ...
-   (ΨΓ⊢s*⇐T+☠ Ψ_2 Γ_3 (s ...) ☠)
+   ;; the module body is well-formed
+   (ΨΓ⊢s⇐T+☠ Ψ_2 Γ_4 s ☠)
    ------------------------
-   (⊢p (import-type ... s ...))])
+   (⊢p (import-type ... d s))])
+
+(define-metafunction SP-statics
+  split-d : d -> (d d)
+  ;; categorize declarations into classes adn others
+  [(split-d ()) (() ())]
+  [(split-d ([x t] any ...))
+   (d_cls (extend d_oth [x t]))
+   (where (d_cls d_oth) (split-d (any ...)))]
+  [(split-d ([x (def ([x_arg t_arg]) t_ret)] any ...))
+   (d_cls (extend d_oth [x (def ([x_arg t_arg]) t_ret)]))
+   (where (d_cls d_oth) (split-d (any ...)))]
+  [(split-d ([x (class x (t ...) m ...)] any ...))
+   ((extend d_cls [x (class x (t ...) m ...)]) d_oth)
+   (where (d_cls d_oth) (split-d (any ...)))])
 
 (module+ test
   (test-equal
@@ -177,62 +173,12 @@
    (where Γ_2 (collect-one-import Γ_1 string_mod string_var1))]
   [(collect-imports any ...) #f])
 
-(module+ test
-  (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)))
-              (term ((base-Ψ) (base-Γ))))
-  (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
-                                           (define/assign foo int 42)))
-              (term ((base-Ψ)
-                     (extend (base-Γ) [foo (instancesof "int")]))))
-  (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
-                                           (def foo ([arg str]) int (return 42))))
-              (term ((base-Ψ)
-                     (extend (base-Γ) [foo (-> ([arg (instancesof "str")]) (instancesof "int"))]))))
-  (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
-                                           (class C (object))))
-              (term ((extend (base-Ψ) [0 (class C "object" () ())])
-                     (extend (base-Γ) [C (classitself 0)]))))
-  (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
-                                           (class C (object) (field "x" int))))
-              (term ((extend (base-Ψ) [0 (class C "object" (["x" (instancesof "int")]) ())])
-                     (extend (base-Γ) [C (classitself 0)]))))
-  (test-equal (term (collect-defs-and-clss (base-Ψ) (base-Γ)
-                                           (class B ())
-                                           (class C (object))))
-              (term ((extend (base-Ψ) [1 (class C "object" () ())] [0 (class B "object" () ())])
-                     (extend (base-Γ) [C (classitself 1)] [B (classitself 0)])))))
-
 (define-metafunction SP-statics
-  collect-ext : s ... -> ([x any] ...)
-  ;; What are the classes and variables defined at the top level?
-  [(collect-ext) ()]
-  [(collect-ext (define/assign x t e) s ...)
-   (extend (collect-ext s ...) [x define/assign])]
-  [(collect-ext (def x ([x_arg t_arg] ...) t_ret s_body ...) s ...)
-   (extend (collect-ext s ...) [x def/class])]
-  [(collect-ext (class x (t_par ...) class-member ...) s ...)
-   (extend (collect-ext s ...) [x def/class])]
-  [(collect-ext (if e (s_thn ...) (s_els ...)) s ...)
-   (collect-ext s_thn ... s_els ... s ...)]
-  [(collect-ext s_1 s_2 ...)
-   (collect-ext s_2 ...)])
-
-(define-judgment-form SP-statics
-  #:mode (¬⊢s* I)
-  #:contract (¬⊢s* (s ...))
-
-  ;; Are there any conflicting definitions? If a variable is bound to a class or a function,
-  ;; it can't be rebound to other things.
-
-  [(where (any_1 ... [x def/class] any_2 ... [x any] any_3 ...)
-          (collect-ext s ...))
-   ---------------------- "def/class-L"
-   (¬⊢s* (s ...))]
-
-  [(where (any_1 ... [x any] any_2 ... [x def/class] any_3 ...)
-          (collect-ext s ...))
-   ---------------------- "def/class-R"
-   (¬⊢s* (s ...))])
+  some-redeclaration? : d -> boolean
+  [(some-redeclaration? (any_1 ... [x any_fst] any_2 ... [x any_snd] any_3 ...))
+   #t]
+  [(some-redeclaration? d)
+   #f])
 
 (define-metafunction SP-statics
   compute-parent : T ... -> cid+dynamic+☠
@@ -240,97 +186,53 @@
   [(compute-parent (instancesof cid)) cid]
   [(compute-parent T ...) dynamic])
 
+(define-metafunction SP-statics
+  define-classes : Ψ Γ d -> (Ψ Γ)
+  [(define-classes Ψ_1 Γ_1 d)
+   (Ψ_3 Γ_2)
+   (where (Ψ_2 Γ_2) (declare-classes Ψ_1 Γ_1 d))
+   (where Ψ_3 (initialize-classes Ψ_2 Γ_2 d))])
+
+
 (module+ test
-  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ)))
+  (test-equal (term (define-others (base-Ψ) (base-Γ) ()))
               (term (extend (base-Γ))))
-  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (claim x int)))
+  (test-equal (term (define-others (base-Ψ) (base-Γ) ([x int])))
               (term (extend (base-Γ) [x (instancesof "int")])))
-  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (define/assign x int 42)))
-              (term (extend (base-Γ) [x (instancesof "int")])))
-  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (def f () int (return 42))))
-              (term (extend (base-Γ) [f (-> () (instancesof "int"))])))
-  (test-equal (term (collect-global-variables (base-Ψ) (base-Γ) (define/assign x int 42) (define/assign x dynamic 3)))
-              (term (extend (base-Γ) [x (instancesof "int")]))))
-
+  (test-equal (term (define-others (base-Ψ) (base-Γ) ([f (def () int)])))
+              (term (extend (base-Γ) [f (-> () (instancesof "int"))]))))
 (define-metafunction SP-statics
-  collect-global-variables : Ψ Γ s ... -> any
+  define-others : Ψ Γ d -> any
   ;; What are the classes and variables defined at the top level?
-  [(collect-global-variables Ψ Γ s ...)
-   (collect-variables-helper Ψ Γ global () s ...)])
+  [(define-others Ψ Γ ()) Γ]
+  [(define-others Ψ Γ ([x t] any ...))
+   (define-others Ψ (extend Γ [x T]) (any ...))
+   (judgment-holds (evalo Ψ Γ t T))]
+  [(define-others Ψ Γ ([x (def ([x_arg t_arg] ...) t_ret)] any ...))
+   (define-others Ψ (extend Γ [x (-> ([x_arg T_arg] ...) T_ret)]) (any ...))
+   (judgment-holds (evalo* Ψ Γ (t_arg ...) (T_arg ...)))
+   (judgment-holds (evalo Ψ Γ t_ret T_ret))])
 
 (define-metafunction SP-statics
-  collect-variables-helper : Ψ Γ vctx (x ...) s ... -> any  ;; in fact, Γ | #f
-  ;; What are the classes and variables defined at the top level?
-  
-  [(collect-variables-helper Ψ Γ vctx (x ...)) Γ]
-
-  ;; declare variable
-  [(collect-variables-helper Ψ Γ_1 vctx (x_old ...) (claim x t) s ...)
-   (collect-variables-helper Ψ Γ_2 vctx (x x_old ...) s ...)
-   (where #f (member x (x_old ...)))
-   (judgment-holds (evalo Ψ Γ_1 t T))
-   (where Γ_2 (extend Γ_1 [x T]))]
-  
-  ;; define variable
-  [(collect-variables-helper Ψ Γ_1 vctx (x_old ...) (define/assign x t e) s ...)
-   (collect-variables-helper Ψ Γ_2 vctx (x x_old ...) s ...)
-   (where #f (member x (x_old ...)))
-   (judgment-holds (evalo Ψ Γ_1 t T))
-   (where Γ_2 (extend Γ_1 [x T]))]
-
-  ;; later definition can't redeclare
-  [(collect-variables-helper Ψ Γ_1 vctx (x_1 ... x x_2 ...) (define/assign x dynamic e) s ...)
-   (collect-variables-helper Ψ Γ_1 vctx (x_1 ... x x_2 ...) s ...)]
-  [(collect-variables-helper Ψ Γ_1 vctx (x_1 ... x x_2 ...) (define/assign x t e) s ...)
-   #f]
-
-  ;; define function
-  [(collect-variables-helper Ψ Γ_1 vctx (x_old ...) (def x ([x_arg t_arg] ...) t_ret s_body ...) s ...)
-   (collect-variables-helper Ψ Γ_2 vctx (x x_old ...) s ...)
-   (where #f (member x (x_old ...)))
-   (judgment-holds (evalo* Ψ Γ_1 (t_arg ...) (T_arg ...)))
-   (judgment-holds (evalo Ψ Γ_1 t_ret T_ret))
-   (where T (-> ([x_arg T_arg] ...) T_ret))
-   (where Γ_2 (extend Γ_1 [x T]))]
-
-  [(collect-variables-helper Ψ_1 Γ_1 vctx (x_old ...) (def any ...) s ...)
-   ,(error "should not come here" (term (Ψ_1 Γ_1 (def any ...))))]
-
-  ;; in local context, this function is responsible for collecting class definitions because we don't
-  ;; update Ψ anymore.
-  ;; These nested classes are typed as dynamic
-  [(collect-variables-helper Ψ Γ_1 local (x_old ...) (class x (t ...) class-member ...) s ...)
-   (collect-variables-helper Ψ Γ_2 local (x x_old ...) s ...)
-   (where #f (member x (x_old ...)))
-   (where Γ_2 (extend Γ_1 [x dynamic]))]
-
-  ;; handle if branches, TODO: this might be a bit simplisitic
-  [(collect-variables-helper Ψ Γ vctx (x_old ...) (if e (s_thn ...) (s_els ...)) s ...)
-   (collect-variables-helper Ψ Γ vctx (x_old ...) s_thn ... s_els ... s ...)]
-  
-  [(collect-variables-helper Ψ Γ vctx (x_old ...) s_1 s_2 ...)
-   (collect-variables-helper Ψ Γ vctx (x_old ...) s_2 ...)])
-
-(module+ test
-  (test-equal (term (declare-clss (base-Ψ) (base-Γ)))
-              (term ((base-Ψ) (base-Γ)))))
-(define-metafunction SP-statics
-  declare-clss : Ψ Γ s ... -> (Ψ Γ)
-  [(declare-clss Ψ_1 Γ_1 (class x any ...) s ...)
-   (declare-clss Ψ_2 Γ_2 s ...)
+  declare-classes : Ψ Γ d -> (Ψ Γ)
+  ;; claim the variables but don't initialize them. We need
+  ;; to seperate the steps because classes can be recursive
+  [(declare-classes Ψ Γ ()) (Ψ Γ)]
+  [(declare-classes Ψ_1 Γ_1 ([x (class x any_cls ...)] any_clm ...))
+   (declare-classes Ψ_2 Γ_2 (any_clm ...))
    (where (Ψ_2 cid) (Ψ-alloc Ψ_1 ☠))
-   (where Γ_2 (extend Γ_1 [x (classitself cid)]))]
-  [(declare-clss Ψ Γ) (Ψ Γ)]
-  [(declare-clss Ψ Γ s_1 s_2 ...)
-   (declare-clss Ψ Γ s_2 ...)])
+   (where Γ_2 (extend Γ_1 [x (classitself cid)]))])
 
 (define-metafunction SP-statics
-  initialize-clss : Ψ Γ s ... -> Ψ
-  [(initialize-clss Ψ_1 Γ s_1 ... (class x (t_par ...) class-member ...) s_2 ...)
-   (initialize-clss Ψ_2 Γ s_1 ... s_2 ...)
+  initialize-classes : Ψ Γ d -> Ψ
+  ;; initialize the class variables.
+  ;; The d is guarantee to contain just class declarations
+  [(initialize-classes Ψ Γ ()) Ψ]
+  [(initialize-classes Ψ_1 Γ ([x (class x (t_par ...) m ...)] any ...))
+   (initialize-classes Ψ_2 Γ (any ...))
    (where (((string_fld t_fld) ...)
            ((string_mth ([x_arg t_arg] ...) t_ret) ...))
-          (collect-mems class-member ...))
+          (collect-mems m ...))
    (judgment-holds (evalo* Ψ_1 Γ (t_fld ...) (T_fld ...)))
    (judgment-holds (evalo** Ψ_1 Γ ((t_arg ...) ...) ((T_arg ...) ...)))
    (judgment-holds (evalo* Ψ_1 Γ (t_ret ...) (T_ret ...)))
@@ -339,20 +241,7 @@
               ((string_fld T_fld) ...)
               ((string_mth ([x_arg T_arg] ...) T_ret) ...)))
    (where (classitself cid) (lookup Γ x))
-   (where Ψ_2 (Ψ-init Ψ_1 cid C))]
-  [(initialize-clss Ψ Γ s ...) Ψ])
-
-
-(define-metafunction SP-statics
-  collect-defs-and-clss : Ψ Γ s ... -> any ;; (Ψ Γ)
-  ;; What are the classes and variables defined at the top level?
-
-  [(collect-defs-and-clss Ψ_1 Γ_1 s ...)
-   (Ψ_3 Γ_3)
-   (where (Ψ_2 Γ_2) (declare-clss Ψ_1 Γ_1 s ...))
-   (where Ψ_3 (initialize-clss Ψ_2 Γ_2 s ...))
-   (where Γ_3 (collect-global-variables Ψ_3 Γ_2 s ...))]
-  [(collect-defs-and-clss Ψ_1 Γ_1 s ...) #f])
+   (where Ψ_2 (Ψ-init Ψ_1 cid C))])
 
 (define-metafunction SP-statics
   collect-local-defs-and-clss : Ψ Γ s ... -> any
@@ -388,28 +277,28 @@
 
 
 (define-metafunction SP-statics
-  collect-mems : class-member ... -> (((string_field t_field) ...)
-                                      ((string_method ([x t_arg] ...) t_ret) ...))
+  collect-mems : m ... -> (((string_field t_field) ...)
+                           ((string_method ([x t_arg] ...) t_ret) ...))
   ;; What are the fields and methods defined in this class?
 
   [(collect-mems) (()
                    ())]
 
-  [(collect-mems (field string t) class-member ...)
+  [(collect-mems (field string t) m ...)
    (((string t) any_field ...)
     (any_method ...))
    (where ((any_field ...)
            (any_method ...))
-          (collect-mems class-member ...))]
+          (collect-mems m ...))]
 
   [(collect-mems
     (method string_method x_self ([x_arg t_arg] ...) t_ret s ...)
-    class-member ...)
+    m ...)
    ((any_field ...)
     ((string_method ([x_arg t_arg] ...) t_ret) any_method ...))
    (where ((any_field ...)
            (any_method ...))
-          (collect-mems class-member ...))])
+          (collect-mems m ...))])
 
 (module+ test
   (check-not-judgment-holds*
@@ -424,11 +313,7 @@
              dynamic)
    (ΨΓ⊢s⇐T+☠ (base-Ψ)
              (base-Γ)
-             (def f ([x int]) None pass)
-             dynamic)
-   (ΨΓ⊢s⇐T+☠ (base-Ψ)
-             (base-Γ)
-             (delete 2)
+             (def f ([x int]) None () pass)
              dynamic)
    (ΨΓ⊢s⇐T+☠ (base-Ψ)
              (base-Γ)
@@ -446,128 +331,144 @@
 (define-judgment-form SP-statics
   #:mode (ΨΓ⊢s⇐T+☠ I I I I)
   #:contract (ΨΓ⊢s⇐T+☠ Ψ Γ s T+☠)
-
+  ;; DO INDUCTION ON S
   ;; Is the statement s well-formed under the type and class environment Γ?
-  
+
+  [------------------------ "claim"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (claim x t) _)]
+
   [(ΨΓ⊢e⇒T Ψ Γ e_1 T)
    (ΨΓ⊢e⇐T Ψ Γ e_2 T)
    ------------------------ "define/assign"
    (ΨΓ⊢s⇐T+☠ Ψ Γ (define/assign e_1 t e_2) _)]
 
   [(evalo Ψ Γ_1 t_ret T_ret)
-   (where Γ_2 (collect-local-defs-and-clss Ψ Γ_1 (claim x_arg t_arg) ... s ...))
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ_2 (s ...) T_ret)
+   (where d_2 (extend d_1 [x_arg t_arg] ...))
+   (where d_3 (simplify-d d_2))
+   (where #f (some-redeclaration? d_3))
+   (where (([x_cls any] ...) d_oth) (split-d d_3))
+   (where Γ_2 (define-others Ψ Γ_1 (extend d_oth [x_cls dynamic] ...)))
+   (ΨΓ⊢s⇐T+☠ Ψ Γ_2 s T_ret)
    ------------------------ "def"
-   (ΨΓ⊢s⇐T+☠ Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret s ...) _)]
+   (ΨΓ⊢s⇐T+☠ Ψ Γ_1 (def x_fun ([x_arg t_arg] ...) t_ret d_1 s) _)]
+  
+  [(ΨΓ⊢m Ψ Γ m) ...
+   ------------------------ "class"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (class x (t ...) m ...) _)]
 
+  ;; If statements are handled elsewhe
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
    ------------------------ "delete"
    (ΨΓ⊢s⇐T+☠ Ψ Γ (delete e) _)]
 
-
+  [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
+   ------------------------ "expr"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (expr e) _)]
+  
   [------------------------ "pass"
    (ΨΓ⊢s⇐T+☠ Ψ Γ pass _)]
 
-
-  [(ΨΓ⊢class-member Ψ Γ class-member) ...
-   ------------------------ "class"
-   (ΨΓ⊢s⇐T+☠ Ψ Γ (class x (t ...) class-member ...) _)]
-
-  [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
-   ------------------------ "expr"
-   (ΨΓ⊢s⇐T+☠ Ψ Γ (expr e) _)])
-
-(module+ test
-  (check-judgment-holds*
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (base-Γ) () ☠)
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (base-Γ) () (instancesof "None"))
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (base-Γ) () dynamic)
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (base-Γ) () ("optional" "int"))
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (base-Γ) ((return 42) (return "foo")) (instancesof "int"))
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
-              ((if (is x None)
-                   ((return 42))
-                   ())
-               (return x))
-              (instancesof "int"))
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
-              ((if (is-not x None)
-                   ()
-                   ((return 42)))
-               (return x))
-              (instancesof "int"))
-   (ΨΓ⊢s*⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")] [y ("optional" "int")])
-              ((if (bool-op and (is-not x None) (is-not y None))
-                   ((return (bin-op + x y)))
-                   ((return 42))))
-              (instancesof "float"))))
-(define-judgment-form SP-statics
-  #:mode (ΨΓ⊢s*⇐T+☠ I I I I)
-  #:contract (ΨΓ⊢s*⇐T+☠ Ψ Γ (s ...) T+☠)
-
-  [--------------------- "end of file"
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ () ☠)]
-
-  [(ΨΓ⊢s*⇐T+☠ Ψ Γ ((return None)) T)
-   --------------------- "no return is return None"
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ () T)]
-  
   [(ΨΓ⊢e⇐T Ψ Γ e T)
-   --------------------- "return"
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ ((return e) s ...) T)]
+   ------------------------ "return"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (return e) T)]
+  
+  [(ΨΓ⊢ifess⇐T+☠ Ψ Γ e s_thn s_els T+☠)
+   --------------------------------------- "if"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (if e s_thn s_els) T+☠)]
+  
+  ;; begin-related
+
+  [--------------------- "begin-end no expect"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin) ☠)]
+
+  [(ΨΓ⊢s⇐T+☠ Ψ Γ (return None) T)
+   --------------------- "begin-end some expect"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin) T)]
+  
+  [(ΨΓ⊢s⇐T+☠ Ψ Γ (return e) T+☠)
+   --------------------- "begin-return"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin (return e) s ...) T+☠)]
+
+  [(ΨΓ⊢s⇐T+☠ Ψ Γ (begin s_1 ... s_2 ...) T+☠)
+   --------------------- "begin-begin"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin (begin s_1 ...) s_2 ...) T+☠)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e T_1)
    (evalo Ψ Γ t T_2)
    (Ψ⊢T≲T Ψ T_1 T_2)
    (where T (intersection Ψ T_1 T_2))
-   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x T]) (s ...) T+☠)
-   --------------------- "define/assign"
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ ((define/assign x t e) s ...) T+☠)]
+   (ΨΓ⊢s⇐T+☠ Ψ (extend Γ [x T]) (begin s ...) T+☠)
+   --------------------- "begin-define/assign"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin (define/assign x t e) s ...) T+☠)]
 
-  [(ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e (s_thn ... s ...) (s_els ... s ...) T+☠)
-   --------------------- "if"
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ ((if e (s_thn ...) (s_els ...)) s ...) T+☠)]
+  [(ΨΓ⊢s⇐T+☠ Ψ Γ (if e (begin s_thn s ...) (begin s_els s ...)) T+☠)
+   --------------------- "begin-if"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin (if e s_thn s_els) s ...) T+☠)]
 
   [(ΨΓ⊢s⇐T+☠ Ψ Γ s_1 T+☠)
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ (s_2 ...) T+☠)
-   -----------------
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ (s_1 s_2 ...) T+☠)])
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin s_2 ...) T+☠)
+   ----------------- "begin-otherwise"
+   (ΨΓ⊢s⇐T+☠ Ψ Γ (begin s_1 s_2 ...) T+☠)]
+  )
+
+(module+ test
+  (check-judgment-holds*
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) ☠)
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) (instancesof "None"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) dynamic)
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin) ("optional" "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (begin (return 42) (return "foo")) (instancesof "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
+             (begin
+               (if (is x None)
+                   (begin (return 42))
+                   (begin))
+               (return x))
+             (instancesof "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")])
+             (begin
+               (if (is-not x None)
+                   (begin)
+                   (begin (return 42)))
+               (return x))
+             (instancesof "int"))
+   (ΨΓ⊢s⇐T+☠ (base-Ψ) (extend (base-Γ) [x ("optional" "int")] [y ("optional" "int")])
+             (if (bool-op and (is-not x None) (is-not y None))
+                 (begin (return ((attribute x "__add__") y)))
+                 (begin (return 42)))
+             (instancesof "float"))))
 
 
 (define-judgment-form SP-statics
-  #:mode (ΨΓ⊢ifes*s*⇐T+☠ I I I I I I)
-  #:contract (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e (s ...) (s ...) T+☠)
+  #:mode (ΨΓ⊢ifess⇐T+☠ I I I I I I)
+  #:contract (ΨΓ⊢ifess⇐T+☠ Ψ Γ e s s T+☠)
 
-  [(ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (is x None) (s_els ...) (s_thn ...) T+☠)
+  [(ΨΓ⊢ifess⇐T+☠ Ψ Γ (is x None) s_els s_thn T+☠)
    ------------------ "if is-not"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (is-not x None) (s_thn ...) (s_els ...) T+☠)]
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ (is-not x None) s_thn s_els T+☠)]
 
   [(ΨΓ⊢e⇒T Ψ Γ x T)
-   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x (instancesof "None")]) (s_thn ...) T+☠)
-   (ΨΓ⊢s*⇐T+☠ Ψ (extend Γ [x (remove-None T)]) (s_els ...) T+☠)
+   (ΨΓ⊢s⇐T+☠ Ψ (extend Γ [x (instancesof "None")]) s_thn T+☠)
+   (ΨΓ⊢s⇐T+☠ Ψ (extend Γ [x (remove-None T)]) s_els T+☠)
    ------------------ "if is"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (is x None) (s_thn ...) (s_els ...) T+☠)]
-
-  [(ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e (s_thn ...) (s_els ...) T+☠)
-   ------------------ "if bool-op-base"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op ob e) (s_thn ...) (s_els ...) T+☠)]
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ (is x None) s_thn s_els T+☠)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_1 (instancesof "bool"))
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e_1 ((if (bool-op and e_2 e_3 ...) (s_thn ...) (s_els ...))) (s_els ...) T+☠)
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ e_1 (if e_2 s_thn s_els) s_els T+☠)
    ------------------ "if and"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op and e_1 e_2 e_3 ...) (s_thn ...) (s_els ...) T+☠)]
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ (bool-op and e_1 e_2) s_thn s_els T+☠)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_1 (instancesof "bool"))
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e_1 (s_thn ...) ((if (bool-op or e_2 e_3 ...) (s_thn ...) (s_els ...))) T+☠)
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ e_1 s_thn (if e_2 s_thn s_els) T+☠)
    ------------------ "if or"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ (bool-op or e_1 e_2 e_3 ...) (s_thn ...) (s_els ...) T+☠)]
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ (bool-op or e_1 e_2) s_thn s_els T+☠)]
 
   [(ΨΓ⊢e⇐T Ψ Γ e dynamic)
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ (s_thn ...) T+☠)
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ (s_els ...) T+☠)
+   (ΨΓ⊢s⇐T+☠ Ψ Γ s_thn T+☠)
+   (ΨΓ⊢s⇐T+☠ Ψ Γ s_els T+☠)
    ------------------ "usual if"
-   (ΨΓ⊢ifes*s*⇐T+☠ Ψ Γ e (s_thn ...) (s_els ...) T+☠)])
+   (ΨΓ⊢ifess⇐T+☠ Ψ Γ e s_thn s_els T+☠)])
 
 
 (define-judgment-form SP-statics
@@ -592,20 +493,18 @@
 
 
 (define-judgment-form SP-statics
-  #:mode (ΨΓ⊢class-member I I I)
-  #:contract (ΨΓ⊢class-member Ψ Γ class-member)
+  #:mode (ΨΓ⊢m I I I)
+  #:contract (ΨΓ⊢m Ψ Γ m)
 
-  ;; Is this class-member well-formed under the environment Γ?
+  ;; Is this m well-formed under the environment Γ?
 
   [-------------------------
-   (ΨΓ⊢class-member Ψ Γ (field string t))]
+   (ΨΓ⊢m Ψ Γ (field string t))]
 
-  [(evalo Ψ Γ_1 t_ret T_ret)
-   (where Γ_2 (collect-local-defs-and-clss Ψ Γ_1 (claim x_self dynamic) (claim x_arg t_arg) ... s ...))
-   (ΨΓ⊢s*⇐T+☠ Ψ Γ_2 (s ...) T_ret)
-   ;; TODO: the type of self looks weird
+  ;; TODO: the type of x_slf doesn't look right
+  [(ΨΓ⊢s⇐T+☠ Ψ Γ (def whatever ([x_slf dynamic] [x_arg t_arg] ...) t_ret d s) ☠)
    -------------------------
-   (ΨΓ⊢class-member Ψ Γ_1 (method string_method x_self ([x_arg t_arg] ...) t_ret s ...))])
+   (ΨΓ⊢m Ψ Γ (method string_method x_slf ([x_arg t_arg] ...) t_ret d s))])
 
 (module+ test
   (check-judgment-holds*
@@ -615,12 +514,12 @@
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) "foo" (instancesof "str"))
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) (dict-syntax) (instancesof "dict"))
    (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) (set-syntax) (instancesof "set"))
-   (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) (subscript (dict-syntax ("foo" 1)) "foo") dynamic)
+   (ΨΓ⊢e⇐T (base-Ψ) (base-Γ) ((attribute (dict-syntax ("foo" 1)) "__getitem__") "foo") dynamic)
    (ΨΓ⊢e⇐T (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
-           (subscript CheckedDict (tuple-syntax str int))
+           ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
            (classitself ("CheckedDict" "str" "int")))
    (ΨΓ⊢e⇐T (base-Ψ) (extend (base-Γ) [d (instancesof ("CheckedDict" "str" "int"))])
-           (subscript d "foo")
+           ((attribute d "__getitem__") "foo")
            (instancesof "int"))))
 
 
@@ -677,18 +576,6 @@
 
 (module+ test
   (check-judgment-holds*
-   (as-subscriptable (base-Ψ) (instancesof ("CheckedDict" "str" "int")) (instancesof "str") (instancesof "int"))))
-(define-judgment-form SP-statics
-  #:mode (as-subscriptable I I O O)
-  #:contract (as-subscriptable Ψ T T T)
-
-  [(where T_getitem (lookup-member Ψ T "__getitem__"))
-   (as-fun Ψ T_getitem 1 (-> ([any T_key]) T_val))
-   ---
-   (as-subscriptable Ψ T T_key T_val)])
-
-(module+ test
-  (check-judgment-holds*
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) int (classitself "int"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) None (instancesof "None"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) #t (instancesof "bool"))
@@ -698,18 +585,13 @@
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (set-syntax "foo" 42) (instancesof "set"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (dict-syntax) (instancesof "dict"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (dict-syntax [42 "foo"] ["bar" 120]) (instancesof "dict"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (subscript (dict-syntax ("foo" 1)) "foo") dynamic)
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) ((attribute (dict-syntax ("foo" 1)) "__getitem__") "foo") dynamic)
    (ΨΓ⊢e⇒T (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
-           (subscript CheckedDict (tuple-syntax str int))
+           ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
            (classitself ("CheckedDict" "str" "int")))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (attribute (dict-syntax) "__getitem__") (-> ([☠ dynamic]) dynamic))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (unary-op - 2) (instancesof "float"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bin-op + 2 3) (instancesof "float"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (> 2 3) (instancesof "bool"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (== 2 3) (instancesof "bool"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (in None (set-syntax "foo" 42)) (instancesof "bool"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bool-op and #t #f) dynamic)
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bool-op or #t #f) dynamic)
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bool-op and #t #f) (instancesof "bool"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (bool-op or #t #f) (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (int "123") (instancesof "int"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (is "foo" None) (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (is-not 42 "x") (instancesof "bool"))
@@ -748,14 +630,6 @@
   [(ΨΓ⊢e⇐T Ψ Γ e_elt dynamic) ...
    ----------------------- "set"
    (ΨΓ⊢e⇒T Ψ Γ (set-syntax e_elt ...) (instancesof "set"))]
-
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e "__neg__")) T)
-   ------------------------ "unary-op -"
-   (ΨΓ⊢e⇒T Ψ Γ (unary-op - e) T)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__add__") e_2) T)
-   ------------------------ "binop +"
-   (ΨΓ⊢e⇒T Ψ Γ (bin-op + e_1 e_2) T)]
   
   [(ΨΓ⊢e⇒T Ψ Γ e_1 T_1)
    (ΨΓ⊢e⇒T Ψ Γ e_2 T_2)
@@ -767,27 +641,12 @@
    ------------------------ "is-not"
    (ΨΓ⊢e⇒T Ψ Γ (is-not e_1 e_2) (instancesof "bool"))]
 
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__gt__") e_2) T)
-   ------------------------ "gt"
-   (ΨΓ⊢e⇒T Ψ Γ (> e_1 e_2) T)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__eq__") e_2) T)
-   ------------------------ "eq"
-   (ΨΓ⊢e⇒T Ψ Γ (== e_1 e_2) T)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_2 "__contains__") e_1) T)
-   ------------------------ "in"
-   (ΨΓ⊢e⇒T Ψ Γ (in e_1 e_2) T)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__and__") e_2) T)
-   ------------------------ "and"
-   (ΨΓ⊢e⇒T Ψ Γ (bool-op and e_1 e_2) T)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ ((attribute e_1 "__or__") e_2) T)
-   ------------------------ "or"
-   (ΨΓ⊢e⇒T Ψ Γ (bool-op or e_1 e_2) T)]
+  [(ΨΓ⊢e⇒T Ψ Γ e_1 T_1)
+   (ΨΓ⊢e⇒T Ψ Γ e_2 T_2)
+   ------------------------ "bool-op"
+   (ΨΓ⊢e⇒T Ψ Γ (bool-op ob e_1 e_2) (union Ψ T_1 T_2))]
   
-  [(where (subscript x (tuple-syntax t ...)) e)
+  [(where ((attribute x "__getitem__") (tuple-syntax t ...)) e)
    (evalo Ψ Γ e (instancesof cid))
    ------------------------ "generic"
    (ΨΓ⊢e⇒T Ψ Γ e (classitself cid))]
@@ -795,12 +654,6 @@
   [(lookupo Γ x T)
    ------------------------ "variable"
    (ΨΓ⊢e⇒T Ψ Γ x T)]
-
-  [(ΨΓ⊢e⇒T Ψ Γ e_map T_map)
-   (as-subscriptable Ψ T_map T_key T_val)
-   (ΨΓ⊢e⇐T Ψ Γ e_key T_key)
-   ----------------------- "subscription"
-   (ΨΓ⊢e⇒T Ψ Γ (subscript e_map e_key) T_val)]
 
   [(ΨΓ⊢e⇒T Ψ Γ e_ins T_ins)
    (where T_mem (lookup-member Ψ T_ins string_mem))

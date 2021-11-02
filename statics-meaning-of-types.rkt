@@ -91,7 +91,7 @@
    (evalo Ψ Γ t_ret T_ret)
    ------------------------- "Callable"
    (evalo Ψ Γ
-          (subscript x (tuple-syntax t_arg ... t_ret))
+          ((attribute x "__getitem__") (tuple-syntax t_arg ... t_ret))
           (-> ([☠ T_arg] ...) T_ret))]
 
   [(lookupo Γ x (prim-generic "CheckedDict"))
@@ -99,19 +99,19 @@
    (evalo Ψ Γ t_val (instancesof cid_val))
    ------------------------- "CheckedDict"
    (evalo Ψ Γ 
-          (subscript x (tuple-syntax t_key t_val))
+          ((attribute x "__getitem__") (tuple-syntax t_key t_val))
           (instancesof ("CheckedDict" cid_key cid_val)))]
 
   ;; TODO this doesn't look right. We should do something
   [(lookupo Γ x (prim-generic "Final"))
    (evalo Ψ Γ t T)
    ------------------------- "Final"
-   (evalo Ψ Γ (subscript x t) T)]
+   (evalo Ψ Γ ((attribute x "__getitem__") t) T)]
 
   [(lookupo Γ x (prim-generic "Optional"))
    (evalo Ψ Γ t (instancesof cid))
    ------------------------- "Optional"
-   (evalo Ψ Γ (subscript x t) ("optional" cid))]
+   (evalo Ψ Γ ((attribute x "__getitem__") t) ("optional" cid))]
 
   [(evalo Ψ Γ t_1 T_1)
    (evalo Ψ Γ t_2 T_2)

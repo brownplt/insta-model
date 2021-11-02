@@ -2,9 +2,10 @@
 (require redex)
 (require redex-abbrevs)
 (require "grammar.rkt")
+(require "desugar.rkt")
 (provide (all-defined-out))
 
-(define-extended-language SP-statics SP
+(define-extended-language SP-statics SP-core
   ;; primitive class ids
   (prim-cid "object"
             "float"
