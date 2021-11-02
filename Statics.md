@@ -173,6 +173,8 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 Can't redelcare ordinary variable. 
 TODO: some tests might fail in the current SP but these behavior will be implemented. See https://github.com/facebookincubator/cinder/issues/53
 
-- [redeclare_var_with_var.py](conformance_suite/redeclare_var_with_var.py)
 - [redeclare_var_with_def.py](conformance_suite/redeclare_var_with_def.py)
 - [redeclare_var_with_class.py](conformance_suite/redeclare_var_with_class.py)
+- [redeclare_var_with_var_same_type.py](conformance_suite/redeclare_var_with_var_same_type.py)
+- [redeclare_var_with_var_dyn_to_type.py](conformance_suite/redeclare_var_with_var_dyn_to_type.py)
+- [redeclare_var_flatten_if.py](conformance_suite/redeclare_var_flatten_if.py)
