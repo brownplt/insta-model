@@ -95,28 +95,37 @@
   )
 (define-metafunction SP-core
   lift-claims : s -> d
-  [(lift-claims (define/assign x t e)) ([x t])]
-  [(lift-claims (define/assign (attribute e_obj string_mem) t_mem e_mem))
+  [(lift-claims s) (simplify-d (lift-claims-helper s))])
+(define-metafunction SP-core
+  simplify-d : d -> d
+  ;; Remove later dynamic redeclaration because they are just mutation
+  [(simplify-d (any_1 ... [x T] any_2 ... [x dynamic] any_3))
+   (simplify-d (any_1 ... [x T] any_2 ... any_3))]
+  [(simplify-d d) d])
+(define-metafunction SP-core
+  lift-claims-helper : s -> d
+  [(lift-claims-helper (define/assign x t e)) ([x t])]
+  [(lift-claims-helper (define/assign (attribute e_obj string_mem) t_mem e_mem))
    ()]
-  [(lift-claims (def x ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
+  [(lift-claims-helper (def x ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
    ([x (def ([x_arg t_arg] ...) t_ret)])]
-  [(lift-claims (class x (t ...) m ...))
+  [(lift-claims-helper (class x (t ...) m ...))
    ([x (class x (t ...) m ...)])]
-  [(lift-claims (if e_cnd s_thn s_els))
-   (append (lift-claims s_thn) (lift-claims s_els))]
-  [(lift-claims (begin))
+  [(lift-claims-helper (if e_cnd s_thn s_els))
+   (append (lift-claims-helper s_thn) (lift-claims-helper s_els))]
+  [(lift-claims-helper (begin))
    ()]
-  [(lift-claims (begin s_1 s_2 ...))
-   (append (lift-claims s_1) (lift-claims (begin s_2 ...)))]
-  [(lift-claims (delete x))
+  [(lift-claims-helper (begin s_1 s_2 ...))
+   (append (lift-claims-helper s_1) (lift-claims-helper (begin s_2 ...)))]
+  [(lift-claims-helper (delete x))
    ()]
-  [(lift-claims (delete (attribute e string)))
+  [(lift-claims-helper (delete (attribute e string)))
    ()]
-  [(lift-claims (return e))
+  [(lift-claims-helper (return e))
    ()]
-  [(lift-claims (expr e))
+  [(lift-claims-helper (expr e))
    ()]
-  [(lift-claims pass)
+  [(lift-claims-helper pass)
    ()])
 
 (module+ test
