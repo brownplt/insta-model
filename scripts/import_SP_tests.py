@@ -167,6 +167,8 @@ def translate_less_simple_compile_test(test: str):
 
 
 for test in read_tests(input_file):
+    # These are tests that we don't care
+    if 'Final[' in test: continue
     if 'reveal_type' in test: continue 
     if 'nonlocal' in test: continue
     if 'global' in test: continue
@@ -179,6 +181,7 @@ for test in read_tests(input_file):
     if 'cbool' in test: continue
     if 'Array' in test: continue
     if '*args' in test: continue
+    if 'xxclassloader' in test: continue
 
     lines = test.split('\n')
     first_line = lines[0]

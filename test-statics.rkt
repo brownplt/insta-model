@@ -275,32 +275,8 @@
 ;; conformance_suite/test_duplicate_function_replaces_function.py
 (check-not-judgment-holds* (⊢p (desugar-program ((def f () dynamic (begin pass)) (def f () dynamic (begin pass))))))
 
-;; conformance_suite/test_final.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559)))))
-
-;; conformance_suite/test_final_generic.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559)))))
-
-;; conformance_suite/test_final_generic_reassign.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559) (define/assign x dynamic 1554098974)))))
-
-;; conformance_suite/test_final_generic_types.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (def g ((i int)) int (begin (return i))) (def f () int (begin (define/assign x (subscript Final int) 3735928559) (return (g x))))))))
-
 ;; conformance_suite/test_final_in_args.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (def f ((a Final)) None (begin pass))))))
-
-;; conformance_suite/test_final_reassign.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any" "Final")) (define/assign x (subscript Final Any) 3735928559) (define/assign x dynamic "something")))))
-
-;; conformance_suite/test_final_reassigned_in_tuple.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (define/assign x (subscript Final int) 3735928559) (define/assign y dynamic 3) (define/assign (tuple-syntax x y) dynamic (tuple-syntax 4 5))))))
-
-;; conformance_suite/test_final_returns.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (def f () (subscript Final int) (begin (return 1)))))))
-
-;; conformance_suite/test_final_uninitialized.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (claim x (subscript Final int))))))
 
 ;; conformance_suite/test_frozenset_constant.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def i ((s str)) bool (begin (return (in i (set-syntax "a" "b"))))) (def t () bool (begin (return (i "p"))))))))
@@ -403,9 +379,6 @@
 
 ;; conformance_suite/test_return_outside_func.py
 (check-not-judgment-holds* (⊢p (desugar-program ((return 42)))))
-
-;; conformance_suite/test_spamobj_no_params.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "xxclassloader" ("spamobj")) (def f () dynamic (begin (define/assign x dynamic (spamobj))))))))
 
 ;; conformance_suite/test_static_import_star.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("*"))))))

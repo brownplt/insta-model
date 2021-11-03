@@ -65,14 +65,13 @@
    (evalo (base-Ψ) (base-Γ) dynamic dynamic)
    (evalo (base-Ψ) (base-Γ) None (instancesof "None"))
    (evalo (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
-          (subscript CheckedDict (tuple-syntax str int))
+          ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
           (instancesof ("CheckedDict" "str" "int")))
    (evalo (base-Ψ) (extend (base-Γ) [Optional (prim-generic "Optional")])
-          (subscript Optional int)
+          ((attribute Optional "__getitem__") int)
           ("optional" "int"))
    (evalo (base-Ψ) (base-Γ) (or-syntax int None) ("optional" "int"))
    (evalo (base-Ψ) (base-Γ) (or-syntax int str) dynamic)
-   (evalo (base-Ψ) (base-Γ) "int" (instancesof "int"))
    (evalo (base-Ψ) (base-Γ) int (instancesof "int"))))
 (define-judgment-form SP-statics
   #:mode (evalo I I I O)
@@ -168,6 +167,7 @@
    (Ψ⊢T≲T (base-Ψ) (-> () (instancesof "int")) (-> () (instancesof "float")))
    ;; optional types
    (Ψ⊢T≲T (base-Ψ) (instancesof "int") ("optional" "int"))
+   (Ψ⊢T≲T (base-Ψ) (instancesof "int") ("optional" "float"))
    (Ψ⊢T≲T (base-Ψ) (instancesof "None") ("optional" "int"))
    (Ψ⊢T≲T (base-Ψ) ("optional" "int") ("optional" "float"))
    (Ψ⊢T≲T (base-Ψ) ("optional" "int") (instancesof "object")))
@@ -264,7 +264,17 @@
    (union Ψ (instancesof "None") (union Ψ (instancesof cid_1) (instancesof cid_2)))]
   [(union Ψ T_1 T_2) dynamic])
 
-;;TODO: test
+(module+ test
+  (test-equal (term (intersection (base-Ψ) (instancesof "float") ("optional" "int")))
+              (term (instancesof "int")))
+  (test-equal (term (intersection (base-Ψ) ("optional" "int") (instancesof "int")))
+              (term (instancesof "int")))
+  (test-equal (term (intersection (base-Ψ) ("optional" "int") (instancesof "None")))
+              (term (instancesof "None")))
+  (test-equal (term (intersection (base-Ψ) ("optional" "int") ("optional" "float")))
+              (term ("optional" "int")))
+  (test-equal (term (intersection (base-Ψ) dynamic (instancesof ("CheckedDict" "str" "int"))))
+              (term (instancesof ("CheckedDict" "str" "int")))))
 (define-metafunction SP-statics
   intersection : Ψ T T -> T+☠
   [(intersection Ψ T T) T]
@@ -278,6 +288,10 @@
    (judgment-holds (Ψ⊢cid<:cid Ψ cid_2 cid_1))]
   [(intersection Ψ ("optional" cid) (instancesof "None")) (instancesof "None")]
   [(intersection Ψ (instancesof "None") ("optional" cid)) (instancesof "None")]
+  [(intersection Ψ ("optional" cid_1) (instancesof cid_2))
+   (intersection Ψ (instancesof cid_1) (instancesof cid_2))]
+  [(intersection Ψ (instancesof cid_1) ("optional" cid_2))
+   (intersection Ψ (instancesof cid_1) (instancesof cid_2))]
   [(intersection Ψ ("optional" cid_1) ("optional" cid_2))
    (union Ψ (instancesof "None") T)
    (where T (intersection Ψ (instancesof cid_1) (instancesof cid_2)))]
@@ -347,7 +361,9 @@
    (class dict "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
-      ("__getitem__" ([☠ dynamic]) dynamic)))]
+      ("__getitem__" ([☠ dynamic]) dynamic)
+      ("__setitem__" ([☠ dynamic] [☠ dynamic]) (instancesof "None"))
+      ("__delitem__" ([☠ dynamic]) (instancesof "None"))))]
   [(lookup-class Ψ "set")
    (class dict "object"
      ()
@@ -400,6 +416,8 @@
               (term (-> ([☠ (instancesof "str")]) (instancesof "int")))))
 (define-metafunction SP-statics
   lookup-member : Ψ T string -> T+☠
+  ;; TODO: this looks a bit too ad hoc ...
+  [(lookup-member Ψ (instancesof "None") string) ☠]
   [(lookup-member Ψ (instancesof cid) string)
    T_mem
    (where C (lookup-class Ψ cid))

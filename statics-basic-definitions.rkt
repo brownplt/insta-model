@@ -44,9 +44,9 @@
   ;; optional flat-class
   (flat-class+☠ flat-class ☠)
   ;; a global environment that maps class ids to their definitions
-  (Ψ ((cid C+☠) ...))
+  (Ψ ([cid C+☠] ...))
   ;; a local environment that maps variables to their types
-  (Γ ((x T) ...))
+  (Γ ([x T] ...))
   ;; extension to scope
   (ext ([x kind] ...))
   (kind def/cls var)
