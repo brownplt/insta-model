@@ -1,6 +1,6 @@
 # PyDict_delete_good_key.py
 # This should pass.
-# This should terminate.
+# This should error.
 
 from __static__ import PyDict
 

@@ -39,12 +39,12 @@
 
   (e- x
       c
-      ;  (tuple-syntax e ...)
-      ;  (set-syntax e ...)
+      (tuple-syntax e- ...)
+      (set-syntax e- ...)
       (dict-syntax (e- e-) ...)
-      ;  (is e e)
-      ;  (is-not e e)
-      ;  (if e e e)
+      (is e- e-)
+      (is-not e- e-)
+      (if e- e- e-)
       (dynamic-attribute e- string)
       (static-attribute e- string)
       (e- e- ...)
@@ -74,8 +74,18 @@
   compile-e : e -> e-
   [(compile-e x) x]
   [(compile-e c) c]
+  [(compile-e (set-syntax e ...))
+   (set-syntax (compile-e e) ...)]
+  [(compile-e (tuple-syntax e ...))
+   (tuple-syntax (compile-e e) ...)]
   [(compile-e (dict-syntax [e_key e_val] ...))
    (dict-syntax [(compile-e e_key) (compile-e e_val)] ...)]
+  [(compile-e (is e_lft e_rht))
+   (is (compile-e e_lft) (compile-e e_rht))]
+  [(compile-e (is-not e_lft e_rht))
+   (is-not (compile-e e_lft) (compile-e e_rht))]
+  [(compile-e (if e_cnd e_thn e_els))
+   (if (compile-e e_cnd) (compile-e e_thn) (compile-e e_els))]
   [(compile-e (attribute e string))
    ;; TODO optimization
    (dynamic-attribute (compile-e e) string)]

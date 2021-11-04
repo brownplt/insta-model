@@ -328,6 +328,23 @@ def python_file_to_redex_desugar_test(spec, prog):
     ]
 
 
+def python_file_to_redex_static_test(spec, prog):
+    if spec['compile']:
+        check = symbol('check-judgment-holds*')
+    else:
+        check = symbol('check-not-judgment-holds*')
+    return [
+        check,
+        [
+            symbol('⊢p'),
+            [
+                symbol('desugar-program'),
+                prog
+            ]
+        ]
+    ]
+
+
 def python_file_to_redex_compile_test(spec, prog):
     return [
         symbol('test-match'),
@@ -346,36 +363,35 @@ def python_file_to_redex_compile_test(spec, prog):
     ]
 
 
-def python_file_to_redex_static_test(spec, prog):
-    if spec['compile']:
-        check = symbol('check-judgment-holds*')
-    else:
-        check = symbol('check-not-judgment-holds*')
-    return [
-        check,
-        [
-            symbol('⊢p'),
-            [
-                symbol('desugar-program'),
-                prog
-            ]
-        ]
-    ]
-
-
 def python_file_to_redex_dynamic_test(spec, prog):
-    assert False
     if spec['run']:
-        check = symbol('check-judgment-holds*')
+        check = [
+            symbol('begin'),
+            [
+                symbol('expr'),
+                symbol('v')
+            ],
+            symbol('...')
+        ]
     else:
-        check = symbol('check-not-judgment-holds*')
+        check = [
+            symbol('error'),
+        ]
     return [
+        symbol('test-match'),
+        symbol('SP-dynamics'),
         check,
         [
-            symbol('⊢p'),
+            symbol('term'),
             [
-                symbol('desugar-program'),
-                prog
+                symbol('calc'),
+                [
+                    symbol('compile-program'),
+                    [
+                        symbol('desugar-program'),
+                        prog
+                    ]
+                ]
             ]
         ]
     ]
@@ -454,8 +470,26 @@ def main():
             ''
         ]))
         for name, spec, prog in parsed_test_files:
-            if spec['compile'] and (spec['run'] is True):
+            if spec['compile'] and (spec['run'] is not None):
                 test = python_file_to_redex_compile_test(spec, prog)
+                f.write('\n')
+                f.write(';; ' + name + '\n')
+                f.write(sexp_to_str(test))
+                f.write('\n')
+    # output test_dynamics.rkt
+    with open(path_to_test_dynamics, 'w') as f:
+        f.write('\n'.join([
+            '#lang racket',
+            '(require redex)',
+            '(require redex-abbrevs)',
+            '(require "desugar.rkt")',
+            '(require "compile.rkt")',
+            '(require "dynamics.rkt")',
+            ''
+        ]))
+        for name, spec, prog in parsed_test_files:
+            if spec['compile'] and (spec['run'] is not None):
+                test = python_file_to_redex_dynamic_test(spec, prog)
                 f.write('\n')
                 f.write(';; ' + name + '\n')
                 f.write(sexp_to_str(test))

@@ -4,9 +4,10 @@
 (require "grammar.rkt")
 (require "desugar.rkt")
 (require "statics.rkt")
+(require "compile.rkt")
 (provide (all-defined-out))
 
-(define-extended-language SP-dynamics SP-statics
+(define-extended-language SP-dynamics SP-compiled
   ;; environments maps variables to heap labels, which map to values
   ;;   the indirection is necessary because varaibles are mutable
   (ρ ([x number] ...))
@@ -33,7 +34,7 @@
      (tuple-syntax v ...)
      (set-syntax v ...)
      (dict-syntax (v v) ...)
-     (def ρ (x ...) d s)
+     (def ρ (x ...) d- s)
      (class (l ...) ([string l] ...) ...)
      ;; the string case is for builtin_function_or_method. We don't really
      ;; need this because c includes string
@@ -43,40 +44,44 @@
      (l l))
   ;; values are just heap addresses
   (v (ref l))
+  ;; results are values or (error)
+  (r v ☠)
   ;; at runtime immediate values can go into expressions.
-  (e .... v
-     (let ([x e]) e)
-     (escape ρ s))
+  (e- .... v ☠
+      (let ([x e]) e-)
+      (escape ρ s-))
+  (s- .... (error))
   ;; expression contexts
   (E hole
-     (tuple-syntax v ... E e ...)
-     (set-syntax v ... E e ...)
-     (dict-syntax (v v) ... (E e) (e e) ...)
-     (dict-syntax (v v) ... (v E) (e e) ...)
-     (is E e)
+     (tuple-syntax v ... E e- ...)
+     (set-syntax v ... E e- ...)
+     (dict-syntax [v v] ... [E e-] [e- e-] ...)
+     (dict-syntax [v v] ... [v E] [e- e-] ...)
+     (is E e-)
      (is v E)
-     (is-not E e)
+     (is-not E e-)
      (is-not v E)
-     (if E e e)
-     (attribute E string)
-     (v ... E e ...)
+     (if E e- e-)
+     (dynamic-attribute E string)
+     (static-attribute E string)
+     (v ... E e- ...)
      (reveal-type any ... E)
-     (let ([x E]) e)
+     (let ([x E]) e-)
      (escape ρ S))
   ;; statement contexts
   (S hole
-     (define/assign x t E)
-     (define/assign (attribute E string) t e)
-     (define/assign (attribute v string) t E)
+     (define/assign x E)
+     (define/assign (attribute E string) e-)
+     (define/assign (attribute v string) E)
      ;; defs are handled immediatly
-     (class x (v ... E e ...) m ...)
-     (if E (s ...) (s ...))
-     (begin (expr v) ... S s ...)
+     (class x (v ... E e- ...) m ...)
+     (if E (s- ...) (s- ...))
+     (begin (expr v) ... S s- ...)
      (delete (attribute E string))
      (return E)
      (expr E)
      (claim x E))
-  (Program (import-type ... d S))
+  (Program (import-type ... d- S))
   )
 
 (define-metafunction SP-dynamics
@@ -124,7 +129,10 @@
   [(lookup-Σ Σ "set")
    ("type" (class ("object") ()))]
   [(lookup-Σ Σ "dict")
-   ("type" (class ("object") ()))]
+   ("type" (class ("object")
+             (["__setitem__" "dict.__setitem__"]
+              ["__getitem__" "dict.__getitem__"]
+              ["__delitem__" "dict.__delitem__"])))]
   [(lookup-Σ Σ "object")
    ("type" (class () (["__new__" "object.__new__"]
                       ["__init__" "object.__init__"])))]
@@ -134,7 +142,7 @@
    ("primitive_operator" string)])
 
 (define-metafunction SP-dynamics
-  delta : Σ string v ... -> (Σ v)
+  delta : Σ string v ... -> (Σ r)
   [(delta Σ "object.__new__" (ref "int") (ref (con string)))
    (Σ (ref (con ,(string->number (term string)))))]
   [(delta Σ "object.__new__" (ref "str") (ref (con number)))
@@ -145,7 +153,28 @@
   [(delta Σ "object.__init__" v_slf v_arg ...)
    (Σ v_slf)]
   [(delta Σ "float.__add__" (ref (con number_1)) (ref (con number_2)))
-   (Σ (ref (con ,(+ (term number_1) (term number_2)))))])
+   (Σ (ref (con ,(+ (term number_1) (term number_2)))))]
+  [(delta Σ "dict.__getitem__" (ref l_map) v_key)
+   (Σ v_val)
+   (where ("dict" (dict-syntax any_1 ... [v_key v_val] any_2 ...))
+          (lookup-Σ Σ l_map))]
+  [(delta Σ_1 "dict.__setitem__" (ref l_map) v_key v_new)
+   (Σ_2 (ref (con None)))
+   (where ("dict" (dict-syntax any_1 ... [v_key v_old] any_2 ...))
+          (lookup-Σ Σ_1 l_map))
+   (where Σ_2 (update Σ_1 [l_map ("dict" (dict-syntax any_1 ... [v_key v_new] any_2 ...))]))]
+  [(delta Σ_1 "dict.__setitem__" (ref l_map) v_key v_val)
+   (Σ_2 (ref (con None)))
+   (where ("dict" (dict-syntax any ...))
+          (lookup-Σ Σ_1 l_map))
+   (where Σ_2 (update Σ_1 [l_map ("dict" (dict-syntax [v_key v_val] any ...))]))]
+  [(delta Σ_1 "dict.__delitem__" (ref l_map) v_key)
+   (Σ_2 (ref (con None)))
+   (where ("dict" (dict-syntax any_1 ... [v_key v_val] any_2 ...))
+          (lookup-Σ Σ_1 l_map))
+   (where Σ_2 (update Σ_1 [l_map ("dict" (dict-syntax any_1 ... any_2 ...))]))]
+  [(delta Σ string v ...)
+   (Σ ☠)])
 
 (define builtin-names
   (list "object"
@@ -201,7 +230,7 @@
   (test-equal (term (get-attr (base-Σ) (ref "bool") "__add__"))
               (term ((base-Σ) (ref "float.__add__")))))
 (define-metafunction SP-dynamics
-  get-attr : Σ v string -> (Σ v)
+  get-attr : Σ v string -> (Σ r)
   [(get-attr Σ (ref l) string_key)
    (Σ (ref l_val))
    (where ("type" (class (l_par ...)
@@ -214,6 +243,13 @@
    (where ("type" (class (l_par)
                     ([string l] ...)))
           (lookup-Σ Σ l_slf))]
+  [(get-attr Σ (ref l_slf) string_key)
+   (Σ ☠)
+   (where ("type" any) (lookup-Σ Σ l_slf))]
+  [(get-attr Σ_1 (ref l_ins) string_key)
+   (Σ_2 ☠)
+   (where (l_cls g_ins) (lookup-Σ Σ_1 l_ins))
+   (where (Σ_2 ☠) (get-attr Σ_1 (ref l_cls) string_key))]
   [(get-attr Σ_1 (ref l_ins) string_key)
    (Σ_3 (ref l_insval))
    (where (l_cls g_ins) (lookup-Σ Σ_1 l_ins))
@@ -224,7 +260,9 @@
   (define-syntax-rule (test-e-->e source target)
     (test-match SP-dynamics
                 ((Σ ρ target))
-                (apply-reduction-relation* e→e (term ((base-Σ) (base-ρ) (desugar-e source))))))
+                (apply-reduction-relation* e→e (term ((base-Σ)
+                                                      (base-ρ)
+                                                      (compile-e (desugar-e source)))))))
   (test-e-->e 2
               (ref (con 2)))
   (test-e-->e (bin-op + 2 3)
@@ -284,13 +322,13 @@
             (term ((base-Σ) (base-ρ) (if #f 2 3)))
             (term ((base-Σ) (base-ρ) (ref (con 3)))))
   (test-->> e→e
-            (term ((base-Σ) (base-ρ) (attribute int "__add__")))
+            (term ((base-Σ) (base-ρ) (dynamic-attribute int "__add__")))
             (term ((base-Σ) (base-ρ) (ref "float.__add__")))))
-  
+
 (define e→e
   (reduction-relation
    SP-dynamics
-   #:domain (Σ ρ e)
+   #:domain (Σ ρ e-)
    (--> (in-hole (Σ ρ E) c)
         (in-hole (Σ ρ E) (ref (con c)))
         "constant")
@@ -316,20 +354,20 @@
    (--> (in-hole (Σ ρ E) (is-not v_1 v_2))
         (in-hole (Σ ρ E) (≠ v_1 v_2))
         "is-not")
-   (--> (in-hole (Σ ρ E) (if (ref l) e_thn e_els))
-        (in-hole (Σ ρ E) e_thn)
+   (--> (in-hole (Σ ρ E) (if (ref l) e-_thn e-_els))
+        (in-hole (Σ ρ E) e-_thn)
         (where h (lookup-Σ Σ l))
         (where #f (falsy h))
         "if truthy")
-   (--> (in-hole (Σ ρ E) (if (ref l) e_thn e_els))
-        (in-hole (Σ ρ E) e_els)
+   (--> (in-hole (Σ ρ E) (if (ref l) e-_thn e-_els))
+        (in-hole (Σ ρ E) e-_els)
         (where h (lookup-Σ Σ l))
         (where #t (falsy h))
         "if falsy")
-   (--> (in-hole (Σ_1 ρ E) (attribute v_map string))
-        (in-hole (Σ_2 ρ E) v_val)
-        (where (Σ_2 v_val) (get-attr Σ_1 v_map string))
-        "attribute")
+   (--> (in-hole (Σ_1 ρ E) (dynamic-attribute v_map string))
+        (in-hole (Σ_2 ρ E) r_val)
+        (where (Σ_2 r_val) (get-attr Σ_1 v_map string))
+        "dynamic-attribute")
    (--> (in-hole (Σ_1 ρ_1 E) ((ref l_fun) v_arg ...))
         (in-hole (Σ_2 ρ_3 E) (escape ρ_1 (begin
                                            (define/assign x_arg dynamic v_arg)
@@ -341,23 +379,23 @@
         "function call")
    (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
         (in-hole (Σ ρ E) (let ([x_ins ((attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...)])
-                             (let ([x_tmp ((attribute x_ins "__init__") x_ins v_arg ...)])
-                               x_ins)))
+                           (let ([x_tmp ((attribute x_ins "__init__") x_ins v_arg ...)])
+                             x_ins)))
         (where ("type" g) (lookup-Σ Σ l_prc))
         (where x_ins ,(gensym 'ins))
         (where x_tmp ,(gensym 'tmp))
         "class call")
    (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ_2 ρ E) v_ret)
+        (in-hole (Σ_2 ρ E) r_ret)
         (where ("primitive_operator" string) (lookup-Σ Σ_1 l_prc))
-        (where (Σ_2 v_ret) (delta Σ_1 string v_arg ...))
+        (where (Σ_2 r_ret) (delta Σ_1 string v_arg ...))
         "primitive_operator")
    (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
         (in-hole (Σ ρ E) ((ref l_mth) (ref l_slf) v_arg ...))
         (where ("method" (l_mth l_slf)) (lookup-Σ Σ l_prc))
         "method call")
-   (--> (in-hole (Σ_1 ρ_1 E) (let ([x v]) e))
-        (in-hole (Σ_2 ρ_2 E) (escape ρ_1 (return e)))
+   (--> (in-hole (Σ_1 ρ_1 E) (let ([x v]) e-))
+        (in-hole (Σ_2 ρ_2 E) (escape ρ_1 (return e-)))
         (where (Σ_2 l) (alloc Σ_1 v))
         (where ρ_2 (extend ρ_1 [x l]))
         "let")
@@ -370,34 +408,53 @@
 (define s→s
   (reduction-relation
    SP-dynamics
-   #:domain (Σ ρ s)
-   [--> (in-hole (Σ_1 ρ_1 S) e_1)
-        (in-hole (Σ_2 ρ_2 S) e_2)
-        (where ((Σ_2 ρ_2 e_2)) ,(apply-reduction-relation e→e (term (Σ_1 ρ_1 e_1))))
+   #:domain (Σ ρ s-)
+   [--> (in-hole (Σ ρ S) ☠)
+        (Σ ρ (error))
+        "error"]
+   [--> (in-hole (Σ_1 ρ_1 S) e-_1)
+        (in-hole (Σ_2 ρ_2 S) e-_2)
+        (where ((Σ_2 ρ_2 e-_2)) ,(apply-reduction-relation e→e (term (Σ_1 ρ_1 e-_1))))
         "e→e"]
-   [--> (in-hole (Σ ρ S) (begin (expr v_any) ... (return v_ret) s ...))
-        (in-hole (Σ ρ S) (return v_ret))]
-   [--> (in-hole (Σ_1 ρ S) (define/assign x t v))
+   [--> (in-hole (Σ ρ S) (begin (expr v_any) ... (return v_ret) s- ...))
+        (in-hole (Σ ρ S) (return v_ret))
+        "return"]
+   [--> (in-hole (Σ_1 ρ S) (define/assign x v))
         (in-hole (Σ_2 ρ S) (begin))
         (where Σ_2 (update Σ_1 [(lookup ρ x) v]))
         "define/assign x"]
-   [--> (in-hole (Σ_1 ρ S) (def x ([x_arg t_arg] ...) t_ret d s))
+   [--> (in-hole (Σ_1 ρ S) (def x ([x_arg t_arg] ...) t_ret d- s-))
         (in-hole (Σ_3 ρ S) (begin))
-        (where (Σ_2 l_fun) (alloc Σ_1 ("function" (def ρ (x_arg ...) d s))))
+        (where (Σ_2 l_fun) (alloc Σ_1 ("function" (def ρ (x_arg ...) d- s-))))
         (where l_x (lookup ρ x))
         (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
         "def"]
-   [--> (in-hole (Σ_1 ρ S) (class x ((ref l) ...) m ...))
+   [--> (in-hole (Σ_1 ρ S) (class x ((ref l) ...) m- ...))
         (in-hole (Σ_3 ρ S) (begin))
         (where (Σ_2 l_fun) (alloc Σ_1 ("type" (class (l ...) ()))))
         (where l_x (lookup ρ x))
         (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
         "class"]
-   [--> (in-hole (Σ ρ S) (begin (begin (expr v) ...) s ...))
-        (in-hole (Σ ρ S) (begin (expr v) ... s ...))
+   [--> (in-hole (Σ ρ S) (begin (begin (expr v) ...) s- ...))
+        (in-hole (Σ ρ S) (begin (expr v) ... s- ...))
         "empty begin"]))
 
+
 (module+ test
+  (test-match SP-dynamics (begin (expr v) ...)
+              (term (calc (compile-program
+                           (desugar-program
+                            ())))))
+  (test-match SP-dynamics (begin (expr v) ...)
+              (term (calc (compile-program
+                           (desugar-program
+                            ((define/assign x int 42)))))))
+  (test-match SP-dynamics (begin (expr v) ...)
+              (term (calc (compile-program
+                           (desugar-program
+                            ((import-from "__static__" ("PyDict"))))))))
+  ;;TODO enable the remaining tests
+  #;
   (test-equal (term
                (calc ((def f ([x int]) int
                         (return (bin-op + x 1)))
@@ -405,6 +462,7 @@
               (term
                (begin
                  (expr (ref (con 3))))))
+  #;
   (test-equal (term
                (calc ((class C ())
                       (define/assign c C (C)))))
@@ -424,14 +482,12 @@
 
 
 (define-metafunction SP-dynamics
-  calc : program+ -> s
-  [(calc program+)
-   s_2
-   ;; TODO currently, I ignore import-types
-   (where (import-type ... ([x D] ...) s_1) (desugar-program program+))
+  calc : program- -> s-
+  [(calc (import-type ... (x ...) s-_1))
+   s-_2
    (where (Σ_1 ρ_1) ((base-Σ) (base-ρ)))
    (where (Σ_2 ρ_2) (declare Σ_1 ρ_1 x ...))
-   (where ((Σ_3 ρ_3 s_2)) ,(apply-reduction-relation* s→s (term (Σ_2 ρ_2 s_1))))])
+   (where ((Σ_3 ρ_3 s-_2)) ,(apply-reduction-relation* s→s (term (Σ_2 ρ_2 s-_1))))])
 
 (module+ test
   (test-equal (term (declare () () a b c))
@@ -448,3 +504,18 @@
    (declare Σ_2 ρ_2 x_2 ...)
    (where (Σ_2 l_1) (alloc Σ_1 ☠))
    (where ρ_2 (extend ρ_1 [x_1 l_1]))])
+
+;
+;(define-judgment-form SP-dynamics
+;  #:mode (terminate I)
+;  #:contract (terminate s-)
+;
+;  [-------------------------
+;   (terminate (begin (expr v-) ...))])
+;
+;(define-judgment-form SP-dynamics
+;  #:mode (error I)
+;  #:contract (error s-)
+;
+;  [-------------------------
+;   (error (expr (error)))])

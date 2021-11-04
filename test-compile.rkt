@@ -3,6 +3,9 @@
 (require "desugar.rkt")
 (require "compile.rkt")
 
+;; conformance_suite/PyDict_delete_bad_key.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "other")))))))
+
 ;; conformance_suite/PyDict_delete_good_key.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "bar")))))))
 
@@ -14,6 +17,9 @@
 
 ;; conformance_suite/PyDict_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))))))))
+
+;; conformance_suite/PyDict_lookup_bad_key.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "other")))))))
 
 ;; conformance_suite/PyDict_lookup_good_key.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "bar")))))))
