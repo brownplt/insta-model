@@ -1,5 +1,6 @@
 # PyDict_is_inhabitable.py
 # This should pass.
+# This should terminate.
 
 from __static__ import PyDict
 

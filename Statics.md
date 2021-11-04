@@ -12,6 +12,10 @@ This file describes the static semantics (type system) of the idealized Static P
 
 - [int_is_inhabitable.py](conformance_suite/int_is_inhabitable.py)
 
+`float` is inhabitable.
+
+- [float_is_inhabitable.py](conformance_suite/float_is_inhabitable.py)
+
 `str` is inhabitable.
 
 - [str_is_inhabitable.py](conformance_suite/str_is_inhabitable.py)
@@ -39,17 +43,21 @@ Updating `PyDict` entries is allowed.
 
 - [PyDict_update.py](conformance_suite/PyDict_update.py)
 
-Deleting `PyDict` entries is allowed.
+Deleting `PyDict` entries with good keys is allowed.
 
-- [PyDict_delete.py](conformance_suite/PyDict_delete.py)
+- [PyDict_delete_good_key.py](conformance_suite/PyDict_delete_good_key.py)
+- 
+Deleting `PyDict` entries with bad keys is allowed.
+
+- [PyDict_delete_bad_key.py](conformance_suite/PyDict_delete_bad_key.py)
 
 Looking up `PyDict` entries with good keys is allowed.
 
-- [PyDict_lookup_good_keys.py](conformance_suite/PyDict_lookup_good_keys.py)
+- [PyDict_lookup_good_key.py](conformance_suite/PyDict_lookup_good_key.py)
 
 Looking up `PyDict` entries with bad keys is allowed.
 
-- [PyDict_lookup_bad_keys.py](conformance_suite/PyDict_lookup_bad_keys.py)
+- [PyDict_lookup_bad_key.py](conformance_suite/PyDict_lookup_bad_key.py)
 
 ## CheckedDict[T0, T1]
 

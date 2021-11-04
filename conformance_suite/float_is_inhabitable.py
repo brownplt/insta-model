@@ -1,5 +1,5 @@
-# bool_is_inhabitable.py
+# float_is_inhabitable.py
 # This should pass.
 # This should terminate.
 
-x: bool = True
+x: float = 2.3
