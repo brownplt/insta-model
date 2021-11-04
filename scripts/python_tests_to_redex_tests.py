@@ -259,7 +259,7 @@ def ast_to_sexp(node):
             [
                 ast_to_sexp(item) for item in node.items
             ],
-            [ symbol('begin') ] + [
+            [symbol('begin')] + [
                 ast_to_sexp(stmt) for stmt in node.body
             ]
         ]
@@ -291,13 +291,14 @@ def python_file_to_sexp(test_file):
         p = ast.parse(f.read(), type_comments=True)
         return ast_to_sexp(p)
 
+
 def parse_python_file(test_file):
     print("Working on " + test_file)
     name = test_file
     head = open(test_file).readlines()[1:3]
     prog = python_file_to_sexp(test_file)
     if head[0] == '# This should pass.\n':
-        spec = { 'compile': True }
+        spec = {'compile': True}
         if head[1] == '# This should terminate.\n':
             spec['run'] = True
         elif head[1] == '# This should error.\n':
@@ -306,10 +307,11 @@ def parse_python_file(test_file):
             assert not head[1].startswith('# ')
             spec['run'] = None
     elif head[0] == '# This should fail.\n':
-        spec = { 'compile': False }
+        spec = {'compile': False}
     else:
         assert False, repr(head)
     return name, spec, prog
+
 
 def python_file_to_redex_desugar_test(spec, prog):
     return [
@@ -324,6 +326,25 @@ def python_file_to_redex_desugar_test(spec, prog):
             ]
         ]
     ]
+
+
+def python_file_to_redex_compile_test(spec, prog):
+    return [
+        symbol('test-match'),
+        symbol('SP-compiled'),
+        symbol('program-'),
+        [
+            symbol('term'),
+            [
+                symbol('compile-program'),
+                [
+                    symbol('desugar-program'),
+                    prog
+                ]
+            ]
+        ]
+    ]
+
 
 def python_file_to_redex_static_test(spec, prog):
     if spec['compile']:
@@ -340,6 +361,7 @@ def python_file_to_redex_static_test(spec, prog):
             ]
         ]
     ]
+
 
 def python_file_to_redex_dynamic_test(spec, prog):
     assert False
@@ -379,7 +401,9 @@ def sexp_to_str(sexp):
 path_to_conformance_suite = 'conformance_suite'
 path_to_test_desugar = './test-desugar.rkt'
 path_to_test_statics = './test-statics.rkt'
+path_to_test_compile = './test-compile.rkt'
 path_to_test_dynamics = './test-dynamics.rkt'
+
 
 def main():
     import os
@@ -388,7 +412,7 @@ def main():
         path_to_conformance_suite) for f in files if f.endswith('.py')]
     test_files.sort()
     print(test_files)
-    parsed_test_files = [ parse_python_file(x) for x in test_files ]
+    parsed_test_files = [parse_python_file(x) for x in test_files]
     # output test_desugar.rkt
     with open(path_to_test_desugar, 'w') as f:
         f.write('\n'.join([
@@ -420,6 +444,22 @@ def main():
             f.write(';; ' + name + '\n')
             f.write(sexp_to_str(test))
             f.write('\n')
+    # output test_compile.rkt
+    with open(path_to_test_compile, 'w') as f:
+        f.write('\n'.join([
+            '#lang racket',
+            '(require redex)',
+            '(require "desugar.rkt")',
+            '(require "compile.rkt")',
+            ''
+        ]))
+        for name, spec, prog in parsed_test_files:
+            if spec['compile'] and (spec['run'] is True):
+                test = python_file_to_redex_compile_test(spec, prog)
+                f.write('\n')
+                f.write(';; ' + name + '\n')
+                f.write(sexp_to_str(test))
+                f.write('\n')
 
 
 main()

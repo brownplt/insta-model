@@ -433,7 +433,7 @@
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ_2 Γ_2 s T_ret)
    ------------------------ "def"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ_1 Γ_lcl (def x_fun ([x_arg t_arg] ...) t_ret d_1 s) _)]
-  
+
   [(ΨΓt⊢m Ψ Γ x m) ...
    ------------------------ "static class"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (class x (t ...) m ...) _)]
@@ -451,7 +451,7 @@
   [(ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e dynamic)
    ------------------------ "expr"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (expr e) _)]
-  
+
   [------------------------ "pass"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl pass _)]
 
@@ -462,7 +462,7 @@
   [(ΨΓ⊢ifess⇐T+☠ Ψ Γ Γ_lcl e s_thn s_els T+☠)
    --------------------------------------- "if"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (if e s_thn s_els) T+☠)]
-  
+
   ;; begin-related
 
   [--------------------- "begin-end no expect"
@@ -471,7 +471,7 @@
   [(ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (return None) T)
    --------------------- "begin-end some expect"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (begin) T)]
-  
+
   [(ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (return e) T+☠)
    --------------------- "begin-return"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (begin (return e) s ...) T+☠)]
@@ -593,15 +593,15 @@
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) (set-syntax) (instancesof "set"))
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) ((attribute (dict-syntax ("foo" 1)) "__getitem__") "foo") dynamic)
    (ΨΓΓ⊢e⇐T (base-Ψ)
-           (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
-           (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
-           ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
-           (classitself ("CheckedDict" "str" "int")))
+            (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
+            (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
+            ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
+            (classitself ("CheckedDict" "str" "int")))
    (ΨΓΓ⊢e⇐T (base-Ψ)
-           (extend (base-Γ) [d (instancesof ("CheckedDict" "str" "int"))])
-           (extend (base-Γ) [d (instancesof ("CheckedDict" "str" "int"))])
-           ((attribute d "__getitem__") "foo")
-           (instancesof "int"))))
+            (extend (base-Γ) [d (instancesof ("CheckedDict" "str" "int"))])
+            (extend (base-Γ) [d (instancesof ("CheckedDict" "str" "int"))])
+            ((attribute d "__getitem__") "foo")
+            (instancesof "int"))))
 
 
 (define-judgment-form SP-statics
@@ -700,6 +700,10 @@
   [----------------------- "integer"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl integer (instancesof "int"))]
 
+  [(where #f ,(redex-match? SP-statics integer (term number)))
+   ----------------------- "float"
+   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl number (instancesof "float"))]
+
   [----------------------- "boolean"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl boolean (instancesof "bool"))]
 
@@ -714,7 +718,7 @@
   [(ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e_elt dynamic) ...
    ----------------------- "set"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl (set-syntax e_elt ...) (instancesof "set"))]
-  
+
   [(ΨΓ⊢e⇒T Ψ Γ Γ_lcl e_1 T_1)
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl e_2 T_2)
    ------------------------ "is"
@@ -729,7 +733,7 @@
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl e_2 T_2)
    ------------------------ "bool-op"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl (bool-op ob e_1 e_2) (union Ψ T_1 T_2))]
-  
+
   [(where ((attribute x "__getitem__") (tuple-syntax t ...)) e)
    (evalo Ψ Γ e (instancesof cid))
    ------------------------ "generic"
@@ -756,7 +760,7 @@
 
   [(ΨΓ⊢e⇒T Ψ Γ Γ_lcl e_fun (type-op "cast"))
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl e_cls (classitself cid))
-   (ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e_src (instancesof cid)) 
+   (ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e_src (instancesof cid))
    ----------------------- "cast"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl (e_fun e_cls e_src) (instancesof cid))]
   )
