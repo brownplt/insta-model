@@ -294,14 +294,21 @@ def python_file_to_sexp(test_file):
 def parse_python_file(test_file):
     print("Working on " + test_file)
     name = test_file
-    spec = open(test_file).readlines()[1]
+    head = open(test_file).readlines()[1:3]
     prog = python_file_to_sexp(test_file)
-    if spec == '# This should pass.\n':
-        pass
-    elif spec == '# This should fail.\n':
-        pass
+    if head[0] == '# This should pass.\n':
+        spec = { 'compile': True }
+        if head[1] == '# This should terminate.\n':
+            spec['run'] = True
+        elif head[1] == '# This should error.\n':
+            spec['run'] = False
+        else:
+            assert not head[1].startswith('# ')
+            spec['run'] = None
+    elif head[0] == '# This should fail.\n':
+        spec = { 'compile': False }
     else:
-        assert False, repr(spec)
+        assert False, repr(head)
     return name, spec, prog
 
 def python_file_to_redex_desugar_test(spec, prog):
@@ -319,12 +326,10 @@ def python_file_to_redex_desugar_test(spec, prog):
     ]
 
 def python_file_to_redex_static_test(spec, prog):
-    if spec == '# This should pass.\n':
+    if spec['compile']:
         check = symbol('check-judgment-holds*')
-    elif spec == '# This should fail.\n':
-        check = symbol('check-not-judgment-holds*')
     else:
-        assert False, repr(spec)
+        check = symbol('check-not-judgment-holds*')
     return [
         check,
         [
@@ -336,21 +341,20 @@ def python_file_to_redex_static_test(spec, prog):
         ]
     ]
 
-def python_file_to_redex_dynamic_test(test_file):
-    assert False, "NotImplemented"
-    print("Working on " + test_file)
-    spec = open(test_file).readlines()[1]
-    if spec == '# This should pass.\n':
+def python_file_to_redex_dynamic_test(spec, prog):
+    assert False
+    if spec['run']:
         check = symbol('check-judgment-holds*')
-    elif spec == '# This should fail.\n':
-        check = symbol('check-not-judgment-holds*')
     else:
-        assert False, repr(spec)
+        check = symbol('check-not-judgment-holds*')
     return [
         check,
         [
             symbol('⊢p'),
-            python_file_to_sexp(test_file)
+            [
+                symbol('desugar-program'),
+                prog
+            ]
         ]
     ]
 
@@ -375,6 +379,7 @@ def sexp_to_str(sexp):
 path_to_conformance_suite = 'conformance_suite'
 path_to_test_desugar = './test-desugar.rkt'
 path_to_test_statics = './test-statics.rkt'
+path_to_test_dynamics = './test-dynamics.rkt'
 
 def main():
     import os

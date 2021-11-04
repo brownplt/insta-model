@@ -2,6 +2,13 @@
 
 This file describes the static semantics (type system) of the idealized Static Python.
 
+## Empty Program
+
+The empty program should type check.
+
+- [empty_program.py](conformance_suite/empty_program.py)
+
+
 ## Base Types
 
 `bool` is inhabitable.

@@ -2,6 +2,12 @@
 
 This file describes the dynamic semantics (runtime) of the idealized Static Python.
 
+## Empty Program
+
+The empty program should type check and terminate.
+
+- [empty_program.py](conformance_suite/empty_program.py)
+
 ## Base Types
 
 `bool` is inhabitable.

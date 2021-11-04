@@ -44,8 +44,14 @@
 ;; conformance_suite/None_is_inhabitable.py
 (check-judgment-holds* (⊢p (desugar-program ((define/assign x None None)))))
 
-;; conformance_suite/PyDict_delete.py
+;; conformance_suite/PyDict_delete_bad_key.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "other"))))))
+
+;; conformance_suite/PyDict_delete_good_key.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "bar"))))))
+
+;; conformance_suite/PyDict_delete_then_lookup.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "bar")) (expr (subscript x "bar"))))))
 
 ;; conformance_suite/PyDict_insert.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "new") dynamic "hello")))))
@@ -54,7 +60,7 @@
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2)))))))
 
 ;; conformance_suite/PyDict_lookup_bad_key.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "bar"))))))
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "other"))))))
 
 ;; conformance_suite/PyDict_lookup_good_key.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (expr (subscript x "bar"))))))
@@ -103,6 +109,9 @@
 
 ;; conformance_suite/empty_program.py
 (check-judgment-holds* (⊢p (desugar-program ())))
+
+;; conformance_suite/float_is_inhabitable.py
+(check-judgment-holds* (⊢p (desugar-program ((define/assign x float 2.3)))))
 
 ;; conformance_suite/init_checks_arity.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class Person (object) (method "__init__" self ((name str) (age int)) dynamic pass)) (define/assign p1 dynamic (Person "Alice" 21 #f))))))
