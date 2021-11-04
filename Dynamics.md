@@ -55,3 +55,7 @@ Looking up `PyDict` entries with bad keys is allowed at compile time, but should
 After deletion, looking up the key should fail.
 
 - [PyDict_delete_then_lookup.py](conformance_suite/PyDict_delete_then_lookup.py)
+
+After insertion, looking up the key should succeed.
+
+- [PyDict_insert_then_lookup.py](conformance_suite/PyDict_insert_then_lookup.py)
