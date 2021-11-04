@@ -2,15 +2,16 @@
 (require redex)
 (require redex-abbrevs)
 (require "grammar.rkt")
+(require "desugar.rkt")
 (require "statics.rkt")
 (provide (all-defined-out))
 
 (define-extended-language SP-dynamics SP-statics
-  ;; environments maps cid to runtime class description
-  ;; environments maps variables to values
-  (ρ ([x v] ...))
+  ;; environments maps variables to heap labels, which map to values
+  ;;   the indirection is necessary because varaibles are mutable
+  (ρ ([x number] ...))
   ;; heaps map addresses (heap labels) to values
-  (Σ ([number h] ...))
+  (Σ ([number h+☠] ...))
   ;; heap labels
   (l number
      ;; special heap addresses reserved by constants
@@ -18,56 +19,70 @@
      ;; other primitive values, e.g. builtin methods
      string)
   ;; heap values
-  (h ;; According to Python's Data model: "every object has an identity, a type and a value"
-   ;; We don't need to store the identity here -- the heap Σ already did it.
-   ;; But we still need a type (l), and an object value (g).
-   (l g))
-  ;; "Values" in the sense of Python's Data model. They are *before* heap values (h), hence g
+  ;; According to Python's Data model: "every object has an identity,
+  ;; a type and a value"
+  ;; We don't need to store the identity here -- the heap Σ already did it.
+  ;; But we still need a type (l), and an object value (g).
+  (h (l g)
+     ;; The v case is only used to represent (mutable) variables
+     v)
+  (h+☠ h ☠)
+  ;; "Values" in the sense of Python's Data model. They are *before*
+  ;; heap values (h), hence g
   (g c
      (tuple-syntax v ...)
      (set-syntax v ...)
      (dict-syntax (v v) ...)
-     (function ρ ([x T] ...) T s ...)
+     (def ρ (x ...) d s)
      (class (l ...) ([string l] ...) ...)
-     ;; for builtin_function_or_method. We don't really need this
-     ;; because c includes string
+     ;; the string case is for builtin_function_or_method. We don't really
+     ;; need this because c includes string
      string
-     ;; methods, the first l is the method itself, the second l is the self object
+     ;; methods, the first l is the method itself,
+     ;; the second l is the self object
      (l l))
   ;; values are just heap addresses
   (v (ref l))
   ;; at runtime immediate values can go into expressions.
   (e .... v
      (let ([x e]) e)
-     (escape ρ e))
+     (escape ρ s))
   ;; expression contexts
   (E hole
      (tuple-syntax v ... E e ...)
      (set-syntax v ... E e ...)
      (dict-syntax (v v) ... (E e) (e e) ...)
      (dict-syntax (v v) ... (v E) (e e) ...)
-     (attribute E string)
      (is E e)
      (is v E)
      (is-not E e)
      (is-not v E)
      (if E e e)
+     (attribute E string)
      (v ... E e ...)
      (reveal-type any ... E)
      (let ([x E]) e)
-     (escape ρ E))
+     (escape ρ S))
   ;; statement contexts
-  (S (return E)
-     (claim x t)
+  (S hole
      (define/assign x t E)
+     (define/assign (attribute E string) t e)
+     (define/assign (attribute v string) t E)
+     ;; defs are handled immediatly
+     (class x (v ... E e ...) m ...)
      (if E (s ...) (s ...))
-     (expr E))
+     (begin (expr v) ... S s ...)
+     (delete (attribute E string))
+     (return E)
+     (expr E)
+     (claim x E))
+  (Program (import-type ... d S))
   )
 
 (define-metafunction SP-dynamics
-  alloc : Σ h -> (Σ l)
-  [(alloc Σ h)
-   ((extend Σ [l h]) l)
+  alloc : Σ h+☠ -> (Σ l)
+  [(alloc Σ h+☠)
+   ((extend Σ [l h+☠]) l)
    (where l ,(length (term Σ)))])
 
 (module+ test
@@ -115,10 +130,8 @@
                       ["__init__" "object.__init__"])))]
   [(lookup-Σ Σ "type")
    ("type" (class ("object") ()))]
-  [(lookup-Σ Σ "object.__new__")
-   ("builtin_function_or_method" "object.__new__")]
-  [(lookup-Σ Σ "object.__init__")
-   ("wrapper_descriptor" "object.__init__")])
+  [(lookup-Σ Σ string)
+   ("primitive_operator" string)])
 
 (define-metafunction SP-dynamics
   delta : Σ string v ... -> (Σ v)
@@ -126,24 +139,37 @@
    (Σ (ref (con ,(string->number (term string)))))]
   [(delta Σ "object.__new__" (ref "str") (ref (con number)))
    (Σ (ref (con ,(format "~a" (term number)))))]
+  [(delta Σ_1 "object.__new__" (ref number_1) (ref number_2))
+   (Σ_2 (ref l))
+   (where (Σ_2 l) (alloc Σ_1 (number_1 number_2)))]
   [(delta Σ "object.__init__" v_slf v_arg ...)
-   (Σ v_slf)])
+   (Σ v_slf)]
+  [(delta Σ "float.__add__" (ref (con number_1)) (ref (con number_2)))
+   (Σ (ref (con ,(+ (term number_1) (term number_2)))))])
+
+(define builtin-names
+  (list "object"
+        "float"
+        "int"
+        "bool"
+        "str"
+        "dict"
+        "set"
+        "type"))
 
 (define-metafunction SP-dynamics
   base-Σ : -> Σ
-  [(base-Σ) ()])
+  [(base-Σ)
+   ,(for/list ([name builtin-names]
+               [i (in-naturals)])
+      `[,i (ref ,name)])])
 
 (define-metafunction SP-dynamics
   base-ρ : -> ρ
   [(base-ρ)
-   ([object (ref "object")]
-    [float (ref "float")]
-    [int (ref "int")]
-    [bool (ref "bool")]
-    [str (ref "str")]
-    [dict (ref "dict")]
-    [set (ref "set")]
-    [type (ref "type")])])
+   ,(for/list ([name builtin-names]
+               [i (in-naturals)])
+      `[,(string->symbol name) ,i])])
 
 (module+ test
   (test-equal (term #t) (term (falsy ("NoneType" None))))
@@ -168,6 +194,7 @@
   [(falsy h) #f])
 
 ;; TODO this needs a major revision
+;; TODO why did I say this?
 (module+ test
   (test-equal (term (get-attr (base-Σ) (ref "float") "__add__"))
               (term ((base-Σ) (ref "float.__add__"))))
@@ -194,6 +221,14 @@
    (where (Σ_3 l_insval) (alloc Σ_2 ("method" (l_clsval l_ins))))])
 
 (module+ test
+  (define-syntax-rule (test-e-->e source target)
+    (test-match SP-dynamics
+                ((Σ ρ target))
+                (apply-reduction-relation* e→e (term ((base-Σ) (base-ρ) (desugar-e source))))))
+  (test-e-->e 2
+              (ref (con 2)))
+  (test-e-->e (bin-op + 2 3)
+              (ref (con 5)))
   (test-->> e→e
             (term ((base-Σ) (base-ρ) 2))
             (term ((base-Σ) (base-ρ) (ref (con 2)))))
@@ -203,24 +238,24 @@
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (tuple-syntax 2 "foo")))
             (term ((extend (base-Σ)
-                           [0 ("tuple" (tuple-syntax (ref (con 2))
+                           [8 ("tuple" (tuple-syntax (ref (con 2))
                                                      (ref (con "foo"))))])
                    (base-ρ)
-                   (ref 0))))
+                   (ref 8))))
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (set-syntax 2 "foo")))
             (term ((extend (base-Σ)
-                           [0 ("set" (set-syntax (ref (con 2))
+                           [8 ("set" (set-syntax (ref (con 2))
                                                  (ref (con "foo"))))])
                    (base-ρ)
-                   (ref 0))))
+                   (ref 8))))
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (dict-syntax [2 "foo"] ["bar" 3])))
             (term ((extend (base-Σ)
-                           [0 ("dict"
+                           [8 ("dict"
                                (dict-syntax [(ref (con 2)) (ref (con "foo"))]
                                             [(ref (con "bar")) (ref (con 3))]))])
-                   (base-ρ) (ref 0))))
+                   (base-ρ) (ref 8))))
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (is int int)))
             (term ((base-Σ) (base-ρ) (ref (con #t)))))
@@ -250,21 +285,7 @@
             (term ((base-Σ) (base-ρ) (ref (con 3)))))
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (attribute int "__add__")))
-            (term ((base-Σ) (base-ρ) (ref "float.__add__"))))
-  (test-->> e→e
-            (term ((base-Σ)
-                   (base-ρ)
-                   (int "123")))
-            (term ((extend (base-Σ) [0 ("method" ("object.__init__" (con 123)))])
-                   (base-ρ)
-                   (ref (con 123)))))
-  (test-->> e→e
-            (term ((base-Σ)
-                   (base-ρ)
-                   (str 1.0)))
-            (term ((extend (base-Σ) [0 ("method" ("object.__init__" (con "1.0")))])
-                   (base-ρ)
-                   (ref (con "1.0"))))))
+            (term ((base-Σ) (base-ρ) (ref "float.__add__")))))
   
 (define e→e
   (reduction-relation
@@ -274,7 +295,8 @@
         (in-hole (Σ ρ E) (ref (con c)))
         "constant")
    (--> (in-hole (Σ ρ E) x)
-        (in-hole (Σ ρ E) (lookup ρ x))
+        (in-hole (Σ ρ E) (lookup Σ l))
+        (where l (lookup ρ x))
         "lookup")
    (--> (in-hole (Σ_1 ρ E) (tuple-syntax v ...))
         (in-hole (Σ_2 ρ E) (ref l))
@@ -308,6 +330,15 @@
         (in-hole (Σ_2 ρ E) v_val)
         (where (Σ_2 v_val) (get-attr Σ_1 v_map string))
         "attribute")
+   (--> (in-hole (Σ_1 ρ_1 E) ((ref l_fun) v_arg ...))
+        (in-hole (Σ_2 ρ_3 E) (escape ρ_1 (begin
+                                           (define/assign x_arg dynamic v_arg)
+                                           ...
+                                           s)))
+        (where ("function" (def ρ_2 (x_arg ...) ([x_lcl D] ...) s))
+               (lookup-Σ Σ_1 l_fun))
+        (where (Σ_2 ρ_3) (declare Σ_1 ρ_2 x_arg ... x_lcl ...))
+        "function call")
    (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
         (in-hole (Σ ρ E) (let ([x_ins ((attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...)])
                              (let ([x_tmp ((attribute x_ins "__init__") x_ins v_arg ...)])
@@ -318,23 +349,102 @@
         "class call")
    (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
         (in-hole (Σ_2 ρ E) v_ret)
-        (where ("builtin_function_or_method" string) (lookup-Σ Σ_1 l_prc))
+        (where ("primitive_operator" string) (lookup-Σ Σ_1 l_prc))
         (where (Σ_2 v_ret) (delta Σ_1 string v_arg ...))
-        "builtin_function_or_method call")
-   (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ_2 ρ E) v_ret)
-        (where ("wrapper_descriptor" string) (lookup-Σ Σ_1 l_prc))
-        (where (Σ_2 v_ret) (delta Σ_1 string v_arg ...))
-        "wrapper_descriptor")
+        "primitive_operator")
    (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
         (in-hole (Σ ρ E) ((ref l_mth) (ref l_slf) v_arg ...))
         (where ("method" (l_mth l_slf)) (lookup-Σ Σ l_prc))
         "method call")
-   (--> (in-hole (Σ ρ_1 E) (let ([x v]) e))
-        (in-hole (Σ ρ_2 E) (escape ρ_1 e))
-        (where ρ_2 (extend ρ_1 [x v]))
+   (--> (in-hole (Σ_1 ρ_1 E) (let ([x v]) e))
+        (in-hole (Σ_2 ρ_2 E) (escape ρ_1 (return e)))
+        (where (Σ_2 l) (alloc Σ_1 v))
+        (where ρ_2 (extend ρ_1 [x l]))
         "let")
-   (--> (in-hole (Σ ρ_1 E) (escape ρ_2 v))
+   (--> (in-hole (Σ ρ_1 E) (escape ρ_2 (return v)))
         (in-hole (Σ ρ_2 E) v)
         "escape")
    ))
+
+
+(define s→s
+  (reduction-relation
+   SP-dynamics
+   #:domain (Σ ρ s)
+   [--> (in-hole (Σ_1 ρ_1 S) e_1)
+        (in-hole (Σ_2 ρ_2 S) e_2)
+        (where ((Σ_2 ρ_2 e_2)) ,(apply-reduction-relation e→e (term (Σ_1 ρ_1 e_1))))
+        "e→e"]
+   [--> (in-hole (Σ ρ S) (begin (expr v_any) ... (return v_ret) s ...))
+        (in-hole (Σ ρ S) (return v_ret))]
+   [--> (in-hole (Σ_1 ρ S) (define/assign x t v))
+        (in-hole (Σ_2 ρ S) (begin))
+        (where Σ_2 (update Σ_1 [(lookup ρ x) v]))
+        "define/assign x"]
+   [--> (in-hole (Σ_1 ρ S) (def x ([x_arg t_arg] ...) t_ret d s))
+        (in-hole (Σ_3 ρ S) (begin))
+        (where (Σ_2 l_fun) (alloc Σ_1 ("function" (def ρ (x_arg ...) d s))))
+        (where l_x (lookup ρ x))
+        (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
+        "def"]
+   [--> (in-hole (Σ_1 ρ S) (class x ((ref l) ...) m ...))
+        (in-hole (Σ_3 ρ S) (begin))
+        (where (Σ_2 l_fun) (alloc Σ_1 ("type" (class (l ...) ()))))
+        (where l_x (lookup ρ x))
+        (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
+        "class"]
+   [--> (in-hole (Σ ρ S) (begin (begin (expr v) ...) s ...))
+        (in-hole (Σ ρ S) (begin (expr v) ... s ...))
+        "empty begin"]))
+
+(module+ test
+  (test-equal (term
+               (calc ((def f ([x int]) int
+                        (return (bin-op + x 1)))
+                      (expr (f 2)))))
+              (term
+               (begin
+                 (expr (ref (con 3))))))
+  (test-equal (term
+               (calc ((class C ())
+                      (define/assign c C (C)))))
+              (term
+               (begin)))
+  #; ;; TODO enable this test
+  (test-equal (term
+               (calc ((class C ()
+                        (method "m1" self ([x int]) int
+                                (return (bin-op + x 1))))
+                      (define/assign c C (C))
+                      (define/assign f dynamic (attribute c "m1"))
+                      (expr (f 2)))))
+              (term
+               (begin
+                 (expr (ref (con 3)))))))
+
+
+(define-metafunction SP-dynamics
+  calc : program+ -> s
+  [(calc program+)
+   s_2
+   ;; TODO currently, I ignore import-types
+   (where (import-type ... ([x D] ...) s_1) (desugar-program program+))
+   (where (Σ_1 ρ_1) ((base-Σ) (base-ρ)))
+   (where (Σ_2 ρ_2) (declare Σ_1 ρ_1 x ...))
+   (where ((Σ_3 ρ_3 s_2)) ,(apply-reduction-relation* s→s (term (Σ_2 ρ_2 s_1))))])
+
+(module+ test
+  (test-equal (term (declare () () a b c))
+              (term (([2 ☠]
+                      [1 ☠]
+                      [0 ☠])
+                     ([c 2]
+                      [b 1]
+                      [a 0])))))
+(define-metafunction SP-dynamics
+  declare : Σ ρ x ... -> (Σ ρ)
+  [(declare Σ ρ) (Σ ρ)]
+  [(declare Σ_1 ρ_1 x_1 x_2 ...)
+   (declare Σ_2 ρ_2 x_2 ...)
+   (where (Σ_2 l_1) (alloc Σ_1 ☠))
+   (where ρ_2 (extend ρ_1 [x_1 l_1]))])
