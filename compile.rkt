@@ -12,7 +12,7 @@
   (d- (x ...))
 
   ;; statements
-  (s- (define/assign x t e)
+  (s- (define/assign x e-)
       ;   (define/assign (attribute e string) t e)
       ;   (def x ([x t] ...) t d s)
       ;   (class x (t ...) m ...)
@@ -21,7 +21,7 @@
       ;   (delete x)
       ;   (delete (attribute e string))
       ;   (return e)
-      ;   (expr e)
+      (expr e-)
       ;   (claim x t)
       ;   pass
       )
@@ -45,8 +45,9 @@
       ;  (is e e)
       ;  (is-not e e)
       ;  (if e e e)
-      ;  (attribute e string)
-      ;  (e e ...)
+      (dynamic-attribute e- string)
+      (static-attribute e- string)
+      (e- e- ...)
       ;  (reveal-type any ... e)
       ;  (bool-op ob e e)
       ))
@@ -65,11 +66,18 @@
   [(compile-s (define/assign x t e))
    (define/assign x (compile-e e))]
   [(compile-s (begin s ...))
-   (begin (compile-s s) ...)])
+   (begin (compile-s s) ...)]
+  [(compile-s (expr e))
+   (expr (compile-e e))])
 
 (define-metafunction SP-compiled
   compile-e : e -> e-
   [(compile-e x) x]
   [(compile-e c) c]
-  [(compile-e (dict-syntax ([e_key e_val] ...)))
-   (dict-syntax ([(compile-e e_key) (compile-e e_val)] ...))])
+  [(compile-e (dict-syntax [e_key e_val] ...))
+   (dict-syntax [(compile-e e_key) (compile-e e_val)] ...)]
+  [(compile-e (attribute e string))
+   ;; TODO optimization
+   (dynamic-attribute (compile-e e) string)]
+  [(compile-e (e_fun e_arg ...))
+   ((compile-e e_fun) (compile-e e_arg) ...)])
