@@ -269,6 +269,11 @@ def ast_to_sexp(node):
             symbol('as'),
             ast_to_sexp(node.optional_vars)
         ]
+    elif isinstance(node, ast.Assert):
+        return [
+            symbol('assert'),
+            ast_to_sexp(node.test)
+        ]
     assert False, str(node)
 
 

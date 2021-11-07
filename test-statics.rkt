@@ -71,6 +71,9 @@
 ;; conformance_suite/PyDict_update.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (define/assign (subscript x "bar") dynamic "hello")))))
 
+;; conformance_suite/PyDict_update_then_lookup.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax ("foo" 2))) (define/assign (subscript x "foo") dynamic 3) (assert (is (subscript x "foo") 3))))))
+
 ;; conformance_suite/assign_declared_field_neg.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class B (object) (field "x" str)) (class C (B)) (def f ((c C)) dynamic (begin (define/assign (attribute c "x") dynamic 42)))))))
 

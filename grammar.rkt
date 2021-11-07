@@ -33,6 +33,7 @@
       (delete (attribute e+ string))
       (delete (subscript e+ e+)) ;; s+ugar
       (begin s+ ...)
+      (assert e+)
       )
 
   (m+ (field string t+)

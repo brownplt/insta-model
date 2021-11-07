@@ -28,6 +28,7 @@
      (return e)
      (expr e)
      (claim x t)
+     (assert e)
      pass
      )
 

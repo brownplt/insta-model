@@ -59,3 +59,18 @@ After deletion, looking up the key should fail.
 After insertion, looking up the key should succeed.
 
 - [PyDict_insert_then_lookup.py](conformance_suite/PyDict_insert_then_lookup.py)
+
+After updating, looking up the key should give the new value.
+
+## Runtime Checks
+
+Casting to a super class is okay.
+
+- [upcast_bool_to_int.py](conformance_suite/upcast_bool_to_int.py)
+- [upcast_int_to_float.py](conformance_suite/upcast_int_to_float.py)
+- [upcast_bool_to_float.py](conformance_suite/upcast_bool_to_float.py)
+
+Casting to a sub class may or maynot be okay
+
+- [downcast_float_to_int_pos.py](conformance_suite/downcast_float_to_int_pos.py)
+- [downcast_float_to_int_neg.py](conformance_suite/downcast_float_to_int_neg.py)
