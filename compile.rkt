@@ -24,6 +24,7 @@
       (expr e-)
       ;   (claim x t)
       ;   pass
+      (assert e-)
       )
 
   ;   (m (field string t)
@@ -68,7 +69,9 @@
   [(compile-s (begin s ...))
    (begin (compile-s s) ...)]
   [(compile-s (expr e))
-   (expr (compile-e e))])
+   (expr (compile-e e))]
+  [(compile-s (assert e))
+   (assert (compile-e e))])
 
 (define-metafunction SP-compiled
   compile-e : e -> e-

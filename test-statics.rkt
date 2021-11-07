@@ -101,6 +101,12 @@
 ;; conformance_suite/delete_undeclared_field.py
 (check-judgment-holds* (⊢p (desugar-program ((class C (object)) (def f ((c C)) dynamic (begin (delete (attribute c "x"))))))))
 
+;; conformance_suite/downcast_float_to_int_neg.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2.3) (define/assign y Any x) (define/assign z int y)))))
+
+;; conformance_suite/downcast_float_to_int_pos.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2) (define/assign y Any x) (define/assign z int y)))))
+
 ;; conformance_suite/dynamic_as_CheckedDict.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (def id ((x dynamic)) (subscript CheckedDict (tuple-syntax str int)) (begin (return x)))))))
 
@@ -415,3 +421,12 @@
 
 ;; conformance_suite/test_verify_positional_args_unordered.py
 (check-judgment-holds* (⊢p (desugar-program ((def x ((a int) (b str)) None (begin (return (y a b)))) (def y ((a int) (b str)) None (begin pass))))))
+
+;; conformance_suite/upcast_bool_to_float.py
+(check-judgment-holds* (⊢p (desugar-program ((define/assign x bool #t) (define/assign y float x)))))
+
+;; conformance_suite/upcast_bool_to_int.py
+(check-judgment-holds* (⊢p (desugar-program ((define/assign x bool #t) (define/assign y int x)))))
+
+;; conformance_suite/upcast_int_to_float.py
+(check-judgment-holds* (⊢p (desugar-program ((define/assign x int 2) (define/assign y float x)))))

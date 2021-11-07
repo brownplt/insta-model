@@ -141,6 +141,8 @@
   [(lift-claims-helper (expr e))
    ()]
   [(lift-claims-helper pass)
+   ()]
+  [(lift-claims-helper (assert e))
    ()])
 
 (module+ test
@@ -259,6 +261,8 @@
    (expr ((attribute (desugar-e e+_map) "__delitem__") (desugar-e e+_key)))]
   [(desugar-s (expr e+))
    (expr (desugar-e e+))]
+  [(desugar-s (assert e+))
+   (assert (desugar-e e+))]
   [(desugar-s s+)  ;; TODO
    (expr NotImplemented)]
   )

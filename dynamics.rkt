@@ -80,7 +80,8 @@
      (delete (attribute E string))
      (return E)
      (expr E)
-     (claim x E))
+     (claim x E)
+     (assert E))
   (Program (import-type ... d- S))
   )
 
@@ -435,9 +436,17 @@
         (where l_x (lookup ρ x))
         (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
         "class"]
-   [--> (in-hole (Σ ρ S) (begin (begin (expr v) ...) s- ...))
-        (in-hole (Σ ρ S) (begin (expr v) ... s- ...))
-        "empty begin"]))
+   [--> (in-hole (Σ ρ S) (assert v))
+        (in-hole (Σ ρ S) (begin))
+        (where #f (falsy v))
+        "assert-truthy"]
+   [--> (in-hole (Σ ρ S) (assert v))
+        (Σ ρ (error))
+        (where #t (falsy v))
+        "assert-falsy"]
+   [--> (in-hole (Σ ρ S) (begin (expr v_1) ... (begin s-_1 ...) s-_2 ...))
+        (in-hole (Σ ρ S) (begin (expr v_1) ... s-_1 ... s-_2 ...))
+        "flatten begin"]))
 
 
 (module+ test

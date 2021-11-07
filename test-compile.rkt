@@ -36,6 +36,12 @@
 ;; conformance_suite/bool_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x bool #t))))))
 
+;; conformance_suite/downcast_float_to_int_neg.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2.3) (define/assign y Any x) (define/assign z int y))))))
+
+;; conformance_suite/downcast_float_to_int_pos.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2) (define/assign y Any x) (define/assign z int y))))))
+
 ;; conformance_suite/empty_program.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ()))))
 
@@ -44,3 +50,12 @@
 
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x int 42))))))
+
+;; conformance_suite/upcast_bool_to_float.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x bool #t) (define/assign y float x))))))
+
+;; conformance_suite/upcast_bool_to_int.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x bool #t) (define/assign y int x))))))
+
+;; conformance_suite/upcast_int_to_float.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x int 2) (define/assign y float x))))))
