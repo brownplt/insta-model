@@ -69,6 +69,7 @@
 
 (define-metafunction SP-statics
   update : ([any any] ...) [any any] ... -> ([any any] ...)
+  [(update any_map) any_map]
   [(update ([any_key any_old] any_rst ...) [any_key any_new])
    ([any_key any_new] any_rst ...)]
   [(update (any_1 any_2 ...) [any_key any_val])

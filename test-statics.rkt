@@ -102,10 +102,10 @@
 (check-judgment-holds* (⊢p (desugar-program ((class C (object)) (def f ((c C)) dynamic (begin (delete (attribute c "x"))))))))
 
 ;; conformance_suite/downcast_float_to_int_neg.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2.3) (define/assign y Any x) (define/assign z int y)))))
+(check-judgment-holds* (⊢p (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (define/assign x float 2.3) (define/assign y int (asDyn x))))))
 
 ;; conformance_suite/downcast_float_to_int_pos.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2) (define/assign y Any x) (define/assign z int y)))))
+(check-judgment-holds* (⊢p (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (define/assign x float 2) (define/assign y int (asDyn x))))))
 
 ;; conformance_suite/dynamic_as_CheckedDict.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (def id ((x dynamic)) (subscript CheckedDict (tuple-syntax str int)) (begin (return x)))))))

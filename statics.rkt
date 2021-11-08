@@ -81,20 +81,20 @@
   [(where Ψ_1 (base-Ψ))
    (where Γ_1 (base-Γ))
    (where Γ_2 (collect-imports Γ_1 import-type ...))
-   ;; no redeclaration
+   (where ([x any] ...) d)
    (where #f (some-redeclaration? d))
+   (where Γ_3 (extend Γ_2 [x ☠] ...))
    (where (d_cls d_oth) (split-d d))
-   ;; classes are defined first
-   (where (Ψ_2 Γ_3) (define-classes Ψ_1 Γ_2 d_cls))
+   (where (Ψ_2 Γ_4) (define-classes Ψ_1 Γ_3 d_cls))
    ;; then we define other things, functions and ordinary varibles
    (where ([x_var D_var] ...) d_oth)
-   (evalD Ψ_2 Γ_3 D_var T_var) ...
-   (where Γ_4 (extend Γ_3 [x_var T_var] ...))
+   (evalD* Ψ_2 Γ_4 (D_var ...) (T_var ...))
+   (where Γ_5 (update Γ_4 [x_var T_var] ...))
    ;; every class is well-formed
    (where ([cid C] ...) Ψ_2)
    (Ψ⊢cid Ψ_2 cid) ...
    ;; the module body is well-formed
-   (ΨΓΓ⊢s⇐T+☠ Ψ_2 Γ_4 Γ_4 s ☠)
+   (ΨΓΓ⊢s⇐T+☠ Ψ_2 Γ_5 Γ_5 s ☠)
    ------------------------
    (⊢p (import-type ... d s))])
 
@@ -247,7 +247,7 @@
   [(declare-classes Ψ_1 Γ_1 ([x (class x any_cls ...)] any_clm ...))
    (declare-classes Ψ_2 Γ_2 (any_clm ...))
    (where (Ψ_2 cid) (Ψ-alloc Ψ_1 ☠))
-   (where Γ_2 (extend Γ_1 [x (classitself cid)]))])
+   (where Γ_2 (update Γ_1 [x (classitself cid)]))])
 
 (define-metafunction SP-statics
   initialize-classes : Ψ Γ d -> Ψ
@@ -394,6 +394,14 @@
               (instancesof "float"))))
 
 (define-judgment-form SP-statics
+  #:mode (evalD* I I I O)
+  #:contract (evalD* Ψ Γ (D ...) (T ...))
+
+  [(evalD Ψ Γ D T) ...
+   ----------------------------
+   (evalD* Ψ Γ (D ...) (T ...))]
+)
+(define-judgment-form SP-statics
   #:mode (evalD I I I O)
   #:contract (evalD Ψ Γ D T)
 
@@ -458,6 +466,10 @@
   [(ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e T)
    ------------------------ "return"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (return e) T)]
+
+  [(ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e dynamic)
+   ------------------------ "assert"
+   (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (assert e) _)]
 
   [(ΨΓ⊢ifess⇐T+☠ Ψ Γ Γ_lcl e s_thn s_els T+☠)
    --------------------------------------- "if"
@@ -683,32 +695,27 @@
            (extend (base-Γ) [f (-> ([x (instancesof "int")]) (instancesof "str"))])
            (f 42)
            (instancesof "str"))))
+
+(define-metafunction SP-statics
+  type-of-c : c -> string
+  [(type-of-c None) "None"]
+  [(type-of-c integer) "int"]
+  [(type-of-c number) "float"]
+  [(type-of-c boolean) "bool"]
+  [(type-of-c string) "str"])
 (define-judgment-form SP-statics
   #:mode (ΨΓ⊢e⇒T I I I I O)
   #:contract (ΨΓ⊢e⇒T Ψ Γ Γ e T)
   ;; Is expression e well-formed under type environment Γ and usable as a T?
-
-  [----------------------- "None"
-   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl None (instancesof "None"))]
 
   ;; TODO remove this
   [(ΨΓ⊢e⇒T Ψ Γ Γ_lcl e T)
    (show (the-type-of e is T the context is Γ Γ_lcl at any ...))
    ----------------------- "reveal-type"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl (reveal-type any ... e) T)]
-
-  [----------------------- "integer"
-   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl integer (instancesof "int"))]
-
-  [(where #f ,(redex-match? SP-statics integer (term number)))
-   ----------------------- "float"
-   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl number (instancesof "float"))]
-
-  [----------------------- "boolean"
-   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl boolean (instancesof "bool"))]
-
-  [----------------------- "string"
-   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl string (instancesof "str"))]
+  
+  [----------------------- "constance"
+   (ΨΓ⊢e⇒T Ψ Γ Γ_lcl c (instancesof (type-of-c c)))]
 
   [(ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e_key dynamic) ...
    (ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e_value dynamic) ...

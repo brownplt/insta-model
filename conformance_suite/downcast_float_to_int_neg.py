@@ -2,8 +2,9 @@
 # This should pass.
 # This should error.
 
-from typing import Any
+
+def asDyn(x):
+    return x
 
 x: float = 2.3
-y: Any = x
-z: int = y
+y: int = asDyn(x)

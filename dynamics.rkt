@@ -67,6 +67,8 @@
      (v ... E e- ...)
      (reveal-type any ... E)
      (let ([x E]) e-)
+     (check-isinstance! E e-)
+     (check-isinstance! v E)
      (escape ρ S))
   ;; statement contexts
   (S hole
@@ -142,6 +144,9 @@
   [(lookup-Σ Σ string)
    ("primitive_operator" string)])
 
+(module+ test
+  (test-equal (term (delta (base-Σ) "isinstance" (ref (con 23)) (ref "int")))
+              (term ((base-Σ) (ref (con #t))))))
 (define-metafunction SP-dynamics
   delta : Σ string v ... -> (Σ r)
   [(delta Σ "object.__new__" (ref "int") (ref (con string)))
@@ -174,8 +179,19 @@
    (where ("dict" (dict-syntax any_1 ... [v_key v_val] any_2 ...))
           (lookup-Σ Σ_1 l_map))
    (where Σ_2 (update Σ_1 [l_map ("dict" (dict-syntax any_1 ... any_2 ...))]))]
+  [(delta Σ "isinstance" (ref l_ins) (ref l_tgt))
+   (Σ (ref (con (issubclass Σ l_src l_tgt))))
+   (where (l_src _) (lookup-Σ Σ l_ins))]
   [(delta Σ string v ...)
    (Σ ☠)])
+
+(define-metafunction SP-dynamics
+  issubclass : Σ l l -> boolean
+  [(issubclass Σ l l) #t]
+  [(issubclass Σ "object" l_tgt) #f]
+  [(issubclass Σ l_src l_tgt)
+   (issubclass Σ l_par l_tgt)
+   (where ("type" (class (l_par) _)) (lookup-Σ Σ l_src))])
 
 (define builtin-names
   (list "object"
@@ -263,7 +279,11 @@
                 ((Σ ρ target))
                 (apply-reduction-relation* e→e (term ((base-Σ)
                                                       (base-ρ)
-                                                      (compile-e (desugar-e source)))))))
+                                                      (get-e
+                                                       (compile-e (base-Ψ)
+                                                                  (base-Γ)
+                                                                  (base-Γ)
+                                                                  (desugar-e source))))))))
   (test-e-->e 2
               (ref (con 2)))
   (test-e-->e (bin-op + 2 3)
@@ -371,7 +391,7 @@
         "dynamic-attribute")
    (--> (in-hole (Σ_1 ρ_1 E) ((ref l_fun) v_arg ...))
         (in-hole (Σ_2 ρ_3 E) (escape ρ_1 (begin
-                                           (define/assign x_arg dynamic v_arg)
+                                           (define/assign x_arg v_arg)
                                            ...
                                            s)))
         (where ("function" (def ρ_2 (x_arg ...) ([x_lcl D] ...) s))
@@ -403,6 +423,19 @@
    (--> (in-hole (Σ ρ_1 E) (escape ρ_2 (return v)))
         (in-hole (Σ ρ_2 E) v)
         "escape")
+   [--> (in-hole (Σ_1 ρ E) (check-isinstance! v_ins v_cls))
+        (in-hole (Σ_2 ρ E) v_ins)
+        (where (Σ_2 (ref (con #t))) (delta Σ_1 "isinstance" v_ins v_cls))
+        "check-isinstance!-true"]
+   [--> (in-hole (Σ_1 ρ E) (check-isinstance! v_ins v_cls))
+        (in-hole (Σ_2 ρ E) ☠)
+        (where (Σ_2 (ref (con #f))) (delta Σ_1 "isinstance" v_ins v_cls))
+        "check-isinstance!-false"]
+   #;
+   [--> (in-hole (Σ_1 ρ E) (check-isinstance! v_ins v_cls))
+        (in-hole (Σ_2 ρ E) ☠)
+        (where any (delta Σ_1 "isinstance" v_ins v_cls))
+        "check-isinstance!-???"]
    ))
 
 

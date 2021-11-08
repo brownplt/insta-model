@@ -37,10 +37,10 @@
 (test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x bool #t))))))
 
 ;; conformance_suite/downcast_float_to_int_neg.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2.3) (define/assign y Any x) (define/assign z int y))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (define/assign x float 2.3) (define/assign y int (asDyn x)))))))
 
 ;; conformance_suite/downcast_float_to_int_pos.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (define/assign x float 2) (define/assign y Any x) (define/assign z int y))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (define/assign x float 2) (define/assign y int (asDyn x)))))))
 
 ;; conformance_suite/empty_program.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ()))))

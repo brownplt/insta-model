@@ -2,8 +2,8 @@
 # This should pass.
 # This should terminate.
 
-from typing import Any
+def asDyn(x):
+    return x
 
 x: float = 2
-y: Any = x
-z: int = y
+y: int = asDyn(x)
