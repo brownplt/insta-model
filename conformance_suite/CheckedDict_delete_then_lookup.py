@@ -1,4 +1,4 @@
-# CheckedDict_delete_good_key.py
+# CheckedDict_delete_then_lookup.py
 # This should pass.
 # This should error.
 
