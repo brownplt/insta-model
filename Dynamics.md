@@ -62,6 +62,49 @@ After insertion, looking up the key should succeed.
 
 After updating, looking up the key should give the new value.
 
+## CheckedDict
+
+`CheckedDict` is inhabitable.
+
+- [CheckedDict_is_inhabitable.py](conformance_suite/CheckedDict_is_inhabitable.py)
+
+Inserting `CheckedDict` entries is allowed.
+
+- [CheckedDict_insert.py](conformance_suite/CheckedDict_insert.py)
+
+Updating `CheckedDict` entries is allowed.
+
+- [CheckedDict_update.py](conformance_suite/CheckedDict_update.py)
+
+Deleting `CheckedDict` entries with good keys is allowed.
+
+- [CheckedDict_delete_good_key.py](conformance_suite/CheckedDict_delete_good_key.py)
+
+Deleting `CheckedDict` entries with bad keys is allowed at compile time, but should fail at runtime.
+
+- [CheckedDict_delete_bad_key.py](conformance_suite/CheckedDict_delete_bad_key.py)
+
+Looking up `CheckedDict` entries with good keys is allowed.
+
+- [CheckedDict_lookup_good_key.py](conformance_suite/CheckedDict_lookup_good_key.py)
+
+Looking up `CheckedDict` entries with bad keys is allowed at compile time, but should fail at runtime.
+
+- [CheckedDict_lookup_bad_key.py](conformance_suite/CheckedDict_lookup_bad_key.py)
+
+After deletion, looking up the key should fail.
+
+- [CheckedDict_delete_then_lookup.py](conformance_suite/CheckedDict_delete_then_lookup.py)
+
+After insertion, looking up the key should succeed.
+
+- [CheckedDict_insert_then_lookup.py](conformance_suite/CheckedDict_insert_then_lookup.py)
+
+After updating, looking up the key should give the new value.
+
+TODO: CheckedDict checks everything
+
+
 ## Runtime Checks
 
 Casting to a super class is okay.
@@ -74,3 +117,5 @@ Casting to a sub class may or maynot be okay
 
 - [downcast_float_to_int_pos.py](conformance_suite/downcast_float_to_int_pos.py)
 - [downcast_float_to_int_neg.py](conformance_suite/downcast_float_to_int_neg.py)
+
+TODO: cast PyDict to CheckedDict and the other way
