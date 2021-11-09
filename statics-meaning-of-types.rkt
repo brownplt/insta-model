@@ -66,13 +66,18 @@
    (evalo (base-Ψ) (base-Γ) None (instancesof "NoneType"))
    (evalo (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
           ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
-          (instancesof ("CheckedDict" "str" "int")))
+          (instancesof ("CheckedDict" (instancesof "str") (instancesof "int"))))
    (evalo (base-Ψ) (extend (base-Γ) [Optional (prim-generic "Optional")])
           ((attribute Optional "__getitem__") int)
           ("optional" "int"))
    (evalo (base-Ψ) (base-Γ) (or-syntax int None) ("optional" "int"))
    (evalo (base-Ψ) (base-Γ) (or-syntax int str) dynamic)
-   (evalo (base-Ψ) (base-Γ) int (instancesof "int"))))
+   (evalo (base-Ψ) (base-Γ) int (instancesof "int"))
+   (evalo (base-Ψ) (extend (base-Γ)
+                           [CheckedDict (prim-generic "CheckedDict")]
+                           [Optional (prim-generic "Optional")])
+          ((attribute CheckedDict "__getitem__") (tuple-syntax str (or-syntax int None)))
+          (instancesof ("CheckedDict" (instancesof "str") ("optional" "int"))))))
 (define-judgment-form SP-statics
   #:mode (evalo I I I O)
   #:contract (evalo Ψ Γ t T)
@@ -94,12 +99,12 @@
           (-> ([☠ T_arg] ...) T_ret))]
 
   [(lookupo Γ x (prim-generic "CheckedDict"))
-   (evalo Ψ Γ t_key (instancesof cid_key))
-   (evalo Ψ Γ t_val (instancesof cid_val))
+   (evalo Ψ Γ t_key checkable-T_key)
+   (evalo Ψ Γ t_val checkable-T_val)
    ------------------------- "CheckedDict"
-   (evalo Ψ Γ 
+   (evalo Ψ Γ
           ((attribute x "__getitem__") (tuple-syntax t_key t_val))
-          (instancesof ("CheckedDict" cid_key cid_val)))]
+          (instancesof ("CheckedDict" checkable-T_key checkable-T_val)))]
 
   ;; TODO this doesn't look right. We should do something
   [(lookupo Γ x (prim-generic "Final"))
@@ -205,11 +210,11 @@
   [(Ψ⊢cid<:cid Ψ cid_1 cid_2)
    ------------------------ "super"
    (Ψ⊢T≲T Ψ (instancesof cid_1) (instancesof cid_2))]
- 
+
   [(Ψ⊢T≲T Ψ T (instancesof cid))
    ------------------------ "Optional[cid]-R1"
    (Ψ⊢T≲T Ψ T ("optional" cid))]
-  
+
   [------------------------ "Optional[cid]-R2"
    (Ψ⊢T≲T Ψ (instancesof "NoneType") ("optional" cid))]
 
@@ -273,8 +278,8 @@
               (term (instancesof "NoneType")))
   (test-equal (term (intersection (base-Ψ) ("optional" "int") ("optional" "float")))
               (term ("optional" "int")))
-  (test-equal (term (intersection (base-Ψ) dynamic (instancesof ("CheckedDict" "str" "int"))))
-              (term (instancesof ("CheckedDict" "str" "int")))))
+  (test-equal (term (intersection (base-Ψ) dynamic (instancesof ("CheckedDict" (instancesof "str") (instancesof "int")))))
+              (term (instancesof ("CheckedDict" (instancesof "str") (instancesof "int"))))))
 (define-metafunction SP-statics
   intersection : Ψ T T -> T+☠
   [(intersection Ψ T T) T]
@@ -320,7 +325,7 @@
   (test-match SP-statics C (term (lookup-class () "NoneType")))
   (test-match SP-statics C (term (lookup-class () "dict")))
   (test-match SP-statics C (term (lookup-class () "set")))
-  (test-match SP-statics C (term (lookup-class () ("CheckedDict" "str" "int")))))
+  (test-match SP-statics C (term (lookup-class () ("CheckedDict" (instancesof "str") (instancesof "int"))))))
 (define-metafunction SP-statics
   lookup-class : Ψ cid -> C
   ;; Find the meaning of a class by its cid
@@ -371,16 +376,16 @@
       ("__contains__" ([☠ dynamic]) (instancesof "bool"))))]
   [(lookup-class Ψ "NoneType")
    (class NoneType "object" () ())]
-  [(lookup-class Ψ ("CheckedDict" cid_key cid_val))
-   (class ("CheckedDict" cid_key cid_val)
+  [(lookup-class Ψ ("CheckedDict" T_key T_val))
+   (class ("CheckedDict" T_key T_val)
      "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
-      ("__getitem__" ([☠ (instancesof cid_key)]) (instancesof cid_val))
-      ("__setitem__" ([☠ (instancesof cid_key)]
-                      [☠ (instancesof cid_val)])
+      ("__getitem__" ([☠ T_key]) T_val)
+      ("__setitem__" ([☠ T_key]
+                      [☠ T_val])
                      (instancesof "NoneType"))
-      ("__delitem__" ([☠ (instancesof cid_key)])
+      ("__delitem__" ([☠ T_key])
                      (instancesof "NoneType"))))]
   ;; lookup user-defined classes
   [(lookup-class Ψ number)
@@ -412,7 +417,7 @@
   [(flatten-class Ψ dynamic) (() ())])
 
 (module+ test
-  (test-equal (term (lookup-member () (instancesof ("CheckedDict" "str" "int")) "__getitem__"))
+  (test-equal (term (lookup-member () (instancesof ("CheckedDict" (instancesof "str") (instancesof "int"))) "__getitem__"))
               (term (-> ([☠ (instancesof "str")]) (instancesof "int")))))
 (define-metafunction SP-statics
   lookup-member : Ψ T string -> T+☠
@@ -438,7 +443,7 @@
    (constructor-ofo (base-Ψ) "int" ([☠ dynamic]))
    (constructor-ofo (base-Ψ) "dict" ([☠ dynamic]))
    (constructor-ofo (base-Ψ) "set" ([☠ dynamic]))
-   (constructor-ofo (base-Ψ) ("CheckedDict" "str" "int") ([☠ dynamic]))))
+   (constructor-ofo (base-Ψ) ("CheckedDict" (instancesof "str") (instancesof "int")) ([☠ dynamic]))))
 (define-judgment-form SP-statics
   #:mode (constructor-ofo I I O)
   #:contract (constructor-ofo Ψ cid ([x+☠_arg T_arg] ...))

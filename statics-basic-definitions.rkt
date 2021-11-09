@@ -16,7 +16,7 @@
             "dict"
             "set"
             "NoneType"
-            ("CheckedDict" cid cid)
+            ("CheckedDict" checkable-T checkable-T)
             "type")
   ;; class id, an unique data that specify which class it is
   (cid prim-cid
@@ -67,6 +67,9 @@
      (prim-generic string)
      (type-op "cast")
      )
+  (checkable-T
+   (instancesof cid)
+   ("optional" cid))
   ;; optional variable
   (x+☠ ☠ x)
   ;; variable context

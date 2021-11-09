@@ -133,6 +133,15 @@ Procedures check return types.
 
 - [procedure_check_return_type_dynamically.py](conformance_suite/procedure_check_return_type_dynamically.py)
 
+## Optional types
+
+TODO
+
+## Optimizations
+
+TODO: CheckedDict methods
+
+TODO: Other optimizations
 
 ## Runtime Checks
 

@@ -609,7 +609,11 @@
   [(run-imports Σ_1 ρ_1 (import-from "__static__" ("CheckedDict" any ...)) import-type ...)
    (run-imports Σ_2 ρ_2 (import-from "__static__" (any ...)) import-type ...)
    (where (Σ_2 l) (alloc Σ_1 (ref "CheckedDict")))
-   (where ρ_2 (extend ρ_1 [CheckedDict l]))])
+   (where ρ_2 (extend ρ_1 [CheckedDict l]))]
+  [(run-imports Σ_1 ρ_1 (import-from "typing" ("Optional" any ...)) import-type ...)
+   (run-imports Σ_2 ρ_2 (import-from "typing" (any ...)) import-type ...)
+   (where (Σ_2 l) (alloc Σ_1 (ref "Optional")))
+   (where ρ_2 (extend ρ_1 [Optional l]))])
 
 (define-metafunction SP-dynamics
   calc : program- -> s-
