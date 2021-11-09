@@ -9,7 +9,8 @@
   #:mode (show I)
   #:contract (show any)
 
-  [(where #f ,(and (writeln (term any)) #f))
+  [(where #f ,(and (pretty-write  (term any)) #f))
+   (where #f ,(and (newline) #f))
    ------------------
    (show any)])
 
