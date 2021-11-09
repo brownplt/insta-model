@@ -140,7 +140,7 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Subscript):
         return [
             symbol("subscript"),
-            symbol(str(node.value.id)),
+            ast_to_sexp(node.value),
             ast_to_sexp(node.slice)]
     elif isinstance(node, ast.Constant) and node.value is None:
         return symbol('None')

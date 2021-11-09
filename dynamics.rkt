@@ -17,6 +17,8 @@
   (l number
      ;; special heap addresses reserved by constants
      (con c)
+     ;; special heap-addresses reserved by checkeddicts
+     (checked-dict l l)
      ;; other primitive values, e.g. builtin methods
      string)
   ;; heap values
@@ -33,7 +35,7 @@
   (g c
      (tuple-syntax v ...)
      (set-syntax v ...)
-     (dict-syntax (v v) ...)
+     (dict-syntax [v v] ...)
      (def ρ (x ...) d- s)
      (class (l ...) ([string l] ...) ...)
      ;; the string case is for builtin_function_or_method. We don't really
@@ -41,14 +43,16 @@
      string
      ;; methods, the first l is the method itself,
      ;; the second l is the self object
-     (l l))
+     (l l)
+     ;; general purpose objects
+     ([string l] ...))
   ;; values are just heap addresses
   (v (ref l))
   ;; results are values or (error)
   (r v ☠)
   ;; at runtime immediate values can go into expressions.
   (e- .... v ☠
-      (let ([x e]) e-)
+      (let ([x e-]) e-)
       (escape ρ s-))
   (s- .... (error))
   ;; expression contexts
@@ -136,6 +140,15 @@
              (["__setitem__" "dict.__setitem__"]
               ["__getitem__" "dict.__getitem__"]
               ["__delitem__" "dict.__delitem__"])))]
+  [(lookup-Σ Σ (checked-dict l_key l_val))
+   ("type" (class ("object")
+             (["__init__" "CheckedDict[K,V].__init__"]
+              ["__setitem__" "CheckedDict[K,V].__setitem__"]
+              ["__getitem__" "CheckedDict[K,V].__getitem__"]
+              ["__delitem__" "CheckedDict[K,V].__delitem__"])))]
+  [(lookup-Σ Σ "CheckedDict")
+   ("type" (class ("object")
+             (["__getitem__" "CheckedDict.__getitem__"])))]
   [(lookup-Σ Σ "object")
    ("type" (class () (["__new__" "object.__new__"]
                       ["__init__" "object.__init__"])))]
@@ -148,14 +161,14 @@
   (test-equal (term (delta (base-Σ) "isinstance" (ref (con 23)) (ref "int")))
               (term ((base-Σ) (ref (con #t))))))
 (define-metafunction SP-dynamics
-  delta : Σ string v ... -> (Σ r)
+  delta : Σ string v ... -> (Σ e-)
   [(delta Σ "object.__new__" (ref "int") (ref (con string)))
    (Σ (ref (con ,(string->number (term string)))))]
   [(delta Σ "object.__new__" (ref "str") (ref (con number)))
    (Σ (ref (con ,(format "~a" (term number)))))]
-  [(delta Σ_1 "object.__new__" (ref number_1) (ref number_2))
-   (Σ_2 (ref l))
-   (where (Σ_2 l) (alloc Σ_1 (number_1 number_2)))]
+  [(delta Σ_1 "object.__new__" (ref l_cls) v_arg ...)
+   (Σ_2 (let ([tmp ((dynamic-attribute (ref l_ins) "__init__") v_arg ...)]) (ref l_ins)))
+   (where (Σ_2 l_ins) (alloc Σ_1 (l_cls ())))]
   [(delta Σ "object.__init__" v_slf v_arg ...)
    (Σ v_slf)]
   [(delta Σ "float.__add__" (ref (con number_1)) (ref (con number_2)))
@@ -182,8 +195,60 @@
   [(delta Σ "isinstance" (ref l_ins) (ref l_tgt))
    (Σ (ref (con (issubclass Σ l_src l_tgt))))
    (where (l_src _) (lookup-Σ Σ l_ins))]
+  [(delta Σ "CheckedDict.__getitem__" (ref l_tpl))
+   (Σ (ref (checked-dict l_key l_val)))
+   (where ("tuple" (tuple-syntax (ref l_key) (ref l_val))) (lookup-Σ Σ l_tpl))
+   (where ("type" any_key) (lookup-Σ Σ l_key))
+   (where ("type" any_val) (lookup-Σ Σ l_val))]
+  [(delta Σ_1 "CheckedDict[K,V].__init__" (ref l_obj) (ref l_dct))
+   (Σ_2 (let* ([tmp (check-isinstance! v_key (ref l_key))] ...
+               [tmp (check-isinstance! v_val (ref l_val))] ...)
+          None))
+   (where ((checked-dict l_key l_val) ())
+          (lookup-Σ Σ_1 l_obj))
+   (where ("dict" (dict-syntax [v_key v_val] ...))
+          (lookup-Σ Σ_1 l_dct))
+   (where Σ_2 (update Σ_1 [l_obj ((checked-dict l_key l_val) (dict-syntax [v_key v_val] ...))]))]
+  [(delta Σ "CheckedDict[K,V].__getitem__" (ref l_map) v_key)
+   (Σ v_val)
+   (where ((checked-dict l_key l_val) (dict-syntax any_1 ... [v_key v_val] any_2 ...))
+          (lookup-Σ Σ l_map))]
+  [(delta Σ_1 "CheckedDict[K,V].__setitem__" (ref l_map) (ref l_key) (ref l_val))
+   (Σ_2 (ref (con None)))
+   (where ((checked-dict l_kc1 l_vc1)
+           (dict-syntax any_1 ... [(ref l_key) v_old] any_2 ...))
+          (lookup-Σ Σ_1 l_map))
+   (where (l_kc0 g_key) (lookup-Σ Σ_1 l_key))
+   (where (l_vc0 g_val) (lookup-Σ Σ_1 l_val))
+   (where #t (issubclass Σ_1 l_kc0 l_kc1))
+   (where #t (issubclass Σ_1 l_vc0 l_vc1))
+   (where Σ_2 (update Σ_1 [l_map ((checked-dict l_kc1 l_vc1)
+                                  (dict-syntax any_1 ... [(ref l_key) (ref l_val)] any_2 ...))]))]
+  
+  [(delta Σ_1 "CheckedDict[K,V].__setitem__" (ref l_map) (ref l_key) (ref l_val))
+   (Σ_2 (ref (con None)))
+   (where ((checked-dict l_kc1 l_vc1) (dict-syntax any ...))
+          (lookup-Σ Σ_1 l_map))
+   (where (l_kc0 g_key) (lookup-Σ Σ_1 l_key))
+   (where (l_vc0 g_val) (lookup-Σ Σ_1 l_val))
+   (where #t (issubclass Σ_1 l_kc0 l_kc1))
+   (where #t (issubclass Σ_1 l_vc0 l_vc1))
+   (where Σ_2 (update Σ_1 [l_map ((checked-dict l_kc1 l_vc1)
+                                  (dict-syntax [(ref l_key) (ref l_val)] any ...))]))]
+  [(delta Σ_1 "CheckedDict[K,V].__delitem__" (ref l_map) v_key)
+   (Σ_2 (ref (con None)))
+   (where ((checked-dict l_key l_val) (dict-syntax any_1 ... [v_key v_val] any_2 ...))
+          (lookup-Σ Σ_1 l_map))
+   (where Σ_2 (update Σ_1 [l_map ((checked-dict l_key l_val) (dict-syntax any_1 ... any_2 ...))]))]
   [(delta Σ string v ...)
    (Σ ☠)])
+
+(define-metafunction SP-dynamics
+  let* : ([x e-] ...) e- -> e-
+  [(let* () e-) e-]
+  [(let* ([x_1 e-_1] [x_2 e-_2] ...) e-_bdy)
+   (let ([x_1 e-_1])
+     (let* ([x_2 e-_2] ...) e-_bdy))])
 
 (define-metafunction SP-dynamics
   issubclass : Σ l l -> boolean
@@ -399,17 +464,13 @@
         (where (Σ_2 ρ_3) (declare Σ_1 ρ_2 x_arg ... x_lcl ...))
         "function call")
    (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ ρ E) (let ([x_ins ((attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...)])
-                           (let ([x_tmp ((attribute x_ins "__init__") x_ins v_arg ...)])
-                             x_ins)))
+        (in-hole (Σ ρ E) ((dynamic-attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...))
         (where ("type" g) (lookup-Σ Σ l_prc))
-        (where x_ins ,(gensym 'ins))
-        (where x_tmp ,(gensym 'tmp))
         "class call")
    (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ_2 ρ E) r_ret)
+        (in-hole (Σ_2 ρ E) e-_ret)
         (where ("primitive_operator" string) (lookup-Σ Σ_1 l_prc))
-        (where (Σ_2 r_ret) (delta Σ_1 string v_arg ...))
+        (where (Σ_2 e-_ret) (delta Σ_1 string v_arg ...))
         "primitive_operator")
    (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
         (in-hole (Σ ρ E) ((ref l_mth) (ref l_slf) v_arg ...))
@@ -431,11 +492,6 @@
         (in-hole (Σ_2 ρ E) ☠)
         (where (Σ_2 (ref (con #f))) (delta Σ_1 "isinstance" v_ins v_cls))
         "check-isinstance!-false"]
-   #;
-   [--> (in-hole (Σ_1 ρ E) (check-isinstance! v_ins v_cls))
-        (in-hole (Σ_2 ρ E) ☠)
-        (where any (delta Σ_1 "isinstance" v_ins v_cls))
-        "check-isinstance!-???"]
    ))
 
 
@@ -522,14 +578,37 @@
                (begin
                  (expr (ref (con 3)))))))
 
+(define-metafunction SP-dynamics
+  run-imports : Σ ρ import-type ... -> (Σ ρ)
+  [(run-imports Σ ρ) (Σ ρ)]
+  [(run-imports Σ_1 ρ_1 (import-from string ()) import-type ...)
+   (run-imports Σ_1 ρ_1 import-type ...)]
+  [(run-imports Σ_1 ρ_1 (import-from "__static__" ("PyDict" any ...)) import-type ...)
+   (run-imports Σ_2 ρ_2 (import-from "__static__" (any ...)) import-type ...)
+   (where (Σ_2 l) (alloc Σ_1 (ref "dict")))
+   (where ρ_2 (extend ρ_1 [PyDict l]))]
+  [(run-imports Σ_1 ρ_1 (import-from "__static__" ("CheckedDict" any ...)) import-type ...)
+   (run-imports Σ_2 ρ_2 (import-from "__static__" (any ...)) import-type ...)
+   (where (Σ_2 l) (alloc Σ_1 (ref "CheckedDict")))
+   (where ρ_2 (extend ρ_1 [CheckedDict l]))])
 
 (define-metafunction SP-dynamics
   calc : program- -> s-
   [(calc (import-type ... (x ...) s-_1))
    s-_2
    (where (Σ_1 ρ_1) ((base-Σ) (base-ρ)))
-   (where (Σ_2 ρ_2) (declare Σ_1 ρ_1 x ...))
-   (where ((Σ_3 ρ_3 s-_2)) ,(apply-reduction-relation* s→s (term (Σ_2 ρ_2 s-_1))))])
+   (where (Σ_2 ρ_2) (run-imports Σ_1 ρ_1 import-type ...))
+   (where (Σ_3 ρ_3) (declare Σ_2 ρ_2 x ...))
+   (where ((Σ_4 ρ_4 s-_2)) ,(apply-reduction-relation* s→s (term (Σ_3 ρ_3 s-_1))))])
+
+(define-metafunction SP-dynamics
+  trace-calc : program- -> s-
+  [(trace-calc (import-type ... (x ...) s-_1))
+   s-_2
+   (where (Σ_1 ρ_1) ((base-Σ) (base-ρ)))
+   (where (Σ_2 ρ_2) (run-imports Σ_1 ρ_1 import-type ...))
+   (where (Σ_3 ρ_3) (declare Σ_2 ρ_2 x ...))
+   (where ((Σ_4 ρ_4 s-_2)) ,(traces s→s (term (Σ_3 ρ_3 s-_1))))])
 
 (module+ test
   (test-equal (term (declare () () a b c))

@@ -62,11 +62,14 @@ After insertion, looking up the key should succeed.
 
 After updating, looking up the key should give the new value.
 
+- [PyDict_update_then_lookup.py](conformance_suite/PyDict_update_then_lookup.py)
+
 ## CheckedDict
 
 `CheckedDict` is inhabitable.
 
 - [CheckedDict_is_inhabitable.py](conformance_suite/CheckedDict_is_inhabitable.py)
+- [CheckedDict_from_good_dict.py](conformance_suite/CheckedDict_from_good_dict.py)
 
 Inserting `CheckedDict` entries is allowed.
 
@@ -74,23 +77,16 @@ Inserting `CheckedDict` entries is allowed.
 
 Updating `CheckedDict` entries is allowed.
 
-- [CheckedDict_update.py](conformance_suite/CheckedDict_update.py)
+- [CheckedDict_update_key_pos.py](conformance_suite/CheckedDict_update_key_pos.py)
+- [CheckedDict_update_val_pos.py](conformance_suite/CheckedDict_update_val_pos.py)
 
 Deleting `CheckedDict` entries with good keys is allowed.
 
-- [CheckedDict_delete_good_key.py](conformance_suite/CheckedDict_delete_good_key.py)
-
-Deleting `CheckedDict` entries with bad keys is allowed at compile time, but should fail at runtime.
-
-- [CheckedDict_delete_bad_key.py](conformance_suite/CheckedDict_delete_bad_key.py)
+- [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
 
 Looking up `CheckedDict` entries with good keys is allowed.
 
-- [CheckedDict_lookup_good_key.py](conformance_suite/CheckedDict_lookup_good_key.py)
-
-Looking up `CheckedDict` entries with bad keys is allowed at compile time, but should fail at runtime.
-
-- [CheckedDict_lookup_bad_key.py](conformance_suite/CheckedDict_lookup_bad_key.py)
+- [CheckedDict_lookup_key_pos.py](conformance_suite/CheckedDict_lookup_key_pos.py)
 
 After deletion, looking up the key should fail.
 
@@ -102,7 +98,16 @@ After insertion, looking up the key should succeed.
 
 After updating, looking up the key should give the new value.
 
-TODO: CheckedDict checks everything
+- [CheckedDict_update_then_lookup.py](conformance_suite/CheckedDict_update_then_lookup.py)
+
+CheckedDict checks
+
+- [CheckedDict_from_nondict.py](conformance_suite/CheckedDict_from_nondict.py)
+- [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
+- [CheckedDict_lookup_checks_keys.py](conformance_suite/CheckedDict_lookup_checks_keys.py)
+- [CheckedDict_update_checks_keys.py](conformance_suite/CheckedDict_update_checks_keys.py)
+- [CheckedDict_delete_checks_keys.py](conformance_suite/CheckedDict_delete_checks_keys.py)
+- [CheckedDict_update_checks_values.py](conformance_suite/CheckedDict_update_checks_values.py)
 
 
 ## Runtime Checks

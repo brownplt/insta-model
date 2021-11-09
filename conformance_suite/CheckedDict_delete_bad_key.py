@@ -1,6 +1,6 @@
 # CheckedDict_delete_bad_key.py
 # This should pass.
-# This should terminate.
+# This should error.
 
 from __static__ import CheckedDict
 

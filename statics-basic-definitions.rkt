@@ -12,6 +12,7 @@
             "int"
             "bool"
             "str"
+            "tuple"
             "dict"
             "set"
             "None"

@@ -1,5 +1,6 @@
 # CheckedDict_update_key_pos.py
 # This should pass.
+# This should terminate.
 
 from __static__ import PyDict, CheckedDict
 

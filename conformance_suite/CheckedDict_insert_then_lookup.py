@@ -1,6 +1,6 @@
 # CheckedDict_insert_then_lookup.py
 # This should pass.
-# This should error.
+# This should terminate.
 
 from __static__ import CheckedDict
 
