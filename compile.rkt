@@ -23,7 +23,7 @@
       (return e-)
       (expr e-)
       ;   (claim x t)
-      ;   pass
+      pass
       (assert e-)
       )
 
@@ -103,8 +103,13 @@
       T
       (get-e (compile-e Ψ Γ_dcl Γ_lcl t))))
    (judgment-holds (evalo Ψ Γ_lcl t T))]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (def x ([x_arg t_arg] ...) t_ret d s))
-   (def x ([x_arg t_arg] ...) t_ret d (compile-s Ψ Γ_dcl Γ_lcl T+☠ s))]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (def x ([x_arg t_arg] ...) t_ret d_1 s))
+   (def x ([x_arg t_arg] ...) t_ret d_2 (compile-s Ψ Γ_bdy Γ_bdy T_ret s))
+   (judgment-holds (evalo Ψ Γ_dcl t_ret T_ret))
+   (where d_2 (extend d_1 [x_arg t_arg] ...))
+   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d_2))
+   (judgment-holds (evalD* Ψ Γ_dcl (D_var ...) (T_var ...)))
+   (where Γ_bdy (extend Γ_dcl [x_cls dynamic] ... [x_var T_var] ...))]
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (begin s ...))
    (begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ s) ...)]
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (expr e))
@@ -112,13 +117,15 @@
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (return e))
    (return (get-e (compile-e Ψ Γ_dcl Γ_lcl e)))]
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (assert e))
-   (assert (get-e (compile-e Ψ Γ_dcl Γ_lcl e)))])
+   (assert (get-e (compile-e Ψ Γ_dcl Γ_lcl e)))]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ pass)
+   pass])
 
 (define-metafunction SP-compiled
   compile-e : Ψ Γ Γ e -> (e- T)
   [(compile-e Ψ Γ_dcl Γ_lcl x)
    (x T)
-   (judgment-holds (lookupo Γ_lcl x T))]
+   (where T (lookup Γ_lcl x))]
   [(compile-e Ψ Γ_dcl Γ_lcl c)
    (c (instancesof (type-of-c c)))]
   [(compile-e Ψ Γ_dcl Γ_lcl (set-syntax e ...))
