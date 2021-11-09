@@ -244,7 +244,7 @@
    (define/assign (attribute (desugar-e e+_map) string_key) (desugar-t t+) (desugar-e e+_val))]
   ;; Interesting case
   [(desugar-s (define/assign (subscript e+_map e+_key) dynamic e+_val))
-   (expr ((attribute e+_map "__setitem__") (desugar-e e+_key) (desugar-e e+_val)))]
+   (expr ((attribute (desugar-e e+_map) "__setitem__") (desugar-e e+_key) (desugar-e e+_val)))]
   [(desugar-s (return e+))
    (return (desugar-e e+))]
   [(desugar-s (if e+ s+_thn s+_els))
