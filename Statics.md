@@ -92,6 +92,11 @@ Deleting `CheckedDict[T0, T1]` entries checks the key.
 - [CheckedDict_delete_neg.py](conformance_suite/CheckedDict_delete_neg.py)
 - [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
 
+The key type of CheckedDicts can be `Optional[T]`.
+
+- [CheckedDict_val_can_be_Optional.py](conformance_suite/CheckedDict_val_can_be_Optional.py)
+- [CheckedDict_key_can_be_Optional.py](conformance_suite/CheckedDict_key_can_be_Optional.py)
+
 ## Procedures
 
 Procedure check arity

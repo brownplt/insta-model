@@ -36,6 +36,9 @@
 ;; conformance_suite/CheckedDict_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 2) ("bar" 3)))))))))
 
+;; conformance_suite/CheckedDict_key_can_be_Optional.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (define/assign x (subscript CheckedDict (tuple-syntax (subscript Optional str) int)) ((subscript CheckedDict (tuple-syntax (subscript Optional str) int)) (dict-syntax ("foo" 2) (None 3)))) (assert (is (subscript x None) 3)))))))
+
 ;; conformance_suite/CheckedDict_lookup_checks_keys.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (def asDyn ((x dynamic)) dynamic (begin (return x))) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 2)))) (expr (subscript (asDyn x) 42)))))))
 
@@ -62,6 +65,9 @@
 
 ;; conformance_suite/CheckedDict_update_val_pos.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (define/assign x (subscript CheckedDict (tuple-syntax str int)) ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("foo" 1)))) (define/assign (subscript x "bar") dynamic 2))))))
+
+;; conformance_suite/CheckedDict_val_can_be_Optional.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (define/assign x (subscript CheckedDict (tuple-syntax str (subscript Optional int))) ((subscript CheckedDict (tuple-syntax str (subscript Optional int))) (dict-syntax ("foo" 2) ("bar" None)))) (assert (is (subscript x "bar") None)))))))
 
 ;; conformance_suite/PyDict_delete_bad_key.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (define/assign x PyDict (dict-syntax (1 "foo") ("bar" 2))) (delete (subscript x "other")))))))
