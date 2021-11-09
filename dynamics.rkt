@@ -36,7 +36,7 @@
      (tuple-syntax v ...)
      (set-syntax v ...)
      (dict-syntax [v v] ...)
-     (def ρ (x ...) d- s-)
+     (def ρ ([x v] ...) d- s-)
      (class (l ...) ([string l] ...) ...)
      ;; the string case is for builtin_function_or_method. We don't really
      ;; need this because c includes string
@@ -80,7 +80,7 @@
      (define/assign x E)
      (define/assign (attribute E string) e-)
      (define/assign (attribute v string) E)
-     ;; defs are handled immediatly
+     (def x ([x v] ... [x E] [x e-] ...) d- s-)
      (class x (v ... E e- ...) m ...)
      (if E (s- ...) (s- ...))
      (begin (expr v) ... S s- ...)
@@ -120,12 +120,15 @@
    ("str" string)]
   [(lookup-Σ Σ (con None))
    ("NoneType" None)]
+  [(lookup-Σ Σ "function")
+   ("type" (class ("object") ()))]
   [(lookup-Σ Σ "float")
    ("type" (class ("object")
              (["__gt__" "float.__gt__"]
               ["__eq__" "float.__eq__"]
               ["__neq__" "float.__neq__"]
-              ["__add__" "float.__add__"])))]
+              ["__add__" "float.__add__"]
+              ["__sub__" "float.__sub__"])))]
   [(lookup-Σ Σ "int")
    ("type" (class ("float") ()))]
   [(lookup-Σ Σ "bool")
@@ -174,6 +177,8 @@
    (Σ v_slf)]
   [(delta Σ "float.__add__" (ref (con number_1)) (ref (con number_2)))
    (Σ (ref (con ,(+ (term number_1) (term number_2)))))]
+  [(delta Σ "float.__sub__" (ref (con number_1)) (ref (con number_2)))
+   (Σ (ref (con ,(- (term number_1) (term number_2)))))]
   [(delta Σ "dict.__getitem__" (ref l_map) v_key)
    (Σ v_val)
    (where ("dict" (dict-syntax any_1 ... [v_key v_val] any_2 ...))
@@ -422,16 +427,16 @@
   do-app : Σ v v ... -> (Σ e-)
   [(do-app Σ (ref l_fun) v_arg ...)
    (Σ ☠)
-   (where ("function" (def ρ (x_arg ...) (x_lcl ...) s-))
+   (where ("function" (def ρ ([x_arg v_typ] ...) (x_lcl ...) s-))
           (lookup-Σ Σ l_fun))
    (where #f (= (len (v_arg ...)) (len (x_arg ...))))]
   [(do-app Σ_1 (ref l_fun) v_arg ...)
    (Σ_2
     (enter ρ_2 (begin
-                 (define/assign x_arg v_arg)
+                 (define/assign x_arg (check-isinstance! v_arg v_typ))
                  ...
                  s-)))
-   (where ("function" (def ρ_1 (x_arg ...) (x_lcl ...) s-))
+   (where ("function" (def ρ_1 ([x_arg v_typ] ...) (x_lcl ...) s-))
           (lookup-Σ Σ_1 l_fun))
    (where (Σ_2 ρ_2) (declare Σ_1 ρ_1 x_lcl ...))]
   [(do-app Σ_1 (ref l_prc) v_arg ...)
@@ -523,9 +528,9 @@
         (in-hole (Σ_2 ρ S) (begin))
         (where Σ_2 (update Σ_1 [(lookup ρ x) v]))
         "define/assign x"]
-   [--> (in-hole (Σ_1 ρ S) (def x_fun ([x_arg t_arg] ...) t_ret d- s-))
+   [--> (in-hole (Σ_1 ρ S) (def x_fun ([x_arg v_typ] ...) d- s-))
         (in-hole (Σ_3 ρ S) (begin))
-        (where (Σ_2 l_fun) (alloc Σ_1 ("function" (def ρ (x_arg ...) d- s-))))
+        (where (Σ_2 l_fun) (alloc Σ_1 ("function" (def ρ ([x_arg v_typ] ...) d- s-))))
         (where l_x (lookup ρ x_fun))
         (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
         "def"]

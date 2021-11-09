@@ -14,7 +14,7 @@
   ;; statements
   (s- (define/assign x e-)
       ;   (define/assign (attribute e string) t e)
-      (def x ([x e-] ...) e- d- s-)
+      (def x ([x e-] ...) d- s-)
       ;   (class x (t ...) m ...)
       ;   (if e s s)
       (begin s- ...)
@@ -108,7 +108,7 @@
       (compile-t t)))
    (judgment-holds (evalo Ψ Γ_lcl t T))]
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- (def x ([x_arg t_arg] ...) t_ret d s))
-   (def x ([x_arg (compile-t t_arg)] ...) (compile-t t_ret)
+   (def x ([x_arg (compile-t t_arg)] ...)
      (compile-d d)
      (compile-s Ψ Γ_bdy Γ_bdy T_ret (compile-t t_ret) s))
    (judgment-holds (evalo Ψ Γ_dcl t_ret T_ret))
