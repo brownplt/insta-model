@@ -15,7 +15,7 @@
             "tuple"
             "dict"
             "set"
-            "None"
+            "NoneType"
             ("CheckedDict" cid cid)
             "type")
   ;; class id, an unique data that specify which class it is
@@ -51,8 +51,6 @@
   ;; extension to scope
   (ext ([x kind] ...))
   (kind def/cls var)
-  ;; syntactic types
-  (t .... (quote T))
   ;;
   (T+☠ T ☠)
   ;; semantic types / type values

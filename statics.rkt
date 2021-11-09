@@ -365,7 +365,7 @@
               (expr None)
               dynamic)
    (ΨΓΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (base-Γ) (begin) ☠)
-   (ΨΓΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (base-Γ) (begin) (instancesof "None"))
+   (ΨΓΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (base-Γ) (begin) (instancesof "NoneType"))
    (ΨΓΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (base-Γ) (begin) dynamic)
    (ΨΓΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (base-Γ) (begin) ("optional" "int"))
    (ΨΓΓ⊢s⇐T+☠ (base-Ψ) (base-Γ) (base-Γ) (begin (return 42) (return "foo")) (instancesof "int"))
@@ -431,16 +431,14 @@
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (define/assign e_1 t e_2) _)]
 
   [(evalo Ψ Γ_1 t_ret T_ret)
-   (where d_2 (extend d_1 [x_arg t_arg] ...))
-   (where d_3 (simplify-d d_2))
-   (where #f (some-redeclaration? d_3))
-   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d_3))
+   (where #f (some-redeclaration? d))
+   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d))
    (evalD Ψ Γ_1 D_var T_var) ...
    (where Γ_2 (extend Γ_1 [x_cls dynamic] ... [x_var T_var] ...))
    ;; always use the persistent enrionment
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ_2 Γ_2 s T_ret)
    ------------------------ "def"
-   (ΨΓΓ⊢s⇐T+☠ Ψ Γ_1 Γ_lcl (def x_fun ([x_arg t_arg] ...) t_ret d_1 s) _)]
+   (ΨΓΓ⊢s⇐T+☠ Ψ Γ_1 Γ_lcl (def x_fun ([x_arg t_arg] ...) t_ret d s) _)]
 
   [(ΨΓt⊢m Ψ Γ x m) ...
    ------------------------ "static class"
@@ -537,7 +535,7 @@
    (ΨΓ⊢ifess⇐T+☠ Ψ Γ Γ_lcl (is-not x None) s_thn s_els T+☠)]
 
   [(ΨΓ⊢e⇒T Ψ Γ Γ_lcl x T)
-   (where T_thn (intersection Ψ T (instancesof "None")))
+   (where T_thn (intersection Ψ T (instancesof "NoneType")))
    (where T_els (remove-None T))
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ (extend Γ_lcl [x T_thn]) s_thn T+☠)
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ (extend Γ_lcl [x T_els]) s_els T+☠)
@@ -570,7 +568,7 @@
    (ΨΓ⊢ifeee⇒T Ψ Γ Γ_lcl (is-not x None) e_thn e_els T)]
 
   [(ΨΓ⊢e⇒T Ψ Γ Γ_lcl x ("optional" cid))
-   (ΨΓ⊢e⇒T Ψ Γ (extend Γ_lcl [x (instancesof "None")]) e_thn T_thn)
+   (ΨΓ⊢e⇒T Ψ Γ (extend Γ_lcl [x (instancesof "NoneType")]) e_thn T_thn)
    (ΨΓ⊢e⇒T Ψ Γ (extend Γ_lcl [x (instancesof cid)]) e_els T_els)
    ------------------ "if is"
    (ΨΓ⊢ifeee⇒T Ψ Γ Γ_lcl (is x None) e_thn e_els (union Ψ T_thn T_els))]
@@ -591,13 +589,13 @@
   [-------------------------
    (ΨΓt⊢m Ψ Γ t_slf (field string t))]
 
-  [(ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ (def whatever ([x_slf t_slf] [x_arg t_arg] ...) t_ret d s) ☠)
+  [(ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ (def whatever ([x_slf t_slf] [x_arg t_arg] ...) t_ret (extend d [x_slf t_slf]) s) ☠)
    -------------------------
    (ΨΓt⊢m Ψ Γ t_slf (method string_method x_slf ([x_arg t_arg] ...) t_ret d s))])
 
 (module+ test
   (check-judgment-holds*
-   (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) None (instancesof "None"))
+   (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) None (instancesof "NoneType"))
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) #t (instancesof "int"))
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) 42 (instancesof "int"))
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) "foo" (instancesof "str"))
@@ -670,7 +668,7 @@
 (module+ test
   (check-judgment-holds*
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) int (classitself "int"))
-   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) None (instancesof "None"))
+   (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) None (instancesof "NoneType"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) #t (instancesof "bool"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) 42 (instancesof "int"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) "foo" (instancesof "str"))
@@ -698,7 +696,7 @@
 
 (define-metafunction SP-statics
   type-of-c : c -> string
-  [(type-of-c None) "None"]
+  [(type-of-c None) "NoneType"]
   [(type-of-c integer) "int"]
   [(type-of-c number) "float"]
   [(type-of-c boolean) "bool"]

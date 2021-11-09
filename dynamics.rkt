@@ -36,7 +36,7 @@
      (tuple-syntax v ...)
      (set-syntax v ...)
      (dict-syntax [v v] ...)
-     (def ρ (x ...) d- s)
+     (def ρ (x ...) d- s-)
      (class (l ...) ([string l] ...) ...)
      ;; the string case is for builtin_function_or_method. We don't really
      ;; need this because c includes string
@@ -53,7 +53,8 @@
   ;; at runtime immediate values can go into expressions.
   (e- .... v ☠
       (let ([x e-]) e-)
-      (escape ρ s-))
+      (enter ρ s-)
+      (leave ρ s-))
   (s- .... (error))
   ;; expression contexts
   (E hole
@@ -73,7 +74,7 @@
      (let ([x E]) e-)
      (check-isinstance! E e-)
      (check-isinstance! v E)
-     (escape ρ S))
+     (leave ρ S))
   ;; statement contexts
   (S hole
      (define/assign x E)
@@ -410,80 +411,89 @@
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (dynamic-attribute int "__add__")))
             (term ((base-Σ) (base-ρ) (ref "float.__add__")))))
-
+(define-metafunction SP-dynamics
+  do-if : h e- e- -> e-
+  [(do-if h_cnd e-_thn e-_els)
+   e-_els
+   (where #t (falsy h_cnd))]
+  [(do-if h_cnd e-_thn e-_els)
+   e-_thn])
+(define-metafunction SP-dynamics
+  do-app : Σ v v ... -> (Σ e-)
+  [(do-app Σ (ref l_fun) v_arg ...)
+   (Σ ☠)
+   (where ("function" (def ρ (x_arg ...) (x_lcl ...) s-))
+          (lookup-Σ Σ l_fun))
+   (where #f (= (len (v_arg ...)) (len (x_arg ...))))]
+  [(do-app Σ_1 (ref l_fun) v_arg ...)
+   (Σ_2
+    (enter ρ_2 (begin
+                 (define/assign x_arg v_arg)
+                 ...
+                 s-)))
+   (where ("function" (def ρ_1 (x_arg ...) (x_lcl ...) s-))
+          (lookup-Σ Σ_1 l_fun))
+   (where (Σ_2 ρ_2) (declare Σ_1 ρ_1 x_lcl ...))]
+  [(do-app Σ_1 (ref l_prc) v_arg ...)
+   (Σ_2 e-_ret)
+   (where ("primitive_operator" string) (lookup-Σ Σ_1 l_prc))
+   (where (Σ_2 e-_ret) (delta Σ_1 string v_arg ...))]
+  [(do-app Σ (ref l_prc) v_arg ...)
+   (Σ ((dynamic-attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...))
+   (where ("type" g) (lookup-Σ Σ l_prc))]
+  [(do-app Σ (ref l_prc) v_arg ...)
+   (Σ ((ref l_mth) (ref l_slf) v_arg ...))
+   (where ("method" (l_mth l_slf)) (lookup-Σ Σ l_prc))])
 (define e→e
   (reduction-relation
    SP-dynamics
    #:domain (Σ ρ e-)
-   (--> (in-hole (Σ ρ E) c)
+   [--> (in-hole (Σ ρ E) c)
         (in-hole (Σ ρ E) (ref (con c)))
-        "constant")
-   (--> (in-hole (Σ ρ E) x)
+        "constant"]
+   [--> (in-hole (Σ ρ E) x)
         (in-hole (Σ ρ E) (lookup Σ l))
         (where l (lookup ρ x))
-        "lookup")
-   (--> (in-hole (Σ_1 ρ E) (tuple-syntax v ...))
+        "lookup"]
+   [--> (in-hole (Σ_1 ρ E) (tuple-syntax v ...))
         (in-hole (Σ_2 ρ E) (ref l))
         (where (Σ_2 l) (alloc Σ_1 ("tuple" (tuple-syntax v ...))))
-        "tuple")
-   (--> (in-hole (Σ_1 ρ E) (set-syntax v ...))
+        "tuple"]
+   [--> (in-hole (Σ_1 ρ E) (set-syntax v ...))
         (in-hole (Σ_2 ρ E) (ref l))
         (where (Σ_2 l) (alloc Σ_1 ("set" (set-syntax v ...))))
-        "set")
-   (--> (in-hole (Σ_1 ρ E) (dict-syntax [v_key v_val] ...))
+        "set"]
+   [--> (in-hole (Σ_1 ρ E) (dict-syntax [v_key v_val] ...))
         (in-hole (Σ_2 ρ E) (ref l))
         (where (Σ_2 l) (alloc Σ_1 ("dict" (dict-syntax [v_key v_val] ...))))
-        "dict")
-   (--> (in-hole (Σ ρ E) (is v_1 v_2))
-        (in-hole (Σ ρ E) (= v_1 v_2))
-        "is")
-   (--> (in-hole (Σ ρ E) (is-not v_1 v_2))
-        (in-hole (Σ ρ E) (≠ v_1 v_2))
-        "is-not")
-   (--> (in-hole (Σ ρ E) (if (ref l) e-_thn e-_els))
-        (in-hole (Σ ρ E) e-_thn)
-        (where h (lookup-Σ Σ l))
-        (where #f (falsy h))
-        "if truthy")
-   (--> (in-hole (Σ ρ E) (if (ref l) e-_thn e-_els))
-        (in-hole (Σ ρ E) e-_els)
-        (where h (lookup-Σ Σ l))
-        (where #t (falsy h))
-        "if falsy")
-   (--> (in-hole (Σ_1 ρ E) (dynamic-attribute v_map string))
+        "dict"]
+   [--> (in-hole (Σ ρ E) (is v_1 v_2))
+        (in-hole (Σ ρ E) (ref (con (= v_1 v_2))))
+        "is"]
+   [--> (in-hole (Σ ρ E) (is-not v_1 v_2))
+        (in-hole (Σ ρ E) (ref (con (≠ v_1 v_2))))
+        "is-not"]
+   [--> (in-hole (Σ ρ E) (if (ref l_cnd) e-_thn e-_els))
+        (in-hole (Σ ρ E) (do-if (lookup-Σ Σ l_cnd) e-_thn e-_els))
+        "if"]
+   [--> (in-hole (Σ_1 ρ E) (dynamic-attribute v_map string))
         (in-hole (Σ_2 ρ E) r_val)
         (where (Σ_2 r_val) (get-attr Σ_1 v_map string))
-        "dynamic-attribute")
-   (--> (in-hole (Σ_1 ρ_1 E) ((ref l_fun) v_arg ...))
-        (in-hole (Σ_2 ρ_3 E) (escape ρ_1 (begin
-                                           (define/assign x_arg v_arg)
-                                           ...
-                                           s)))
-        (where ("function" (def ρ_2 (x_arg ...) ([x_lcl D] ...) s))
-               (lookup-Σ Σ_1 l_fun))
-        (where (Σ_2 ρ_3) (declare Σ_1 ρ_2 x_arg ... x_lcl ...))
-        "function call")
-   (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ ρ E) ((dynamic-attribute (ref l_prc) "__new__") (ref l_prc) v_arg ...))
-        (where ("type" g) (lookup-Σ Σ l_prc))
-        "class call")
-   (--> (in-hole (Σ_1 ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ_2 ρ E) e-_ret)
-        (where ("primitive_operator" string) (lookup-Σ Σ_1 l_prc))
-        (where (Σ_2 e-_ret) (delta Σ_1 string v_arg ...))
-        "primitive_operator")
-   (--> (in-hole (Σ ρ E) ((ref l_prc) v_arg ...))
-        (in-hole (Σ ρ E) ((ref l_mth) (ref l_slf) v_arg ...))
-        (where ("method" (l_mth l_slf)) (lookup-Σ Σ l_prc))
-        "method call")
-   (--> (in-hole (Σ_1 ρ_1 E) (let ([x v]) e-))
-        (in-hole (Σ_2 ρ_2 E) (escape ρ_1 (return e-)))
+        "dynamic-attribute"]
+   [--> (in-hole (Σ_1 ρ E) (let ([x v]) e-))
+        (in-hole (Σ_2 ρ E) (enter (extend ρ [x l]) (return e-)))
         (where (Σ_2 l) (alloc Σ_1 v))
-        (where ρ_2 (extend ρ_1 [x l]))
-        "let")
-   (--> (in-hole (Σ ρ_1 E) (escape ρ_2 (return v)))
+        "let"]
+   [--> (in-hole (Σ ρ_1 E) (enter ρ_2 s-))
+        (in-hole (Σ ρ_2 E) (leave ρ_1 s-))
+        "enter"]
+   [--> (in-hole (Σ ρ_1 E) (leave ρ_2 (return v)))
         (in-hole (Σ ρ_2 E) v)
-        "escape")
+        "leave"]
+   [--> (in-hole (Σ_1 ρ E) (v_fun v_arg ...))
+        (in-hole (Σ_2 ρ E) e-_ret)
+        (where (Σ_2 e-_ret) (do-app Σ_1 v_fun v_arg ...))
+        "procedure call / function application / function call"]
    [--> (in-hole (Σ_1 ρ E) (check-isinstance! v_ins v_cls))
         (in-hole (Σ_2 ρ E) v_ins)
         (where (Σ_2 (ref (con #t))) (delta Σ_1 "isinstance" v_ins v_cls))
@@ -513,10 +523,10 @@
         (in-hole (Σ_2 ρ S) (begin))
         (where Σ_2 (update Σ_1 [(lookup ρ x) v]))
         "define/assign x"]
-   [--> (in-hole (Σ_1 ρ S) (def x ([x_arg t_arg] ...) t_ret d- s-))
+   [--> (in-hole (Σ_1 ρ S) (def x_fun ([x_arg t_arg] ...) t_ret d- s-))
         (in-hole (Σ_3 ρ S) (begin))
         (where (Σ_2 l_fun) (alloc Σ_1 ("function" (def ρ (x_arg ...) d- s-))))
-        (where l_x (lookup ρ x))
+        (where l_x (lookup ρ x_fun))
         (where Σ_3 (update Σ_2 [l_x (ref l_fun)]))
         "def"]
    [--> (in-hole (Σ_1 ρ S) (class x ((ref l) ...) m- ...))

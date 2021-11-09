@@ -14,7 +14,7 @@
   ;; statements
   (s- (define/assign x e-)
       ;   (define/assign (attribute e string) t e)
-      (def x ([x t] ...) t d s)
+      (def x ([x e-] ...) e- d- s-)
       ;   (class x (t ...) m ...)
       ;   (if e s s)
       (begin s- ...)
@@ -57,7 +57,7 @@
 (define-metafunction SP-compiled
   compile-program : program -> program-
   [(compile-program (import-type ... d s))
-   (import-type ... (compile-d d) (compile-s Ψ_2 Γ_5 Γ_5 ☠ s))
+   (import-type ... (compile-d d) (compile-s Ψ_2 Γ_5 Γ_5 ☠ None s))
    (where Ψ_1 (base-Ψ))
    (where Γ_1 (base-Γ))
    (where Γ_2 (collect-imports Γ_1 import-type ...))
@@ -83,43 +83,60 @@
   #:contract (checkable-type T)
 
   [-------------------------------------
+   (checkable-type dynamic)]
+
+  [-------------------------------------
    (checkable-type (instancesof cid))])
 
 (define-metafunction SP-compiled
   maybe-check-isinstance! : Ψ (e- T) T e- -> e-
-  [(maybe-check-isinstance! Ψ (e-_ins T_src) T_tgt e-_cls)
+  [(maybe-check-isinstance! Ψ (e-_ins T_src) T_tgt e-_tgt)
    e-_ins
    (where #t (= (union Ψ T_src T_tgt) T_tgt))]
-  [(maybe-check-isinstance! Ψ (e-_ins T_src) T_tgt e-_cls)
-   (check-isinstance! e-_ins e-_cls)])
+  [(maybe-check-isinstance! Ψ (e-_ins T_src) T_tgt e-_tgt)
+   (check-isinstance! e-_ins e-_tgt)
+   (judgment-holds (checkable-type T_tgt))])
 
 (define-metafunction SP-compiled
-  compile-s : Ψ Γ Γ T+☠ s -> s-
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (define/assign x t e))
+  compile-s : Ψ Γ Γ T+☠ e- s -> s-
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- (define/assign x t e))
    (define/assign x
      (maybe-check-isinstance!
       Ψ
       (compile-e Ψ Γ_dcl Γ_lcl e)
       T
-      (get-e (compile-e Ψ Γ_dcl Γ_lcl t))))
+      (compile-t t)))
    (judgment-holds (evalo Ψ Γ_lcl t T))]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (def x ([x_arg t_arg] ...) t_ret d_1 s))
-   (def x ([x_arg t_arg] ...) t_ret d_2 (compile-s Ψ Γ_bdy Γ_bdy T_ret s))
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- (def x ([x_arg t_arg] ...) t_ret d s))
+   (def x ([x_arg (compile-t t_arg)] ...) (compile-t t_ret)
+     (compile-d d)
+     (compile-s Ψ Γ_bdy Γ_bdy T_ret (compile-t t_ret) s))
    (judgment-holds (evalo Ψ Γ_dcl t_ret T_ret))
-   (where d_2 (extend d_1 [x_arg t_arg] ...))
-   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d_2))
+   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d))
    (judgment-holds (evalD* Ψ Γ_dcl (D_var ...) (T_var ...)))
    (where Γ_bdy (extend Γ_dcl [x_cls dynamic] ... [x_var T_var] ...))]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (begin s ...))
-   (begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ s) ...)]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (expr e))
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- (begin s ...))
+   (begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ e- s) ...)]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- (expr e))
    (expr (get-e (compile-e Ψ Γ_dcl Γ_lcl e)))]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (return e))
-   (return (get-e (compile-e Ψ Γ_dcl Γ_lcl e)))]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (assert e))
+  [(compile-s Ψ Γ_dcl Γ_lcl T_ret e-_ret (return e))
+   (return (maybe-check-isinstance! Ψ (compile-e Ψ Γ_dcl Γ_lcl e) T_ret e-_ret))]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- (assert e))
    (assert (get-e (compile-e Ψ Γ_dcl Γ_lcl e)))]
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ pass)
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ e- pass)
    pass])
+
+(define-metafunction SP-compiled
+  compile-t : t -> e-
+  [(compile-t x) x]
+  [(compile-t dynamic) (ref "object")]
+  [(compile-t None) None]
+  [(compile-t ((attribute x string) (tuple-syntax t ...)))
+   ((dynamic-attribute x string) (tuple-syntax (compile-t t) ...))]
+  [(compile-t ((attribute x string) t))
+   ((dynamic-attribute x string) (compile-t t))]
+  ;; we are not going to check this at runtime, so the result can be anything
+  [(compile-t (or-syntax t_1 t_2)) (ref "object")])
 
 (define-metafunction SP-compiled
   compile-e : Ψ Γ Γ e -> (e- T)

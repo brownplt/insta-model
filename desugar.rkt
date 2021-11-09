@@ -19,6 +19,7 @@
   ;; statements
   (s (define/assign x t e)
      (define/assign (attribute e string) t e)
+     ;; the d also includes arguments
      (def x ([x t] ...) t d s)
      (class x (t ...) m ...)
      (if e s s)
@@ -233,7 +234,7 @@
   [(desugar-s (class x (t+ ...) m+ ...))
    (class x ((desugar-t t+) ...) (desugar-m m+) ...)]
   [(desugar-s (def x ([x_arg t+_arg] ...) t+_ret s+))
-   (def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims s) s)
+   (def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
    (where s (desugar-s s+))]
   [(desugar-s (claim x e+))
    (claim x (desugar-e e+))]
@@ -275,7 +276,7 @@
   [(desugar-m (field string t+))
    (field string (desugar-t t+))]
   [(desugar-m (method string x_slf ([x_arg t+_arg] ...) t+_ret s+))
-   (method string x_slf ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims s) s)
+   (method string x_slf ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
    (where s (desugar-s s+))])
 
 (module+ test

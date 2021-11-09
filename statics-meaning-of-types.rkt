@@ -63,7 +63,7 @@
 (module+ test
   (check-judgment-holds*
    (evalo (base-Ψ) (base-Γ) dynamic dynamic)
-   (evalo (base-Ψ) (base-Γ) None (instancesof "None"))
+   (evalo (base-Ψ) (base-Γ) None (instancesof "NoneType"))
    (evalo (base-Ψ) (extend (base-Γ) [CheckedDict (prim-generic "CheckedDict")])
           ((attribute CheckedDict "__getitem__") (tuple-syntax str int))
           (instancesof ("CheckedDict" "str" "int")))
@@ -83,7 +83,7 @@
    (evalo Ψ Γ dynamic dynamic)]
 
   [------------------------- "None"
-   (evalo Ψ Γ None (instancesof "None"))]
+   (evalo Ψ Γ None (instancesof "NoneType"))]
 
   [(lookupo Γ x (prim-generic "Callable"))
    (evalo Ψ Γ t_arg T_arg) ...
@@ -133,12 +133,12 @@
   (check-judgment-holds*
    (Ψ⊢cid<:cid () "int" "float")
    (Ψ⊢cid<:cid () "bool" "float")
-   (Ψ⊢cid<:cid () "None" "object")
-   (Ψ⊢cid<:cid () "None" "None"))
+   (Ψ⊢cid<:cid () "NoneType" "object")
+   (Ψ⊢cid<:cid () "NoneType" "NoneType"))
   (check-not-judgment-holds*
    (Ψ⊢cid<:cid () "float" "int")
    (Ψ⊢cid<:cid () "float" "bool")
-   (Ψ⊢cid<:cid () "object" "None")))
+   (Ψ⊢cid<:cid () "object" "NoneType")))
 (define-judgment-form SP-statics
   #:mode (Ψ⊢cid<:cid I I I)
   #:contract (Ψ⊢cid<:cid Ψ cid cid)
@@ -168,7 +168,7 @@
    ;; optional types
    (Ψ⊢T≲T (base-Ψ) (instancesof "int") ("optional" "int"))
    (Ψ⊢T≲T (base-Ψ) (instancesof "int") ("optional" "float"))
-   (Ψ⊢T≲T (base-Ψ) (instancesof "None") ("optional" "int"))
+   (Ψ⊢T≲T (base-Ψ) (instancesof "NoneType") ("optional" "int"))
    (Ψ⊢T≲T (base-Ψ) ("optional" "int") ("optional" "float"))
    (Ψ⊢T≲T (base-Ψ) ("optional" "int") (instancesof "object")))
   (check-not-judgment-holds*
@@ -211,9 +211,9 @@
    (Ψ⊢T≲T Ψ T ("optional" cid))]
   
   [------------------------ "Optional[cid]-R2"
-   (Ψ⊢T≲T Ψ (instancesof "None") ("optional" cid))]
+   (Ψ⊢T≲T Ψ (instancesof "NoneType") ("optional" cid))]
 
-  [(Ψ⊢T≲T Ψ (instancesof "None") T)
+  [(Ψ⊢T≲T Ψ (instancesof "NoneType") T)
    (Ψ⊢T≲T Ψ (instancesof cid) T)
    ------------------------ "Optional[cid]-L"
    (Ψ⊢T≲T Ψ ("optional" cid) T)]
@@ -232,13 +232,13 @@
               (term (instancesof "float")))
   (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "str")))
               (term dynamic))
-  (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "None")))
+  (test-equal (term (union (base-Ψ) (instancesof "int") (instancesof "NoneType")))
               (term ("optional" "int")))
-  (test-equal (term (union (base-Ψ) (instancesof "None") (instancesof "int")))
+  (test-equal (term (union (base-Ψ) (instancesof "NoneType") (instancesof "int")))
               (term ("optional" "int")))
-  (test-equal (term (union (base-Ψ) (instancesof "None") ("optional" "int")))
+  (test-equal (term (union (base-Ψ) (instancesof "NoneType") ("optional" "int")))
               (term ("optional" "int")))
-  (test-equal (term (union (base-Ψ) ("optional" "int") (instancesof "None")))
+  (test-equal (term (union (base-Ψ) ("optional" "int") (instancesof "NoneType")))
               (term ("optional" "int")))
   (test-equal (term (union (base-Ψ) ("optional" "int") ("optional" "float")))
               (term ("optional" "float"))))
@@ -253,15 +253,15 @@
   [(union Ψ (instancesof cid_1) (instancesof cid_2))
    (instancesof cid_1)
    (judgment-holds (Ψ⊢cid<:cid Ψ cid_2 cid_1))]
-  [(union Ψ (instancesof cid) (instancesof "None"))
+  [(union Ψ (instancesof cid) (instancesof "NoneType"))
    ("optional" cid)]
-  [(union Ψ (instancesof "None") (instancesof cid))
+  [(union Ψ (instancesof "NoneType") (instancesof cid))
    ("optional" cid)]
   [(union Ψ (instancesof cid_1) (instancesof cid_2)) dynamic]
-  [(union Ψ ("optional" cid) (instancesof "None")) ("optional" cid)]
-  [(union Ψ (instancesof "None") ("optional" cid)) ("optional" cid)]
+  [(union Ψ ("optional" cid) (instancesof "NoneType")) ("optional" cid)]
+  [(union Ψ (instancesof "NoneType") ("optional" cid)) ("optional" cid)]
   [(union Ψ ("optional" cid_1) ("optional" cid_2))
-   (union Ψ (instancesof "None") (union Ψ (instancesof cid_1) (instancesof cid_2)))]
+   (union Ψ (instancesof "NoneType") (union Ψ (instancesof cid_1) (instancesof cid_2)))]
   [(union Ψ T_1 T_2) dynamic])
 
 (module+ test
@@ -269,8 +269,8 @@
               (term (instancesof "int")))
   (test-equal (term (intersection (base-Ψ) ("optional" "int") (instancesof "int")))
               (term (instancesof "int")))
-  (test-equal (term (intersection (base-Ψ) ("optional" "int") (instancesof "None")))
-              (term (instancesof "None")))
+  (test-equal (term (intersection (base-Ψ) ("optional" "int") (instancesof "NoneType")))
+              (term (instancesof "NoneType")))
   (test-equal (term (intersection (base-Ψ) ("optional" "int") ("optional" "float")))
               (term ("optional" "int")))
   (test-equal (term (intersection (base-Ψ) dynamic (instancesof ("CheckedDict" "str" "int"))))
@@ -286,28 +286,28 @@
   [(intersection Ψ (instancesof cid_1) (instancesof cid_2))
    (instancesof cid_2)
    (judgment-holds (Ψ⊢cid<:cid Ψ cid_2 cid_1))]
-  [(intersection Ψ ("optional" cid) (instancesof "None")) (instancesof "None")]
-  [(intersection Ψ (instancesof "None") ("optional" cid)) (instancesof "None")]
+  [(intersection Ψ ("optional" cid) (instancesof "NoneType")) (instancesof "NoneType")]
+  [(intersection Ψ (instancesof "NoneType") ("optional" cid)) (instancesof "NoneType")]
   [(intersection Ψ ("optional" cid_1) (instancesof cid_2))
    (intersection Ψ (instancesof cid_1) (instancesof cid_2))]
   [(intersection Ψ (instancesof cid_1) ("optional" cid_2))
    (intersection Ψ (instancesof cid_1) (instancesof cid_2))]
   [(intersection Ψ ("optional" cid_1) ("optional" cid_2))
-   (union Ψ (instancesof "None") T)
+   (union Ψ (instancesof "NoneType") T)
    (where T (intersection Ψ (instancesof cid_1) (instancesof cid_2)))]
   [(intersection Ψ T_1 T_2) ☠])
 
 (module+ test
   (test-equal (term (remove-None ("optional" "int")))
               (term (instancesof "int")))
-  (test-equal (term (remove-None (instancesof "None")))
+  (test-equal (term (remove-None (instancesof "NoneType")))
               (term dynamic))
   (test-equal (term (remove-None (instancesof "int")))
               (term (instancesof "int"))))
 (define-metafunction SP-statics
   remove-None : T -> T
   [(remove-None ("optional" cid)) (instancesof cid)]
-  [(remove-None (instancesof "None")) dynamic]  ;; If we want to be pedantic, should be bottom
+  [(remove-None (instancesof "NoneType")) dynamic]  ;; If we want to be pedantic, should be bottom
   [(remove-None T) T])
 
 (module+ test
@@ -317,7 +317,7 @@
   (test-match SP-statics C (term (lookup-class () "int")))
   (test-match SP-statics C (term (lookup-class () "bool")))
   (test-match SP-statics C (term (lookup-class () "str")))
-  (test-match SP-statics C (term (lookup-class () "None")))
+  (test-match SP-statics C (term (lookup-class () "NoneType")))
   (test-match SP-statics C (term (lookup-class () "dict")))
   (test-match SP-statics C (term (lookup-class () "set")))
   (test-match SP-statics C (term (lookup-class () ("CheckedDict" "str" "int")))))
@@ -329,7 +329,7 @@
    (class object
      ☠
      ()
-     (("__init__" () (instancesof "None"))))]
+     (("__init__" () (instancesof "NoneType"))))]
   [(lookup-class Ψ "type")
    (class type "object" () ())]
   [(lookup-class Ψ "float")
@@ -362,15 +362,15 @@
      ()
      (("__init__" ([☠ dynamic]) dynamic)
       ("__getitem__" ([☠ dynamic]) dynamic)
-      ("__setitem__" ([☠ dynamic] [☠ dynamic]) (instancesof "None"))
-      ("__delitem__" ([☠ dynamic]) (instancesof "None"))))]
+      ("__setitem__" ([☠ dynamic] [☠ dynamic]) (instancesof "NoneType"))
+      ("__delitem__" ([☠ dynamic]) (instancesof "NoneType"))))]
   [(lookup-class Ψ "set")
    (class dict "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
       ("__contains__" ([☠ dynamic]) (instancesof "bool"))))]
-  [(lookup-class Ψ "None")
-   (class None "object" () ())]
+  [(lookup-class Ψ "NoneType")
+   (class NoneType "object" () ())]
   [(lookup-class Ψ ("CheckedDict" cid_key cid_val))
    (class ("CheckedDict" cid_key cid_val)
      "object"
@@ -379,9 +379,9 @@
       ("__getitem__" ([☠ (instancesof cid_key)]) (instancesof cid_val))
       ("__setitem__" ([☠ (instancesof cid_key)]
                       [☠ (instancesof cid_val)])
-                     (instancesof "None"))
+                     (instancesof "NoneType"))
       ("__delitem__" ([☠ (instancesof cid_key)])
-                     (instancesof "None"))))]
+                     (instancesof "NoneType"))))]
   ;; lookup user-defined classes
   [(lookup-class Ψ number)
    (lookup Ψ number)])
@@ -417,7 +417,7 @@
 (define-metafunction SP-statics
   lookup-member : Ψ T string -> T+☠
   ;; TODO: this looks a bit too ad hoc ...
-  [(lookup-member Ψ (instancesof "None") string) ☠]
+  [(lookup-member Ψ (instancesof "NoneType") string) ☠]
   [(lookup-member Ψ (instancesof cid) string)
    T_mem
    (where C (lookup-class Ψ cid))
