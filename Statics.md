@@ -8,7 +8,6 @@ The empty program should type check.
 
 - [empty_program.py](conformance_suite/empty_program.py)
 
-
 ## Base Types
 
 `bool` is inhabitable.
@@ -34,7 +33,7 @@ The empty program should type check.
 - [optional_is_inhabitable_1.py](conformance_suite/optional_is_inhabitable_1.py)
 - [optional_is_inhabitable_2.py](conformance_suite/optional_is_inhabitable_2.py)
 
-TODO: more optional tests.
+TODO: more `optional` tests.
 
 ## PyDict
 
@@ -92,6 +91,20 @@ Updating a `CheckedDict[T0, T1]` checks the value.
 Deleting `CheckedDict[T0, T1]` entries checks the key.
 - [CheckedDict_delete_neg.py](conformance_suite/CheckedDict_delete_neg.py)
 - [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
+
+## Procedures
+
+Procedure check arity
+
+- [procedure_check_arity_statically.py](conformance_suite/procedure_check_arity_statically.py)
+
+Procedure check argument types.
+
+- [procedure_check_argument_type_statically.py](conformance_suite/procedure_check_argument_type_statically.py)
+
+Procedure check return types.
+
+- [procedure_check_return_type_statically.py](conformance_suite/procedure_check_return_type_statically.py)
 
 ## Classes
 

@@ -100,14 +100,38 @@ After updating, looking up the key should give the new value.
 
 - [CheckedDict_update_then_lookup.py](conformance_suite/CheckedDict_update_then_lookup.py)
 
-CheckedDict checks
+CheckedDicts check inputs.
 
 - [CheckedDict_from_nondict.py](conformance_suite/CheckedDict_from_nondict.py)
 - [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
+
+CheckedDicts check keys.
+
 - [CheckedDict_lookup_checks_keys.py](conformance_suite/CheckedDict_lookup_checks_keys.py)
 - [CheckedDict_update_checks_keys.py](conformance_suite/CheckedDict_update_checks_keys.py)
 - [CheckedDict_delete_checks_keys.py](conformance_suite/CheckedDict_delete_checks_keys.py)
+
+CheckedDicts check new values.
+
 - [CheckedDict_update_checks_values.py](conformance_suite/CheckedDict_update_checks_values.py)
+
+## Procedure
+
+Procedures work.
+
+- [procedure_works.py](conformance_suite/procedure_works.py)
+
+Procedures check arity.
+
+- [procedure_check_arity_dynamically.py](conformance_suite/procedure_check_arity_dynamically.py)
+
+Procedures check argument types.
+
+- [procedure_check_argument_type_dynamically.py](conformance_suite/procedure_check_argument_type_dynamically.py)
+
+Procedures check return types.
+
+- [procedure_check_return_type_dynamically.py](conformance_suite/procedure_check_return_type_dynamically.py)
 
 
 ## Runtime Checks

@@ -245,6 +245,27 @@
 ;; conformance_suite/override_instance_method_with_field.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class C (object) (method "x" self () dynamic pass)) (class D (C) (field "x" int))))))
 
+;; conformance_suite/procedure_check_argument_type_dynamically.py
+(check-judgment-holds* (⊢p (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (def f ((x int)) dynamic (begin pass)) (expr (f (asDyn "foo")))))))
+
+;; conformance_suite/procedure_check_argument_type_statically.py
+(check-not-judgment-holds* (⊢p (desugar-program ((def f ((x int)) dynamic (begin pass)) (expr (f "foo"))))))
+
+;; conformance_suite/procedure_check_arity_dynamically.py
+(check-judgment-holds* (⊢p (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (def f ((x dynamic) (y dynamic)) dynamic (begin pass)) (expr ((asDyn f) 2))))))
+
+;; conformance_suite/procedure_check_arity_statically.py
+(check-not-judgment-holds* (⊢p (desugar-program ((def f ((x dynamic) (y dynamic)) dynamic (begin pass)) (expr (f 2))))))
+
+;; conformance_suite/procedure_check_return_type_dynamically.py
+(check-judgment-holds* (⊢p (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (def f () str (begin (return (asDyn 2)))) (expr (f))))))
+
+;; conformance_suite/procedure_check_return_type_statically.py
+(check-not-judgment-holds* (⊢p (desugar-program ((def f () str (begin (return 2)))))))
+
+;; conformance_suite/procedure_works.py
+(check-judgment-holds* (⊢p (desugar-program ((def f ((x int) (y dynamic)) dynamic (begin (return (bin-op - y x)))) (assert (is (f 2 3) 1))))))
+
 ;; conformance_suite/redeclare_var_flatten_if.py
 (check-not-judgment-holds* (⊢p (desugar-program ((if #t (begin (define/assign x dynamic 2)) (begin (define/assign x int 3)))))))
 

@@ -111,6 +111,18 @@
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x int 42))))))
 
+;; conformance_suite/procedure_check_argument_type_dynamically.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (def f ((x int)) dynamic (begin pass)) (expr (f (asDyn "foo"))))))))
+
+;; conformance_suite/procedure_check_arity_dynamically.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (def f ((x dynamic) (y dynamic)) dynamic (begin pass)) (expr ((asDyn f) 2)))))))
+
+;; conformance_suite/procedure_check_return_type_dynamically.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (def f () str (begin (return (asDyn 2)))) (expr (f)))))))
+
+;; conformance_suite/procedure_works.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((def f ((x int) (y dynamic)) dynamic (begin (return (bin-op - y x)))) (assert (is (f 2 3) 1)))))))
+
 ;; conformance_suite/upcast_bool_to_float.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((define/assign x bool #t) (define/assign y float x))))))
 

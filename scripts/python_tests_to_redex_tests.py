@@ -174,6 +174,8 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.Add):
         return symbol('+')
+    elif isinstance(node, ast.Sub):
+        return symbol('-')
     elif isinstance(node, ast.USub):
         return symbol('-')
     elif isinstance(node, ast.FunctionDef):
