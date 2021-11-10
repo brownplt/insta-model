@@ -27,19 +27,24 @@
       (assert e-)
       )
 
+  ;; heap labels
+  (l ;; special heap addresses reserved by builtins
+   builtin)
+  ;; builtin constructs
+  (builtin string
+           (con c)
+           (checked-dict l l)
+           (attribute builtin string))
+
   ;   (m (field string t)
   ;      (method string x ([x t] ...) t d s))
 
-  ;   ;; type expression
-  ;   (t dynamic
-  ;      None ;; nonterminal x doesn't cover this because we mentioned None in c
-  ;      ((attribute x string) (tuple-syntax t ...))
-  ;      ((attribute x string) t)
-  ;      (or-syntax t t)
-  ;      x)
+  ;; values are just heap addresses
+  (v (ref l))
 
   (e- x
       c
+      v
       (tuple-syntax e- ...)
       (set-syntax e- ...)
       (dict-syntax [e- e-] ...)
@@ -88,14 +93,29 @@
   [-------------------------------------
    (checkable-type (instancesof cid))])
 
+(define-judgment-form SP-compiled
+  #:mode (Ψ⊢T<:T I I I)
+  #:contract (Ψ⊢T<:T Ψ T T)
+  [(where #t (= (union Ψ T_src T_tgt) T_tgt))
+   --------------------
+   (Ψ⊢T<:T Ψ T_src T_tgt)])
+
 (define-metafunction SP-compiled
   maybe-check-isinstance! : Ψ (e- T) T e- -> e-
   [(maybe-check-isinstance! Ψ (e-_ins T_src) T_tgt e-_tgt)
    e-_ins
-   (where #t (= (union Ψ T_src T_tgt) T_tgt))]
+   (judgment-holds (Ψ⊢T<:T Ψ T_src T_tgt))]
   [(maybe-check-isinstance! Ψ (e-_ins T_src) T_tgt e-_tgt)
    (check-isinstance! e-_ins e-_tgt)
    (judgment-holds (checkable-type T_tgt))])
+
+(define-metafunction SP-compiled
+  maybe-check-isinstance-with-T! : Ψ (e- T) T -> e-
+  [(maybe-check-isinstance-with-T! Ψ (e-_ins T_src) T_tgt)
+   e-_ins
+   (judgment-holds (Ψ⊢T<:T Ψ T_src T_tgt))]
+  [(maybe-check-isinstance-with-T! Ψ (e-_ins T_src) T_tgt)
+   (check-isinstance! e-_ins (ref (l-of-builtin-class T_tgt)))])
 
 (define-metafunction SP-compiled
   compile-s : Ψ Γ Γ T+☠ e- s -> s-
@@ -138,13 +158,26 @@
   ;; we are not going to check this at runtime, so the result can be anything
   [(compile-t (or-syntax t_1 t_2)) (ref "object")])
 
+(module+ test
+  (test-equal (term (compile-e (base-Ψ)
+                               (extend (base-Γ) [cd (instancesof ("CheckedDict" (instancesof "int")
+                                                                                (instancesof "str")))])
+                               (extend (base-Γ) [cd (instancesof ("CheckedDict" (instancesof "int")
+                                                                                (instancesof "str")))])
+                               ((attribute cd "__setitem__") 2 "def")))
+              (term [((ref (attribute (checked-dict "int" "str") "__setitem__"))
+                      cd
+                      (ref (con 2))
+                      (ref (con "def")))
+                     (instancesof "NoneType")]))
+  )
 (define-metafunction SP-compiled
   compile-e : Ψ Γ Γ e -> (e- T)
   [(compile-e Ψ Γ_dcl Γ_lcl x)
    (x T)
    (where T (lookup Γ_lcl x))]
   [(compile-e Ψ Γ_dcl Γ_lcl c)
-   (c (instancesof (type-of-c c)))]
+   ((ref (con c)) (instancesof (type-of-c c)))]
   [(compile-e Ψ Γ_dcl Γ_lcl (set-syntax e ...))
    ((set-syntax (get-e (compile-e Ψ Γ_dcl Γ_lcl e)) ...)
     (instancesof "set"))]
@@ -166,9 +199,49 @@
         (get-e (compile-e Ψ Γ_dcl Γ_lcl e_els)))
     dynamic)]
   [(compile-e Ψ Γ_dcl Γ_lcl (attribute e string))
-   ;; TODO optimization
    ((dynamic-attribute (get-e (compile-e Ψ Γ_dcl Γ_lcl e)) string)
     dynamic)]
+  [(compile-e Ψ Γ_dcl Γ_lcl ((attribute e_obj string_mth) e_arg ...))
+   [((ref (attribute l_cls string_mth)) e-_obj (maybe-check-isinstance-with-T! Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...)
+    T_ret]
+   (where [e-_obj T_obj] (compile-e Ψ Γ_dcl Γ_lcl e_obj))
+   (judgment-holds (is-builtin-class T_obj))
+   (where l_cls (l-of-builtin-class T_obj))
+   (where (-> ([x+☠_prm T_arg] ...) T_ret) (lookup-member Ψ T_obj string_mth))
+   (where #t (= (len (T_arg ...)) (len (e_arg ...))))]
   [(compile-e Ψ Γ_dcl Γ_lcl (e_fun e_arg ...))
    (((get-e (compile-e Ψ Γ_dcl Γ_lcl e_fun)) (get-e (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...)
     dynamic)])
+
+
+(define-metafunction SP-compiled
+  l-of-builtin-class : T -> l
+  [(l-of-builtin-class (instancesof string))
+   string]
+  [(l-of-builtin-class (instancesof ("CheckedDict" T_key T_val)))
+   (checked-dict (l-of-builtin-class T_key)
+                 (l-of-builtin-class T_val))])
+
+(define-judgment-form SP-compiled
+  #:mode (is-builtin-class I)
+  #:contract (is-builtin-class T)
+
+  ;; basically, primitive-cid recursively.
+  
+  [----------------------------------
+   (is-builtin-class (instancesof string))]
+
+  [(is-builtin-class T_key)
+   (is-builtin-class T_val)
+   ----------------------------------
+   (is-builtin-class (instancesof ("CheckedDict" T_key T_val)))])
+
+(define-metafunction SP-compiled
+  compile-e* : Ψ Γ Γ e ... -> ([e- T] ...)
+  [(compile-e* Ψ Γ_dcl Γ_lcl) ()]
+  [(compile-e* Ψ Γ_dcl Γ_lcl e_1 e_2 ...)
+   ([e-_1 T_1] [e-_2 T_2] ...)
+   (where [e-_1 T_1]
+          (compile-e Ψ Γ_dcl Γ_lcl e_1))
+   (where ([e-_2 T_2] ...)
+          (compile-e* Ψ Γ_dcl Γ_lcl e_2 ...))])

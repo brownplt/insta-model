@@ -14,14 +14,7 @@
   ;; heaps map addresses (heap labels) to values
   (Σ ([number h+☠] ...))
   ;; heap labels
-  (l number
-     ;; special heap addresses reserved by builtins
-     builtin)
-  ;; builtin constructs
-  (builtin string
-           (con c)
-           (checked-dict l l)
-           (attribute builtin string))
+  (l .... number)
   ;; heap values
   ;; According to Python's Data model: "every object has an identity,
   ;; a type and a value"
@@ -43,13 +36,10 @@
      (method l l)
      ;; general purpose objects
      ([string l] ...))
-  ;; values are just heap addresses
-  (v (ref l))
   ;; results are values or (error)
   (r v ☠)
   ;; at runtime immediate values can go into expressions.
   (e- ....
-      v
       ☠
       (let ([x e-]) e-)
       (enter ρ s-)
