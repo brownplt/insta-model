@@ -131,6 +131,48 @@
 ;; conformance_suite/procedure_works.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def f ((x int) (y dynamic)) dynamic (begin (return (bin-op - y x)))) (assert (is (f 2 3) 1))))))))
 
+;; conformance_suite/test_compile_dict_setitem.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (1 "abc")))) (expr ((attribute x "__setitem__") 2 "def")) (return x)))))))))
+
+;; conformance_suite/test_generic_method_ret_type.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (define/assign MAP (subscript CheckedDict (tuple-syntax str (subscript Optional str))) ((subscript CheckedDict (tuple-syntax str (subscript Optional str))) (dict-syntax ("abc" "foo") ("bar" None)))) (def f ((x str)) (subscript Optional str) (begin (return ((attribute MAP "get") x))))))))))
+
+;; conformance_suite/test_inline_recursive.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("inline")) (def f ((x dynamic) (y dynamic)) dynamic (begin (return (f x y)))) (def g () dynamic (begin (return (f 1 2))))))))))
+
+;; conformance_suite/test_invoke_all_extra_args.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)) g)))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6 7))))))))))
+
+;; conformance_suite/test_invoke_all_reg_args.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7))))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6))))))))))
+
+;; conformance_suite/test_invoke_chkdict_method.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (def dict--maker () (subscript CheckedDict (tuple-syntax int int)) (begin (return ((subscript CheckedDict (tuple-syntax int int)) (dict-syntax (2 2)))))) (def func () dynamic (begin (define/assign a dynamic (dict--maker)) (return ((attribute a "keys")))))))))))
+
+;; conformance_suite/test_invoke_int_method.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def func () dynamic (begin (define/assign a dynamic 42) (return ((attribute a "bit_length")))))))))))
+
+;; conformance_suite/test_invoke_str_method.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def func () dynamic (begin (define/assign a dynamic "a b c") (return ((attribute a "split")))))))))))
+
+;; conformance_suite/test_invoke_str_method_arg.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def func () dynamic (begin (define/assign a dynamic "a b c") (return ((attribute a "split") "a"))))))))))
+
+;; conformance_suite/test_invoke_strict_module_deep.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def f0 () dynamic (begin (return 42))) (def f1 () dynamic (begin (return (f0)))) (def f2 () dynamic (begin (return (f1)))) (def f3 () dynamic (begin (return (f2)))) (def f4 () dynamic (begin (return (f3)))) (def f5 () dynamic (begin (return (f4)))) (def f6 () dynamic (begin (return (f5)))) (def f7 () dynamic (begin (return (f6)))) (def f8 () dynamic (begin (return (f7)))) (def f9 () dynamic (begin (return (f8)))) (def f10 () dynamic (begin (return (f9)))) (def f11 () dynamic (begin (return (f10)))) (def g () dynamic (begin (return (f11))))))))))
+
+;; conformance_suite/test_invoke_strict_module_deep_unjitable_many_args.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def f0 () dynamic (begin (return 42))) (def f1 ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic) (h dynamic)) dynamic (begin (class C (object)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (f0) a) b) c) d) e) f) g) h) 4)))) (def f2 () dynamic (begin (return (f1 1 2 3 4 5 6 7 8)))) (def f3 () dynamic (begin (return (f2)))) (def f4 () dynamic (begin (return (f3)))) (def f5 () dynamic (begin (return (f4)))) (def f6 () dynamic (begin (return (f5)))) (def f7 () dynamic (begin (return (f6)))) (def f8 () dynamic (begin (return (f7)))) (def f9 () dynamic (begin (return (f8)))) (def f10 () dynamic (begin (return (f9)))) (def f11 () dynamic (begin (return (f10)))) (def g () dynamic (begin (return (f11))))))))))
+
+;; conformance_suite/test_invoke_strict_module_mutual_recursive.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def fib1 ((number dynamic)) dynamic (begin (if (<= number 1) (begin (return number)) (begin)) (return (bin-op + (fib (bin-op - number 1)) (fib (bin-op - number 2)))))) (def fib ((number dynamic)) dynamic (begin (if (<= number 1) (begin (return number)) (begin)) (return (bin-op + (fib1 (bin-op - number 1)) (fib1 (bin-op - number 2))))))))))))
+
+;; conformance_suite/test_invoke_strict_module_pre_invoked.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def f () dynamic (begin (return 42))) (def g () dynamic (begin (return (f))))))))))
+
+;; conformance_suite/test_invoke_strict_module_recursive.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def fib ((number dynamic)) dynamic (begin (if (<= number 1) (begin (return number)) (begin)) (return (bin-op + (fib (bin-op - number 1)) (fib (bin-op - number 2))))))))))))
+
 ;; conformance_suite/upcast_bool_to_float.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((define/assign x bool #t) (define/assign y float x)))))))
 

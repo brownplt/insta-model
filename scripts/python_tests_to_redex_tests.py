@@ -6,6 +6,7 @@ from typing import List, Union
 class symbol(str):
     pass
 
+
 class string(str):
     pass
 
@@ -305,22 +306,25 @@ def python_file_to_sexp(test_file):
 def parse_python_file(test_file):
     print("Working on " + test_file)
     name = test_file
-    head = open(test_file).readlines()[1:3]
+    head = open(test_file).readlines()[1:4]
     prog = python_file_to_sexp(test_file)
     if head[0] == '# This should pass.\n':
-        spec = {'compile': True}
+        spec = {'compile': True, 'optimized': False}
         if head[1] == '# This should terminate.\n':
             spec['run'] = True
+            if len(head) >= 3 and head[2] == '# This should be optimized.\n':
+                spec['optimized'] = True
         elif head[1] == '# This should error.\n':
             spec['run'] = False
         else:
             assert not head[1].startswith('# ')
             spec['run'] = None
     elif head[0] == '# This should fail.\n':
-        spec = {'compile': False}
+        spec = {'compile': False, 'optimized': False}
     else:
         assert False, repr(head)
-    return name, spec, prog
+    source = open(test_file).readlines()
+    return name, spec, prog, source
 
 
 def python_file_to_redex_desugar_test(spec, prog):
@@ -407,6 +411,24 @@ def python_file_to_redex_dynamic_test(spec, prog):
     ]
 
 
+def python_file_to_redex_optimization_test(spec, prog):
+    return [
+        symbol('test-match'),
+        symbol('SP-compiled'),
+        symbol('any'),
+        [
+            symbol('term'),
+            [
+                symbol('compile-program'),
+                [
+                    symbol('desugar-program'),
+                    prog
+                ]
+            ]
+        ]
+    ]
+
+
 def sexp_to_str(sexp):
     if isinstance(sexp, list):
         return '(' + ' '.join(map(sexp_to_str, sexp)) + ')'
@@ -429,6 +451,7 @@ path_to_test_desugar = './test-desugar.rkt'
 path_to_test_statics = './test-statics.rkt'
 path_to_test_compile = './test-compile.rkt'
 path_to_test_dynamics = './test-dynamics.rkt'
+path_to_test_optimize = './test-optimize-template.rkt'
 
 
 def main():
@@ -447,7 +470,7 @@ def main():
             '(require redex)',
             ''
         ]))
-        for name, spec, prog in parsed_test_files:
+        for name, spec, prog, source in parsed_test_files:
             test = python_file_to_redex_desugar_test(spec, prog)
             f.write('\n')
             f.write(';; ' + name + '\n')
@@ -464,7 +487,7 @@ def main():
             '(require "statics.rkt")',
             ''
         ]))
-        for name, spec, prog in parsed_test_files:
+        for name, spec, prog, source in parsed_test_files:
             test = python_file_to_redex_static_test(spec, prog)
             f.write('\n')
             f.write(';; ' + name + '\n')
@@ -479,7 +502,7 @@ def main():
             '(require "compile.rkt")',
             ''
         ]))
-        for name, spec, prog in parsed_test_files:
+        for name, spec, prog, source in parsed_test_files:
             if spec['compile'] and (spec['run'] is not None):
                 test = python_file_to_redex_compile_test(spec, prog)
                 f.write('\n')
@@ -497,12 +520,37 @@ def main():
             '(require "dynamics.rkt")',
             ''
         ]))
-        for name, spec, prog in parsed_test_files:
+        for name, spec, prog, source in parsed_test_files:
             if spec['compile'] and (spec['run'] is not None):
                 test = python_file_to_redex_dynamic_test(spec, prog)
                 f.write('\n')
                 f.write(';; ' + name + '\n')
                 f.write(sexp_to_str(test))
+                f.write('\n')
+    # output test_optimize.rkt
+    with open(path_to_test_optimize, 'w') as f:
+        f.write('\n'.join([
+            '#lang racket',
+            '(require redex)',
+            '(require redex-abbrevs)',
+            '(require "desugar.rkt")',
+            '(require "compile.rkt")',
+            '',
+            '(define-language Matcher',
+            '  (Any hole',
+            '  (any ... Any any ...)))',
+            ''
+        ]))
+        for name, spec, prog, source in parsed_test_files:
+            if spec['optimized']:
+                test = python_file_to_redex_optimization_test(spec, prog)
+                f.write('\n')
+                f.write(';; ' + name + '\n')
+                f.write(sexp_to_str(test))
+                f.write('\n')
+                f.write('#|\n')
+                f.writelines(source[4:])
+                f.write('|#\n')
                 f.write('\n')
 
 

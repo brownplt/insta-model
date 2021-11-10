@@ -1,6 +1,6 @@
 # test_invoke_all_extra_args.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 def target(a, b, c, d, e, f, g):

@@ -1,6 +1,6 @@
 # test_invoke_strict_module_mutual_recursive.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 def fib1(number):

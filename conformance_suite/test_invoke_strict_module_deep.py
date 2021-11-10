@@ -1,6 +1,6 @@
 # test_invoke_strict_module_deep.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 def f0(): return 42

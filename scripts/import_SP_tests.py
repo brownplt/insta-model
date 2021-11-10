@@ -184,7 +184,7 @@ def translate_optimization_test(test: str):
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
-        '',
+        '# This should terminate.',
         '# This should be optimized.',
         '',
         ''

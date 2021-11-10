@@ -1,6 +1,6 @@
 # test_invoke_strict_module_recursive.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 def fib(number):

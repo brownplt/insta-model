@@ -1,6 +1,6 @@
 # test_invoke_int_method.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 def func():

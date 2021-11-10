@@ -1,6 +1,6 @@
 # test_generic_method_ret_type.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 from __static__ import CheckedDict

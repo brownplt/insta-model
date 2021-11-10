@@ -1,6 +1,6 @@
 # test_invoke_str_method_arg.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 def func():

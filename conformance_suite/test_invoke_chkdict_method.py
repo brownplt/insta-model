@@ -1,6 +1,6 @@
 # test_invoke_chkdict_method.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 from __static__ import CheckedDict

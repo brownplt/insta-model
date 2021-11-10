@@ -1,6 +1,6 @@
 # test_inline_recursive.py
 # This should pass.
-
+# This should terminate.
 # This should be optimized.
 
 from __static__ import inline
