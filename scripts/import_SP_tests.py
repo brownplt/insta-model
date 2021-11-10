@@ -137,7 +137,7 @@ def translate_less_simple_compile_test(test: str):
     #             self.compile(codestr)
     code, spec = parse_simple_test(test)
 
-    # TODO
+    # TODO This is also a contruct that we might want to support
     assert not 'with' in code
 
     assert isinstance(spec, ast.With)
@@ -166,9 +166,36 @@ def translate_less_simple_compile_test(test: str):
     return (name, content)
 
 
+def translate_optimization_test(test: str):
+    # Capture tests that look like
+    #     def test_name(self) -> None:
+    #         codestr = """
+    #             some code
+    #         """
+    #         with ....:
+    #             ....
+    code, spec = parse_simple_test(test)
+
+    assert 'assertInBytecode' in test
+    assert 'INVOKE_FUNCTION' in test
+
+    assert isinstance(spec, ast.With)
+
+    content = '\n'.join([
+        '# {}.py'.format(name),
+        '# This should pass.',
+        '',
+        '# This should be optimized.',
+        '',
+        ''
+    ]) + code
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
+    return (name, content)
+
+
 for test in read_tests(input_file):
     # These are tests that we don't care
-    if 'Final[' in test: continue
     if 'reveal_type' in test: continue 
     if 'nonlocal' in test: continue
     if 'global' in test: continue
@@ -182,6 +209,9 @@ for test in read_tests(input_file):
     if 'Array' in test: continue
     if '*args' in test: continue
     if 'xxclassloader' in test: continue
+    if 'await' in test: continue
+    if '@_donotcompile' in test: continue
+    if '__setattr__' in test: continue
 
     lines = test.split('\n')
     first_line = lines[0]
@@ -202,9 +232,11 @@ for test in read_tests(input_file):
     try:
         # TODO: these are tests that we care but don't support right now.
         assert not 'while' in test
+        assert not 'raise' in test
         assert not 'for ' in test
         assert not '@staticmethod' in test
         assert not '@final' in test
+        assert not 'Final[' in test
         assert not 'assign_chained' in name
         assert not 'chain_assign' in name
         assert not 'chained_assign' in name
@@ -222,19 +254,30 @@ for test in read_tests(input_file):
     # There files should be working
     try:
         (name, content) = translate_simple_compile_test(test)
+        output_path = output_path_prefix + name + ".py"
+        output_file = open(output_path, 'w')
+        output_file.write(content)
+        continue
     except AssertionError:
         # continue
         try:
             (name, content) = translate_less_simple_compile_test(test)
-        except Exception:
-            print(test)
-            print('-' * 10)
-            print("SKIPPED", name)
-            skipped_tests_path = skipped_tests_path_prefix + name + ".py"
-            skipped_tests_file = open(skipped_tests_path, 'w')
-            skipped_tests_file.write(test)
+            output_path = output_path_prefix + name + ".py"
+            output_file = open(output_path, 'w')
+            output_file.write(content)
             continue
-    output_path = output_path_prefix + name + ".py"
-    output_file = open(output_path, 'w')
-    output_file.write(content)
-    
+        except Exception:
+            try:
+                (name, content) = translate_optimization_test(test)
+                output_path = output_path_prefix + name + ".py"
+                output_file = open(output_path, 'w')
+                output_file.write(content)
+                continue
+            except Exception:
+                print(test)
+                print('-' * 10)
+                print("SKIPPED", name)
+                skipped_tests_path = skipped_tests_path_prefix + name + ".py"
+                skipped_tests_file = open(skipped_tests_path, 'w')
+                skipped_tests_file.write(test)
+                continue

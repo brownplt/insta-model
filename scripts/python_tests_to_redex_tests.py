@@ -6,7 +6,6 @@ from typing import List, Union
 class symbol(str):
     pass
 
-
 class string(str):
     pass
 
@@ -172,6 +171,8 @@ def ast_to_sexp(node):
             ast_to_sexp(node.left),
             ast_to_sexp(node.right)
         ]
+    elif isinstance(node, ast.Mult):
+        return symbol('*')
     elif isinstance(node, ast.Add):
         return symbol('+')
     elif isinstance(node, ast.Sub):
@@ -235,6 +236,8 @@ def ast_to_sexp(node):
         return symbol('in')
     elif isinstance(node, ast.Gt):
         return symbol('>')
+    elif isinstance(node, ast.LtE):
+        return symbol('<=')
     elif isinstance(node, ast.Eq):
         return symbol('==')
     elif isinstance(node, ast.IfExp):
@@ -410,7 +413,7 @@ def sexp_to_str(sexp):
     elif isinstance(sexp, bool):
         return '#t' if sexp else '#f'
     elif isinstance(sexp, symbol):
-        return sexp
+        return sexp.replace('_', '--')
     elif isinstance(sexp, string):
         return '"' + repr(sexp)[1:-1] + '"'
     elif isinstance(sexp, int):

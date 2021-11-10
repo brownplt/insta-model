@@ -162,7 +162,9 @@
   [(method-name >=) "__ge__"]
   [(method-name <=) "__le__"]
   [(method-name +) "__add__"]
-  [(method-name -) "__sub__"])
+  [(method-name -) "__sub__"]
+  [(method-name *) "__mul__"]
+  [(method-name /) "__div__"])
 
 (module+ test
   (test-equal (term (desugar-e xyz))

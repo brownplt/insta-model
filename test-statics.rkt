@@ -347,6 +347,9 @@
 ;; conformance_suite/test_compile_dict_setdefault_typed.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (42 "abc")))) (define/assign y (or-syntax str None) ((attribute x "setdefault") 100 "foo"))))))))
 
+;; conformance_suite/test_compile_dict_setitem.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax int str)) (dict-syntax (1 "abc")))) (expr ((attribute x "__setitem__") 2 "def")) (return x)))))))
+
 ;; conformance_suite/test_compile_generic_dict_getitem_bad_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (def testfunc () dynamic (begin (define/assign x dynamic ((subscript CheckedDict (tuple-syntax str int)) (dict-syntax ("abc" 42)))) (return (subscript x 42))))))))
 
@@ -367,6 +370,9 @@
 
 ;; conformance_suite/test_frozenset_constant.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def i ((s str)) bool (begin (return (in i (set-syntax "a" "b"))))) (def t () bool (begin (return (i "p"))))))))
+
+;; conformance_suite/test_generic_method_ret_type.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (define/assign MAP (subscript CheckedDict (tuple-syntax str (subscript Optional str))) ((subscript CheckedDict (tuple-syntax str (subscript Optional str))) (dict-syntax ("abc" "foo") ("bar" None)))) (def f ((x str)) (subscript Optional str) (begin (return ((attribute MAP "get") x))))))))
 
 ;; conformance_suite/test_if_else_optional.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (class C (object) (method "__init__" self () dynamic (define/assign (attribute self "field") dynamic self))) (def g ((x C)) dynamic (begin pass)) (def f ((x (subscript Optional C)) (y (subscript Optional C))) dynamic (begin (if (is x None) (begin (define/assign x dynamic y) (if (is x None) (begin (return None)) (begin (return (g x))))) (begin (return (g x)))) (return None)))))))
@@ -410,8 +416,44 @@
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class A (object) (method "m" self () str (return "hello"))) (class B (A) (method "m" self () int (return 0)))))))
 
+;; conformance_suite/test_inline_recursive.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def f ((x dynamic) (y dynamic)) dynamic (begin (return (f x y)))) (def g () dynamic (begin (return (f 1 2))))))))
+
 ;; conformance_suite/test_inline_return_type_mismatch.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def f () int (begin (return 1))) (def g () str (begin (return (f))))))))
+
+;; conformance_suite/test_invoke_all_extra_args.py
+(check-judgment-holds* (⊢p (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)) g)))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6 7))))))))
+
+;; conformance_suite/test_invoke_all_reg_args.py
+(check-judgment-holds* (⊢p (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7))))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6))))))))
+
+;; conformance_suite/test_invoke_chkdict_method.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (def dict--maker () (subscript CheckedDict (tuple-syntax int int)) (begin (return ((subscript CheckedDict (tuple-syntax int int)) (dict-syntax (2 2)))))) (def func () dynamic (begin (define/assign a dynamic (dict--maker)) (return ((attribute a "keys")))))))))
+
+;; conformance_suite/test_invoke_int_method.py
+(check-judgment-holds* (⊢p (desugar-program ((def func () dynamic (begin (define/assign a dynamic 42) (return ((attribute a "bit_length")))))))))
+
+;; conformance_suite/test_invoke_str_method.py
+(check-judgment-holds* (⊢p (desugar-program ((def func () dynamic (begin (define/assign a dynamic "a b c") (return ((attribute a "split")))))))))
+
+;; conformance_suite/test_invoke_str_method_arg.py
+(check-judgment-holds* (⊢p (desugar-program ((def func () dynamic (begin (define/assign a dynamic "a b c") (return ((attribute a "split") "a"))))))))
+
+;; conformance_suite/test_invoke_strict_module_deep.py
+(check-judgment-holds* (⊢p (desugar-program ((def f0 () dynamic (begin (return 42))) (def f1 () dynamic (begin (return (f0)))) (def f2 () dynamic (begin (return (f1)))) (def f3 () dynamic (begin (return (f2)))) (def f4 () dynamic (begin (return (f3)))) (def f5 () dynamic (begin (return (f4)))) (def f6 () dynamic (begin (return (f5)))) (def f7 () dynamic (begin (return (f6)))) (def f8 () dynamic (begin (return (f7)))) (def f9 () dynamic (begin (return (f8)))) (def f10 () dynamic (begin (return (f9)))) (def f11 () dynamic (begin (return (f10)))) (def g () dynamic (begin (return (f11))))))))
+
+;; conformance_suite/test_invoke_strict_module_deep_unjitable_many_args.py
+(check-judgment-holds* (⊢p (desugar-program ((def f0 () dynamic (begin (return 42))) (def f1 ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic) (h dynamic)) dynamic (begin (class C (object)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (f0) a) b) c) d) e) f) g) h) 4)))) (def f2 () dynamic (begin (return (f1 1 2 3 4 5 6 7 8)))) (def f3 () dynamic (begin (return (f2)))) (def f4 () dynamic (begin (return (f3)))) (def f5 () dynamic (begin (return (f4)))) (def f6 () dynamic (begin (return (f5)))) (def f7 () dynamic (begin (return (f6)))) (def f8 () dynamic (begin (return (f7)))) (def f9 () dynamic (begin (return (f8)))) (def f10 () dynamic (begin (return (f9)))) (def f11 () dynamic (begin (return (f10)))) (def g () dynamic (begin (return (f11))))))))
+
+;; conformance_suite/test_invoke_strict_module_mutual_recursive.py
+(check-judgment-holds* (⊢p (desugar-program ((def fib1 ((number dynamic)) dynamic (begin (if (<= number 1) (begin (return number)) (begin)) (return (bin-op + (fib (bin-op - number 1)) (fib (bin-op - number 2)))))) (def fib ((number dynamic)) dynamic (begin (if (<= number 1) (begin (return number)) (begin)) (return (bin-op + (fib1 (bin-op - number 1)) (fib1 (bin-op - number 2))))))))))
+
+;; conformance_suite/test_invoke_strict_module_pre_invoked.py
+(check-judgment-holds* (⊢p (desugar-program ((def f () dynamic (begin (return 42))) (def g () dynamic (begin (return (f))))))))
+
+;; conformance_suite/test_invoke_strict_module_recursive.py
+(check-judgment-holds* (⊢p (desugar-program ((def fib ((number dynamic)) dynamic (begin (if (<= number 1) (begin (return number)) (begin)) (return (bin-op + (fib (bin-op - number 1)) (fib (bin-op - number 2))))))))))
 
 ;; conformance_suite/test_module_level_final_decl.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (claim x Final)))))
