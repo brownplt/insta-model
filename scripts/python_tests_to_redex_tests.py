@@ -1,15 +1,10 @@
 import ast
 from os import error
 from typing import List, Union
+from sexp import string, symbol as sexp_symbol, str_of_sexp
 
-
-class symbol(str):
-    pass
-
-
-class string(str):
-    pass
-
+def symbol(s):
+    return sexp_symbol(s.replace('_', '--'))
 
 def expr_to_type(expr: ast.expr):
     if expr is None:
@@ -460,30 +455,6 @@ def python_file_to_redex_optimization_test(spec, prog):
         ]
     ]
 
-
-def sexp_to_str(sexp):
-    def sexp_to_str(sexp):
-        if isinstance(sexp, list):
-            return '(' + ' '.join(map(sexp_to_str, sexp)) + ')'
-        elif isinstance(sexp, bool):
-            return '#t' if sexp else '#f'
-        elif isinstance(sexp, symbol):
-            return sexp.replace('_', '--')
-        elif isinstance(sexp, string):
-            return '"' + repr(sexp)[1:-1] + '"'
-        elif isinstance(sexp, int):
-            return str(sexp)
-        elif isinstance(sexp, float):
-            return str(sexp)
-        else:
-            assert False, "Can't deal with {}".format(repr(sexp))
-    try:
-        return sexp_to_str(sexp)
-    except AssertionError as e:
-        print(str(sexp))
-        raise e
-
-
 path_to_conformance_suite = 'conformance_suite'
 path_to_test_desugar = './test-desugar.rkt'
 path_to_test_statics = './test-statics.rkt'
@@ -512,7 +483,7 @@ def main():
             test = python_file_to_redex_desugar_test(spec, prog)
             f.write('\n')
             f.write(';; ' + name + '\n')
-            f.write(sexp_to_str(test))
+            f.write(str_of_sexp(test))
             f.write('\n')
     # output test_statics.rkt
     with open(path_to_test_statics, 'w') as f:
@@ -529,7 +500,7 @@ def main():
             test = python_file_to_redex_static_test(spec, prog)
             f.write('\n')
             f.write(';; ' + name + '\n')
-            f.write(sexp_to_str(test))
+            f.write(str_of_sexp(test))
             f.write('\n')
     # output test_compile.rkt
     with open(path_to_test_compile, 'w') as f:
@@ -545,7 +516,7 @@ def main():
                 test = python_file_to_redex_compile_test(spec, prog)
                 f.write('\n')
                 f.write(';; ' + name + '\n')
-                f.write(sexp_to_str(test))
+                f.write(str_of_sexp(test))
                 f.write('\n')
     # output test_dynamics.rkt
     with open(path_to_test_dynamics, 'w') as f:
@@ -563,7 +534,7 @@ def main():
                 test = python_file_to_redex_dynamic_test(spec, prog)
                 f.write('\n')
                 f.write(';; ' + name + '\n')
-                f.write(sexp_to_str(test))
+                f.write(str_of_sexp(test))
                 f.write('\n')
     # output test_optimize.rkt
     with open(path_to_test_optimize, 'w') as f:
@@ -584,7 +555,7 @@ def main():
                 test = python_file_to_redex_optimization_test(spec, prog)
                 f.write('\n')
                 f.write(';; ' + name + '\n')
-                f.write(sexp_to_str(test))
+                f.write(str_of_sexp(test))
                 f.write('\n')
                 f.write('#|\n')
                 f.writelines(source[4:])
