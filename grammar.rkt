@@ -6,15 +6,8 @@
 (define-language SP
 
   ;; program
-  (program+
-   (import-from-item+ ...
-    s+ ...))
+  (program+ (s+ ...))
 
-  ;; imports
-  (import-from-item+ 
-    (import-from string (x ...))
-    (import-from string (*)))
-  
   ;; constants
   (c number
      boolean
@@ -32,45 +25,61 @@
 
   ;; unary-op
   (o1 - not)
-  
+
   ;; expressions
   (e+ x
-      c
-      (tuple-syntax e+ ...)
-      (set-syntax e+ ...)
-      (dict-syntax [e+ e+] ...)
+      (con c)
+      (tuple-syntax (e+ ...))
+      (set-syntax (e+ ...))
+      (dict-syntax ([e+ e+] ...))
       (if-exp e+ e+ e+)
-      (attribute e+ string)
-      (call e+ e+ ...)
-      (reveal-type any ... e+)
+      (attribute e+ x)
+      (call e+ (e+ ...))
       (subscript e+ e+)
       (bin-op o2 e+ e+)
-      (bool-op ob e+ ...)
+      (bool-op ob (e+ ...))
       (unary-op o1 e+)
-      (lambda ([x t+] ...) e+)
-      (compare e+ ([oc e+] ...)))
+      (compare e+ ([oc e+] ...))
+      (lambda ([x t+] ...) e+))
 
   ;; type expression
   (t+ dynamic e+)
-  
-  ;; targets of assignment
-  (target x
-          (attribute e+ string)
-          (subscript e+ e+)
-          (tuple-syntax target ...))
-  
+
   ;; statements
   (s+ pass
       (expr e+)
       (return e+)
       (assert e+)
-      (if e+ [s+ ...] [s+ ...])
-      (delete target)
-      (ann-assign target t+)
-      (ann-assign target t+ e+)
-      (assign target e+)
+      (if e+ (s+ ...) (s+ ...))
+      (delete d-target)
+      (ann-assign aa-target t+)
+      (ann-assign aa-target t+ e+)
+      (assign a-target e+)
       (aug-assign e+ o2 e+)
-      (class x (e+ ...) s+ ...)
-      (function-def x ([x t+] ...) t+ s+ ...))
+      (class x (e+ ...) (s+ ...))
+      (function-def x ([x t+] ...) t+ (s+ ...))
+      (import-from x (x ...))
+      (import-from x (*)))
 
-  (x variable-not-otherwise-mentioned))
+  ;; targets of assignment,
+  ;;   which is a subset of e+
+  (a-target
+   x
+   (attribute e+ x)
+   (subscript e+ e+)
+   (tuple-syntax (a-target ...)))
+
+  ;; targets of ann-assign,
+  ;;   which is a subset of assign-target
+  (aa-target
+   x
+   (attribute e+ x))
+
+  ;; targets of deletion,
+  ;;   which is a subset of assign-target
+  (d-target
+   x
+   (attribute e+ x)
+   (subscript e+ e+))
+
+  (x string))

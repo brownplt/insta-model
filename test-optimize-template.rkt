@@ -9,7 +9,7 @@
   (any ... Any any ...)))
 
 ;; conformance_suite/test_augassign_inexact.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def something () dynamic (return 3)) (function-def t () dynamic (ann-assign a int (call something)) (assign b 0) (aug-assign b + a) (return b)))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "something" () dynamic ((return (con 3)))) (function-def "t" () dynamic ((ann-assign "a" "int" (call "something" ())) (assign "b" (con 0)) (aug-assign "b" + "a") (return "b"))))))))
 #|
 
 def something():
@@ -37,7 +37,7 @@ def t():
 
 
 ;; conformance_suite/test_compile_checked_dict_len.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (CheckedDict)) (function-def testfunc () dynamic (assign x (call (subscript CheckedDict (tuple-syntax int str)) (dict-syntax (1 "abc")))) (return (call len x))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (return (call "len" ("x"))))))))))
 #|
 
 from __static__ import CheckedDict
@@ -64,7 +64,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_compile_dict_setitem.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (CheckedDict)) (function-def testfunc () dynamic (assign x (call (subscript CheckedDict (tuple-syntax int str)) (dict-syntax (1 "abc")))) (expr (call (attribute x "__setitem__") 2 "def")) (return x)))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (expr (call (attribute "x" "__setitem__") ((con 2) (con "def")))) (return "x"))))))))
 #|
 
 from __static__ import CheckedDict
@@ -101,7 +101,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_compile_dict_setitem_subscr.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (CheckedDict)) (function-def testfunc () dynamic (assign x (call (subscript CheckedDict (tuple-syntax int str)) (dict-syntax (1 "abc")))) (assign (subscript x 2) "def") (return x)))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (assign (subscript "x" (con 2)) (con "def")) (return "x"))))))))
 #|
 
 from __static__ import CheckedDict
@@ -138,7 +138,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_compile_nested_class_in_fn.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def fn () dynamic (class C () (ann-assign c int 1)) (return (call C))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "fn" () dynamic ((class "C" () ((ann-assign "c" "int" (con 1)))) (return (call "C" ())))))))))
 #|
 
 def fn():
@@ -159,7 +159,7 @@ def fn():
 
 
 ;; conformance_suite/test_dict_invoke.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (pydict)) (function-def f ((x dynamic)) dynamic (ann-assign y pydict x) (return (call (attribute y "get") "foo"))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("pydict")) (function-def "f" (("x" dynamic)) dynamic ((ann-assign "y" "pydict" "x") (return (call (attribute "y" "get") ((con "foo")))))))))))
 #|
 
 from __static__ import pydict
@@ -181,7 +181,7 @@ def f(x):
 
 
 ;; conformance_suite/test_dict_invoke_ret.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (pydict)) (function-def g () dynamic (return None)) (function-def f ((x dynamic)) dynamic (ann-assign y pydict x) (assign z (call (attribute y "get") "foo")) (assign z None) (return z)))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("pydict")) (function-def "g" () dynamic ((return (con None)))) (function-def "f" (("x" dynamic)) dynamic ((ann-assign "y" "pydict" "x") (assign "z" (call (attribute "y" "get") ((con "foo")))) (assign "z" (con None)) (return "z"))))))))
 #|
 
 from __static__ import pydict
@@ -209,7 +209,7 @@ def f(x):
 
 
 ;; conformance_suite/test_final_constant_folding_disabled_on_nonfinals.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" (Final)) (ann-assign X str "omg") (function-def f () str (return (subscript X 1))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Final")) (ann-assign "X" "str" (con "omg")) (function-def "f" () "str" ((return (subscript "X" (con 1))))))))))
 #|
 
 from typing import Final
@@ -232,7 +232,7 @@ def f() -> str:
 
 
 ;; conformance_suite/test_generic_method_ret_type.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (CheckedDict)) (import-from "typing" (Optional)) (ann-assign MAP (subscript CheckedDict (tuple-syntax str (subscript Optional str))) (call (subscript CheckedDict (tuple-syntax str (subscript Optional str))) (dict-syntax ("abc" "foo") ("bar" None)))) (function-def f ((x str)) (subscript Optional str) (return (call (attribute MAP "get") x))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "str")))) ((dict-syntax (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))))
 #|
 
 from __static__ import CheckedDict
@@ -269,7 +269,7 @@ def f(x: str) -> Optional[str]:
 
 
 ;; conformance_suite/test_inline_nested.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (inline)) (function-def e ((x dynamic) (y dynamic)) dynamic (return (bin-op + x y))) (function-def f ((x dynamic) (y dynamic)) dynamic (return (call e x 3))) (function-def g () dynamic (return (call f 1 2))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2)))))))))))
 #|
 
 from __static__ import inline
@@ -301,7 +301,7 @@ def g():
 
 
 ;; conformance_suite/test_inline_nested_arg.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (inline)) (function-def e ((x dynamic) (y dynamic)) dynamic (return (bin-op + x y))) (function-def f ((x dynamic) (y dynamic)) dynamic (return (call e x 3))) (function-def g ((a dynamic) (b dynamic)) dynamic (return (call f a b))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" (("a" dynamic) ("b" dynamic)) dynamic ((return (call "f" ("a" "b"))))))))))
 #|
 
 from __static__ import inline
@@ -334,7 +334,7 @@ def g(a,b):
 
 
 ;; conformance_suite/test_inline_recursive.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (inline)) (function-def f ((x dynamic) (y dynamic)) dynamic (return (call f x y))) (function-def g () dynamic (return (call f 1 2))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "f" ("x" "y"))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2)))))))))))
 #|
 
 from __static__ import inline
@@ -359,7 +359,7 @@ def g():
 
 
 ;; conformance_suite/test_invoke_all_extra_args.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic)) dynamic (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)) g))) (function-def testfunc () dynamic (return (call target 1 2 3 4 5 6 7))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "target" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic)) dynamic ((return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * "a" (con 2)) (bin-op * "b" (con 3))) (bin-op * "c" (con 4))) (bin-op * "d" (con 5))) (bin-op * "e" (con 6))) (bin-op * "f" (con 7))) "g")))) (function-def "testfunc" () dynamic ((return (call "target" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7)))))))))))
 #|
 
 def target(a, b, c, d, e, f, g):
@@ -385,7 +385,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_invoke_all_reg_args.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic)) dynamic (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)))) (function-def testfunc () dynamic (return (call target 1 2 3 4 5 6))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "target" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic)) dynamic ((return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * "a" (con 2)) (bin-op * "b" (con 3))) (bin-op * "c" (con 4))) (bin-op * "d" (con 5))) (bin-op * "e" (con 6))) (bin-op * "f" (con 7)))))) (function-def "testfunc" () dynamic ((return (call "target" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6)))))))))))
 #|
 
 def target(a, b, c, d, e, f):
@@ -411,7 +411,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_invoke_chkdict_method.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" (CheckedDict)) (function-def dict-maker () (subscript CheckedDict (tuple-syntax int int)) (return (call (subscript CheckedDict (tuple-syntax int int)) (dict-syntax (2 2))))) (function-def func () dynamic (assign a (call dict-maker)) (return (call (attribute a "keys")))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple-syntax ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple-syntax ("int" "int"))) ((dict-syntax (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign "a" (call "dict_maker" ())) (return (call (attribute "a" "keys") ())))))))))
 #|
 
 from __static__ import CheckedDict
@@ -450,7 +450,7 @@ def func():
 
 
 ;; conformance_suite/test_invoke_int_method.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def func () dynamic (assign a 42) (return (call (attribute a "bit_length")))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "func" () dynamic ((assign "a" (con 42)) (return (call (attribute "a" "bit_length") ())))))))))
 #|
 
 def func():
@@ -472,7 +472,7 @@ def func():
 
 
 ;; conformance_suite/test_invoke_str_method_arg.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def func () dynamic (assign a "a b c") (return (call (attribute a "split") "a"))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "func" () dynamic ((assign "a" (con "a b c")) (return (call (attribute "a" "split") ((con "a")))))))))))
 #|
 
 def func():
@@ -494,7 +494,7 @@ def func():
 
 
 ;; conformance_suite/test_invoke_strict_module_deep.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f0 () dynamic (return 42)) (function-def f1 () dynamic (return (call f0))) (function-def f2 () dynamic (return (call f1))) (function-def f3 () dynamic (return (call f2))) (function-def f4 () dynamic (return (call f3))) (function-def f5 () dynamic (return (call f4))) (function-def f6 () dynamic (return (call f5))) (function-def f7 () dynamic (return (call f6))) (function-def f8 () dynamic (return (call f7))) (function-def f9 () dynamic (return (call f8))) (function-def f10 () dynamic (return (call f9))) (function-def f11 () dynamic (return (call f10))) (function-def g () dynamic (return (call f11))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" () dynamic ((return (call "f0" ())))) (function-def "f2" () dynamic ((return (call "f1" ())))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ())))))))))
 #|
 
 def f0(): return 42
@@ -537,7 +537,7 @@ def g():
 
 
 ;; conformance_suite/test_invoke_strict_module_deep_unjitable_many_args.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f0 () dynamic (return 42)) (function-def f1 ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic) (h dynamic)) dynamic (class C () pass) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (call f0) a) b) c) d) e) f) g) h) 4))) (function-def f2 () dynamic (return (call f1 1 2 3 4 5 6 7 8))) (function-def f3 () dynamic (return (call f2))) (function-def f4 () dynamic (return (call f3))) (function-def f5 () dynamic (return (call f4))) (function-def f6 () dynamic (return (call f5))) (function-def f7 () dynamic (return (call f6))) (function-def f8 () dynamic (return (call f7))) (function-def f9 () dynamic (return (call f8))) (function-def f10 () dynamic (return (call f9))) (function-def f11 () dynamic (return (call f10))) (function-def g () dynamic (return (call f11))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic) ("h" dynamic)) dynamic ((class "C" () (pass)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (call "f0" ()) "a") "b") "c") "d") "e") "f") "g") "h") (con 4))))) (function-def "f2" () dynamic ((return (call "f1" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7) (con 8)))))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ())))))))))
 #|
 
 def f0(): return 42
@@ -590,7 +590,7 @@ def g():
 
 
 ;; conformance_suite/test_invoke_strict_module_pre_invoked.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f () dynamic (return 42)) (function-def g () dynamic (return (call f))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))))))))
 #|
 
 def f():
@@ -618,7 +618,7 @@ def g():
 
 
 ;; conformance_suite/test_max.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f ((a int) (b int)) int (return (call max a b))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))))))))
 #|
 
 def f(a: int, b: int) -> int:
@@ -638,7 +638,7 @@ def f(a: int, b: int) -> int:
 
 
 ;; conformance_suite/test_max_stability.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f ((a int) (b int)) int (return (call max a b))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))))))))
 #|
 
 def f(a: int, b: int) -> int:
@@ -663,7 +663,7 @@ def f(a: int, b: int) -> int:
 
 
 ;; conformance_suite/test_method_prologue_no_annotation.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f ((x dynamic)) dynamic (return 42)))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("x" dynamic)) dynamic ((return (con 42)))))))))
 #|
 
 def f(x):
@@ -681,7 +681,7 @@ def f(x):
 
 
 ;; conformance_suite/test_min.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f ((a int) (b int)) int (return (call min a b))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))))))))
 #|
 
 def f(a: int, b: int) -> int:
@@ -701,7 +701,7 @@ def f(a: int, b: int) -> int:
 
 
 ;; conformance_suite/test_min_stability.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f ((a int) (b int)) int (return (call min a b))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))))))))
 #|
 
 def f(a: int, b: int) -> int:
@@ -726,7 +726,7 @@ def f(a: int, b: int) -> int:
 
 
 ;; conformance_suite/test_no_narrow_to_dynamic.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def f () dynamic (return 42)) (function-def g () dynamic (ann-assign x int 100) (assign x (call f)) (return (call (attribute x "bit_length")))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign "x" (call "f" ())) (return (call (attribute "x" "bit_length") ())))))))))
 #|
 
 def f():
@@ -755,7 +755,7 @@ def g():
 
 
 ;; conformance_suite/test_none_not.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def t () bool (assign x None) (if (unary-op not x) ((return #t)) ((return #f)))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "t" () "bool" ((assign "x" (con None)) (if (unary-op not "x") ((return (con #t))) ((return (con #f)))))))))))
 #|
 
 def t() -> bool:
@@ -781,7 +781,7 @@ def t() -> bool:
 
 
 ;; conformance_suite/test_package_no_parent.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((class C () (function-def f ((self dynamic)) dynamic (return 42))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))))))))
 #|
 
 class C:
@@ -803,7 +803,7 @@ class C:
 
 
 ;; conformance_suite/test_ret_type_cast.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" (Any)) (function-def testfunc ((x str) (y str)) bool (return (compare x ((== y))))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Any")) (function-def "testfunc" (("x" "str") ("y" "str")) "bool" ((return (compare "x" ((== "y")))))))))))
 #|
 
 from typing import Any
@@ -823,7 +823,7 @@ def testfunc(x: str, y: str) -> bool:
 
 
 ;; conformance_suite/test_unknown_isinstance_narrows.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" (Any)) (class C () (function-def --init-- ((self dynamic) (x str)) dynamic (ann-assign (attribute self "x") str x))) (function-def testfunc ((x dynamic)) dynamic (if (call isinstance x C) ((return (attribute x "x"))) ())))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))))) (function-def "testfunc" (("x" dynamic)) dynamic ((if (call "isinstance" ("x" "C")) ((return (attribute "x" "x"))) ()))))))))
 #|
 
 from typing import Any
@@ -850,7 +850,7 @@ def testfunc(x):
 
 
 ;; conformance_suite/test_unknown_isinstance_narrows_class_attr.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" (Any)) (class C () (function-def --init-- ((self dynamic) (x str)) dynamic (ann-assign (attribute self "x") str x)) (function-def f ((self dynamic) (other dynamic)) str (if (call isinstance other (attribute self "__class__")) ((return (attribute other "x"))) ()) (return ""))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "f" (("self" dynamic) ("other" dynamic)) "str" ((if (call "isinstance" ("other" (attribute "self" "__class__"))) ((return (attribute "other" "x"))) ()) (return (con "")))))))))))
 #|
 
 from typing import Any
@@ -883,7 +883,7 @@ class C:
 
 
 ;; conformance_suite/test_unknown_isinstance_narrows_class_attr_dynamic.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" (Any)) (class C () (function-def --init-- ((self dynamic) (x str)) dynamic (ann-assign (attribute self "x") str x)) (function-def f ((self dynamic) (other dynamic) (unknown dynamic)) dynamic (if (call isinstance other (attribute unknown "__class__")) ((return (attribute other "x"))) ()) (return ""))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "f" (("self" dynamic) ("other" dynamic) ("unknown" dynamic)) dynamic ((if (call "isinstance" ("other" (attribute "unknown" "__class__"))) ((return (attribute "other" "x"))) ()) (return (con "")))))))))))
 #|
 
 from typing import Any
@@ -912,7 +912,7 @@ class C:
 
 
 ;; conformance_suite/test_unknown_param_ann.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" (Any)) (class C () (function-def --init-- ((self dynamic) (x str)) dynamic (ann-assign (attribute self "x") str x)) (function-def --eq-- ((self dynamic) (other Any)) bool (return #f))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "__eq__" (("self" dynamic) ("other" "Any")) "bool" ((return (con #f)))))))))))
 #|
 
 from typing import Any

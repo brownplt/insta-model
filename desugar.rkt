@@ -6,22 +6,17 @@
 (define-extended-language SP-core SP
 
   ;; program
-  (program ((import-from-item ...) d s))
+  (program level)
 
-  ;; imports
-  (import-from-item
-   (import-from string x)
-   (import-from string *))
-
+  ;; expressions
   (e x
-     c
-     (tuple-syntax e ...)
-     (set-syntax e ...)
-     (dict-syntax [e e] ...)
+     (con c)
+     (tuple-syntax (e ...))
+     (set-syntax (e ...))
+     (dict-syntax ([e e] ...))
      (if-exp e e e)
      (attribute e x)
-     (call e e ...)
-     (reveal-type any ... e)
+     (call e (e ...))
      (ob e e)
      (not e)
      (is e e)
@@ -36,28 +31,44 @@
      (assert e)
      (begin s ...)
      (if e s s)
-     (delete target)
+     (delete x)
+     (delete (attribute e x))
+     (ann x t)
+     (ann (attribute e x) t)
      (ann-assign x t e)
      (ann-assign (attribute e x) t e)
-     (function-def x ([x t] ...) t d s)
-     (class x (e ...) [m ...]))
+     (function-def x ([x t] ...) t level)
+     (class x (e ...) (m ...))
+     ;; import should only appear at the global scope
+     (import-from x x))
 
   ;; class members
   (m (field x t)
      (field x t e)
-     (method x x ([x t] ...) t d s))
+     (method x x ([x t] ...) t level))
 
-  ;; declaration
-  (d ([x D] ...))
+  ;; (scope) level
+  (level (local ([x d] ...) s))
 
   ;; rhs of declaration
-  (D t
+  (d t
      (function-def ([x t] ...) t)
-     (class x (t ...) ([x D] ...))))
+     (class (e ...) ([x d] ...))
+     (import-from x x))
+
+  ;; "binary" operators that can be replaced with names,
+  ;;   which includes every o2 and some of oc
+  (o o2
+     < > == <= >=)
+
+  ;; utilities
+  (xd [x d])
+  (xd* ([x d] ...))
+  )
 
 
 ;; The remaining part of this file describe the desugaring process.
-;; Desugaring is context-insensitive -- it doesn't rely on the type of
+;; Desugaring is context-insensitive "__ __" doesn't rely on the type of
 ;; terms. This process remove three kinds of constructs:
 ;;   - operators (except is because they are primitive)
 ;;   - subscription
@@ -72,85 +83,100 @@
   [(append (any_1 ...) (any_2 ...))
    (any_1 ... any_2 ...)])
 
-(module+ test
-  (test-equal (term (lift-claims (ann-assign xyz int 42)))
-              (term ([xyz int])))
-  (test-equal (term (lift-claims (ann-assign (attribute objx "unknown") int 42)))
-              (term ()))
-  (test-equal (term (lift-claims (function-def func ([n int]) str () (return None))))
-              (term ([func (function-def ([n int]) str)])))
-  (test-equal (term (lift-claims (class MyClass (int str) ())))
-              (term ([MyClass (class MyClass (int str))])))
-  (test-equal (term (lift-claims (if (bool-op and 0 1)
-                                     (ann-assign x int 42)
-                                     (ann-assign y str "foo"))))
-              (term ([x int] [y str])))
-  (test-equal (term (lift-claims (begin (ann-assign x int 42)(ann-assign y str "foo"))))
-              (term ([x int] [y str])))
-  (test-equal (term (lift-claims (delete xyz)))
-              (term ()))
-  (test-equal (term (lift-claims (delete (attribute x "__class__"))))
-              (term ()))
-  (test-equal (term (lift-claims (return 42)))
-              (term ()))
-  (test-equal (term (lift-claims (expr "foo")))
-              (term ()))
-  (test-equal (term (lift-claims pass))
-              (term ()))
-  )
-(define-metafunction SP-core
-  lift-claims : s -> d
-  [(lift-claims s) (simplify-d (lift-claims-helper s))])
 
 (module+ test
-  (test-equal (term (simplify-d ()))
-              (term ()))
-  (test-equal (term (simplify-d ([x int] [x dynamic])))
-              (term ([x int])))
-  (test-equal (term (simplify-d ([x (function-def () int)] [x dynamic])))
-              (term ([x (function-def () int)]))))
-(define-metafunction SP-core
-  simplify-d : d -> d
-  ;; Remove later dynamic redeclaration because they are just mutation
-  [(simplify-d (any_1 ... [x D] any_2 ... [x dynamic] any_3 ...))
-   (simplify-d (any_1 ... [x D] any_2 ... any_3 ...))]
-  [(simplify-d d) d])
+  (test-equal (term (desugar-e "xyz"))
+              (term "xyz"))
+  (test-equal (term (desugar-e (con 42)))
+              (term (con 42)))
+  (test-equal (term (desugar-e (tuple-syntax ((con 2) (con 3)))))
+              (term (tuple-syntax ((con 2) (con 3)))))
+  (test-equal (term (desugar-e (set-syntax ((con 2) (con 3)))))
+              (term (set-syntax ((con 2) (con 3)))))
+  (test-equal (term (desugar-e (dict-syntax ([(con 2) (con 3)]))))
+              (term (dict-syntax ([(con 2) (con 3)]))))
+  (test-equal (term (desugar-e (if-exp (con 1) (con 2) (con 3))))
+              (term (if-exp (con 1) (con 2) (con 3))))
+  (test-equal (term (desugar-e (attribute "int" "__add__")))
+              (term (attribute "int" "__add__")))
+  (test-equal (term (desugar-e (call (con 1) [(con 2) (con 3)])))
+              (term (call (con 1) [(con 2) (con 3)])))
+  (test-equal (term (desugar-e (subscript (con 2) (con 3))))
+              (term (call (attribute (con 2) "__getitem__") ((con 3)))))
+  (test-equal (term (desugar-e (bin-op + (con 2) (con 3))))
+              (term (call (attribute (con 2) "__add__") ((con 3)))))
+  (test-equal (term (desugar-e (bool-op and [(con 2) (con 3) (con 4)])))
+              (term (and (con 2) (and (con 3) (con 4)))))
+  (test-equal (term (desugar-e (unary-op - (con 2))))
+              (term (call (attribute (con 2) "__neg__") ())))
+  (test-equal (term (desugar-e (compare (con 1) ([< (con 2)] [>= (con 3)]))))
+              (term (and (call (attribute (con 1) "__lt__") ((con 2)))
+                         (call (attribute (con 2) "__ge__") ((con 3)))))))
 
 (define-metafunction SP-core
-  lift-m : m -> [x t]
-  [(lift-m (field x t)) [x t]]
-  [(lift-m (field x t e)) [x t]]
-  [(lift-m (method x x_slf ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
-   [x (function-def ([x_arg t_arg] ...) t_ret)]])
-
+  desugar-e : e+ -> e
+  [(desugar-e x) x]
+  [(desugar-e (con c)) (con c)]
+  [(desugar-e (tuple-syntax (e+ ...)))
+   (tuple-syntax ((desugar-e e+) ...))]
+  [(desugar-e (set-syntax (e+ ...)))
+   (set-syntax ((desugar-e e+) ...))]
+  [(desugar-e (dict-syntax ([e+_key e+_val] ...)))
+   (dict-syntax ([(desugar-e e+_key) (desugar-e e+_val)] ...))]
+  [(desugar-e (if-exp e+_cnd e+_thn e+_els))
+   (if-exp (desugar-e e+_cnd) (desugar-e e+_thn) (desugar-e e+_els))]
+  [(desugar-e (attribute e+ x))
+   (attribute (desugar-e e+) x)]
+  [(desugar-e (call e+_fun (e+_arg ...)))
+   (call (desugar-e e+_fun) ((desugar-e e+_arg) ...))]
+  [(desugar-e (subscript e+_1 e+_2))
+   (desugar-subscript (desugar-e e+_1) (desugar-e e+_2))]
+  [(desugar-e (bin-op o2 e+_1 e+_2))
+   (call (attribute (desugar-e e+_1) (method-name o2)) ((desugar-e e+_2)))]
+  [(desugar-e (bool-op ob (e+ ...)))
+   (desugar-bool-op ob ((desugar-e e+) ...))]
+  [(desugar-e (unary-op o1 e+))
+   (desugar-unary-op o1 (desugar-e e+))]
+  [(desugar-e (compare e+_lft ([oc e+_rht] ...)))
+   (desugar-compare (desugar-e e+_lft) ([oc (desugar-e e+_rht)] ...))]
+  [(desugar-e (lambda ([x t+] ...) e+))
+   (lambda ([x (desugar-t t+)] ...) (desugar-e e+))])
 (define-metafunction SP-core
-  lift-claims-helper : s -> d
-  [(lift-claims-helper (claim x t)) ([x t])]
-  [(lift-claims-helper (ann-assign x t e)) ([x t])]
-  [(lift-claims-helper (ann-assign (attribute e_obj string_mem) t_mem e_mem))
-   ()]
-  [(lift-claims-helper (function-def x ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
-   ([x (function-def ([x_arg t_arg] ...) t_ret)])]
-  [(lift-claims-helper (class x (t ...) [m ...]))
-   ([x (class x (t ...) [(lift-m m) ...])])]
-  [(lift-claims-helper (if e_cnd s_thn s_els))
-   (append (lift-claims-helper s_thn) (lift-claims-helper s_els))]
-  [(lift-claims-helper (begin))
-   ()]
-  [(lift-claims-helper (begin s_1 s_2 ...))
-   (append (lift-claims-helper s_1) (lift-claims-helper (begin s_2 ...)))]
-  [(lift-claims-helper (delete x))
-   ()]
-  [(lift-claims-helper (delete (attribute e string)))
-   ()]
-  [(lift-claims-helper (return e))
-   ()]
-  [(lift-claims-helper (expr e))
-   ()]
-  [(lift-claims-helper pass)
-   ()]
-  [(lift-claims-helper (assert e))
-   ()])
+  desugar-subscript : e e -> e
+  [(desugar-subscript e_map e_key)
+   (call (attribute e_map "__getitem__") (e_key))])
+(define-metafunction SP-core
+  desugar-bool-op : ob (e ...) -> e
+  [(desugar-bool-op ob (e))
+   e]
+  [(desugar-bool-op ob (e_1 e_2 ...))
+   (ob e_1 (desugar-bool-op ob (e_2 ...)))])
+(define-metafunction SP-core
+  desugar-unary-op : o1 e -> e
+  [(desugar-unary-op - e)
+   (call (attribute e "__neg__") ())]
+  [(desugar-unary-op not e)
+   (not e)])
+(define-metafunction SP-core
+  desugar-compare : e ([oc e] ...) -> e
+  [(desugar-compare e_0 ([oc_1 e_1]))
+   (desugar-oc oc_1 e_0 e_1)]
+  [(desugar-compare e_0 ([oc_1 e_1] [oc_2 e_2] ...))
+   (and (desugar-oc oc_1 e_0 e_1)
+        (desugar-compare e_1 ([oc_2 e_2] ...)))])
+(define-metafunction SP-core
+  desugar-oc : oc e e -> e
+  [(desugar-oc in e_1 e_2)
+   (call (attribute e_2 "__contains__") (e_1))]
+  [(desugar-oc not-in e_1 e_2)
+   (not (desugar-oc in e_1 e_2))]
+  [(desugar-oc is e_1 e_2)
+   (is e_1 e_2)]
+  [(desugar-oc is-not e_1 e_2)
+   (not (desugar-oc is e_1 e_2))]
+  [(desugar-oc oc e_1 e_2)
+   (call (attribute e_1 (method-name oc)) (e_2))])
+
 
 (module+ test
   (test-equal (term (method-name <)) (term "__lt__"))
@@ -158,10 +184,13 @@
   (test-equal (term (method-name ==)) (term "__eq__"))
   (test-equal (term (method-name >=)) (term "__ge__"))
   (test-equal (term (method-name <=)) (term "__le__"))
-  (test-equal (term (method-name +)) (term "__add__")))
-
+  (test-equal (term (method-name +)) (term "__add__"))
+  (test-equal (term (method-name -)) (term "__sub__"))
+  (test-equal (term (method-name *)) (term "__mul__"))
+  (test-equal (term (method-name /)) (term "__div__"))
+  (test-equal (term (method-name bit-or)) (term "__or__")))
 (define-metafunction SP-core
-  method-name : o -> string
+  method-name : o -> x
   [(method-name <) "__lt__"]
   [(method-name >) "__gt__"]
   [(method-name ==) "__eq__"]
@@ -174,174 +203,301 @@
   [(method-name bit-or) "__or__"])
 
 (module+ test
-  (test-equal (term (desugar-e xyz))
-              (term xyz))
-  (test-equal (term (desugar-e 42))
-              (term 42))
-  (test-equal (term (desugar-e (tuple-syntax 2 3)))
-              (term (tuple-syntax 2 3)))
-  (test-equal (term (desugar-e (> (== 2 3) (>= 4 5))))
-              (term ((attribute ((attribute 2 "__eq__") 3) "__gt__") ((attribute 4 "__ge__") 5))))
-  (test-equal (term (desugar-e (in (== 2 3) (>= 4 5))))
-              (term ((attribute ((attribute 4 "__ge__") 5) "__contains__") ((attribute 2 "__eq__") 3))))
-  (test-equal (term (desugar-e (subscript (tuple-syntax 2 3) 0)))
-              (term ((attribute (tuple-syntax 2 3) "__getitem__") 0)))
-  (test-equal (term (desugar-e (bool-op and 0)))
-              (term 0))
-  (test-equal (term (desugar-e (bool-op or 0 1)))
-              (term (bool-op or 0 1)))
-  (test-equal (term (desugar-e (bin-op + 2 3)))
-              (term ((attribute 2 "__add__") 3)))
-  (test-equal (term (desugar-e (unary-op - 2)))
-              (term ((attribute 2 "__neg__")))))
-
-(define-metafunction SP-core
-  desugar-e : e+ -> e
-  [(desugar-e x) x]
-  [(desugar-e c) c]
-  [(desugar-e (tuple-syntax e+ ...))
-   (tuple-syntax (desugar-e e+) ...)]
-  [(desugar-e (set-syntax e+ ...))
-   (set-syntax (desugar-e e+) ...)]
-  [(desugar-e (dict-syntax [e+_key e+_val] ...))
-   (dict-syntax [(desugar-e e+_key) (desugar-e e+_val)] ...)]
-  [(desugar-e (is e+_1 e+_2))
-   (is (desugar-e e+_1) (desugar-e e+_2))]
-  [(desugar-e (is-not e+_1 e+_2))
-   (not (is (desugar-e e+_1) (desugar-e e+_2)))]
-  [(desugar-e (if e+_cnd e+_thn e+_els))
-   (if (desugar-e e+_cnd) (desugar-e e+_thn) (desugar-e e+_els))]
-  [(desugar-e (attribute e+ string))
-   (attribute (desugar-e e+) string)]
-  [(desugar-e (e+_fun e+_arg ...))
-   ((desugar-e e+_fun) (desugar-e e+_arg) ...)]
-  [(desugar-e (reveal-type any ... e+))
-   (reveal-type any ... (desugar-e e+))]
-  ;; All below are interesting cases
-  [(desugar-e (in e+_1 e+_2))
-   ((attribute (desugar-e e+_2) "__contains__") (desugar-e e+_1))]
-  [(desugar-e (not-in e+_1 e+_2))
-   (desugar-e (unary-op not (in e+_1 e+_2)))]
-  [(desugar-e (oc e+_1 e+_2))
-   ((attribute (desugar-e e+_1) (method-name oc)) (desugar-e e+_2))]
-  [(desugar-e (subscript e+_1 e+_2))
-   ((attribute (desugar-e e+_1) "__getitem__") (desugar-e e+_2))]
-  [(desugar-e (bool-op ob e+))
-   (desugar-e e+)]
-  [(desugar-e (bool-op ob e+_1 e+_2 ...))
-   (bool-op ob (desugar-e e+_1) (desugar-e (bool-op ob e+_2 ...)))]
-  [(desugar-e (bin-op o2 e+_1 e+_2))
-   ((attribute (desugar-e e+_1) (method-name o2)) (desugar-e e+_2))]
-  [(desugar-e (unary-op - e+))
-   ((attribute (desugar-e e+) "__neg__"))]
-  [(desugar-e (unary-op not e+))
-   (not (desugar-e e+))]
-  [(desugar-e (lambda ([x t+] ...) e+))
-   (lambda ([x (desugar-t t+)] ...) (desugar-e e+))])
-
-(module+ test
-  (test-equal (term (desugar-s (ann-assign (subscript x 2) dynamic 3)))
-              (term (expr ((attribute x "__setitem__") 2 3))))
-  (test-equal (term (desugar-s (delete (subscript x 2))))
-              (term (expr ((attribute x "__delitem__") 2)))))
-(define-metafunction SP-core
-  desugar-s : s+ -> s
-  [(desugar-s (class x (t+ ...) s+ ...))
-   (class x ((desugar-t t+) ...) (desugar-m s+) ...)]
-  [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret s+))
-   (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
-   (where s (desugar-s s+))]
-  [(desugar-s (claim x e+))
-   (claim x (desugar-e e+))]
-  [(desugar-s (ann-assign x t+ e+))
-   (ann-assign x (desugar-t t+) (desugar-e e+))]
-  [(desugar-s (ann-assign (attribute e+_map string_key) t+ e+_val))
-   (ann-assign (attribute (desugar-e e+_map) string_key) (desugar-t t+) (desugar-e e+_val))]
-  ;; Interesting case
-  [(desugar-s (ann-assign (subscript e+_map e+_key) dynamic e+_val))
-   (expr ((attribute (desugar-e e+_map) "__setitem__") (desugar-e e+_key) (desugar-e e+_val)))]
-  [(desugar-s (return e+))
-   (return (desugar-e e+))]
-  [(desugar-s (if e+ s+_thn s+_els))
-   (if (desugar-e e+) (desugar-s s+_thn) (desugar-s s+_els))]
-  [(desugar-s (begin s+ ...))
-   (begin (desugar-s s+) ...)]
-  [(desugar-s pass)
-   pass]
-  [(desugar-s (delete x))
-   (delete x)]
-  [(desugar-s (delete (attribute e+ string)))
-   (delete (attribute (desugar-e e+) string))]
-  ;; Interesting case
-  [(desugar-s (delete (subscript e+_map e+_key)))
-   (expr ((attribute (desugar-e e+_map) "__delitem__") (desugar-e e+_key)))]
-  [(desugar-s (expr e+))
-   (expr (desugar-e e+))]
-  [(desugar-s (assert e+))
-   (assert (desugar-e e+))]
-  [(desugar-s s+)  ;; TODO
-   (expr NotImplemented)]
-  )
-
-(module+ test
-  (test-equal (term (desugar-m (field "my_field" (subscript Optional int))))
-              (term (field "my_field" ((attribute Optional "__getitem__") int)))))
-(define-metafunction SP-core
-  desugar-m : m+ -> m
-  [(desugar-m (field string t+))
-   (field string (desugar-t t+))]
-  [(desugar-m (field string t+ e+))
-   (field string (desugar-t t+) (desugar-e e+))]
-  [(desugar-m (method string x_slf ([x_arg t+_arg] ...) t+_ret s+))
-   (method string x_slf ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
-   (where s (desugar-s s+))])
-
-(module+ test
   (test-equal (term (desugar-t dynamic))
               (term dynamic))
-  (test-equal (term (desugar-t None))
-              (term None))
-  (test-equal (term (desugar-t (subscript CheckedDict (tuple-syntax str (subscript CheckedDict (tuple-syntax str int))))))
-              (term ((attribute CheckedDict "__getitem__")
-                     (tuple-syntax str ((attribute CheckedDict "__getitem__")
-                                        (tuple-syntax str int))))))
-  (test-equal (term (desugar-t (or-syntax int str)))
-              (term (or-syntax int str)))
-  (test-equal (term (desugar-t "MyClass"))
-              (term MyClass))
-  (test-equal (term (desugar-t MyClass))
-              (term MyClass)))
+  (test-equal (term (desugar-t (con None)))
+              (term (con None))))
 (define-metafunction SP-core
   desugar-t : t+ -> t
   [(desugar-t dynamic) dynamic]
-  [(desugar-t None) None]
-  [(desugar-t (subscript x (tuple-syntax t+ ...)))
-   ((attribute x "__getitem__") (tuple-syntax (desugar-t t+) ...))]
-  [(desugar-t (subscript x t+))
-   ((attribute x "__getitem__") (desugar-t t+))]
-  [(desugar-t (or-syntax t+_lft t+_rht))
-   (or-syntax (desugar-t t+_lft) (desugar-t t+_rht))]
-  [(desugar-t string) ,(string->symbol (term string))]
-  [(desugar-t x) x])
+  [(desugar-t e+) (desugar-e e+)])
 
 (module+ test
-  (test-equal (term (desugar-import))
-              (term ()))
-  (test-equal (term (desugar-import (import-from "__static__" (PyDict CheckedDict))
-                                    (import-from "typing" (*))))
-              (term ([import-from "__static__" PyDict]
-                     [import-from "__static__" CheckedDict]
-                     [import-from "typing" *]))))
+  (test-equal (term (desugar-s pass))
+              (term (begin)))
+  (test-equal (term (desugar-s (expr (con 2))))
+              (term (expr (con 2))))
+  (test-equal (term (desugar-s (return (con 2))))
+              (term (return (con 2))))
+  (test-equal (term (desugar-s (assert "a")))
+              (term (assert "a")))
+  (test-equal (term (desugar-s (if "a" ((expr "b")) ((expr "c")))))
+              (term (if "a" (begin (expr "b")) (begin (expr "c")))))
+  (test-equal (term (desugar-s (delete "abc")))
+              (term (delete "abc")))
+  (test-equal (term (desugar-s (ann-assign "i" "int")))
+              (term (ann "i" "int")))
+  (test-equal (term (desugar-s (ann-assign "i" "int" "b")))
+              (term (ann-assign "i" "int" "b")))
+  (test-equal (term (desugar-s (assign "i" "b")))
+              (term (ann-assign "i" dynamic "b")))
+  (test-equal (term (desugar-s (aug-assign "i" + "b")))
+              (term (ann-assign "i" dynamic (call (attribute "i" "__add__") ("b")))))
+  (test-equal (term (desugar-s (class "C" () (pass))))
+              (term (class "C" () ())))
+  (test-equal (term (desugar-s (function-def "f" (["i" "int"]) dynamic ((return "i")))))
+              (term (function-def "f" (["i" "int"]) dynamic (local (["i" "int"]) (begin (ann "i" "int") (return "i"))))))
+  (test-equal (term (desugar-s (import-from "__static__" ("PyDict" "CheckedDict"))))
+              (term (begin (import-from "__static__" "PyDict")
+                           (import-from "__static__" "CheckedDict"))))
+  (test-equal (term (desugar-s (import-from "__static__" (*))))
+              (term (begin
+                      (import-from "__static__" "CheckedDict")
+                      (import-from "__static__" "PyDict")
+                      (import-from "__static__" "cast")))))
 (define-metafunction SP-core
-  desugar-imports : import-from-item+ ... -> (import-from-item ...)
-  [(desugar-imports) ()]
-  [(desugar-imports (import-from string (*)) import-from-item+ ...)
-   (append ((import-from string *)) (desugar-imports import-from-item+ ...))]
-  [(desugar-imports (import-from string (x ...)) import-from-item+ ...)
-   (append ((import-from string x) ...) (desugar-imports import-from-item+ ...))])
+  make-begin : s ... -> s
+  [(make-begin s_1 ... (begin s_2 ...) s_3 ...)
+   (make-begin s_1 ... s_2 ... s_3 ...)]
+  [(make-begin s ...)
+   (begin s ...)])
+(define-metafunction SP-core
+  desugar-s : s+ -> s
+  [(desugar-s pass)
+   (begin)]
+  [(desugar-s (expr e+))
+   (expr (desugar-e e+))]
+  [(desugar-s (return e+))
+   (return (desugar-e e+))]
+  [(desugar-s (assert e+))
+   (assert (desugar-e e+))]
+  [(desugar-s (if e+ (s+_thn ...) (s+_els ...)))
+   (if (desugar-e e+)
+       (make-begin (desugar-s s+_thn) ...)
+       (make-begin (desugar-s s+_els) ...))]
+  [(desugar-s (delete e+))
+   (desugar-delete e+)]
+  [(desugar-s (ann-assign e+_dst e+_ann))
+   (desugar-ann e+_dst (desugar-t e+_ann))]
+  [(desugar-s (ann-assign e+_dst e+_ann e+_src))
+   (desugar-ann-assign e+_dst (desugar-t e+_ann) (desugar-e e+_src))]
+  [(desugar-s (assign e+_dst e+_src))
+   (desugar-ann-assign e+_dst dynamic (desugar-e e+_src))]
+  [(desugar-s (aug-assign e+_dst o2 e+_src))
+   (desugar-s (assign e+_dst (bin-op o2 e+_dst e+_src)))]
+  [(desugar-s (class x (t+ ...) (s+ ...)))
+   (class x ((desugar-t t+) ...) (m*-of-begin (make-begin (desugar-s s+) ...)))]
+  [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret (s+ ...)))
+   (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret)
+                 (level-of-s
+                  (make-begin
+                   (ann x_arg (desugar-t t+_arg))
+                   ...
+                   (desugar-s s+)
+                   ...)))]
+  [(desugar-s (import-from x_mod (x_dst ...)))
+   (make-begin (import-from x_mod x_dst) ...)]
+  [(desugar-s (import-from x_mod (*)))
+   (desugar-import-from-* x_mod)])
+(module+ test
+  (test-equal (term (desugar-import-from-* "__static__"))
+              (term (begin
+                      (import-from "__static__" "CheckedDict")
+                      (import-from "__static__" "PyDict")
+                      (import-from "__static__" "cast")))))
+(define-metafunction SP-core
+  desugar-import-from-* : x -> s
+  [(desugar-import-from-* "__static__")
+   (desugar-s (import-from "__static__" ("CheckedDict" "PyDict" "cast")))])
+(module+ test
+  (test-equal (term (desugar-delete "x"))
+              (term (delete "x")))
+  (test-equal (term (desugar-delete (attribute "obj" "x")))
+              (term (delete (attribute "obj" "x"))))
+  (test-equal (term (desugar-delete (subscript "lst" (con 2))))
+              (term (expr (call (attribute "lst" "__delitem__") ((con 2)))))))
+(define-metafunction SP-core
+  desugar-delete : e+ -> s
+  [(desugar-delete x)
+   (delete x)]
+  [(desugar-delete (attribute e+ x))
+   (delete (attribute (desugar-e e+) x))]
+  [(desugar-delete (subscript e+_map e+_key))
+   (expr (call (attribute (desugar-e e+_map) "__delitem__") ((desugar-e e+_key))))])
+(module+ test
+  (test-equal (term (desugar-ann "i" "int"))
+              (term (ann "i" "int")))
+  (test-equal (term (desugar-ann (attribute "obj" "i") "int"))
+              (term (ann (attribute "obj" "i") "int"))))
+(define-metafunction SP-core
+  desugar-ann : e+ t -> s
+  [(desugar-ann x t)
+   (ann x t)]
+  [(desugar-ann (attribute e+ x) t)
+   (ann (attribute (desugar-e e+) x) t)])
+(module+ test
+  (test-equal (term (desugar-ann-assign "i" "int" "abc"))
+              (term (ann-assign "i" "int" "abc")))
+  (test-equal (term (desugar-ann-assign (attribute "obj" "i") "int" "abc"))
+              (term (ann-assign (attribute "obj" "i") "int" "abc")))
+  (test-equal (term (desugar-ann-assign (subscript "lst" "i") dynamic "abc"))
+              (term (expr (call (attribute "lst" "__setitem__") ("i" "abc")))))
+  (test-equal (term (desugar-ann-assign (tuple-syntax ("i" "j")) dynamic "tpl"))
+              (term (begin
+                      (ann-assign "i" dynamic (call (attribute "tpl" "__getitem__") ((con 0))))
+                      (ann-assign "j" dynamic (call (attribute "tpl" "__getitem__") ((con 1))))))))
+(define-metafunction SP-core
+  desugar-ann-assign : e+ t e -> s
+  [(desugar-ann-assign x t e)
+   (ann-assign x t e)]
+  [(desugar-ann-assign (attribute e+_obj x_atr) t e_src)
+   (ann-assign (attribute (desugar-e e+_obj) x_atr) t e_src)]
+  [(desugar-ann-assign (subscript e+_map e_key) dynamic e_src)
+   (expr (call (attribute (desugar-e e+_map) "__setitem__") (e_key e_src)))]
+  [(desugar-ann-assign (tuple-syntax (e+_dst ...)) dynamic e_src)
+   (make-begin
+    (desugar-ann-assign e+_dst dynamic (desugar-subscript e_src (con number_src)))
+    ...)
+   (where (number_src ...) ,(range (length (term (e+_dst ...)))))])
+(define-metafunction SP-core
+  m*-of-begin : (begin s ...) -> (m ...)
+  [(m*-of-begin (begin s ...))
+   ((m-of-s s) ...)])
+(module+ test
+  (test-equal (term (m-of-s (ann "i" "int")))
+              (term (field "i" "int")))
+  (test-equal (term (m-of-s (ann-assign "i" "int" "abc")))
+              (term (field "i" "int" "abc")))
+  (test-equal (term (m-of-s (function-def "x" (["self" dynamic] ["a" "int"] ["b" "str"]) "dict"
+                                          (local (["self" dynamic]
+                                                  ["a" "int"]
+                                                  ["b" "str"])
+                                            (return (dict-syntax (["a" "b"])))))))
+              (term (method "x" "self" (["a" "int"] ["b" "str"]) "dict"
+                            (local (["self" dynamic]
+                                    ["a" "int"]
+                                    ["b" "str"])
+                              (return (dict-syntax (["a" "b"]))))))))
+(define-metafunction SP-core
+  m-of-s : s -> m
+  [(m-of-s (ann x t))
+   (field x t)]
+  [(m-of-s (ann-assign x t e))
+   (field x t e)]
+  [(m-of-s (function-def x ([x_slf dynamic] [x_arg t_arg] ...) t_ret level_bdy))
+   (method x x_slf ([x_arg t_arg] ...) t_ret level_bdy)])
 
 (define-metafunction SP-core
+  level-of-s : s -> level
+  [(level-of-s s)
+   (local (drop-later-dynamic (xd*-of-s s)) s)])
+(module+ test
+  (test-equal (term (xd*-of-s (expr "abc")))
+              (term ()))
+  (test-equal (term (xd*-of-s (return "a")))
+              (term ()))
+  (test-equal (term (xd*-of-s (assert "a")))
+              (term ()))
+  (test-equal (term (xd*-of-s (begin)))
+              (term ()))
+  (test-equal (term (xd*-of-s (if "abc" (begin) (begin))))
+              (term ()))
+  (test-equal (term (xd*-of-s (delete "i")))
+              (term ()))
+  (test-equal (term (xd*-of-s (delete (attribute "obj" "a"))))
+              (term ()))
+  (test-equal (term (xd*-of-s (ann "i" "int")))
+              (term (["i" "int"])))
+  (test-equal (term (xd*-of-s (ann (attribute "abc" "i") "int")))
+              (term ()))
+  (test-equal (term (xd*-of-s (ann-assign "abc" dynamic "foo")))
+              (term (["abc" dynamic])))
+  (test-equal (term (xd*-of-s (ann-assign (attribute "self" "a") dynamic "abc")))
+              (term ()))
+  (test-equal (term (xd*-of-s (function-def "f" (["a" "int"]) "str" (local () (begin)))))
+              (term (["f" (function-def (["a" "int"]) "str")])))
+  (test-equal (term (xd*-of-s (class "C" ("object")
+                                ((field "i" "int")
+                                 (field "s" "str" "hello")
+                                 (method "greet" "self" () "str"
+                                         (local ()
+                                           (begin)))))))
+              (term (["C" (class ("object")
+                          (["i" "int"]
+                           ["s" "str"]
+                           ["greet" (function-def () "str")]))])))
+  (test-equal (term (xd*-of-s (import-from "__static__" "CheckedDict")))
+              (term (["CheckedDict" (import-from "__static__" "CheckedDict")]))))
+(define-metafunction SP-core
+  xd*-of-s : s -> ([x d] ...)
+  [(xd*-of-s (expr e))
+   ()]
+  [(xd*-of-s (return e))
+   ()]
+  [(xd*-of-s (assert e))
+   ()]
+  ;; interesting case!
+  [(xd*-of-s (begin s ...))
+   (xd*-of-s-begin (xd*-of-s s) ...)]
+  [(xd*-of-s (if e_cnd s_thn s_els))
+   (append (xd*-of-s s_thn) (xd*-of-s s_els))]
+  [(xd*-of-s (delete x))
+   ()]
+  [(xd*-of-s (delete (attribute e x)))
+   ()]
+  ;; interesting case!
+  [(xd*-of-s (ann x t))
+   ([x t])]
+  [(xd*-of-s (ann (attribute e x) t))
+   ()]
+  ;; interesting case!
+  [(xd*-of-s (ann-assign x t e))
+   ([x t])]
+  [(xd*-of-s (ann-assign (attribute e_obj x_mem) t_mem e_src))
+   ()]
+  ;; interesting case!
+  [(xd*-of-s (function-def x ([x_arg t_arg] ...) t_ret level_bdy))
+   ([x (function-def ([x_arg t_arg] ...) t_ret)])]
+  ;; interesting case!
+  [(xd*-of-s (class x (e ...) (m ...)))
+   ([x (class (e ...) ((xd-of-m m) ...))])]
+  ;; interesting case!
+  [(xd*-of-s (import-from x_mod x_var))
+   ([x_var (import-from x_mod x_var)])])
+(module+ test
+  (test-equal (term (xd*-of-s-begin))
+              (term ()))
+  (test-equal (term (xd*-of-s-begin (["a" "int"]) (["b" "str"] ["c" "dict"])))
+              (term (["a" "int"] ["b" "str"] ["c" "dict"]))))
+(define-metafunction SP-core
+  xd*-of-s-begin : ([x d] ...) ... -> ([x d] ...)
+  [(xd*-of-s-begin)
+   ()]
+  [(xd*-of-s-begin xd*_1 xd*_2 ...)
+   (append xd*_1 (xd*-of-s-begin xd*_2 ...))])
+(module+ test
+  (test-equal (term (xd-of-m (field "i" "int")))
+              (term ["i" "int"]))
+  (test-equal (term (xd-of-m (field "i" "int" "a")))
+              (term ["i" "int"]))
+  (test-equal (term (xd-of-m (method "f" "self" () dynamic (local () (begin)))))
+              (term ["f" (function-def () dynamic)])))
+(define-metafunction SP-core
+  xd-of-m : m -> [x d]
+  [(xd-of-m (field x t))
+   [x t]]
+  [(xd-of-m (field x t e))
+   [x t]]
+  [(xd-of-m (method x x_slf ([x_arg t_arg] ...) t_ret level_bdy))
+   [x (function-def ([x_arg t_arg] ...) t_ret)]])
+(module+ test
+  (test-equal (term (drop-later-dynamic ()))
+              (term ()))
+  (test-equal (term (drop-later-dynamic (["abc" "int"] ["abc" dynamic])))
+              (term (["abc" "int"])))
+  (test-equal (term (drop-later-dynamic (["abc" (function-def () "int")] ["abc" dynamic])))
+              (term (["abc" (function-def () "int")]))))
+(define-metafunction SP-core
+  drop-later-dynamic : ([x d] ...) -> ([x d] ...)
+  ;; Remove later dynamic redeclaration because they are just mutation
+  [(drop-later-dynamic (xd_1 ... [x d] xd_2 ... [x dynamic] xd_3 ...))
+   (drop-later-dynamic (xd_1 ... [x d] xd_2 ... xd_3 ...))]
+  [(drop-later-dynamic xd*) xd*])
+
+(module+ test
+  (test-equal (term (desugar-program ()))
+              (term (local () (begin)))))
+(define-metafunction SP-core
   desugar-program : program+ -> program
-  [(desugar-program (import-from-item+ ... s+ ...))
-   ((desugar-imports import-from-item+ ...) (lift-claims s) s)
-   (where s (desugar-s (begin s+ ...)))])
+  [(desugar-program (s+ ...))
+   (level-of-s (make-begin (desugar-s s+) ...))])

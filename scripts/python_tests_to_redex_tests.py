@@ -19,25 +19,27 @@ def ast_to_sexp(node):
     if isinstance(node, ast.Module):
         return [ast_to_sexp(s) for s in node.body]
     elif isinstance(node, ast.ClassDef):
-        bases = [ast_to_sexp(e) for e in node.bases]
         return [
             symbol('class'),
-            symbol(node.name),
-            bases,
-        ] + [
-            ast_to_sexp(s) for s in node.body
+            string(node.name),
+            [
+                ast_to_sexp(e) for e in node.bases
+            ],
+            [
+                ast_to_sexp(s) for s in node.body
+            ]
         ]
 
     elif isinstance(node, ast.Return):
         if node.value is None:
-            return [symbol('return'), symbol('None')]
+            return [symbol('return'), [symbol('con'), symbol('None')]]
         else:
             return [symbol('return'), ast_to_sexp(node.value)]
     elif isinstance(node, ast.AnnAssign):
         if node.value is None:
             return [
                 symbol('ann-assign'),
-                symbol(str(node.target.id)),
+                string(str(node.target.id)),
                 expr_to_type(node.annotation)
             ]
         else:
@@ -62,38 +64,61 @@ def ast_to_sexp(node):
             ast_to_sexp(node.value)
         ]
     elif isinstance(node, ast.Name):
-        return symbol(str(node.id))
+        return string(str(node.id))
     elif isinstance(node, ast.Constant):
         if isinstance(node.value, str):
-            return string(node.value)
+            return [
+                symbol('con'),
+                string(node.value)
+            ]
         elif node.value is None:
-            return symbol('None')
+            return [
+                symbol('con'),
+                symbol('None')
+            ]
         else:
-            return node.value
+            return [
+                symbol('con'),
+                node.value
+            ]
     elif isinstance(node, ast.Call):
         assert node.keywords == []
         return [
             symbol('call'),
-            ast_to_sexp(node.func)
-        ] + [ast_to_sexp(a) for a in node.args]
+            ast_to_sexp(node.func),
+            [ast_to_sexp(a) for a in node.args]
+        ]
     elif isinstance(node, ast.ImportFrom):
-        return [symbol('import-from'), string(node.module), [symbol(a.name) for a in node.names]]
+        return [
+            symbol('import-from'),
+            string(node.module),
+            [
+                string(a.name) for a in node.names
+            ]
+        ]
     elif isinstance(node, ast.Dict):
         return [
-            symbol('dict-syntax')
-        ] + [
-            [ast_to_sexp(k), ast_to_sexp(v)]
-            for k, v in zip(node.keys, node.values)
+            symbol('dict-syntax'),
+            [
+                [ast_to_sexp(k), ast_to_sexp(v)]
+                for k, v in zip(node.keys, node.values)
+            ]
         ]
     elif isinstance(node, ast.Set):
         return [
-            symbol('set-syntax')
-        ] + [
-            ast_to_sexp(v)
-            for v in node.elts
+            symbol('set-syntax'),
+            [
+                ast_to_sexp(v)
+                for v in node.elts
+            ]
         ]
     elif isinstance(node, ast.Tuple):
-        return [symbol('tuple-syntax')] + [ast_to_sexp(e) for e in node.elts]
+        return [
+            symbol('tuple-syntax'),
+            [
+                ast_to_sexp(e) for e in node.elts
+            ]
+        ]
     elif isinstance(node, ast.Subscript):
         return [
             symbol("subscript"),
@@ -109,7 +134,11 @@ def ast_to_sexp(node):
             ast_to_sexp(target)
         ]
     elif isinstance(node, ast.Attribute):
-        return [symbol('attribute'), ast_to_sexp(node.value), string(node.attr)]
+        return [
+            symbol('attribute'),
+            ast_to_sexp(node.value),
+            string(node.attr)
+        ]
     elif isinstance(node, ast.UnaryOp):
         return [
             symbol('unary-op'),
@@ -136,10 +165,13 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.FunctionDef):
         return [
             symbol('function-def'),
-            symbol(str(node.name)),
+            string(str(node.name)),
             arguments_to_sexp(node.args),
-            expr_to_type(node.returns)
-        ] + [ast_to_sexp(stmt) for stmt in node.body]
+            expr_to_type(node.returns),
+            [
+                ast_to_sexp(stmt) for stmt in node.body
+            ]
+        ]
     elif isinstance(node, ast.If):
         return [
             symbol('if'),
@@ -156,10 +188,11 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.BoolOp):
         return [
             symbol('bool-op'),
-            ast_to_sexp(node.op)
-        ] + [
-            ast_to_sexp(v)
-            for v in node.values
+            ast_to_sexp(node.op),
+            [
+                ast_to_sexp(v)
+                for v in node.values
+            ]
         ]
     elif isinstance(node, ast.Or):
         return symbol('or')
@@ -249,7 +282,7 @@ def ast_to_sexp(node):
 
 
 def arg_to_sexp(a):
-    return [symbol(str(a.arg)), expr_to_type(a.annotation)]
+    return [string(str(a.arg)), expr_to_type(a.annotation)]
 
 
 def arguments_to_sexp(args):
