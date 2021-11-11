@@ -1,18 +1,90 @@
 """
-This program processes test.rkt, which is the official conformance suite of 
+This program processes tests.py, which is the official conformance suite of 
 Static Python. It generates tests written in our format and put them in 
-./conformance_suite.
+./conformance_suite and ./skipped_tests.
 """
 import ast
-from os import write
-from types import BuiltinMethodType
-from unittest.case import skip
 
 input_file = "./tests.py"
 skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
 output_path_prefix = "./conformance_suite/"
 skipped_tests_path_prefix = "./skipped_tests/"
+# Ignore a test if it contains one of the following word
+ban_anywhere_in_test = [
+    # Weird python scope
+    'nonlocal',
+    'global',
+    # Not useful for our purposes
+    '...',
+    # C types
+    'double',
+    'int8',
+    'int32',
+    'int64',
+    'box',
+    'cbool',
+    'Array',
+    # Rest arguments
+    '*args',
+    'stararg',
+    'default_arg',
+    'dstararg',
+    '_kw',
+    'mixed_args',
+    'vararg',
+    # async_method
+    'await',
+    'async',
+    # Byte string
+    'b"',
+    "b'",
+    # Not even implemented in SP
+    "@skipIf(True,",
+    # Some weird module
+    'xxclassloader',
+]
+ban_in_test_name = [
+    'test_if_else_optional_return_two_branches',
+    # ⬆️ This test uses an unbound identifier
+    'test_compile_checked_dict_from_dict_call',
+    # This test uses keyword argument
+    'test_inline_bare_return',
+    # This test uses keyword argument
+    'test_inline_func_default',
+    # This test uses default argument
+    'test_verify_lambda_keyword_only',
+    # This test uses keyword argument
+    'test_compile_checked_dict_bad_annotation',
+    # The annotation is too bad... it uses 42 as type.
+    'test_compile_checked_dict_wrong_unknown_type',
+    # This test uses dict comprehension.
+]
+skip_anywhere_in_test = [
+    # Waiting on Shriram and Ben
+    '@property',
+    '__static__.compiler_flags',
+    'weakref',
+    '@_donotcompile',
+    '__setattr__',
+    '__slots__',
+    # Skip for now
+    'while',
+    'raise',
+    'for ',
+    '@staticmethod',
+    '@final',
+    'Final[',
+    'assign_chained',
+    'chain_assign',
+    'chained_assign',
+    # Maybe enable later, it might be useful.
+    'reveal_type',
+]
+skip_in_code = [
+    'with ',
+    'try:'
+]
 
 
 def read_tests(file_path):
@@ -20,26 +92,35 @@ def read_tests(file_path):
     acc = None
     lines = f.readlines()
 
-    def new_test_begins(l):
+    def test_begins(l):
         return l.startswith(test_prefix) or l.startswith(skip_prefix)
+
+    def test_ends(l):
+        return l.startswith('class ') or l.startswith('if __name__ == "__main__') or test_begins(l)
 
     def acc_to_test(acc):
         # skip the first 4 whitespace
+        for line in acc:
+            assert line[:4].strip() == "", "the line is {}".format(repr(line))
         return "".join(map(lambda line: line[4:], acc))
-    for i in range(len(lines)):
-        line = lines[i]
-        if new_test_begins(line):
-            acc = [line]
-            break
-    for line in lines[i+1:]:
-        if not line.startswith(' ' * 4):
-            continue
-        if new_test_begins(line):
+
+    acc = []
+    for line in lines:
+        # I said `> 1` because it might be that there is a @skip and then
+        # a `def test_`. If I said `> 0`, the skip line will be thought
+        # as a test alone
+        if test_ends(line) and len(acc) > 1:
             yield acc_to_test(acc)
+            acc = []
+
+        if test_begins(line):
             acc = [line]
-        else:
+        elif len(acc) > 0:
+            # Only if the new tests have started
             acc.append(line)
-    yield acc_to_test(acc)
+
+    if len(acc) > 0:
+        yield acc_to_test(acc)
 
 
 def parse_simple_test(test):
@@ -51,7 +132,6 @@ def parse_simple_test(test):
     #         one_statement_that_specify_what_to_check
     parsed_test = ast.parse(test, type_comments=True)
 
-    
     assert isinstance(parsed_test, ast.Module)
     assert len(parsed_test.body) == 1
     deffun = parsed_test.body[0]
@@ -75,12 +155,6 @@ def parse_simple_test(test):
     while all([line.startswith('    ') for line in code]):
         code = [line[4:] for line in code]
     code = '\n'.join(code)
-    
-    # TODO
-    assert not 'with' in code
-
-    # process spec
-    pass
 
     return code, spec
 
@@ -137,9 +211,6 @@ def translate_less_simple_compile_test(test: str):
     #             self.compile(codestr)
     code, spec = parse_simple_test(test)
 
-    # TODO This is also a contruct that we might want to support
-    assert not 'with' in code
-
     assert isinstance(spec, ast.With)
     assert len(spec.body) == 1
     assert isinstance(spec.body[0], ast.Expr)
@@ -194,111 +265,76 @@ def translate_optimization_test(test: str):
     return (name, content)
 
 
+def record_skipped_test(name, test, reason):
+    print('/' + '-' * 10 + '\\')
+    print("SKIPPED", name)
+    print(test)
+    print('\\' + '-' * 10 + '/')
+    skipped_tests_path = skipped_tests_path_prefix + name + ".py"
+    skipped_tests_file = open(skipped_tests_path, 'w')
+    # skipped_tests_file.write("# Reason: {}\n".format(reason))
+    skipped_tests_file.write(test)
+    return
+
+
 for test in read_tests(input_file):
-    # These are tests that we don't care
-    if '@property' in test: continue
-    if 'weakref' in test: continue
-    if 'reveal_type' in test: continue 
-    if 'nonlocal' in test: continue
-    if 'global' in test: continue
-    if '...' in test: continue
-    if 'double' in test: continue
-    if 'int8' in test: continue
-    if 'int32' in test: continue
-    if 'int64' in test: continue
-    if 'box' in test: continue
-    if 'cbool' in test: continue
-    if 'Array' in test: continue
-    if '*args' in test: continue
-    if 'xxclassloader' in test: continue
-    if 'await' in test: continue
-    if '@_donotcompile' in test: continue
-    if '__setattr__' in test: continue
-    if '__slots__' in test: continue
-    # byte strings
-    if 'b"' in test: continue
-    if "b'" in test: continue
-    # some legacy thing?
-    if '__static__.compiler_flags' in test: continue
+    if any(word in test for word in ban_anywhere_in_test):      
+        continue
+
+    for word in ban_anywhere_in_test:
+        assert not (word in test)
 
     lines = test.split('\n')
+    if lines[0].startswith('@skip'):
+        lines = lines[1:]
     first_line = lines[0]
-    try:
-        # This line actually skips a bunch of tests.
-        name = first_line[4:first_line.index("(self)")]        
-        if 'stararg' in name: continue
-        if 'default_arg' in name: continue
-        if 'dstararg' in name: continue
-        if '_kw' in name: continue
-        if 'mixed_args' in name: continue
-        if 'vararg' in name: continue
-        if 'async' in name: continue
-        if 'try:' in test: continue
-        if 'test_if_else_optional_return_two_branches' in name: continue
-        # ⬆️ This test uses an unbound identifier
-        if 'test_compile_checked_dict_from_dict_call' in name: continue
-        # This test uses keyword argument
-        if 'test_inline_bare_return' in name: continue
-        # This test uses keyword argument
-        if 'test_inline_func_default' in name: continue
-        # This test uses default argument
-        if 'test_verify_lambda_keyword_only' in name: continue
-        # This test uses keyword argument
-        if 'test_compile_checked_dict_bad_annotation' in name: continue
-        # The annotation is too bad... it uses 42 as type.
-    except Exception:
+    name = first_line[4:first_line.index("(self)")]
+
+    if any(word in name for word in ban_in_test_name):
         continue
 
-    # Skip more
+    for word in ban_in_test_name:
+        assert not (word in name)
+
+    if any(word in test for word in skip_anywhere_in_test):
+        record_skipped_test(name, test, "Test hitted some skipped words")
+        continue
+
+    for word in skip_anywhere_in_test:
+        assert not (word in test)
+    
+    print("word", word)
+    print("test", test)
+    print("skip_anywhere_in_test", skip_anywhere_in_test)
+    assert not name == "test_exact_float_type"
     try:
-        # TODO: these are tests that we care but don't support right now.
-        assert not 'while' in test
-        assert not 'raise' in test
-        assert not 'for ' in test
-        assert not '@staticmethod' in test
-        assert not '@final' in test
-        assert not 'Final[' in test
-        assert not 'assign_chained' in name
-        assert not 'chain_assign' in name
-        assert not 'chained_assign' in name
-        assert not 'test_compile_checked_dict_wrong_unknown_type' in name
-        # \up This test uses dict comprehension
-    except AssertionError:
-        print(test)
-        print('-' * 10)
-        print("SKIPPED", name)
-        skipped_tests_path = skipped_tests_path_prefix + name + ".py"
-        skipped_tests_file = open(skipped_tests_path, 'w')
-        skipped_tests_file.write(test)
+        code, spec = parse_simple_test(test)
+    except Exception:
+        record_skipped_test(name, test, "Format too complicated")
         continue
     
-    # There files should be working
-    try:
-        (name, content) = translate_simple_compile_test(test)
-        output_path = output_path_prefix + name + ".py"
-        output_file = open(output_path, 'w')
-        output_file.write(content)
+    if any(word in code for word in skip_in_code):
+        record_skipped_test(name, test, "Code hitted some skipped words")
         continue
-    except AssertionError:
-        # continue
+
+    parsers = [
+        translate_simple_compile_test,
+        translate_less_simple_compile_test,
+        translate_optimization_test
+    ]
+    for parser in parsers:
         try:
-            (name, content) = translate_less_simple_compile_test(test)
+            (name, content) = parser(test)
             output_path = output_path_prefix + name + ".py"
             output_file = open(output_path, 'w')
             output_file.write(content)
-            continue
+            break
         except Exception:
-            try:
-                (name, content) = translate_optimization_test(test)
-                output_path = output_path_prefix + name + ".py"
-                output_file = open(output_path, 'w')
-                output_file.write(content)
-                continue
-            except Exception:
-                print(test)
-                print('-' * 10)
-                print("SKIPPED", name)
-                skipped_tests_path = skipped_tests_path_prefix + name + ".py"
-                skipped_tests_file = open(skipped_tests_path, 'w')
-                skipped_tests_file.write(test)
-                continue
+            continue
+    else:
+        # If broken out, we won't reach here.
+        try:
+            code, spec = parse_simple_test(test)
+        except Exception:
+            record_skipped_test(name, test, "Can't parse")
+            continue

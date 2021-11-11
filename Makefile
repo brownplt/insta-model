@@ -1,6 +1,6 @@
 refresh_conformance_suite:
-	rm ./skipped_tests/*
-	rm ./conformance_suite/test_*
+	rm -f ./skipped_tests/*
+	rm -f ./conformance_suite/test_*
 	python3 ./scripts/import_SP_tests.py && \
 	python3 ./scripts/python_tests_to_redex_tests.py && \
 	echo "All done!"
