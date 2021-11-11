@@ -3,14 +3,17 @@ from os import error
 from typing import List, Union
 from sexp import string, symbol as sexp_symbol, str_of_sexp
 
+
 def symbol(s):
-    return sexp_symbol(s.replace('_', '--'))
+    return sexp_symbol(s.replace('_', '-'))
+
 
 def expr_to_type(expr: ast.expr):
     if expr is None:
         return symbol('dynamic')
     else:
         return ast_to_sexp(expr)
+
 
 def ast_to_sexp(node):
     if isinstance(node, ast.Module):
@@ -20,10 +23,11 @@ def ast_to_sexp(node):
         return [
             symbol('class'),
             symbol(node.name),
-            bases
+            bases,
         ] + [
             ast_to_sexp(s) for s in node.body
         ]
+
     elif isinstance(node, ast.Return):
         if node.value is None:
             return [symbol('return'), symbol('None')]
@@ -48,7 +52,6 @@ def ast_to_sexp(node):
         return [
             symbol('assign'),
             ast_to_sexp(node.targets[0]),
-            symbol('dynamic'),
             ast_to_sexp(node.value)
         ]
     elif isinstance(node, ast.Pass):
@@ -135,9 +138,8 @@ def ast_to_sexp(node):
             symbol('function-def'),
             symbol(str(node.name)),
             arguments_to_sexp(node.args),
-            expr_to_type(node.returns),
-            [symbol('begin')] + [ast_to_sexp(stmt) for stmt in node.body]
-        ]
+            expr_to_type(node.returns)
+        ] + [ast_to_sexp(stmt) for stmt in node.body]
     elif isinstance(node, ast.If):
         return [
             symbol('if'),
@@ -294,9 +296,13 @@ def python_file_to_redex_grammar_test(spec, prog):
     return [
         symbol('test-match'),
         symbol('SP'),
-        symbol('program'),
-        prog
+        symbol('program+'),
+        [
+            symbol('term'),
+            prog
+        ]
     ]
+
 
 def python_file_to_redex_desugar_test(spec, prog):
     return [
@@ -399,6 +405,7 @@ def python_file_to_redex_optimization_test(spec, prog):
         ]
     ]
 
+
 path_to_conformance_suite = 'conformance_suite'
 path_to_test_grammar = './test-grammar.rkt'
 path_to_test_desugar = './test-desugar.rkt'
@@ -421,7 +428,7 @@ def main():
         f.write('\n'.join([
             '#lang racket',
             '(require "grammar.rkt")',
-            '(require redex)',
+            '(require redex/reduction-semantics)',
             ''
         ]))
         for name, spec, prog, source in parsed_test_files:
@@ -435,7 +442,7 @@ def main():
         f.write('\n'.join([
             '#lang racket',
             '(require "desugar.rkt")',
-            '(require redex)',
+            '(require redex/reduction-semantics)',
             ''
         ]))
         for name, spec, prog, source in parsed_test_files:
@@ -448,7 +455,7 @@ def main():
     with open(path_to_test_statics, 'w') as f:
         f.write('\n'.join([
             '#lang racket',
-            '(require redex)',
+            '(require redex/reduction-semantics)',
             '(require redex-abbrevs)',
             '(require "grammar.rkt")',
             '(require "desugar.rkt")',
@@ -465,7 +472,7 @@ def main():
     with open(path_to_test_compile, 'w') as f:
         f.write('\n'.join([
             '#lang racket',
-            '(require redex)',
+            '(require redex/reduction-semantics)',
             '(require "desugar.rkt")',
             '(require "compile.rkt")',
             ''
@@ -481,7 +488,7 @@ def main():
     with open(path_to_test_dynamics, 'w') as f:
         f.write('\n'.join([
             '#lang racket',
-            '(require redex)',
+            '(require redex/reduction-semantics)',
             '(require redex-abbrevs)',
             '(require "desugar.rkt")',
             '(require "compile.rkt")',
@@ -499,7 +506,7 @@ def main():
     with open(path_to_test_optimize, 'w') as f:
         f.write('\n'.join([
             '#lang racket',
-            '(require redex)',
+            '(require redex/reduction-semantics)',
             '(require redex-abbrevs)',
             '(require "desugar.rkt")',
             '(require "compile.rkt")',

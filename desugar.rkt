@@ -1,69 +1,64 @@
 #lang racket
-(require redex)
+(require redex/reduction-semantics)
 (require "grammar.rkt")
 (provide (all-defined-out))
 
 (define-extended-language SP-core SP
 
   ;; program
-  (program (import-type ... d s))
+  (program (import-from-item ... d s))
 
-  ;; declaration
-  (d ([x D] ...))
-
-  ;; rhs of declaration
-  (D t
-     (def ([x t] ...) t)
-     (class x (t ...) m ...))
-
-  ;; statements
-  (s (define/assign x t e)
-     (define/assign (attribute e string) t e)
-     ;; the d also includes arguments
-     (def x ([x t] ...) t d s)
-     (class x (t ...) m ...)
-     (if e s s)
-     (begin s ...)
-     (delete x)
-     (delete (attribute e string))
-     (return e)
-     (expr e)
-     (claim x t)
-     (assert e)
-     pass
-     )
-
-  (m (field string t)
-     (field string t e)
-     (method string x ([x t] ...) t d s))
-
-  ;; type expression
-  (t dynamic
-     None ;; nonterminal x doesn't cover this because we mentioned None in c
-     ((attribute x string) (tuple-syntax t ...))
-     ((attribute x string) t)
-     (or-syntax t t)
-     x)
+  ;; imports
+  (import-from-item
+   (import-from string (x)))
 
   (e x
      c
      (tuple-syntax e ...)
      (set-syntax e ...)
      (dict-syntax (e e) ...)
-     (is e e)
-     (not e)
-     (if e e e)
+     (if-exp e e e)
      (attribute e string)
-     (e e ...)
+     (call e e ...)
      (reveal-type any ... e)
-     (bool-op ob e e)
-     (lambda ([x t] ...) e)))
+     (ob e e)
+     (not e)
+     (is e e)
+     (lambda ([x t] ...) e))
+
+  ;; type expression
+  (t dynamic e)
+
+  ;; statements
+  (s (expr e)
+     (return e)
+     (assert e)
+     (begin s ...)
+     (if e s s)
+     (delete target)
+     (ann-assign x t e)
+     (ann-assign (attribute e string) t e)
+     (function-def x ([x t] ...) t d s)
+     (class x (e ...) m ...))
+
+  ;; class members
+  (m (field string t)
+     (field string t e)
+     (method string x ([x t] ...) t d s))
+
+  ;; declaration
+  (d ([x D] ...))
+
+  ;; rhs of declaration
+  (D t
+     (function-def ([x t] ...) t)
+     (class x (t ...) [string t] ...)))
 
 
 ;; The remaining part of this file describe the desugaring process.
 ;; Desugaring is context-insensitive -- it doesn't rely on the type of
 ;; terms. This process remove three kinds of constructs:
-;;   - operators (except is and is-not because they are primitive)
+;;   - operators (except is because they are primitive)
 ;;   - subscription
 ;;   - restrict assignment targets to variables and attributes
 ;; And lift variable declaration to the beginning of each block

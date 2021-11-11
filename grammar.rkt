@@ -1,5 +1,5 @@
 #lang racket
-(require redex)
+(require redex/reduction-semantics)
 (require redex-abbrevs)
 (provide (all-defined-out))
 
@@ -7,82 +7,70 @@
 
   ;; program
   (program+
-   (import-type ...
+   (import-from-item+ ...
     s+ ...))
 
   ;; imports
-  (import-type
-   (import-from string (string ...)))
-
-  ;; targets of assignment
-  (target x
-          (attribute e+ string)
-          (subscript e+ e+)
-          (tuple-syntax target ...))
-
-  ;; s+tatements
-  (s+ (class x (t+ ...) m+ ...)
-      (return e+)
-      (claim x t+)
-      (define/assign target t+ e+)
-      (def x ([x t+] ...) t+ s+)
-      (if e+ s+ s+)
-      pass
-      (expr e+)
-      (delete x)
-      (delete (attribute e+ string))
-      (delete (subscript e+ e+)) ;; s+ugar
-      (begin s+ ...)
-      (assert e+)
-      )
-
-  (m+ (field string t+)
-      (field string t+ e+)
-      (method string x ((x t+) ...) t+ s+))
-
+  (import-from-item+ 
+    (import-from string (x ...))
+    (import-from string (*)))
+  
+  ;; constants
   (c number
      boolean
      string
      None)
 
+  ;; boolean operator
+  (ob and or)
+
+  ;; cmpop
+  (oc < > == <= >= in not-in is is-not)
+
+  ;; bin-op
+  (o2 + - * / bit-or)
+
+  ;; unary-op
+  (o1 - not)
+  
   ;; expressions
   (e+ x
       c
       (tuple-syntax e+ ...)
       (set-syntax e+ ...)
-      (dict-syntax (e+ e+) ...)
-      (is e+ e+)
-      (is-not e+ e+)
-      (if e+ e+ e+)
+      (dict-syntax [e+ e+] ...)
+      (if-exp e+ e+ e+)
       (attribute e+ string)
-      (e+ e+ ...)
+      (call e+ e+ ...)
       (reveal-type any ... e+)
-      ;; s+ugars
-      (oc e+ e+)
       (subscript e+ e+)
+      (bin-op o2 e+ e+)
       (bool-op ob e+ ...)
       (unary-op o1 e+)
-      (bin-op o2 e+ e+)
-      (lambda ([x t+] ...) e+))
-
-  (ob and or)
-
-  (oc < > == <= >= in not-in)
-
-  (o2 + - * / bit-or)
-
-  (o ob oc o2)
-
-  (o1 - not)
+      (lambda ([x t+] ...) e+)
+      (compare e+ ([oc e+] ...)))
 
   ;; type expression
-  (t+ dynamic
-      None ;; nonterminal x doesn't cover t+his because we mentioned None in c
-      (subscript x (tuple-syntax t+ ...))
-      (subscript x t+)
-      (or-syntax t+ t+)
-      string  ;; same as x
-      x)
+  (t+ dynamic e+)
+  
+  ;; targets of assignment
+  (target x
+          (attribute e+ string)
+          (subscript e+ e+)
+          (tuple-syntax target ...))
+  
+  ;; statements
+  (s+ pass
+      (expr e+)
+      (return e+)
+      (assert e+)
+      (if e+ [s+ ...] [s+ ...])
+      (delete target)
+      (ann-assign target t+)
+      (ann-assign target t+ e+)
+      (assign target e+)
+      (aug-assign e+ o2 e+)
+      (class x (e+ ...) s+ ...)
+      (function-def x ([x t+] ...) t+ s+ ...))
 
   (x variable-not-otherwise-mentioned))
-
