@@ -41,12 +41,6 @@
       (writeln (term any_key))
       (error 'lookup "can't find ~e in ~e" (term any_key) (term any_env)))])
 
-
-(define-metafunction SP-statics
-  not : boolean -> boolean
-  [(not #t) #f]
-  [(not #f) #t])
-
 (define-metafunction SP-statics
   len : (any ...) -> number
   [(len (any ...)) ,(length (term (any ...)))])
@@ -58,7 +52,7 @@
 
 (define-metafunction SP-statics
   ≠ : any any -> boolean
-  [(≠ any_0 any_1) (not (= any_0 any_1))])
+  [(≠ any_0 any_1) ,(not (term (= any_0 any_1)))])
 
 (define-metafunction SP-statics
   extend : ([any any] ...) [any any] ... -> ([any any] ...)

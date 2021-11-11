@@ -10,7 +10,7 @@
 
   ;; declaration
   (d ([x D] ...))
-  
+
   ;; rhs of declaration
   (D t
      (def ([x t] ...) t)
@@ -34,6 +34,7 @@
      )
 
   (m (field string t)
+     (field string t e)
      (method string x ([x t] ...) t d s))
 
   ;; type expression
@@ -50,12 +51,13 @@
      (set-syntax e ...)
      (dict-syntax (e e) ...)
      (is e e)
-     (is-not e e)
+     (not e)
      (if e e e)
      (attribute e string)
      (e e ...)
      (reveal-type any ... e)
-     (bool-op ob e e)))
+     (bool-op ob e e)
+     (lambda ([x t] ...) e)))
 
 
 ;; The remaining part of this file describe the desugaring process.
@@ -164,7 +166,8 @@
   [(method-name +) "__add__"]
   [(method-name -) "__sub__"]
   [(method-name *) "__mul__"]
-  [(method-name /) "__div__"])
+  [(method-name /) "__div__"]
+  [(method-name bit-or) "__or__"])
 
 (module+ test
   (test-equal (term (desugar-e xyz))
@@ -201,7 +204,7 @@
   [(desugar-e (is e+_1 e+_2))
    (is (desugar-e e+_1) (desugar-e e+_2))]
   [(desugar-e (is-not e+_1 e+_2))
-   (is-not (desugar-e e+_1) (desugar-e e+_2))]
+   (not (is (desugar-e e+_1) (desugar-e e+_2)))]
   [(desugar-e (if e+_cnd e+_thn e+_els))
    (if (desugar-e e+_cnd) (desugar-e e+_thn) (desugar-e e+_els))]
   [(desugar-e (attribute e+ string))
@@ -224,7 +227,11 @@
   [(desugar-e (bin-op o2 e+_1 e+_2))
    ((attribute (desugar-e e+_1) (method-name o2)) (desugar-e e+_2))]
   [(desugar-e (unary-op - e+))
-   ((attribute (desugar-e e+) "__neg__"))])
+   ((attribute (desugar-e e+) "__neg__"))]
+  [(desugar-e (unary-op not e+))
+   (not (desugar-e e+))]
+  [(desugar-e (lambda ([x t+] ...) e+))
+   (lambda ([x (desugar-t t+)] ...) (desugar-e e+))])
 
 (module+ test
   (test-equal (term (desugar-s (define/assign (subscript x 2) dynamic 3)))
@@ -277,6 +284,8 @@
   desugar-m : m+ -> m
   [(desugar-m (field string t+))
    (field string (desugar-t t+))]
+  [(desugar-m (field string t+ e+))
+   (field string (desugar-t t+) (desugar-e e+))]
   [(desugar-m (method string x_slf ([x_arg t+_arg] ...) t+_ret s+))
    (method string x_slf ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
    (where s (desugar-s s+))])

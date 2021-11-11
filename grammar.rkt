@@ -37,6 +37,7 @@
       )
 
   (m+ (field string t+)
+      (field string t+ e+)
       (method string x ((x t+) ...) t+ s+))
 
   (c number
@@ -62,17 +63,18 @@
       (subscript e+ e+)
       (bool-op ob e+ ...)
       (unary-op o1 e+)
-      (bin-op o2 e+ e+))
+      (bin-op o2 e+ e+)
+      (lambda ([x t+] ...) e+))
 
   (ob and or)
 
   (oc < > == <= >=)
 
-  (o2 + - * /)
+  (o2 + - * / bit-or)
 
   (o ob oc o2)
 
-  (o1 -)
+  (o1 - not)
 
   ;; type expression
   (t+ dynamic
@@ -80,7 +82,7 @@
       (subscript x (tuple-syntax t+ ...))
       (subscript x t+)
       (or-syntax t+ t+)
-      string  ;; s+ame as x
+      string  ;; same as x
       x)
 
   (x variable-not-otherwise-mentioned))

@@ -30,19 +30,26 @@ def expr_to_type(expr: ast.expr):
     elif isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
         return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right)]
     elif isinstance(expr, ast.Constant):
-        assert isinstance(expr.value, str)
-        return string(expr.value)
+        return ast_to_sexp(expr)
     else:
         raise Exception("Can't deal with {}".format(expr))
 
 
 def stmt_to_class_member(stmt: ast.stmt):
     if isinstance(stmt, ast.AnnAssign):
-        assert stmt.value is None
-        return [
-            symbol('field'),
-            string(str(stmt.target.id)),
-            expr_to_type(stmt.annotation)]
+        if stmt.value is None:
+            return [
+                symbol('field'),
+                string(str(stmt.target.id)),
+                expr_to_type(stmt.annotation)
+            ]
+        else:
+            return [
+                symbol('field'),
+                string(str(stmt.target.id)),
+                expr_to_type(stmt.annotation),
+                ast_to_sexp(stmt.value)
+            ]
     elif isinstance(stmt, ast.FunctionDef):
         inputs = [[symbol(str(a.arg)), expr_to_type(a.annotation)]
                   for a in stmt.args.args[1:]]
@@ -52,9 +59,10 @@ def stmt_to_class_member(stmt: ast.stmt):
             string(str(stmt.name)),
             symbol(str(stmt.args.args[0].arg)),
             inputs,
-            output_type
-        ] + [
-            ast_to_sexp(s) for s in stmt.body
+            output_type,
+            [symbol('begin')] + [
+                ast_to_sexp(s) for s in stmt.body
+            ]
         ]
     else:
         raise Exception("Can't deal with {}".format(stmt))
@@ -172,6 +180,8 @@ def ast_to_sexp(node):
             ast_to_sexp(node.left),
             ast_to_sexp(node.right)
         ]
+    elif isinstance(node, ast.BitOr):
+        return symbol('bit-or')
     elif isinstance(node, ast.Mult):
         return symbol('*')
     elif isinstance(node, ast.Add):
@@ -235,12 +245,28 @@ def ast_to_sexp(node):
         return symbol('is-not')
     elif isinstance(node, ast.In):
         return symbol('in')
+    elif isinstance(node, ast.NotIn):
+        return symbol('not-in')
     elif isinstance(node, ast.Gt):
         return symbol('>')
     elif isinstance(node, ast.LtE):
         return symbol('<=')
     elif isinstance(node, ast.Eq):
         return symbol('==')
+    elif isinstance(node, ast.Not):
+        return symbol('not')
+    elif isinstance(node, ast.AugAssign):
+        return [
+            symbol('define/assign'),
+            ast_to_sexp(node.target),
+            symbol('dynamic'),
+            [
+                symbol('bin-op'),
+                ast_to_sexp(node.op),
+                ast_to_sexp(node.target),
+                ast_to_sexp(node.value)
+            ]
+        ]
     elif isinstance(node, ast.IfExp):
         return [
             symbol('if'),
@@ -279,6 +305,12 @@ def ast_to_sexp(node):
         return [
             symbol('assert'),
             ast_to_sexp(node.test)
+        ]
+    elif isinstance(node, ast.Lambda):
+        return [
+            symbol('lambda'),
+            arguments_to_sexp(node.args),
+            ast_to_sexp(node.body)
         ]
     assert False, str(node)
 
@@ -430,20 +462,26 @@ def python_file_to_redex_optimization_test(spec, prog):
 
 
 def sexp_to_str(sexp):
-    if isinstance(sexp, list):
-        return '(' + ' '.join(map(sexp_to_str, sexp)) + ')'
-    elif isinstance(sexp, bool):
-        return '#t' if sexp else '#f'
-    elif isinstance(sexp, symbol):
-        return sexp.replace('_', '--')
-    elif isinstance(sexp, string):
-        return '"' + repr(sexp)[1:-1] + '"'
-    elif isinstance(sexp, int):
-        return str(sexp)
-    elif isinstance(sexp, float):
-        return str(sexp)
-    else:
-        assert False, "Can't deal with {}".format(repr(sexp))
+    def sexp_to_str(sexp):
+        if isinstance(sexp, list):
+            return '(' + ' '.join(map(sexp_to_str, sexp)) + ')'
+        elif isinstance(sexp, bool):
+            return '#t' if sexp else '#f'
+        elif isinstance(sexp, symbol):
+            return sexp.replace('_', '--')
+        elif isinstance(sexp, string):
+            return '"' + repr(sexp)[1:-1] + '"'
+        elif isinstance(sexp, int):
+            return str(sexp)
+        elif isinstance(sexp, float):
+            return str(sexp)
+        else:
+            assert False, "Can't deal with {}".format(repr(sexp))
+    try:
+        return sexp_to_str(sexp)
+    except AssertionError as e:
+        print(str(sexp))
+        raise e
 
 
 path_to_conformance_suite = 'conformance_suite'

@@ -176,8 +176,8 @@ def translate_optimization_test(test: str):
     #             ....
     code, spec = parse_simple_test(test)
 
-    assert 'assertInBytecode' in test
-    assert 'INVOKE_FUNCTION' in test
+    # assert 'assertInBytecode' in test
+    # assert 'INVOKE_FUNCTION' in test
 
     assert isinstance(spec, ast.With)
 
@@ -185,7 +185,7 @@ def translate_optimization_test(test: str):
         '# {}.py'.format(name),
         '# This should pass.',
         '# This should terminate.',
-        '# This should be optimized.',
+        '# This should be optimized.' if 'assertInBytecode' in test else '',
         '',
         ''
     ]) + code
@@ -196,7 +196,8 @@ def translate_optimization_test(test: str):
 
 for test in read_tests(input_file):
     # These are tests that we don't care
-    # if 'inline' in test: continue 
+    if '@property' in test: continue
+    if 'weakref' in test: continue
     if 'reveal_type' in test: continue 
     if 'nonlocal' in test: continue
     if 'global' in test: continue
@@ -213,19 +214,38 @@ for test in read_tests(input_file):
     if 'await' in test: continue
     if '@_donotcompile' in test: continue
     if '__setattr__' in test: continue
+    if '__slots__' in test: continue
+    # byte strings
+    if 'b"' in test: continue
+    if "b'" in test: continue
+    # some legacy thing?
+    if '__static__.compiler_flags' in test: continue
 
     lines = test.split('\n')
     first_line = lines[0]
     try:
         # This line actually skips a bunch of tests.
-        name = first_line[4:first_line.index("(self)")]
+        name = first_line[4:first_line.index("(self)")]        
+        if 'stararg' in name: continue
+        if 'default_arg' in name: continue
+        if 'dstararg' in name: continue
         if '_kw' in name: continue
         if 'mixed_args' in name: continue
-        if 'varargs' in name: continue
+        if 'vararg' in name: continue
         if 'async' in name: continue
         if 'try:' in test: continue
         if 'test_if_else_optional_return_two_branches' in name: continue
         # ⬆️ This test uses an unbound identifier
+        if 'test_compile_checked_dict_from_dict_call' in name: continue
+        # This test uses keyword argument
+        if 'test_inline_bare_return' in name: continue
+        # This test uses keyword argument
+        if 'test_inline_func_default' in name: continue
+        # This test uses default argument
+        if 'test_verify_lambda_keyword_only' in name: continue
+        # This test uses keyword argument
+        if 'test_compile_checked_dict_bad_annotation' in name: continue
+        # The annotation is too bad... it uses 42 as type.
     except Exception:
         continue
 
