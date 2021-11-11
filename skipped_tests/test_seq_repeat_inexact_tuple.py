@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_seq_repeat_inexact_tuple(self):
     codestr = """
         from typing import Tuple

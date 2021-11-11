@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_final_decorator_class_dynamic(self):
     """We should never mark DYNAMIC_TYPE as final."""
     codestr = """

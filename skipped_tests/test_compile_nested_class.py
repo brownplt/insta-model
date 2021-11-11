@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_compile_nested_class(self):
     codestr = """
         from typing import ClassVar

@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_try_except_finally(self):
     codestr = """
         class B:

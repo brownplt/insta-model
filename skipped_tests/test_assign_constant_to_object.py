@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_constant_to_object(self):
     codestr = """
         def f():

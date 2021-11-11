@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_invoke_frozen_type(self):
     codestr = """
         class C:

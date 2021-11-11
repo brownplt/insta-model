@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_final_constant_in_module_scope(self):
     codestr = """
     from typing import Final

@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_final_decorator_override_transitivity(self):
     codestr = """
     from typing import final

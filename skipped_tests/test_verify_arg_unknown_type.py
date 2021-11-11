@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_verify_arg_unknown_type(self):
     codestr = """
         def x(x:foo):

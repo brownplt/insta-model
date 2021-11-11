@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_unknown_annotation(self):
     codestr = """
         def f(a):

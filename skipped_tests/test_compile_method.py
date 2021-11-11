@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_compile_method(self):
     code = self.compile(
         """

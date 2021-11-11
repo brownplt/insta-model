@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_but_annotated(self):
     codestr = """
         class B:

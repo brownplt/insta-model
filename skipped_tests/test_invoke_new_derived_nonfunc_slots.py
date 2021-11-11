@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_invoke_new_derived_nonfunc_slots(self):
     codestr = """
         class C:

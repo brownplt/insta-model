@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_for_iter_sequence_orelse(self):
     codestr = """
         from typing import List

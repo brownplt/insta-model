@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_invoke_strict_module_deep_unjitable(self):
     codestr = """
         def f12(): return 42

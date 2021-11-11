@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_direct_super_init(self):
     value = 42
     expected = value

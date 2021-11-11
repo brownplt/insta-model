@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_with_traceback(self):
     codestr = """
         def f():

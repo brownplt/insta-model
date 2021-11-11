@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_bind_func_def(self) -> None:
     mod, comp = self.bind_module(
         """

@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_for_iter_unchecked_get(self):
     """We don't need to check sequence bounds when we've just compared with the list size."""
     codestr = """

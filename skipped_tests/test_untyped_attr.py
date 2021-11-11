@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_untyped_attr(self):
     codestr = """
     y = x.load

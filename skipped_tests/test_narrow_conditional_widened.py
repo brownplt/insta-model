@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_narrow_conditional_widened(self):
     codestr = """
         class B:

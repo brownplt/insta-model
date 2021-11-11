@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_typed_swap_nested_3(self):
     codestr = """
         def test(a):

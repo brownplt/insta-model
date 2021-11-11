@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_checked_dict_optional(self):
     x = chkdict[str, Optional[str]]()
     x["abc"] = None

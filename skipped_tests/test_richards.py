@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_richards(self):
     with open(RICHARDS_PATH) as f:
         codestr = f.read()

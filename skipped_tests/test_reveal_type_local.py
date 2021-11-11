@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_reveal_type_local(self) -> None:
     codestr = """
         def f(x: int | None):

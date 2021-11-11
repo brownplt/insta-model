@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_fast_len_tuple_subclass(self):
     codestr = """
     class mytuple(tuple):

@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_compare_subclass(self):
     codestr = """
     class C: pass

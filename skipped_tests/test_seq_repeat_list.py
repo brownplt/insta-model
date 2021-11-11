@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_seq_repeat_list(self):
     codestr = """
         def f():

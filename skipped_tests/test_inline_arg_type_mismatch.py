@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_inline_arg_type_mismatch(self):
     codestr = """
         from __static__ import inline

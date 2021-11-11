@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_conditional_invoke_in_else(self):
     codestr = """
         class B:

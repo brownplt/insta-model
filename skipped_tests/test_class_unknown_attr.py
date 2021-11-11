@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_class_unknown_attr(self):
     value = 42
     expected = value

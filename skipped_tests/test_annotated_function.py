@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_annotated_function(self):
     codestr = """
     class C:

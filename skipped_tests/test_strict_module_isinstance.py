@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_strict_module_isinstance(self):
     code = """
         from typing import Optional

@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_builtin_object_setattr(self):
     codestr = """
     class C:

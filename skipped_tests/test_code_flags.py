@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_code_flags(self):
     codestr = """
     def func():

@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_invoke_explicit_slots(self):
     codestr = """
         class C:

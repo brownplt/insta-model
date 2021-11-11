@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_else_only(self):
     codestr = """
         class B:

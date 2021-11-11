@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_checked_dict_setdefault_bad_values(self):
     x = chkdict[str, int]()
     with self.assertRaises(TypeError):

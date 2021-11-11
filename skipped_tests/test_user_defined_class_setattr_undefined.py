@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_user_defined_class_setattr_undefined(self):
     codestr = """
     class F:

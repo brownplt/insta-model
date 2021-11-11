@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_mixed_chain_assign(self) -> None:
     codestr = """
         class C: pass

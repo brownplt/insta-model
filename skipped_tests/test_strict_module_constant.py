@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_strict_module_constant(self) -> None:
     code = """
         def f(a):

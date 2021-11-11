@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_unknown_type_compare(self):
     codestr = """
         def x(a, b):

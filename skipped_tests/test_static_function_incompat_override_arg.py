@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_static_function_incompat_override_arg(self):
     codestr = """
         class A:

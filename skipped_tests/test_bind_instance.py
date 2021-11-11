@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_bind_instance(self) -> None:
     mod, comp = self.bind_module("class C: pass\na: C = C()")
     assign = mod.body[1]

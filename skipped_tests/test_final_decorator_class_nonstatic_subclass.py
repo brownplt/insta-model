@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_final_decorator_class_nonstatic_subclass(self):
     codestr = """
         from typing import final

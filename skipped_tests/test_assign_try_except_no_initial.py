@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_try_except_no_initial(self):
     codestr = """
         class B:

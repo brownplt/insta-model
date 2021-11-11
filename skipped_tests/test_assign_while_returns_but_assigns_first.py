@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_assign_while_returns_but_assigns_first(self):
     codestr = """
         from typing import Optional

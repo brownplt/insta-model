@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_typed_slots_bad_slots(self):
     with self.assertRaises(TypeError):
         class C:

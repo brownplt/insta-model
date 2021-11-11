@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_assign_chained_failure_wrong_target_type(self):
     codestr = """
         def test() -> str:

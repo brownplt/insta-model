@@ -1,3 +1,4 @@
+# Reason: Code hitted some skipped words
 def test_assign_try_except_typing_predeclared(self):
     codestr = """
         def testfunc():

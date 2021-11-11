@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_final_callable_protocol_retains_inferred_type(self):
     codestr = """
     from typing import Final, Protocol

@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_generic_type_args(self):
     T = TypeVar("T")
     U = TypeVar("U")

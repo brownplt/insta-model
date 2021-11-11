@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_method_prologue_posonly(self):
     codestr = """
     def f(x: int, /, y: str):

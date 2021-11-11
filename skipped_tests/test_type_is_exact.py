@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_type_is_exact(self) -> None:
     self.assertTrue(FUNCTION_TYPE.is_exact)
     self.assertTrue(METHOD_TYPE.is_exact)

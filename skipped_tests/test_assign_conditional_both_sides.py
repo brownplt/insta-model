@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_conditional_both_sides(self):
     codestr = """
         class B:

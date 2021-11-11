@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_error_incompat_return(self):
     with self.assertRaises(TypedSyntaxError):
         code = self.compile(

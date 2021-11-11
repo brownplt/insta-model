@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_invoke_and_raise_shadow_frame_strictmod(self):
     codestr = """
     from __static__.compiler_flags import shadow_frame

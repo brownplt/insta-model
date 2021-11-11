@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_static_function_final_class(self):
     codestr = """
         from typing import final

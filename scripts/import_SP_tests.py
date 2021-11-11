@@ -272,7 +272,7 @@ def record_skipped_test(name, test, reason):
     print('\\' + '-' * 10 + '/')
     skipped_tests_path = skipped_tests_path_prefix + name + ".py"
     skipped_tests_file = open(skipped_tests_path, 'w')
-    # skipped_tests_file.write("# Reason: {}\n".format(reason))
+    skipped_tests_file.write("# Reason: {}\n".format(reason))
     skipped_tests_file.write(test)
     return
 

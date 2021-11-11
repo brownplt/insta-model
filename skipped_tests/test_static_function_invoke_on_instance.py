@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_static_function_invoke_on_instance(self):
     codestr = """
         class C:

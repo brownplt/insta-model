@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_decorated_function_ignored_class(self):
     codestr = """
         class C:

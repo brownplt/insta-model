@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_invoke_dict_override(self):
     codestr = """
         class C:

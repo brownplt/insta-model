@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_error_mixed_math(self):
     with self.assertRaises(TypedSyntaxError):
         code = self.compile(

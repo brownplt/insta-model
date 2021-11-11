@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_exact_float_type(self):
     codestr = """
     def foo():

@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_checked_dict(self):
     x = chkdict[str, str]()
     x["abc"] = "foo"

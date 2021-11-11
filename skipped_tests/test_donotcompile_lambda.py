@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_donotcompile_lambda(self):
     codestr = """
     from __static__ import _donotcompile

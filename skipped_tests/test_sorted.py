@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_sorted(self):
     """sorted() builtin returns an Exact[List]."""
     codestr = """

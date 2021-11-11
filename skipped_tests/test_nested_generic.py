@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_nested_generic(self):
     S = TypeVar("S")
     T = TypeVar("T")

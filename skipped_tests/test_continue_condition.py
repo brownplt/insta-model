@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_continue_condition(self):
     codestr = """
         from typing import Optional

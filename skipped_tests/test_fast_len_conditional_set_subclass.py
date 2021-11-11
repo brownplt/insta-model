@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_fast_len_conditional_set_subclass(self):
     codestr = """
         class Myset(set):

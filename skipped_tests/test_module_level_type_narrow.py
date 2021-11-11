@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_module_level_type_narrow(self):
     codestr = """
         def a() -> int | None:

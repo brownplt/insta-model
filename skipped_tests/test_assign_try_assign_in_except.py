@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_assign_try_assign_in_except(self):
     codestr = """
         class B:

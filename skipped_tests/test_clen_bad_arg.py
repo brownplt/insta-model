@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_clen_bad_arg(self):
     codestr = """
         from __static__ import clen

@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_fast_len_conditional_tuple_funcarg(self):
     codestr = """
         def z(b: object) -> bool:

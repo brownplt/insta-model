@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_dynamic_base(self):
     nonstatic_code = """
         class Foo:

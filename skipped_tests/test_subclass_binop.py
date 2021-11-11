@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_subclass_binop(self):
     codestr = """
         class C: pass

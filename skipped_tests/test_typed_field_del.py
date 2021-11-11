@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_typed_field_del(self):
     codestr = """
         class D:

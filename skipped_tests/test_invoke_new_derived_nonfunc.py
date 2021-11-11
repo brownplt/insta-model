@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_invoke_new_derived_nonfunc(self):
     codestr = """
         class C:

@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_nonoptional_load(self):
     codestr = """
         class C:

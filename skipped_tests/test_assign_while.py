@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_assign_while(self):
     codestr = """
         class B:

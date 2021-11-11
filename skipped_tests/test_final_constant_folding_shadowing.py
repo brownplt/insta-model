@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_final_constant_folding_shadowing(self):
     codestr = """
     from typing import Final

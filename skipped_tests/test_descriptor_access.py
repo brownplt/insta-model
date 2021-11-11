@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_descriptor_access(self):
     value = 42
     expected = value

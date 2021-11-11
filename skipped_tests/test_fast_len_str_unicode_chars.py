@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_fast_len_str_unicode_chars(self):
     codestr = """
     def f():

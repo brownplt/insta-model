@@ -1,3 +1,4 @@
+# Reason: Format too complicated
 def test_invoke_type_modified(self):
     codestr = """
         class C:

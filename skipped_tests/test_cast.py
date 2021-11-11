@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_cast(self):
     for code_gen in (StaticCodeGenerator, PythonCodeGenerator):
         codestr = """

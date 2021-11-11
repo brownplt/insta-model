@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_verify_positional_args(self):
     codestr = """
         def x(a: int, b: str) -> None:

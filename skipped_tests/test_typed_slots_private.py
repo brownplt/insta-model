@@ -1,3 +1,4 @@
+# Reason: Test hitted some skipped words
 def test_typed_slots_private(self):
     codestr = """
         class C:
