@@ -632,6 +632,9 @@
    (run-imports Σ_2 ρ_2 (import-from "__static__" (any ...)) import-type ...)
    (where (Σ_2 l) (alloc Σ_1 (ref "CheckedDict")))
    (where ρ_2 (extend ρ_1 [CheckedDict l]))]
+  ;; ignore inline. It is fine
+  [(run-imports Σ ρ (import-from "__static__" ("inline" any ...)) import-type ...)
+   (run-imports Σ ρ (import-from "__static__" (any ...)) import-type ...)]
   [(run-imports Σ_1 ρ_1 (import-from "typing" ("Optional" any ...)) import-type ...)
    (run-imports Σ_2 ρ_2 (import-from "typing" (any ...)) import-type ...)
    (where (Σ_2 l) (alloc Σ_1 (ref "Optional")))

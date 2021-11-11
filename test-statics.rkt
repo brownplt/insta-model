@@ -371,6 +371,9 @@
 ;; conformance_suite/test_final_in_args.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (def f ((a Final)) None (begin pass))))))
 
+;; conformance_suite/test_frozenset_constant.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def i ((s str)) bool (begin (return (in i (set-syntax "a" "b"))))) (def t () bool (begin (return (i "p"))))))))
+
 ;; conformance_suite/test_generic_method_ret_type.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (define/assign MAP (subscript CheckedDict (tuple-syntax str (subscript Optional str))) ((subscript CheckedDict (tuple-syntax str (subscript Optional str))) (dict-syntax ("abc" "foo") ("bar" None)))) (def f ((x str)) (subscript Optional str) (begin (return ((attribute MAP "get") x))))))))
 
@@ -415,6 +418,12 @@
 
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class A (object) (method "m" self () str (return "hello"))) (class B (A) (method "m" self () int (return 0)))))))
+
+;; conformance_suite/test_inline_recursive.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def f ((x dynamic) (y dynamic)) dynamic (begin (return (f x y)))) (def g () dynamic (begin (return (f 1 2))))))))
+
+;; conformance_suite/test_inline_return_type_mismatch.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (def f () int (begin (return 1))) (def g () str (begin (return (f))))))))
 
 ;; conformance_suite/test_invoke_all_extra_args.py
 (check-judgment-holds* (⊢p (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)) g)))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6 7))))))))

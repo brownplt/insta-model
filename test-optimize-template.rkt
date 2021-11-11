@@ -82,6 +82,31 @@ def f(x: str) -> Optional[str]:
 |#
 
 
+;; conformance_suite/test_inline_recursive.py
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (def f ((x dynamic) (y dynamic)) dynamic (begin (return (f x y)))) (def g () dynamic (begin (return (f 1 2)))))))))
+#|
+
+from __static__ import inline
+@inline
+def f(x, y):
+    return f(x, y)
+def g():
+    return f(1,2)
+# def test_inline_recursive(self):
+#     codestr = """
+#         from __static__ import inline
+#         @inline
+#         def f(x, y):
+#             return f(x, y)
+#         def g():
+#             return f(1,2)
+#     """
+#     with self.in_module(codestr, optimize=2) as mod:
+#         g = mod.g
+#         self.assertInBytecode(g, "INVOKE_FUNCTION", (((mod.__name__, "f"), 2)))
+|#
+
+
 ;; conformance_suite/test_invoke_all_extra_args.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)) g)))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6 7)))))))))
 #|
