@@ -85,14 +85,19 @@
    (where #f (some-redeclaration? d))
    (where Γ_3 (extend Γ_2 [x ☠] ...))
    (where (d_cls d_oth) (split-d d))
+   #;(show before-define-classes)
    (where (Ψ_2 Γ_4) (define-classes Ψ_1 Γ_3 d_cls))
+   #;(show after)
    ;; then we define other things, functions and ordinary varibles
    (where ([x_var D_var] ...) d_oth)
    (evalD* Ψ_2 Γ_4 (D_var ...) (T_var ...))
+   #;(show (I am going to (do-update Γ_4 [x_var T_var] ...)))
    (where Γ_5 (update Γ_4 [x_var T_var] ...))
    ;; every class is well-formed
    (where ([cid C] ...) Ψ_2)
+   #;(show there?)
    (Ψ⊢cid Ψ_2 cid) ...
+   #;(show (here? d_oth Γ_5))
    ;; the module body is well-formed
    (ΨΓΓ⊢s⇐T+☠ Ψ_2 Γ_5 Γ_5 s ☠)
    ------------------------
@@ -214,24 +219,24 @@
 (module+ test
   (test-equal (term (define-classes (base-Ψ) (base-Γ) ()))
               (term ((base-Ψ) (base-Γ))))
-  (test-equal (term (define-classes (base-Ψ) (base-Γ)
+  (test-equal (term (define-classes (base-Ψ) (extend (base-Γ) [C ☠] [D ☠])
                       ([C (class C ())]
                        [D (class D ())])))
               (term ((extend (base-Ψ)
-                             [1 (class D "object" () ())]
-                             [0 (class C "object" () ())])
+                             [(user-defined-class C) (class C "object" () ())]
+                             [(user-defined-class D) (class D "object" () ())])
                      (extend (base-Γ)
-                             [D (classitself 1)]
-                             [C (classitself 0)]))))
-  (test-equal (term (define-classes (base-Ψ) (base-Γ)
+                             [C (classitself (user-defined-class C))]
+                             [D (classitself (user-defined-class D))]))))
+  (test-equal (term (define-classes (base-Ψ) (extend (base-Γ) [C ☠] [D ☠])
                       ([C (class C ())]
                        [D (class D (C))])))
               (term ((extend (base-Ψ)
-                             [1 (class D 0 () ())]
-                             [0 (class C "object" () ())])
+                             [(user-defined-class C) (class C "object" () ())]
+                             [(user-defined-class D) (class D (user-defined-class C) () ())])
                      (extend (base-Γ)
-                             [D (classitself 1)]
-                             [C (classitself 0)])))))
+                             [C (classitself (user-defined-class C))]
+                             [D (classitself (user-defined-class D))])))))
 (define-metafunction SP-statics
   define-classes : Ψ Γ d -> (Ψ Γ)
   [(define-classes Ψ_1 Γ_1 d)
@@ -246,7 +251,8 @@
   [(declare-classes Ψ Γ ()) (Ψ Γ)]
   [(declare-classes Ψ_1 Γ_1 ([x (class x any_cls ...)] any_clm ...))
    (declare-classes Ψ_2 Γ_2 (any_clm ...))
-   (where (Ψ_2 cid) (Ψ-alloc Ψ_1 ☠))
+   (where cid (user-defined-class x))
+   (where Ψ_2 (extend Ψ_1 [cid ☠]))
    (where Γ_2 (update Γ_1 [x (classitself cid)]))])
 
 (define-metafunction SP-statics
@@ -267,7 +273,7 @@
               ([string_fld T_fld] ...)
               ([string_mth ([x_arg T_arg] ...) T_ret] ...)))
    (where (classitself cid) (lookup Γ x))
-   (where Ψ_2 (Ψ-init Ψ_1 cid C))])
+   (where Ψ_2 (update Ψ_1 [cid C]))])
 
 (define-metafunction SP-statics
   collect-local-defs-and-clss : Ψ Γ s ... -> any
@@ -302,7 +308,7 @@
   )
 
 
-(module+ test
+#;(module+ test
   (test-equal (term (collect-mems (field "x" int)
                                   (method "f" self ([x int] [y str]) None () pass)))
               (term ((["x" int])
@@ -331,7 +337,7 @@
            (any_method ...))
           (collect-mems m ...))])
 
-(module+ test
+#;(module+ test
   (check-not-judgment-holds*
    (ΨΓΓ⊢s⇐T+☠ (base-Ψ)
               (base-Γ)
@@ -433,10 +439,11 @@
   [(evalo Ψ Γ_1 t_ret T_ret)
    (where #f (some-redeclaration? d))
    (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d))
-   (evalD Ψ Γ_1 D_var T_var) ...
-   (where Γ_2 (extend Γ_1 [x_cls dynamic] ... [x_var T_var] ...))
+   (where Γ_2 (extend Γ_1 [x_cls dynamic] ... [x_var ☠] ...))
+   (evalD Ψ Γ_2 D_var T_var) ...
+   (where Γ_3 (update Γ_2 [x_var T_var] ...))
    ;; always use the persistent enrionment
-   (ΨΓΓ⊢s⇐T+☠ Ψ Γ_2 Γ_2 s T_ret)
+   (ΨΓΓ⊢s⇐T+☠ Ψ Γ_3 Γ_3 s T_ret)
    ------------------------ "def"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ_1 Γ_lcl (def x_fun ([x_arg t_arg] ...) t_ret d s) _)]
 
@@ -494,7 +501,7 @@
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl e T_src)
    (Ψ⊢T≲T Ψ T_src T_tgt)
    (where T_lcl (intersection Ψ T_src T_tgt))
-   (ΨΓΓ⊢s⇐T+☠ Ψ Γ (extend Γ_lcl [x T_lcl]) (begin s ...) T+☠)
+   (ΨΓΓ⊢s⇐T+☠ Ψ Γ (update Γ_lcl [x T_lcl]) (begin s ...) T+☠)
    --------------------- "begin-define/assign"
    (ΨΓΓ⊢s⇐T+☠ Ψ Γ Γ_lcl (begin (define/assign x t e) s ...) T+☠)]
 
@@ -510,7 +517,7 @@
   )
 
 
-(module+ test
+#;(module+ test
   (check-judgment-holds*
    (ΨΓ⊢ifess⇐T+☠ (base-Ψ)
                  ([x ("optional" "int")])
@@ -593,7 +600,7 @@
    -------------------------
    (ΨΓt⊢m Ψ Γ t_slf (method string_method x_slf ([x_arg t_arg] ...) t_ret d s))])
 
-(module+ test
+#;(module+ test
   (check-judgment-holds*
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) None (instancesof "NoneType"))
    (ΨΓΓ⊢e⇐T (base-Ψ) (base-Γ) (base-Γ) #t (instancesof "int"))
@@ -625,7 +632,7 @@
    (ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e T_2)]
   )
 
-(module+ test
+#;(module+ test
   (check-judgment-holds*
    (as-fun (base-Ψ) (-> ([x (instancesof "int")]) (instancesof "str")) 1 (-> ([x (instancesof "int")]) (instancesof "str")))
    (as-fun (base-Ψ) (classitself "object") 0 (-> () (instancesof "object")))
@@ -665,7 +672,7 @@
    (as-fun Ψ dynamic number (-> ([☠ T_arg] ...) T_ret))]
   )
 
-(module+ test
+#;(module+ test
   (check-judgment-holds*
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) int (classitself "int"))
    (ΨΓ⊢e⇒T (base-Ψ) (base-Γ) (base-Γ) None (instancesof "NoneType"))
@@ -708,11 +715,11 @@
 
   ;; TODO remove this
   [(ΨΓ⊢e⇒T Ψ Γ Γ_lcl e T)
-   (show (the-type-of e is T the context is Γ Γ_lcl at any ...))
+   #;(show (the-type-of e is T the context is Γ Γ_lcl at any ...))
    ----------------------- "reveal-type"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl (reveal-type any ... e) T)]
   
-  [----------------------- "constance"
+  [----------------------- "constant"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl c (instancesof (type-of-c c)))]
 
   [(ΨΓΓ⊢e⇐T Ψ Γ Γ_lcl e_key dynamic) ...
@@ -740,7 +747,7 @@
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl (bool-op ob e_1 e_2) (union Ψ T_1 T_2))]
 
   [(where ((attribute x "__getitem__") (tuple-syntax t ...)) e)
-   (evalo Ψ Γ e (instancesof cid))
+   (evalo Ψ Γ_lcl e (instancesof cid))
    ------------------------ "generic"
    (ΨΓ⊢e⇒T Ψ Γ Γ_lcl e (classitself cid))]
 

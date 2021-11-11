@@ -196,6 +196,7 @@ def translate_optimization_test(test: str):
 
 for test in read_tests(input_file):
     # These are tests that we don't care
+    if 'inline' in test: continue 
     if 'reveal_type' in test: continue 
     if 'nonlocal' in test: continue
     if 'global' in test: continue

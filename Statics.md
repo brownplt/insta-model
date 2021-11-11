@@ -151,6 +151,12 @@ Overriding a method requires that the new input type is a supertype of the old o
 - [override_instance_method_contravariant_inputs_neg.py](conformance_suite/override_instance_method_contravariant_inputs_neg.py)
 - [override_instance_method_contravariant_inputs_pos.py](conformance_suite/override_instance_method_contravariant_inputs_pos.py)
 
+### Classes as types
+
+Classes aren't first-class. Unresolved types are NOT checked.
+
+- [classes_are_not_first-class.py](conformance_suite/classes_are_not_first-class.py)
+
 ## Instances
 
 Looking up a declared field has the expected type.

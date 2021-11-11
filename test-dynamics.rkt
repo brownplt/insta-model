@@ -104,6 +104,9 @@
 ;; conformance_suite/bool_is_inhabitable.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((define/assign x bool #t)))))))
 
+;; conformance_suite/classes_are_not_first-class.py
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class C (object)) (def checkExpect ((cls dynamic) (obj dynamic)) dynamic (begin (define/assign x cls obj) (return x))) (expr (checkExpect C 42))))))))
+
 ;; conformance_suite/downcast_float_to_int_neg.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((def asDyn ((x dynamic)) dynamic (begin (return x))) (define/assign x float 2.3) (define/assign y int (asDyn x))))))))
 
@@ -136,9 +139,6 @@
 
 ;; conformance_suite/test_generic_method_ret_type.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (define/assign MAP (subscript CheckedDict (tuple-syntax str (subscript Optional str))) ((subscript CheckedDict (tuple-syntax str (subscript Optional str))) (dict-syntax ("abc" "foo") ("bar" None)))) (def f ((x str)) (subscript Optional str) (begin (return ((attribute MAP "get") x))))))))))
-
-;; conformance_suite/test_inline_recursive.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("inline")) (def f ((x dynamic) (y dynamic)) dynamic (begin (return (f x y)))) (def g () dynamic (begin (return (f 1 2))))))))))
 
 ;; conformance_suite/test_invoke_all_extra_args.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((def target ((a dynamic) (b dynamic) (c dynamic) (d dynamic) (e dynamic) (f dynamic) (g dynamic)) dynamic (begin (return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * a 2) (bin-op * b 3)) (bin-op * c 4)) (bin-op * d 5)) (bin-op * e 6)) (bin-op * f 7)) g)))) (def testfunc () dynamic (begin (return (target 1 2 3 4 5 6 7))))))))))

@@ -15,13 +15,14 @@
             "tuple"
             "dict"
             "set"
+            "list"
             "NoneType"
             ("CheckedDict" checkable-T checkable-T)
             "type")
   ;; class id, an unique data that specify which class it is
   (cid prim-cid
        ;; user defined class
-       number)
+       (user-defined-class x))
   ;; cid or dynamic
   (cid+dynamic+☠
    ;; parent class
@@ -36,12 +37,12 @@
        ;; parents
        cid+dynamic+☠
        ;; fields
-       ((string T) ...)
+       ([string T] ...)
        ;; methods
-       ((string ([x+☠ T] ...) T) ...)))
+       ([string ([x+☠ T] ...) T] ...)))
   ;; a handy concept that is useful when I want to check well-formness of classes
-  (flat-class (((string T) ...)
-               ((string ([x+☠ T] ...) T) ...)))
+  (flat-class (([string T] ...)
+               ([string ([x+☠ T] ...) T] ...)))
   ;; optional flat-class
   (flat-class+☠ flat-class ☠)
   ;; a global environment that maps class ids to their definitions
@@ -68,6 +69,7 @@
      (type-op "cast")
      )
   (checkable-T
+   dynamic
    (instancesof cid)
    ("optional" cid))
   ;; optional variable

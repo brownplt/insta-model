@@ -6,24 +6,10 @@
 (require "statics-utilities.rkt")
 (provide (all-defined-out))
 
-(define (first-free-cid Ψ)
-  (let ([used-cids (for/set ([entry Ψ]
-                             #:when (number? (car entry)))
-                     (car entry))])
-    (for/first ([i (in-naturals)]
-                #:unless (set-member? used-cids i))
-      i)))
-
 (module+ test
   (test-equal (term (Ψ-alloc (base-Ψ) (class C "object" () ())))
               (term ((extend (base-Ψ) [0 (class C "object" () ())])
                      0))))
-(define-metafunction SP-statics
-  Ψ-alloc : Ψ C+☠ -> (Ψ cid)
-  [(Ψ-alloc Ψ_1 C+☠)
-   (Ψ_2 number)
-   (where number ,(first-free-cid (term Ψ_1)))
-   (where Ψ_2 (extend Ψ_1 [number C+☠]))])
 
 (define-metafunction SP-statics
   Ψ-init : Ψ cid C -> Ψ
@@ -132,6 +118,10 @@
 
   [(lookupo Γ x dynamic)
    ------------------------- "Lookup dynamic"
+   (evalo Ψ Γ x dynamic)]
+
+  [(lookupo Γ x ☠)
+   ------------------------- "Lookup uninitialized"
    (evalo Ψ Γ x dynamic)])
 
 (module+ test
@@ -370,10 +360,14 @@
       ("__setitem__" ([☠ dynamic] [☠ dynamic]) (instancesof "NoneType"))
       ("__delitem__" ([☠ dynamic]) (instancesof "NoneType"))))]
   [(lookup-class Ψ "set")
-   (class dict "object"
+   (class set "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
       ("__contains__" ([☠ dynamic]) (instancesof "bool"))))]
+  [(lookup-class Ψ "list")
+   (class list "object"
+     ()
+     (("__init__" ([☠ dynamic]) dynamic)))]
   [(lookup-class Ψ "NoneType")
    (class NoneType "object" () ())]
   [(lookup-class Ψ ("CheckedDict" T_key T_val))
@@ -381,6 +375,8 @@
      "object"
      ()
      (("__init__" ([☠ dynamic]) dynamic)
+      ("get" ([☠ T_key]) (union Ψ (instancesof "NoneType") T_val))
+      ("keys" () (instancesof "list"))
       ("__getitem__" ([☠ T_key]) T_val)
       ("__setitem__" ([☠ T_key]
                       [☠ T_val])
@@ -388,8 +384,8 @@
       ("__delitem__" ([☠ T_key])
                      (instancesof "NoneType"))))]
   ;; lookup user-defined classes
-  [(lookup-class Ψ number)
-   (lookup Ψ number)])
+  [(lookup-class Ψ (user-defined-class x))
+   (lookup Ψ (user-defined-class x))])
 
 (define-metafunction SP-statics
   flatten-class* : Ψ cid ... -> flat-class
