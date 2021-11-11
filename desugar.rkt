@@ -6,19 +6,20 @@
 (define-extended-language SP-core SP
 
   ;; program
-  (program (import-from-item ... d s))
+  (program ((import-from-item ...) d s))
 
   ;; imports
   (import-from-item
-   (import-from string (x)))
+   (import-from string x)
+   (import-from string *))
 
   (e x
      c
      (tuple-syntax e ...)
      (set-syntax e ...)
-     (dict-syntax (e e) ...)
+     (dict-syntax [e e] ...)
      (if-exp e e e)
-     (attribute e string)
+     (attribute e x)
      (call e e ...)
      (reveal-type any ... e)
      (ob e e)
@@ -37,14 +38,14 @@
      (if e s s)
      (delete target)
      (ann-assign x t e)
-     (ann-assign (attribute e string) t e)
+     (ann-assign (attribute e x) t e)
      (function-def x ([x t] ...) t d s)
-     (class x (e ...) m ...))
+     (class x (e ...) [m ...]))
 
   ;; class members
-  (m (field string t)
-     (field string t e)
-     (method string x ([x t] ...) t d s))
+  (m (field x t)
+     (field x t e)
+     (method x x ([x t] ...) t d s))
 
   ;; declaration
   (d ([x D] ...))
@@ -52,7 +53,7 @@
   ;; rhs of declaration
   (D t
      (function-def ([x t] ...) t)
-     (class x (t ...) [string t] ...)))
+     (class x (t ...) ([x D] ...))))
 
 
 ;; The remaining part of this file describe the desugaring process.
@@ -72,19 +73,19 @@
    (any_1 ... any_2 ...)])
 
 (module+ test
-  (test-equal (term (lift-claims (define/assign xyz int 42)))
+  (test-equal (term (lift-claims (ann-assign xyz int 42)))
               (term ([xyz int])))
-  (test-equal (term (lift-claims (define/assign (attribute objx "unknown") int 42)))
+  (test-equal (term (lift-claims (ann-assign (attribute objx "unknown") int 42)))
               (term ()))
-  (test-equal (term (lift-claims (def func ([n int]) str () (return None))))
-              (term ([func (def ([n int]) str)])))
-  (test-equal (term (lift-claims (class MyClass (int str))))
+  (test-equal (term (lift-claims (function-def func ([n int]) str () (return None))))
+              (term ([func (function-def ([n int]) str)])))
+  (test-equal (term (lift-claims (class MyClass (int str) ())))
               (term ([MyClass (class MyClass (int str))])))
   (test-equal (term (lift-claims (if (bool-op and 0 1)
-                                     (define/assign x int 42)
-                                     (define/assign y str "foo"))))
+                                     (ann-assign x int 42)
+                                     (ann-assign y str "foo"))))
               (term ([x int] [y str])))
-  (test-equal (term (lift-claims (begin (define/assign x int 42)(define/assign y str "foo"))))
+  (test-equal (term (lift-claims (begin (ann-assign x int 42)(ann-assign y str "foo"))))
               (term ([x int] [y str])))
   (test-equal (term (lift-claims (delete xyz)))
               (term ()))
@@ -106,24 +107,32 @@
               (term ()))
   (test-equal (term (simplify-d ([x int] [x dynamic])))
               (term ([x int])))
-  (test-equal (term (simplify-d ([x (def () int)] [x dynamic])))
-              (term ([x (def () int)]))))
+  (test-equal (term (simplify-d ([x (function-def () int)] [x dynamic])))
+              (term ([x (function-def () int)]))))
 (define-metafunction SP-core
   simplify-d : d -> d
   ;; Remove later dynamic redeclaration because they are just mutation
   [(simplify-d (any_1 ... [x D] any_2 ... [x dynamic] any_3 ...))
    (simplify-d (any_1 ... [x D] any_2 ... any_3 ...))]
   [(simplify-d d) d])
+
+(define-metafunction SP-core
+  lift-m : m -> [x t]
+  [(lift-m (field x t)) [x t]]
+  [(lift-m (field x t e)) [x t]]
+  [(lift-m (method x x_slf ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
+   [x (function-def ([x_arg t_arg] ...) t_ret)]])
+
 (define-metafunction SP-core
   lift-claims-helper : s -> d
   [(lift-claims-helper (claim x t)) ([x t])]
-  [(lift-claims-helper (define/assign x t e)) ([x t])]
-  [(lift-claims-helper (define/assign (attribute e_obj string_mem) t_mem e_mem))
+  [(lift-claims-helper (ann-assign x t e)) ([x t])]
+  [(lift-claims-helper (ann-assign (attribute e_obj string_mem) t_mem e_mem))
    ()]
-  [(lift-claims-helper (def x ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
-   ([x (def ([x_arg t_arg] ...) t_ret)])]
-  [(lift-claims-helper (class x (t ...) m ...))
-   ([x (class x (t ...) m ...)])]
+  [(lift-claims-helper (function-def x ([x_arg t_arg] ...) t_ret d_bdy s_bdy))
+   ([x (function-def ([x_arg t_arg] ...) t_ret)])]
+  [(lift-claims-helper (class x (t ...) [m ...]))
+   ([x (class x (t ...) [(lift-m m) ...])])]
   [(lift-claims-helper (if e_cnd s_thn s_els))
    (append (lift-claims-helper s_thn) (lift-claims-helper s_els))]
   [(lift-claims-helper (begin))
@@ -231,25 +240,25 @@
    (lambda ([x (desugar-t t+)] ...) (desugar-e e+))])
 
 (module+ test
-  (test-equal (term (desugar-s (define/assign (subscript x 2) dynamic 3)))
+  (test-equal (term (desugar-s (ann-assign (subscript x 2) dynamic 3)))
               (term (expr ((attribute x "__setitem__") 2 3))))
   (test-equal (term (desugar-s (delete (subscript x 2))))
               (term (expr ((attribute x "__delitem__") 2)))))
 (define-metafunction SP-core
   desugar-s : s+ -> s
-  [(desugar-s (class x (t+ ...) m+ ...))
-   (class x ((desugar-t t+) ...) (desugar-m m+) ...)]
-  [(desugar-s (def x ([x_arg t+_arg] ...) t+_ret s+))
-   (def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
+  [(desugar-s (class x (t+ ...) s+ ...))
+   (class x ((desugar-t t+) ...) (desugar-m s+) ...)]
+  [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret s+))
+   (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret) (lift-claims (begin (claim x_arg (desugar-t t+_arg)) ... s)) s)
    (where s (desugar-s s+))]
   [(desugar-s (claim x e+))
    (claim x (desugar-e e+))]
-  [(desugar-s (define/assign x t+ e+))
-   (define/assign x (desugar-t t+) (desugar-e e+))]
-  [(desugar-s (define/assign (attribute e+_map string_key) t+ e+_val))
-   (define/assign (attribute (desugar-e e+_map) string_key) (desugar-t t+) (desugar-e e+_val))]
+  [(desugar-s (ann-assign x t+ e+))
+   (ann-assign x (desugar-t t+) (desugar-e e+))]
+  [(desugar-s (ann-assign (attribute e+_map string_key) t+ e+_val))
+   (ann-assign (attribute (desugar-e e+_map) string_key) (desugar-t t+) (desugar-e e+_val))]
   ;; Interesting case
-  [(desugar-s (define/assign (subscript e+_map e+_key) dynamic e+_val))
+  [(desugar-s (ann-assign (subscript e+_map e+_key) dynamic e+_val))
    (expr ((attribute (desugar-e e+_map) "__setitem__") (desugar-e e+_key) (desugar-e e+_val)))]
   [(desugar-s (return e+))
    (return (desugar-e e+))]
@@ -315,8 +324,24 @@
   [(desugar-t string) ,(string->symbol (term string))]
   [(desugar-t x) x])
 
+(module+ test
+  (test-equal (term (desugar-import))
+              (term ()))
+  (test-equal (term (desugar-import (import-from "__static__" (PyDict CheckedDict))
+                                    (import-from "typing" (*))))
+              (term ([import-from "__static__" PyDict]
+                     [import-from "__static__" CheckedDict]
+                     [import-from "typing" *]))))
+(define-metafunction SP-core
+  desugar-imports : import-from-item+ ... -> (import-from-item ...)
+  [(desugar-imports) ()]
+  [(desugar-imports (import-from string (*)) import-from-item+ ...)
+   (append ((import-from string *)) (desugar-imports import-from-item+ ...))]
+  [(desugar-imports (import-from string (x ...)) import-from-item+ ...)
+   (append ((import-from string x) ...) (desugar-imports import-from-item+ ...))])
+
 (define-metafunction SP-core
   desugar-program : program+ -> program
-  [(desugar-program (import-type ... s+ ...))
-   (import-type ... (lift-claims s) s)
+  [(desugar-program (import-from-item+ ... s+ ...))
+   ((desugar-imports import-from-item+ ...) (lift-claims s) s)
    (where s (desugar-s (begin s+ ...)))])
