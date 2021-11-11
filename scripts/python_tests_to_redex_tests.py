@@ -9,74 +9,20 @@ def symbol(s):
 def expr_to_type(expr: ast.expr):
     if expr is None:
         return symbol('dynamic')
-    elif isinstance(expr, ast.Name):
-        return symbol(str(expr.id))
-    elif isinstance(expr, ast.Subscript):
-        return [
-            symbol("subscript"),
-            symbol(str(expr.value.id)),
-            expr_to_type(expr.slice)]
-    elif isinstance(expr, ast.Constant) and expr.value is None:
-        return symbol('None')
-    elif isinstance(expr, ast.Index):
-        return expr_to_type(expr.value)
-    elif isinstance(expr, ast.Tuple):
-        return [symbol('tuple-syntax')] + [expr_to_type(e) for e in expr.elts]
-    elif isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
-        return [symbol('or-syntax'), expr_to_type(expr.left), expr_to_type(expr.right)]
-    elif isinstance(expr, ast.Constant):
+    else:
         return ast_to_sexp(expr)
-    else:
-        raise Exception("Can't deal with {}".format(expr))
-
-
-def stmt_to_class_member(stmt: ast.stmt):
-    if isinstance(stmt, ast.AnnAssign):
-        if stmt.value is None:
-            return [
-                symbol('field'),
-                string(str(stmt.target.id)),
-                expr_to_type(stmt.annotation)
-            ]
-        else:
-            return [
-                symbol('field'),
-                string(str(stmt.target.id)),
-                expr_to_type(stmt.annotation),
-                ast_to_sexp(stmt.value)
-            ]
-    elif isinstance(stmt, ast.FunctionDef):
-        inputs = [[symbol(str(a.arg)), expr_to_type(a.annotation)]
-                  for a in stmt.args.args[1:]]
-        output_type = expr_to_type(stmt.returns)
-        return [
-            symbol('method'),
-            string(str(stmt.name)),
-            symbol(str(stmt.args.args[0].arg)),
-            inputs,
-            output_type,
-            [symbol('begin')] + [
-                ast_to_sexp(s) for s in stmt.body
-            ]
-        ]
-    else:
-        raise Exception("Can't deal with {}".format(stmt))
-
 
 def ast_to_sexp(node):
     if isinstance(node, ast.Module):
-        return [ast_to_sexp(e) for e in node.body]
+        return [ast_to_sexp(s) for s in node.body]
     elif isinstance(node, ast.ClassDef):
-        if len(node.bases) == 0:
-            bases = [symbol('object')]
-        else:
-            bases = [ast_to_sexp(b) for b in node.bases]
+        bases = [ast_to_sexp(e) for e in node.bases]
         return [
             symbol('class'),
             symbol(node.name),
             bases
         ] + [
-            stmt_to_class_member(s) for s in node.body if not isinstance(s, ast.Pass)
+            ast_to_sexp(s) for s in node.body
         ]
     elif isinstance(node, ast.Return):
         if node.value is None:
@@ -86,13 +32,13 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.AnnAssign):
         if node.value is None:
             return [
-                symbol('claim'),
+                symbol('ann-assign'),
                 symbol(str(node.target.id)),
                 expr_to_type(node.annotation)
             ]
         else:
             return [
-                symbol('define/assign'),
+                symbol('ann-assign'),
                 ast_to_sexp(node.target),
                 expr_to_type(node.annotation),
                 ast_to_sexp(node.value)
@@ -100,7 +46,7 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Assign):
         assert len(node.targets) == 1
         return [
-            symbol('define/assign'),
+            symbol('assign'),
             ast_to_sexp(node.targets[0]),
             symbol('dynamic'),
             ast_to_sexp(node.value)
@@ -123,9 +69,12 @@ def ast_to_sexp(node):
             return node.value
     elif isinstance(node, ast.Call):
         assert node.keywords == []
-        return [ast_to_sexp(node.func)] + [ast_to_sexp(a) for a in node.args]
+        return [
+            symbol('call'),
+            ast_to_sexp(node.func)
+        ] + [ast_to_sexp(a) for a in node.args]
     elif isinstance(node, ast.ImportFrom):
-        return [symbol('import-from'), string(node.module), [string(a.name) for a in node.names]]
+        return [symbol('import-from'), string(node.module), [symbol(a.name) for a in node.names]]
     elif isinstance(node, ast.Dict):
         return [
             symbol('dict-syntax')
@@ -140,17 +89,15 @@ def ast_to_sexp(node):
             ast_to_sexp(v)
             for v in node.elts
         ]
+    elif isinstance(node, ast.Tuple):
+        return [symbol('tuple-syntax')] + [ast_to_sexp(e) for e in node.elts]
     elif isinstance(node, ast.Subscript):
         return [
             symbol("subscript"),
             ast_to_sexp(node.value),
             ast_to_sexp(node.slice)]
-    elif isinstance(node, ast.Constant) and node.value is None:
-        return symbol('None')
     elif isinstance(node, ast.Index):
         return ast_to_sexp(node.value)
-    elif isinstance(node, ast.Tuple):
-        return [symbol('tuple-syntax')] + [ast_to_sexp(e) for e in node.elts]
     elif isinstance(node, ast.Delete):
         assert len(node.targets) == 1
         target = node.targets[0]
@@ -158,8 +105,6 @@ def ast_to_sexp(node):
             symbol('delete'),
             ast_to_sexp(target)
         ]
-
-        return [symbol('delete'), ast_to_sexp(node.targets[0])]
     elif isinstance(node, ast.Attribute):
         return [symbol('attribute'), ast_to_sexp(node.value), string(node.attr)]
     elif isinstance(node, ast.UnaryOp):
@@ -187,7 +132,7 @@ def ast_to_sexp(node):
         return symbol('-')
     elif isinstance(node, ast.FunctionDef):
         return [
-            symbol('def'),
+            symbol('function-def'),
             symbol(str(node.name)),
             arguments_to_sexp(node.args),
             expr_to_type(node.returns),
@@ -197,11 +142,11 @@ def ast_to_sexp(node):
         return [
             symbol('if'),
             ast_to_sexp(node.test),
-            [symbol('begin')] + [
+            [
                 ast_to_sexp(s)
                 for s in node.body
             ],
-            [symbol('begin')] + [
+            [
                 ast_to_sexp(s)
                 for s in node.orelse
             ]
@@ -219,21 +164,17 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.And):
         return symbol('and')
     elif isinstance(node, ast.Compare):
-        everything = []
-        left = ast_to_sexp(node.left)
-        for (op, right) in zip(node.ops, node.comparators):
-            op = ast_to_sexp(op)
-            right = ast_to_sexp(right)
-            everything.append([op, left, right])
-            left = right
-        fst = everything[0]
-        for rst in everything[1:]:
-            fst = [
-                symbol('and'),
-                fst,
-                rst
+        return [
+            symbol('compare'),
+            ast_to_sexp(node.left),
+            [
+                [
+                    ast_to_sexp(op),
+                    ast_to_sexp(right)
+                ]
+                for (op, right) in zip(node.ops, node.comparators)
             ]
-        return fst
+        ]
     elif isinstance(node, ast.Is):
         return symbol('is')
     elif isinstance(node, ast.IsNot):
@@ -252,19 +193,14 @@ def ast_to_sexp(node):
         return symbol('not')
     elif isinstance(node, ast.AugAssign):
         return [
-            symbol('define/assign'),
+            symbol('aug-assign'),
             ast_to_sexp(node.target),
-            symbol('dynamic'),
-            [
-                symbol('bin-op'),
-                ast_to_sexp(node.op),
-                ast_to_sexp(node.target),
-                ast_to_sexp(node.value)
-            ]
+            ast_to_sexp(node.op),
+            ast_to_sexp(node.value)
         ]
     elif isinstance(node, ast.IfExp):
         return [
-            symbol('if'),
+            symbol('if-exp'),
             ast_to_sexp(node.test),
             ast_to_sexp(node.body),
             ast_to_sexp(node.orelse)
@@ -286,7 +222,7 @@ def ast_to_sexp(node):
             [
                 ast_to_sexp(item) for item in node.items
             ],
-            [symbol('begin')] + [
+            [
                 ast_to_sexp(stmt) for stmt in node.body
             ]
         ]
@@ -353,6 +289,14 @@ def parse_python_file(test_file):
     source = open(test_file).readlines()
     return name, spec, prog, source
 
+
+def python_file_to_redex_grammar_test(spec, prog):
+    return [
+        symbol('test-match'),
+        symbol('SP'),
+        symbol('program'),
+        prog
+    ]
 
 def python_file_to_redex_desugar_test(spec, prog):
     return [
@@ -456,6 +400,7 @@ def python_file_to_redex_optimization_test(spec, prog):
     ]
 
 path_to_conformance_suite = 'conformance_suite'
+path_to_test_grammar = './test-grammar.rkt'
 path_to_test_desugar = './test-desugar.rkt'
 path_to_test_statics = './test-statics.rkt'
 path_to_test_compile = './test-compile.rkt'
@@ -471,6 +416,20 @@ def main():
     test_files.sort()
     print(test_files)
     parsed_test_files = [parse_python_file(x) for x in test_files]
+    # output test_grammar.rkt
+    with open(path_to_test_grammar, 'w') as f:
+        f.write('\n'.join([
+            '#lang racket',
+            '(require "grammar.rkt")',
+            '(require redex)',
+            ''
+        ]))
+        for name, spec, prog, source in parsed_test_files:
+            test = python_file_to_redex_grammar_test(spec, prog)
+            f.write('\n')
+            f.write(';; ' + name + '\n')
+            f.write(str_of_sexp(test))
+            f.write('\n')
     # output test_desugar.rkt
     with open(path_to_test_desugar, 'w') as f:
         f.write('\n'.join([
