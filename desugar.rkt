@@ -214,10 +214,12 @@
   [(desugar-e (reveal-type any ... e+))
    (reveal-type any ... (desugar-e e+))]
   ;; All below are interesting cases
-  [(desugar-e (oc e+_1 e+_2))
-   ((attribute (desugar-e e+_1) (method-name oc)) (desugar-e e+_2))]
   [(desugar-e (in e+_1 e+_2))
    ((attribute (desugar-e e+_2) "__contains__") (desugar-e e+_1))]
+  [(desugar-e (not-in e+_1 e+_2))
+   (desugar-e (unary-op not (in e+_1 e+_2)))]
+  [(desugar-e (oc e+_1 e+_2))
+   ((attribute (desugar-e e+_1) (method-name oc)) (desugar-e e+_2))]
   [(desugar-e (subscript e+_1 e+_2))
    ((attribute (desugar-e e+_1) "__getitem__") (desugar-e e+_2))]
   [(desugar-e (bool-op ob e+))

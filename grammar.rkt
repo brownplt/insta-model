@@ -59,7 +59,6 @@
       (reveal-type any ... e+)
       ;; s+ugars
       (oc e+ e+)
-      (in e+ e+)
       (subscript e+ e+)
       (bool-op ob e+ ...)
       (unary-op o1 e+)
@@ -68,7 +67,7 @@
 
   (ob and or)
 
-  (oc < > == <= >=)
+  (oc < > == <= >= in not-in)
 
   (o2 + - * / bit-or)
 
