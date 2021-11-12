@@ -105,17 +105,14 @@
 ;; conformance_suite/classes_are_not_first-class.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42)))))))))
 
-;; conformance_suite/downcast_float_to_int_neg.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "float" (con 2.3)) (ann-assign "y" "int" (call "asDyn" ("x"))))))))
+;; conformance_suite/downcast_int_to_bool_neg.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "int" (con 2)) (ann-assign "y" "bool" (call "asDyn" ("x"))))))))
 
-;; conformance_suite/downcast_float_to_int_pos.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "float" (con 2)) (ann-assign "y" "int" (call "asDyn" ("x"))))))))
+;; conformance_suite/downcast_int_to_bool_pos.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "int" (con #t)) (ann-assign "y" "bool" (call "asDyn" ("x"))))))))
 
 ;; conformance_suite/empty_program.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ()))))
-
-;; conformance_suite/float_is_inhabitable.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "float" (con 2.3)))))))
 
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "int" (con 42)))))))
@@ -348,11 +345,5 @@
 ;; conformance_suite/test_visit_if_else.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((assign "x" (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42)))))))))))
 
-;; conformance_suite/upcast_bool_to_float.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "float" "x"))))))
-
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x"))))))
-
-;; conformance_suite/upcast_int_to_float.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "int" (con 2)) (ann-assign "y" "float" "x"))))))

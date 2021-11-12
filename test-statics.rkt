@@ -149,11 +149,11 @@
 ;; conformance_suite/delete_undeclared_field.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () (pass)) (function-def "f" (("c" "C")) dynamic ((delete (attribute "c" "x"))))))))
 
-;; conformance_suite/downcast_float_to_int_neg.py
-(check-judgment-holds* (⊢p (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "float" (con 2.3)) (ann-assign "y" "int" (call "asDyn" ("x")))))))
+;; conformance_suite/downcast_int_to_bool_neg.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "int" (con 2)) (ann-assign "y" "bool" (call "asDyn" ("x")))))))
 
-;; conformance_suite/downcast_float_to_int_pos.py
-(check-judgment-holds* (⊢p (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "float" (con 2)) (ann-assign "y" "int" (call "asDyn" ("x")))))))
+;; conformance_suite/downcast_int_to_bool_pos.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "int" (con #t)) (ann-assign "y" "bool" (call "asDyn" ("x")))))))
 
 ;; conformance_suite/dynamic_as_CheckedDict.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "id" (("x" dynamic)) (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((return "x")))))))
@@ -169,9 +169,6 @@
 
 ;; conformance_suite/empty_program.py
 (check-judgment-holds* (⊢p (desugar-program ())))
-
-;; conformance_suite/float_is_inhabitable.py
-(check-judgment-holds* (⊢p (desugar-program ((ann-assign "x" "float" (con 2.3))))))
 
 ;; conformance_suite/init_checks_arity.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "Person" () ((function-def "__init__" (("self" dynamic) ("name" "str") ("age" "int")) dynamic (pass)))) (assign "p1" (call "Person" ((con "Alice") (con 21) (con #f))))))))
@@ -704,11 +701,5 @@
 ;; conformance_suite/test_visit_if_else.py
 (check-judgment-holds* (⊢p (desugar-program ((assign "x" (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42))))))))))
 
-;; conformance_suite/upcast_bool_to_float.py
-(check-judgment-holds* (⊢p (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "float" "x")))))
-
 ;; conformance_suite/upcast_bool_to_int.py
 (check-judgment-holds* (⊢p (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x")))))
-
-;; conformance_suite/upcast_int_to_float.py
-(check-judgment-holds* (⊢p (desugar-program ((ann-assign "x" "int" (con 2)) (ann-assign "y" "float" "x")))))
