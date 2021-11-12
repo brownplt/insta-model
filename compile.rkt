@@ -129,8 +129,8 @@
    (Type T)
    cast)
 
-  ;; class labels are l's but without constants
-  ;;   and the x is limited to builtin classes
+  ;; class labels are l's but without constants and methods
+  ;;   and x is limited to builtin classes
   (class-l
    prim-class-l
    (user-defined-class x))
