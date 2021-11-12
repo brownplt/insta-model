@@ -18,10 +18,6 @@ The empty program should type check.
 
 - [int_is_inhabitable.py](conformance_suite/int_is_inhabitable.py)
 
-`float` is inhabitable.
-
-- [float_is_inhabitable.py](conformance_suite/float_is_inhabitable.py)
-
 `str` is inhabitable.
 
 - [str_is_inhabitable.py](conformance_suite/str_is_inhabitable.py)

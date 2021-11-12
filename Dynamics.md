@@ -148,12 +148,10 @@ TODO: Other optimizations
 Casting to a super class is okay.
 
 - [upcast_bool_to_int.py](conformance_suite/upcast_bool_to_int.py)
-- [upcast_int_to_float.py](conformance_suite/upcast_int_to_float.py)
-- [upcast_bool_to_float.py](conformance_suite/upcast_bool_to_float.py)
 
 Casting to a sub class may or maynot be okay
 
-- [downcast_float_to_int_pos.py](conformance_suite/downcast_float_to_int_pos.py)
-- [downcast_float_to_int_neg.py](conformance_suite/downcast_float_to_int_neg.py)
+- [downcast_int_to_bool_pos.py](conformance_suite/downcast_int_to_bool_pos.py)
+- [downcast_int_to_bool_neg.py](conformance_suite/downcast_int_to_bool_neg.py)
 
 TODO: cast PyDict to CheckedDict and the other way
