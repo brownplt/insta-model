@@ -1,5 +1,5 @@
 #lang racket
-(require redex)
+(require redex/reduction-semantics)
 (require redex-abbrevs)
 (require "grammar.rkt")
 (require "statics-basic-definitions.rkt")

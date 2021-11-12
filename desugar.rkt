@@ -14,12 +14,12 @@
      (tuple-syntax (e ...))
      (set-syntax (e ...))
      (dict-syntax ([e e] ...))
+     (not e)
+     (ob e e)
+     (is e e)
      (if-exp e e e)
      (attribute e x)
      (call e (e ...))
-     (ob e e)
-     (not e)
-     (is e e)
      (lambda ([x t] ...) e))
 
   ;; type expression
@@ -246,11 +246,11 @@
                       (import-from "__static__" "PyDict")
                       (import-from "__static__" "cast")))))
 (define-metafunction SP-core
-  make-begin : s ... -> s
-  [(make-begin s_1 ... (begin s_2 ...) s_3 ...)
-   (make-begin s_1 ... s_2 ... s_3 ...)]
-  [(make-begin s ...)
-   (begin s ...)])
+  make-begin : any ... -> any
+  [(make-begin any_1 ... (begin any_2 ...) any_3 ...)
+   (make-begin any_1 ... any_2 ... any_3 ...)]
+  [(make-begin any ...)
+   (begin any ...)])
 (define-metafunction SP-core
   desugar-s : s+ -> s
   [(desugar-s pass)

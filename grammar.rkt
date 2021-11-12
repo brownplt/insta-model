@@ -9,10 +9,10 @@
   (program+ (s+ ...))
 
   ;; constants
-  (c number
+  (c None
      boolean
-     string
-     None)
+     number
+     string)
 
   ;; boolean operator
   (ob and or)
@@ -32,14 +32,14 @@
       (tuple-syntax (e+ ...))
       (set-syntax (e+ ...))
       (dict-syntax ([e+ e+] ...))
+      (unary-op o1 e+)
+      (bin-op o2 e+ e+)
+      (bool-op ob (e+ ...))
+      (compare e+ ([oc e+] ...))
       (if-exp e+ e+ e+)
       (attribute e+ x)
       (call e+ (e+ ...))
       (subscript e+ e+)
-      (bin-op o2 e+ e+)
-      (bool-op ob (e+ ...))
-      (unary-op o1 e+)
-      (compare e+ ([oc e+] ...))
       (lambda ([x t+] ...) e+))
 
   ;; type expression
