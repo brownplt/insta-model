@@ -11,7 +11,7 @@
   ;; constants
   (c None
      boolean
-     number
+     integer
      string)
 
   ;; boolean operator
