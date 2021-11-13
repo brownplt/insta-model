@@ -45,16 +45,20 @@
   ;; class members
   (m (field x t)
      (field x t e)
-     (method x x ([x t] ...) t level))
+     (method x ([x t] ...) t level))
 
   ;; (scope) level
   (level (local ([x d] ...) s))
 
   ;; rhs of declaration
   (d t
-     (function-def ([x t] ...) t)
+     (function-def (t ...) t)
      (class (e ...) ([x d] ...))
      (import-from x x))
+  (import-d (import-from x x))
+  (class-d (class (e ...) ([x d] ...)))
+  (other-d t
+           (function-def (t ...) t))
 
   ;; "binary" operators that can be replaced with names,
   ;;   which includes every o2 and some of oc
@@ -233,10 +237,22 @@
               (term (ann-assign "i" dynamic "b")))
   (test-equal (term (desugar-s (aug-assign "i" + "b")))
               (term (ann-assign "i" dynamic (call (attribute "i" "__add__") ("b")))))
-  (test-equal (term (desugar-s (class "C" () (pass))))
-              (term (class "C" () ())))
+  (test-equal (term (desugar-s (class "C" ()
+                                 ((function-def "foo" (["self" dynamic] ["i" "int"])
+                                                dynamic
+                                                ((assign "j" "i")
+                                                 (return "i")))))))
+              (term (class "C" ()
+                      ((method "foo" (["self" dynamic] ["i" "int"])
+                               dynamic
+                               (local (["self" dynamic]
+                                       ["i" "int"]
+                                       ["j" dynamic])
+                                 (begin
+                                   (ann-assign "j" dynamic "i")
+                                   (return "i"))))))))
   (test-equal (term (desugar-s (function-def "f" (["i" "int"]) dynamic ((return "i")))))
-              (term (function-def "f" (["i" "int"]) dynamic (local (["i" "int"]) (begin (ann "i" "int") (return "i"))))))
+              (term (function-def "f" (["i" "int"]) dynamic (local (["i" "int"]) (begin (return "i"))))))
   (test-equal (term (desugar-s (import-from "__static__" ("PyDict" "CheckedDict"))))
               (term (begin (import-from "__static__" "PyDict")
                            (import-from "__static__" "CheckedDict"))))
@@ -280,9 +296,8 @@
   [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret (s+ ...)))
    (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret)
                  (level-of-s
+                  ([x_arg (desugar-t t+_arg)] ...)
                   (make-begin
-                   (ann x_arg (desugar-t t+_arg))
-                   ...
                    (desugar-s s+)
                    ...)))]
   [(desugar-s (import-from x_mod (x_dst ...)))
@@ -363,7 +378,7 @@
                                                   ["a" "int"]
                                                   ["b" "str"])
                                             (return (dict-syntax (["a" "b"])))))))
-              (term (method "x" "self" (["a" "int"] ["b" "str"]) "dict"
+              (term (method "x" (["self" dynamic] ["a" "int"] ["b" "str"]) "dict"
                             (local (["self" dynamic]
                                     ["a" "int"]
                                     ["b" "str"])
@@ -374,13 +389,13 @@
    (field x t)]
   [(m-of-s (ann-assign x t e))
    (field x t e)]
-  [(m-of-s (function-def x ([x_slf dynamic] [x_arg t_arg] ...) t_ret level_bdy))
-   (method x x_slf ([x_arg t_arg] ...) t_ret level_bdy)])
+  [(m-of-s (function-def x ([x_arg t_arg] ...) t_ret level_bdy))
+   (method x ([x_arg t_arg] ...) t_ret level_bdy)])
 
 (define-metafunction SP-core
-  level-of-s : s -> level
-  [(level-of-s s)
-   (local (drop-later-dynamic (xd*-of-s s)) s)])
+  level-of-s : ([x d] ...) s -> level
+  [(level-of-s xd* s)
+   (local (drop-later-dynamic (append xd* (xd*-of-s s))) s)])
 (module+ test
   (test-equal (term (xd*-of-s (expr "abc")))
               (term ()))
@@ -405,17 +420,17 @@
   (test-equal (term (xd*-of-s (ann-assign (attribute "self" "a") dynamic "abc")))
               (term ()))
   (test-equal (term (xd*-of-s (function-def "f" (["a" "int"]) "str" (local () (begin)))))
-              (term (["f" (function-def (["a" "int"]) "str")])))
+              (term (["f" (function-def ("int") "str")])))
   (test-equal (term (xd*-of-s (class "C" ("object")
                                 ((field "i" "int")
                                  (field "s" "str" "hello")
-                                 (method "greet" "self" () "str"
+                                 (method "greet" (["self" dynamic]) "str"
                                          (local ()
                                            (begin)))))))
               (term (["C" (class ("object")
-                          (["i" "int"]
-                           ["s" "str"]
-                           ["greet" (function-def () "str")]))])))
+                            (["i" "int"]
+                             ["s" "str"]
+                             ["greet" (function-def (dynamic) "str")]))])))
   (test-equal (term (xd*-of-s (import-from "__static__" "CheckedDict")))
               (term (["CheckedDict" (import-from "__static__" "CheckedDict")]))))
 (define-metafunction SP-core
@@ -447,7 +462,7 @@
    ()]
   ;; interesting case!
   [(xd*-of-s (function-def x ([x_arg t_arg] ...) t_ret level_bdy))
-   ([x (function-def ([x_arg t_arg] ...) t_ret)])]
+   ([x (function-def (t_arg ...) t_ret)])]
   ;; interesting case!
   [(xd*-of-s (class x (e ...) (m ...)))
    ([x (class (e ...) ((xd-of-m m) ...))])]
@@ -470,7 +485,7 @@
               (term ["i" "int"]))
   (test-equal (term (xd-of-m (field "i" "int" "a")))
               (term ["i" "int"]))
-  (test-equal (term (xd-of-m (method "f" "self" () dynamic (local () (begin)))))
+  (test-equal (term (xd-of-m (method "f" () dynamic (local () (begin)))))
               (term ["f" (function-def () dynamic)])))
 (define-metafunction SP-core
   xd-of-m : m -> [x d]
@@ -478,8 +493,8 @@
    [x t]]
   [(xd-of-m (field x t e))
    [x t]]
-  [(xd-of-m (method x x_slf ([x_arg t_arg] ...) t_ret level_bdy))
-   [x (function-def ([x_arg t_arg] ...) t_ret)]])
+  [(xd-of-m (method x ([x_arg t_arg] ...) t_ret level_bdy))
+   [x (function-def (t_arg ...) t_ret)]])
 (module+ test
   (test-equal (term (drop-later-dynamic ()))
               (term ()))
@@ -500,4 +515,4 @@
 (define-metafunction SP-core
   desugar-program : program+ -> program
   [(desugar-program (s+ ...))
-   (level-of-s (make-begin (desugar-s s+) ...))])
+   (level-of-s () (make-begin (desugar-s s+) ...))])

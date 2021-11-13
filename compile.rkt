@@ -47,9 +47,10 @@
       ;; annotations are removed!
       ;;   the s- is the check to be perform
       (lambda (x ...) s- level-)
+      (let ([x e-] ...) s-)
       (class
-        ;; parent classes
-        (e- ...)
+          ;; parent classes
+          (e- ...)
         ;; members and corresponding checks
         ;;   when no check is present, the member is immutable
         ([x s-+☠] ...))
@@ -59,7 +60,7 @@
   ;; statements
   (s- (expr e-)
       (return e-)
-      (assert e-)
+      (raise-error)
       (begin s- ...)
       (if e- s- s-)
       (delete x)
@@ -68,7 +69,7 @@
       (assign x e-)
       (assign (attribute mode e- x) e-)
       (import-from x x))
-  
+
   ;; maybe statement
   (s-+☠ s- ☠)
 
@@ -83,10 +84,17 @@
 
   ;; a global environments that stores user-defined-classes
   ;;   the x's must be names of user-defined classes
-  (Ψ ([x (class (l ...) Γ ρ)] ...))
+  (Ψ ([l C+☠] ...))
+
+  (C (class l*+dynamic Γ ρ))
+  (C+☠ C ☠)
+  (l*+dynamic
+   (l ...)
+   ;; subclass from a dynamic or unsupported class
+   dynamic)
 
   ;; a local environment that maps variables to their types
-  (Γ ([x T] ...))
+  (Γ ([x T+☠] ...))
 
   ;; a local environment that maps names to labels
   (ρ ([x l] ...))
@@ -102,18 +110,24 @@
      type-op
      cast)
 
+  ;; maybe type
+  (T+☠ T ☠)
+
   ;; type-op
   (type-op "CheckedDict[_,_]"
-           "Optional[_]")
+           "Optional[_]"
+           "Final[_]"
+           (Union class-l))
 
   (exactness exact subof)
 
-  ;; Checkable types are types but without functions
+  ;; Checkable types are real types but without functions
   (checkable-T
    dynamic
    (exactness class-l)
    (Optional nonnonable-and-checkable-T)
    (Type T)
+   type-op
    cast)
 
   (nonnonable-and-checkable-T
@@ -146,7 +160,6 @@
   ;; non-nonable class identifiers are class labels without none
   (nonnonable-prim-class-l
    "object"
-   "float"
    "int"
    "bool"
    "str"
@@ -155,13 +168,15 @@
    "tuple"
    "dict"
    "type"
+   "Exception"
    "Optional[_]"
+   "Final[_]"
    "CheckedDict[_,_]"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T)))
 
 (define-metafunction SP-compiled
-  lookup-Ψ : Ψ class-l -> (class (l ...) Γ ρ)
+  lookup-Ψ : Ψ class-l -> (class l*+dynamic Γ ρ)
   ;; Find the meaning of a class by its cid
   ;; lookup user-defined classes
   [(lookup-Ψ Ψ (user-defined-class x))
@@ -177,39 +192,25 @@
      (["__getitem__" (method "Optional[_]" "__getitem__")]))]
   [(lookup-Ψ Ψ "object")
    (class ()
-     (["__init__" (-> () dynamic)])
-     (["__init__" "object.__init__"]))]
+     (["__init__" (-> (dynamic) dynamic)])
+     (["__init__" (method "object" "__init__")]))]
   [(lookup-Ψ Ψ "type")
    (class ("object")
      ()
      ())]
-  [(lookup-Ψ Ψ "float")
-   (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
-      ["__gt__" (-> ((subof "float")) (subof "bool"))]
-      ["__lt__" (-> ((subof "float")) (subof "bool"))]
-      ["__eq__" (-> ((subof "float")) (subof "bool"))]
-      ["__le__" (-> ((subof "float")) (subof "bool"))]
-      ["__ge__" (-> ((subof "float")) (subof "bool"))]
-      ["__neg__" (-> () (subof "bool"))]
-      ["__add__" (-> ((subof "float")) (subof "float"))]
-      ["__sub__" (-> ((subof "float")) (subof "float"))]
-      ["__mul__" (-> ((subof "float")) (subof "float"))]
-      ["__div__" (-> ((subof "float")) (subof "float"))])
-     (["__init__" (method "float" "__init__")]
-      ["__gt__" (method "float" "__gt__")]
-      ["__lt__" (method "float" "__lt__")]
-      ["__eq__" (method "float" "__eq__")]
-      ["__le__" (method "float" "__le__")]
-      ["__ge__" (method "float" "__ge__")]
-      ["__neg__" (method "float" "__neg__")]
-      ["__add__" (method "float" "__add__")]
-      ["__sub__" (method "float" "__sub__")]
-      ["__mul__" (method "float" "__mul__")]
-      ["__div__" (method "float" "__div__")]))]
   [(lookup-Ψ Ψ "int")
-   (class ("float")
-     ()
+   (class ("object")
+     (["__init__" (-> (dynamic dynamic) dynamic)]
+      ["__gt__" (-> (dynamic (subof "int")) (subof "bool"))]
+      ["__lt__" (-> (dynamic (subof "int")) (subof "bool"))]
+      ["__eq__" (-> (dynamic (subof "int")) (subof "bool"))]
+      ["__le__" (-> (dynamic (subof "int")) (subof "bool"))]
+      ["__ge__" (-> (dynamic (subof "int")) (subof "bool"))]
+      ["__neg__" (-> (dynamic) (subof "bool"))]
+      ["__add__" (-> (dynamic (subof "int")) (subof "int"))]
+      ["__sub__" (-> (dynamic (subof "int")) (subof "int"))]
+      ["__mul__" (-> (dynamic (subof "int")) (subof "int"))]
+      ["__div__" (-> (dynamic (subof "int")) (subof "int"))])
      (["__init__" (method "int" "__init__")]
       ["__gt__" (method "int" "__gt__")]
       ["__lt__" (method "int" "__lt__")]
@@ -225,38 +226,38 @@
    (class ("int") () ())]
   [(lookup-Ψ Ψ "str")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)])
+     (["__init__" (-> (dynamic dynamic) dynamic)])
      (["__init__" (method "str" "__init__")]))]
   [(lookup-Ψ Ψ "dict")
-   (class dict "object"
-     (["__init__" (-> (dynamic) dynamic)]
-      ["__getitem__" (-> (dynamic) dynamic)]
-      ["__setitem__" (-> (dynamic dynamic) (subof "NoneType"))]
-      ["__delitem__" (-> (dynamic) (subof "NoneType"))])
+   (class ("object")
+     (["__init__" (-> (dynamic dynamic) dynamic)]
+      ["__getitem__" (-> (dynamic dynamic) dynamic)]
+      ["__setitem__" (-> (dynamic dynamic dynamic) (subof "NoneType"))]
+      ["__delitem__" (-> (dynamic dynamic) (subof "NoneType"))])
      (["__init__" (method "dict" "__init__")]
       ["__getitem__" (method "dict" "__getitem__")]
       ["__setitem__" (method "dict" "__setitem__")]
       ["__delitem__" (method "dict" "__delitem__")]))]
   [(lookup-Ψ Ψ "set")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
-      ["__contains__" (-> (dynamic) (subof "bool"))])
+     (["__init__" (-> (dynamic dynamic) dynamic)]
+      ["__contains__" (-> (dynamic dynamic) (subof "bool"))])
      (["__init__" (method "set" "__init__")]
       ["__contains__" (method "set" "__contains__")]))]
   [(lookup-Ψ Ψ "list")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)])
+     (["__init__" (-> (dynamic dynamic) dynamic)])
      (["__init__" (method "list" "__init__")]))]
   [(lookup-Ψ Ψ "NoneType")
    (class ("object") () ())]
   [(lookup-Ψ Ψ (chkdict T_key T_val))
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
+     (["__init__" (-> (dynamic dynamic) dynamic)]
       ["get" (-> (T_key) (union Ψ (subof "NoneType") T_val))]
       ["keys" (-> () (subof "list"))]
-      ["__getitem__" (-> ([T_key]) T_val)]
-      ["__setitem__" (-> ([T_key] [T_val]) (subof "NoneType"))]
-      ["__delitem__" (-> ([T_key]) (subof "NoneType"))])
+      ["__getitem__" (-> (dynamic T_key) T_val)]
+      ["__setitem__" (-> (dynamic T_key T_val) (subof "NoneType"))]
+      ["__delitem__" (-> (dynamic T_key) (subof "NoneType"))])
      (["__init__" (method (chkdict T_key T_val) "__init__")]
       ["get" (method (chkdict T_key T_val) "get")]
       ["keys" (method (chkdict T_key T_val) "keys")]
@@ -272,13 +273,18 @@
   base-Γ : -> Γ
   [(base-Γ)
    (["object" (Type (subof "object"))]
-    ["float" (Type (subof "float"))]
     ["int" (Type (subof "int"))]
     ["bool" (Type (subof "bool"))]
     ["str" (Type (subof "str"))]
     ["dict" (Type (subof "dict"))]
     ["set" (Type (subof "set"))]
-    ["type" (Type (subof "type"))])])
+    ["type" (Type (subof "type"))]
+    ["isinstance" (-> (dynamic dynamic) dynamic)]
+    ["len" (-> (dynamic) dynamic)]
+    ["Exception" (Type (subof "Exception"))]
+    ["max" dynamic]
+    ["min" dynamic]
+    ["issubclass" (-> (dynamic dynamic) (exact "bool"))])])
 
 (define-metafunction SP-compiled
   prim-Γ : -> Γ
@@ -295,8 +301,6 @@
               (term (exact "bool")))
   (test-equal (term (T-of-c 2))
               (term (exact "int")))
-  (test-equal (term (T-of-c 2.3))
-              (term (exact "float")))
   (test-equal (term (T-of-c "foo"))
               (term (exact "str"))))
 (define-metafunction SP-compiled
@@ -307,18 +311,13 @@
   [(l-of-c None) "NoneType"]
   [(l-of-c boolean) "bool"]
   [(l-of-c integer) "int"]
-  [(l-of-c number) "float"]
   [(l-of-c string) "str"])
 
 (module+ test
   (check-judgment-holds*
-   (Ψ⊢class-l<:class-l () "int" "float")
-   (Ψ⊢class-l<:class-l () "bool" "float")
    (Ψ⊢class-l<:class-l () "NoneType" "object")
    (Ψ⊢class-l<:class-l () "NoneType" "NoneType"))
   (check-not-judgment-holds*
-   (Ψ⊢class-l<:class-l () "float" "int")
-   (Ψ⊢class-l<:class-l () "float" "bool")
    (Ψ⊢class-l<:class-l () "object" "NoneType")))
 (define-judgment-form SP-compiled
   #:mode (Ψ⊢class-l<:class-l I I I)
@@ -343,10 +342,6 @@
               (term dynamic))
   (test-equal (term (union (base-Ψ) dynamic (subof "int")))
               (term dynamic))
-  (test-equal (term (union (base-Ψ) (subof "float") (subof "int")))
-              (term (subof "float")))
-  (test-equal (term (union (base-Ψ) (subof "int") (subof "float")))
-              (term (subof "float")))
   (test-equal (term (union (base-Ψ) (subof "int") (subof "str")))
               (term dynamic))
   (test-equal (term (union (base-Ψ) (subof "int") (subof "NoneType")))
@@ -357,8 +352,8 @@
               (term (Optional (subof "int"))))
   (test-equal (term (union (base-Ψ) (Optional (subof "int")) (subof "NoneType")))
               (term (Optional (subof "int"))))
-  (test-equal (term (union (base-Ψ) (Optional (subof "int")) (Optional (subof "float"))))
-              (term (Optional (subof "float")))))
+  (test-equal (term (union (base-Ψ) (Optional (exact "int")) (exact "int")))
+              (term (Optional (exact "int")))))
 (define-metafunction SP-compiled
   union : Ψ T T -> T
   ;; refl
@@ -372,6 +367,10 @@
   [(union Ψ (subof "NoneType") (Optional T)) (Optional T)]
   [(union Ψ (Optional T_1) (Optional T_2))
    (union Ψ (subof "NoneType") (union Ψ T_1 T_2))]
+  [(union Ψ T_1 (Optional T_2))
+   (union Ψ (union Ψ T_1 T_2) (subof "NoneType"))]
+  [(union Ψ (Optional T_1) T_2)
+   (union Ψ (union Ψ T_1 T_2) (subof "NoneType"))]
   ;; otherwise, exact classes are useless
   [(union Ψ (exact l) T)
    (union Ψ (subof l) T)]
@@ -397,10 +396,13 @@
    (Ψ⊢T<:T Ψ T_src T_dst)])
 
 (module+ test
-  (test-equal (term (lookup-method-T (base-Ψ) "int" "__add__"))
-              (term (-> ((subof "float")) (subof "float")))))
+  (test-equal (term (lookup-method-T (base-Ψ) "bool" "__add__"))
+              (term (-> (dynamic (subof "int")) (subof "int")))))
 (define-metafunction SP-compiled
   lookup-method-T : Ψ l x -> T
+  ;; a hack to support __or__ union type
+  [(lookup-method-T Ψ l_cls "__or__")
+   (Union l_cls)]
   ;; if in the current class, return the type
   [(lookup-method-T Ψ l_cls x)
    T
@@ -416,6 +418,9 @@
 
 (define-metafunction SP-compiled
   lookup-method-l : Ψ l x -> l
+  ;; a hack to support __or__ union type
+  [(lookup-method-l Ψ l_cls "__or__")
+   (method l_cls "__or__")]
   ;; if in the current class, return the type
   [(lookup-method-l Ψ l_cls x)
    l
@@ -437,11 +442,25 @@
               (term (subof (chkdict (subof "int") (subof "str"))))))
 (define-metafunction SP-compiled
   eval-t : Ψ Γ Γ t -> T
+  ;; the dynamic cases
   [(eval-t Ψ Γ_dcl Γ_lcl dynamic)
    dynamic]
+  ;; If we got an type object, we know it represents the type
+  ;; special case
+  [(eval-t Ψ Γ_dcl Γ_lcl (con x))
+   (eval-t Ψ Γ_dcl Γ_lcl x)]
+  ;; normal case
   [(eval-t Ψ Γ_dcl Γ_lcl e)
-   T
-   (where [e- (Type T)] (compile-e Ψ Γ_dcl Γ_lcl e))])
+   (T-of-T T)
+   (where [e- T] (compile-e Ψ Γ_dcl Γ_lcl e))])
+;; T-of-T answers the following question:
+;;   when an expression is used in a type context and the expression has type T
+;;   what is the type that the expression is referring to?
+(define-metafunction SP-compiled
+  T-of-T : T -> T
+  [(T-of-T (Type T)) T]
+  [(T-of-T (exact "NoneType")) (subof "NoneType")]
+  [(T-of-T dynamic) dynamic])
 
 (module+ test
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) "int"))
@@ -459,11 +478,11 @@
               (term [(if-exp (ref (con None)) (ref (con #f)) (ref (con #t)))
                      (exact "bool")]))
   (test-match SP-compiled
-              [(call-function (lambda (x_tmp) (if-exp x_tmp (ref (con 2)) x_tmp)) ((ref (con 1))))
+              [(call-function (lambda (x_tmp) (begin) (local (x_tmp) (return (if-exp x_tmp (ref (con 2)) x_tmp)))) ((ref (con 1))))
                dynamic]
               (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (and (con 1) (con 2)))))
   (test-match SP-compiled
-              [(call-function (lambda (x_tmp) (if-exp x_tmp x_tmp (ref (con 2)))) ((ref (con 1))))
+              [(call-function (lambda (x_tmp) (begin) (local (x_tmp) (return (if-exp x_tmp x_tmp (ref (con 2)))))) ((ref (con 1))))
                dynamic]
               (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (or (con 1) (con 2)))))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (is "int" "bool")))
@@ -472,14 +491,13 @@
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (if-exp "int" "bool" (con None))))
               (term [(if-exp "int" "bool" (ref (con None)))
                      (Optional (Type (subof "bool")))]))
-  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (attribute "int" "__add__")))
-              (term [(ref (method "int" "__add__"))
-                     (-> ((subof "int") (subof "float")) (subof "float"))]))
-  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (call "int" ("float"))))
-              (term [(call-function "int" ("float"))
+  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (attribute "bool" "__add__")))
+              (term [(attribute safe "bool" "__add__") dynamic]))
+  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (call "int" ("bool"))))
+              (term [(call-function "int" ("bool"))
                      dynamic]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (lambda () (con 2))))
-              (term [(lambda () (ref (con 2)))
+              (term [(lambda () (begin) (local () (return (ref (con 2)))))
                      (-> () (exact "int"))])))
 ;; We do need two type environment to handle occurrance typing
 (define-metafunction SP-compiled
@@ -541,32 +559,36 @@
   [(maybe-cast Ψ [e-_src T_src] checkable-T_dst)
    (let (["tmp" e-_src])
      (begin
-       (compile-check checkable-T_dst)
+       (compile-check "tmp" checkable-T_dst)
        (return "tmp")))])
 (define-metafunction SP-compiled
   compile-e-lambda : Ψ Γ Γ ([x t] ...) e -> [e- T]
   [(compile-e-lambda Ψ Γ_dcl Γ_lcl ([x_arg t_arg] ...) e_out)
-   [(lambda (x_arg ...) e-_out)
+   [(lambda (x_arg ...)
+      (make-begin (compile-check x_arg T_arg) ...)
+      (local (x_arg ...) (return e-_out)))
     (-> (T_arg ...) T_out)]
    (where (T_arg ...) ((eval-t Ψ Γ_dcl Γ_lcl t_arg) ...))
    (where [e-_out T_out] (compile-e Ψ Γ_dcl (extend Γ_dcl [x_arg T_arg] ...) e_out))])
 (module+ test
-  (test-equal (term (type-call "CheckedDict[_,_]" (exact (tuple ((Type (subof "int"))
+  (test-equal (term (type-call (base-Ψ) "CheckedDict[_,_]" (exact (tuple ((Type (subof "int"))
                                                                  (Type (subof "str")))))))
               (term (Type (subof (chkdict (subof "int") (subof "str"))))))
-  (test-equal (term (type-call "Optional[_]" (Type (exact "int"))))
+  (test-equal (term (type-call (base-Ψ) "Optional[_]" (Type (exact "int"))))
               (term (Type (Optional (exact "int"))))))
 (define-metafunction SP-compiled
-  type-call : type-op T -> T
-  [(type-call "CheckedDict[_,_]" (exact (tuple ((Type T_key) (Type T_val)))))
-   (Type (subof (chkdict T_key T_val)))]
-  [(type-call "Optional[_]" (Type nonnonable-T))
-   (Type (Optional nonnonable-T))])
+  type-call : Ψ type-op T -> T
+  [(type-call Ψ (Union l_1) T)
+   (Type (union (base-Ψ) (subof l_1) (T-of-T T)))]
+  [(type-call Ψ "CheckedDict[_,_]" (exact (tuple (T_key T_val))))
+   (Type (subof (chkdict (T-of-T T_key) (T-of-T T_val))))]
+  [(type-call Ψ "Optional[_]" T)
+   (Type (Optional (T-of-T T)))])
 (module+ test
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute (con 2) "__add__") ((con 3))))
               (term [(invoke-function (method "int" "__add__") ((ref (con 2)) (ref (con 3))))
-                     (subof "float")]))
+                     (subof "int")]))
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute "CheckedDict" "__getitem__")
                                     ((tuple-syntax ("int" "str")))))
@@ -579,7 +601,7 @@
   ;; type-level calls
   [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))
    [(invoke-function l_mth (e-_obj e-_arg ...))
-    (type-call type-op T_arg ...)]
+    (type-call Ψ type-op T_arg ...)]
    (where [e-_obj (Type (subof l_cls))] (compile-e Ψ Γ_dcl Γ_lcl e_obj))
    (where type-op (lookup-method-T Ψ l_cls x_mth))
    (where l_mth (lookup-method-l Ψ l_cls x_mth))
@@ -589,14 +611,14 @@
    [(invoke-function l_mth (e-_obj (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
     T_out]
    (where [e-_obj (exact l_cls)] (compile-e Ψ Γ_dcl Γ_lcl e_obj))
-   (where (-> (T_arg ...) T_out) (lookup-method-T Ψ l_cls x_mth))
+   (where (-> (T_obj T_arg ...) T_out) (lookup-method-T Ψ l_cls x_mth))
    (where l_mth (lookup-method-l Ψ l_cls x_mth))]
   ;; we emit INVOKE_METHOD when the class is known but inexact
   [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))
-   [(invoke-method l_cls x_mth e-_obj ((maybe-cast (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
+   [(invoke-method l_cls x_mth e-_obj ((maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
     T_out]
    (where [e-_obj (subof l_cls)] (compile-e Ψ Γ_dcl Γ_lcl e_obj))
-   (where (-> (T_arg ...) T_out) (lookup-method-T Ψ l_cls x_mth))]
+   (where (-> (dynamic T_arg ...) T_out) (lookup-method-T Ψ l_cls x_mth))]
   ;; fall back
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
    [(call-function (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_fun))
@@ -607,17 +629,22 @@
   [(compile-e-attribute Ψ Γ_dcl Γ_lcl e x)
    [(attribute mode e- x)
     T]
+   (where [mode e- T] (resolve-attribute Ψ Γ_dcl Γ_lcl e x))]
+  ; [(compile-e-attribute Ψ Γ_dcl Γ_lcl e x)
+  ;  [(ref l_mth)
+  ;   (-> ((subof l_cls) T_arg ...) T_out)]
+  ;  (where [e- (Type (subof l_cls))] (compile-e Ψ Γ_dcl Γ_lcl e))
+  ;  (where (-> (T_arg ...) T_out) (lookup-method-T Ψ l_cls x))
+  ;  (where l_mth (lookup-method-l Ψ l_cls x))]
+  )
+(define-metafunction SP-compiled
+  resolve-attribute : Ψ Γ Γ e x -> [mode e- T]
+  [(resolve-attribute Ψ Γ_dcl Γ_lcl e x)
+   [fast e- T]
    (where [e- (exactness l)] (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T (lookup-method-T Ψ l x))]
-  [(compile-e-attribute Ψ Γ_dcl Γ_lcl e x)
-   [(ref l_mth)
-    (-> ((subof l_cls) T_arg ...) T_out)]
-   (where [e- (Type (subof l_cls))] (compile-e Ψ Γ_dcl Γ_lcl e))
-   (where (-> (T_arg ...) T_out) (lookup-method-T Ψ l_cls x))
-   (where l_mth (lookup-method-l Ψ l_cls x))]
-  [(compile-e-attribute Ψ Γ_dcl Γ_lcl e x)
-   [(safe-attribute (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) x)
-    dynamic]])
+  [(resolve-attribute Ψ Γ_dcl Γ_lcl e x)
+   [safe (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) dynamic]])
 (define-metafunction SP-compiled
   compile-e-if-exp : Ψ Γ Γ e e e -> [e- T]
   ;; base case
@@ -634,10 +661,10 @@
    (compile-e-if-exp Ψ Γ_dcl Γ_lcl e e_thn e_els)]
   ;; step case -- and
   [(compile-e-if-exp Ψ Γ_dcl Γ_lcl (and e_1 e_2) e_thn e_els)
-   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e_1 (if e_2 e_thn e_els) e_els)]
+   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e_1 (if-exp e_2 e_thn e_els) e_els)]
   ;; step case -- or
   [(compile-e-if-exp Ψ Γ_dcl Γ_lcl (or e_1 e_2) e_thn e_els)
-   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e_1 e_thn (if e_2 e_thn e_els))]
+   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e_1 e_thn (if-exp e_2 e_thn e_els))]
   ;; fall through
   [(compile-e-if-exp Ψ Γ_dcl Γ_lcl e e_thn e_els)
    [(if-exp (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) e-_thn e-_els)
@@ -650,6 +677,107 @@
   [(as-dyn [e- T]) e-])
 
 (define-metafunction SP-compiled
+  compile-check : e- checkable-T -> s-
+  [(compile-check e- dynamic) (begin)]
+  [(compile-check e- (exactness l))
+   (make-assert
+    (check-exactness (invoke-function "type" (e-)) exactness l))]
+  [(compile-check e- (Optional T))
+   (if (is e- (con None))
+       (begin)
+       (compile-check e- T))])
+(define-metafunction SP-compiled
+  check-exactness : e- exactness l -> e-
+  [(check-exactness e- exact l)
+   (is e- (ref l))]
+  [(check-exactness e- subof l)
+   (invoke-function "issubclass" (e- (ref l)))])
+
+(module+ test
+  ;; expr
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (expr "int")))
+              (term (expr "int")))
+  ;; return
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) (exact "int")
+                               (return (con 2))))
+              (term (return (ref (con 2)))))
+  ;; assert
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (assert (con #t))))
+              (term (if (ref (con #t)) (begin) (raise-error))))
+  ;; begin
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (begin (expr "int") (expr "bool"))))
+              (term (begin (expr "int") (expr "bool"))))
+  ;; if
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) (Optional (exact "int"))
+                               (if (con None) (return (con None)) (return (con 2)))))
+              (term (if (ref (con None)) (return (ref (con None))) (return (ref (con 2))))))
+  ;; delete x
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (delete "int")))
+              (term (delete "int")))
+  ;; delete attribute
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (delete (attribute (con 2) "__add__"))))
+              (term (delete (attribute fast (ref (con 2)) "__add__"))))
+  ;; ann x
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (ann "i" "int")))
+              (term (begin)))
+  ;; ann attribute
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (ann (attribute (con 2) "__add__") "int")))
+              (term (begin)))
+  ;; ann-assign
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (ann-assign "i" "int" (con 2))))
+              (term (assign "i" (ref (con 2)))))
+  ;; function-def
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (function-def "f" (["i" "int"]) "int"
+                                             (local (["i" "int"])
+                                               (return "i")))))
+              (term (assign "f" (lambda ("i")
+                                  (begin
+                                    (if (invoke-function "issubclass"
+                                                         ((invoke-function "type" ("i"))
+                                                          (ref "int")))
+                                        (begin)
+                                        (raise-error)))
+                                  (local ("i")
+                                    (return "i"))))))
+  ;; class
+  (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
+                               (class "C" ("dict")
+                                 ((field "a" "int" (con 2))
+                                  (field "b" dynamic)
+                                  (method "f" (["self" dynamic] ["i" "int"]) "int"
+                                          (local (["self" dynamic] ["i" "int"])
+                                            (return "i")))))))
+              (term (begin
+                      (assign "C" (class ("dict")
+                                    (["a" (if (invoke-function "issubclass"
+                                                               ((invoke-function "type" ("a"))
+                                                                (ref "int")))
+                                              (begin)
+                                              (raise-error))]
+                                     ["b" (begin)]
+                                     ["f" (raise-error)])))
+                      (assign (attribute fast "C" "a") (ref (con 2)))
+                      (assign (attribute fast "C" "f")
+                              (lambda ("self" "i")
+                                (begin
+                                  (if (invoke-function "issubclass"
+                                                       ((invoke-function "type" ("i"))
+                                                        (ref "int")))
+                                      (begin)
+                                      (raise-error)))
+                                (local ("self" "i")
+                                  (return "i")))))))
+  )
+(define-metafunction SP-compiled
   compile-s : Ψ Γ Γ T+☠ s -> s-
   ;; expr
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (expr e))
@@ -659,50 +787,109 @@
    (return (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e) T))]
   ;; assert
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (assert e))
-   (assert (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)))]
+   (make-assert (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)))]
   ;; begin
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (begin s ...))
    (compile-begin Ψ Γ_dcl Γ_lcl T+☠ s ...)]
-  ;; if TODO need to revise this. if should be more sophisticated
+  ;; if
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (if e_cnd s_thn s_els))
-   (if (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_cnd))
-       (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_thn)
-       (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_els))]
-  ;; TODO delete x
-  ;; TODO delete attr
-  ;; ann are ignored
+   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠ e_cnd s_thn s_els)]
+  ;; delete x
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (delete x))
+   (delete x)]
+  ;; delete attribute
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (delete (attribute e x)))
+   (delete (attribute mode e- x))
+   (where [mode e- T] (resolve-attribute Ψ Γ_dcl Γ_lcl e x))]
+  ;; ann x, they are ignored
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann x t))
    (begin)]
-  ;; ann-assign x
+  ;; ann attribute, they are ignored
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann (attribute e x) t))
+   (begin)]
+  ;; ann-assign x, annotations are ignored
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann-assign x t e))
    (assign x e-)
    (where [e- T_lcl] (compile-e Ψ Γ_dcl Γ_lcl e))]
-  ;; ann-assign attribute
-  ;; TODO
+  ;; ann-assign attribute, the annotation (t) is ignored
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann-assign (attribute e x) t e_src))
+   (assign (attribute mode e- x) (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_src) T))
+   (where [mode e- T] (resolve-attribute Ψ Γ_dcl Γ_lcl e x))]
   ;; function-def
-  ;; TODO
-  [(compile-s Ψ Γ_1 Γ_lcl T+☠ (function-def x ([x_arg t_arg] ...) t_ret d s))
-   (function-def x ([x_arg (lookup Γ_3 x_arg)] ...)
-     (compile-d d)
-     (compile-s Ψ Γ_3 Γ_3 T_ret s))
-   (judgment-holds (eval-t Ψ Γ_1 t_ret T_ret))
-   (where (([x_cls any] ...) ([x_var D_var] ...)) (split-d d))
-   (where Γ_2 (extend Γ_1 [x_cls dynamic] ... [x_var ☠] ...))
-   (judgment-holds (evalD* Ψ Γ_2 (D_var ...) (T_var ...)))
-   (where Γ_3 (update Γ_2 [x_var T_var] ...))]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (function-def x ([x_arg t_arg] ...) t_out level))
+   (assign x e-)
+   (where [e- T] (compile-function Ψ Γ_dcl ([x_arg t_arg] ...) t_out level))]
   ;; class
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (class x (t ...) m ...))
-   (class x ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl t)) ...)
-     (compile-m Ψ Γ_dcl x m) ...)]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (class x (e ...) (m ...)))
+   (make-begin
+    (assign x (class ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) ...)
+                ([x_mem s-_check] ...)))
+    s-_init ...)
+   (where ([x_mem s-_check s-_init] ...)
+          ((compile-m Ψ Γ_dcl Γ_lcl x m) ...))]
   ;; import-from
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (import-from x_mod x_var))
    (import-from x_mod x_var)])
 (define-metafunction SP-compiled
-  compile-begin : s ... -> s-
+  make-assert : e- -> s-
+  [(make-assert e-)
+   (if e- (begin) (raise-error))])
+(define-metafunction SP-compiled
+  compile-m : Ψ Γ Γ x m -> [x s- s-]
+  [(compile-m Ψ Γ_dcl Γ_lcl x_cls (field x t))
+   [x
+    (compile-check x T)
+    (begin)]
+   (where T (eval-t Ψ Γ_dcl Γ_lcl t))]
+  [(compile-m Ψ Γ_dcl Γ_lcl x_cls (field x t e))
+   [x
+    (compile-check x T)
+    (assign (attribute fast x_cls x)
+            (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e) T))]
+   (where T (eval-t Ψ Γ_dcl Γ_lcl t))]
+  [(compile-m Ψ Γ_dcl Γ_lcl x_cls (method x ([x_arg t_arg] ...) t_out level))
+   [x
+    (raise-error) ;; TODO: let's assume methods are immutable right now
+    (assign (attribute fast x_cls x) e-)]
+   (where [e- T]
+          (compile-function Ψ Γ_dcl ([x_arg t_arg] ...) t_out level))])
+(define-metafunction SP-compiled
+  compile-function : Ψ Γ ([x t] ...) t level -> [e- (-> (T ...) T)]
+  [(compile-function Ψ Γ ([x_arg t_arg] ...) t_out level)
+   [(lambda (x_arg ...)
+      (make-begin
+       (compile-check x_arg T_arg)
+       ...)
+      (compile-level Ψ Γ T_out level))
+    (-> (T_arg ...) T_out)]
+   (where (T_arg ...) ((eval-t Ψ Γ Γ t_arg) ...))
+   (where T_out (eval-t Ψ Γ Γ t_out))])
+(define-metafunction SP-compiled
+  compile-level : Ψ Γ T level -> level-
+  [(compile-level Ψ Γ T (local ([x d] ...) s))
+   (local (x ...)
+     (compile-s Ψ Γ_bdy Γ_bdy T s))
+   (where Γ_0 Γ)
+   (where Γ_1 (extend Γ_0 [x dynamic] ...))
+   (where Γ_2 (update Γ_1 [x (T-of-d Ψ Γ_1 d)] ...))
+   (where Γ_bdy Γ_2)])
+(define-metafunction SP-compiled
+  T-of-d : Ψ Γ d -> T
+  ;; Assuming that we are in local scope, where classes are dynamic
+  ;; The global scope should not use this.
+  [(T-of-d Ψ Γ t)
+   (eval-t Ψ Γ Γ t)]
+  [(T-of-d Ψ Γ (function-def (t_arg ...) t_out))
+   (-> (T_arg ...) T_out)
+   (where (T_arg ...) ((eval-t Ψ Γ Γ t_arg) ...))
+   (where T_out (eval-t Ψ Γ Γ t_out))]
+  [(T-of-d Ψ Γ (class (e ...) ([x d] ...))) dynamic])
+(define-metafunction SP-compiled
+  compile-begin : Ψ Γ_dcl Γ_lcl T+☠ s ... -> s-
   [(compile-begin Ψ Γ_dcl Γ_lcl ☠)
    (begin)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T)
-   (compile-s Ψ Γ_dcl Γ_lcl T+☠ (return (con None)))]
+   (compile-s Ψ Γ_dcl Γ_lcl T (return (con None)))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s)
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ s)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (return e) s ...)
@@ -711,8 +898,8 @@
    (compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_1 ... s_2 ...)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (ann-assign x t e) s ...)
    (make-begin
-     (assign x e-)
-     (compile-begin Ψ Γ_dcl (update Γ_lcl [x T_lcl]) T+☠ (begin s ...)))
+    (assign x e-)
+    (compile-begin Ψ Γ_dcl (update Γ_lcl [x T_lcl]) T+☠ (begin s ...)))
    (where T_dst (lookup Γ_dcl x))
    (where (e- T_src) (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T_lcl (intersection Ψ T_src T_dst))]
@@ -721,259 +908,150 @@
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_1 s_2 ...)
    (make-begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_1)
                (compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_2 ...))])
-#|
+(define-metafunction SP-compiled
+  compile-s-if : Ψ Γ Γ T+☠ e s s -> s-
+  ;; base case
+  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (is x None) s_thn s_els)
+   (if (as-dyn (compile-e (is x None))) s-_thn s-_els)
+   (where T (lookup Γ_lcl x))
+   (where Γ_thn (update Γ_lcl [x (intersection Ψ T (subof "NoneType"))]))
+   (where Γ_els (update Γ_lcl [x (remove-None  Ψ T (subof "NoneType"))]))
+   (where s-_thn (compile-s Ψ Γ_dcl Γ_thn T+☠_out s_thn))
+   (where s-_els (compile-s Ψ Γ_dcl Γ_els T+☠_out s_els))]
+  ;; step case -- not
+  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (not e) s_thn s_els)
+   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e s_thn s_els)]
+  ;; step case -- and
+  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (and e_1 e_2) s_thn s_els)
+   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e_1 (if e_2 s_thn s_els) s_els)]
+  ;; step case -- or
+  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (or e_1 e_2) s_thn s_els)
+   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e_1 s_thn (if e_2 s_thn s_els))]
+  ;; fall through
+  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e s_thn s_els)
+   (if (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) s-_thn s-_els)
+   (where s-_thn (compile-s Ψ Γ_dcl Γ_lcl T+☠_out s_thn))
+   (where s-_els (compile-s Ψ Γ_dcl Γ_lcl T+☠_out s_els))])
+
+(module+ test
+  (test-equal (term (compile-program
+                     (desugar-program
+                      ((import-from "__static__" ("CheckedDict"))
+                       (ann-assign "d" (subscript "CheckedDict" (tuple-syntax ("str" "int")))
+                                   (call (subscript "CheckedDict" (tuple-syntax ("str" "int")))
+                                         ((dict-syntax ([(con "foo") (con "123")])))))))))
+              ;; TODO: This isn't ideal
+              (term (local
+                      ("CheckedDict" "d")
+                      (begin
+                        (import-from "__static__" "CheckedDict")
+                        (assign
+                         "d"
+                         (call-function
+                          (invoke-function
+                           (method "CheckedDict[_,_]" "__getitem__")
+                           ("CheckedDict" (tuple-syntax ("str" "int"))))
+                          ((dict-syntax
+                            (((ref (con "foo")) (ref (con "123"))))))))))))
+  (test-equal (term (compile-program
+                     (desugar-program
+                      ((import-from "__static__" ("CheckedDict"))
+                       (class "C" ((subscript "CheckedDict" (tuple-syntax ("str" "int"))))
+                         (pass))
+                       (class "D" ("C")
+                         (pass))))))
+              (term (local
+                      ("CheckedDict" "C" "D")
+                      (begin
+                        (import-from "__static__" "CheckedDict")
+                        (assign
+                         "C"
+                         (class ((invoke-function
+                                  (method "CheckedDict[_,_]" "__getitem__")
+                                  ("CheckedDict"
+                                   (tuple-syntax ("str" "int")))))
+                           ()))
+                        (assign "D" (class ("C") ())))))))
 (define-metafunction SP-compiled
   compile-program : program -> program-
-  [(compile-program (import-type ... d s))
-   (import-type ... (compile-d d) (compile-s Ψ_2 Γ_5 Γ_5 ☠ s))
-   (where Ψ_1 (base-Ψ))
-   (where Γ_1 (base-Γ))
-   (where Γ_2 (collect-imports Γ_1 import-type ...))
-   (where ([x any] ...) d)
-   (where Γ_3 (extend Γ_2 [x ☠] ...))
-   (where (d_cls d_oth) (split-d d))
-   (where (Ψ_2 Γ_4) (define-classes Ψ_1 Γ_3 d_cls))
-   ;; then we define other things, functions and ordinary varibles
-   (where ([x_var D_var] ...) d_oth)
-   (judgment-holds (evalD* Ψ_2 Γ_4 (D_var ...) (T_var ...)))
-   (where Γ_5 (update Γ_4 [x_var T_var] ...))])
-
+  [(compile-program (local ([x d] ...) s))
+   (local (x ...)
+     (compile-s Ψ_global Γ_global Γ_global ☠ s))
+   (where ([x_imp d_imp] ...) (gather-import [x d] ...))
+   (where ([x_cls d_cls] ...) (gather-class [x d] ...))
+   (where ([x_oth d_oth] ...) (gather-other [x d] ...))
+   (where Ψ_global-1 (extend (base-Ψ)
+                             [(user-defined-class x_cls) ☠]
+                             ...))
+   (where Γ_global-1 (extend (base-Γ)
+                             [x_imp (T-of-import d_imp)]
+                             ...
+                             [x_cls (Type (subof (user-defined-class x_cls)))]
+                             ...
+                             [x_oth ☠]
+                             ...))
+   (where Γ_global-2 (update Γ_global-1
+                             [x_oth (T-of-d Ψ_global-1 Γ_global-1 d_oth)]
+                             ...))
+   (where Ψ_global-2 (update Ψ_global-1
+                             [(user-defined-class x_cls)
+                              (eval-class-d Ψ_global-1 Γ_global-2 x_cls d_cls)]
+                             ...))
+   (where Γ_global Γ_global-2)
+   (where Ψ_global Ψ_global-2)])
 (define-metafunction SP-compiled
-  compile-d : d -> d-
-  [(compile-d ([x D] ...)) (x ...)])
-
-
-(define-judgment-form SP-compiled
-  #:mode (Ψ⊢T<:T I I I)
-  #:contract (Ψ⊢T<:T Ψ T T)
-  [(where #t (= (union Ψ T_src T_tgt) T_tgt))
-   --------------------
-   (Ψ⊢T<:T Ψ T_src T_tgt)])
-
+  eval-class-d : Ψ Γ x (class (e ...) ([x_mem d_mem] ...)) -> (class l*+dynamic Γ ρ)
+  [(eval-class-d Ψ Γ x (class (e ...) ([x_mem d_mem] ...)))
+   (class (l ...) Γ_cls ρ_cls)
+   (where ((subof l) ...) ((eval-t Ψ Γ Γ e) ...))
+   (where Γ_cls ([x_mem (T-of-d Ψ Γ d_mem)] ...))
+   (where ρ_cls ([x_mem (method (user-defined-class x) x_mem)] ...))]
+  [(eval-class-d Ψ Γ x (class (e ...) ([x_mem d_mem] ...)))
+   (class dynamic Γ_cls ρ_cls)
+   (where Γ_cls ([x_mem (T-of-d Ψ Γ d_mem)] ...))
+   (where ρ_cls ([x_mem (method (user-defined-class x) x_mem)] ...))])
 (define-metafunction SP-compiled
-  maybe-cast! : Ψ (e- T) T -> e-
-  [(maybe-cast! Ψ (e-_ins T_src) T_tgt)
-   e-_ins
-   (judgment-holds (Ψ⊢T<:T Ψ T_src T_tgt))]
-  [(maybe-cast! Ψ (e-_ins T_src) checkable-T_tgt)
-   (let ([tmp e-_ins])
-     (begin
-       (compile-check checkable-T_tgt tmp)
-       (return tmp)))])
-
+  T-of-import : (import-from x x) -> T
+  [(T-of-import (import-from "__static__" "CheckedDict"))
+   (Type (subof "CheckedDict[_,_]"))]
+  [(T-of-import (import-from "__static__" "PyDict"))
+   (Type (subof "dict"))]
+  [(T-of-import (import-from "__static__" "pydict"))
+   (Type (subof "dict"))]
+  ;; TODO
+  [(T-of-import (import-from "__static__" "inline"))
+   dynamic]
+  [(T-of-import (import-from "typing" "Optional"))
+   (Type (subof "Optional[_]"))]
+  [(T-of-import (import-from "typing" "Any"))
+   (Type dynamic)]
+  ;; TODO
+  [(T-of-import (import-from "typing" "Final"))
+   (Type (subof "Final[_]"))]
+  [(T-of-import (import-from "__future__" "annotations"))
+   dynamic])
 (define-metafunction SP-compiled
-  compile-check : checkable-T_tgt e- -> s-
-  [(compile-check dynamic e-) (begin)]
-  [(compile-check (instancesof cid) e-)
-   (assert ((ref "isinstance") e- (ref cid)))]
-  [(compile-check (Optional cid) e-)
-   (if (is e- None)
-       (begin)
-       (compile-check (instancesof cid) e-))])
-
-(module+ test
-  (test-equal (term (compile-s (base-Ψ)
-                               (extend (base-Γ) [x dynamic])
-                               (extend (base-Γ) [x dynamic])
-                               ☠
-                               (begin
-                                 (ann-assign x dynamic 2)
-                                 (expr ((attribute x "__add__") 3)))))
-              (term (begin
-                      (ann-assign x (ref (con 2)))
-                      (expr ((ref (attribute "float" "__add__")) x (ref (con 3))))))))
-
+  gather-import : [x d] ... -> ([x (import-from x x)] ...)
+  [(gather-import)
+   ()]
+  [(gather-import [x_1 import-d] [x_2 d_2] ...)
+   (append ([x_1 import-d]) (gather-import [x_2 d_2] ...))]
+  [(gather-import [x_1 d_1] [x_2 d_2] ...)
+   (gather-import [x_2 d_2] ...)])
 (define-metafunction SP-compiled
-  compile-m : Ψ Γ t m -> m-
-  [(compile-m Ψ Γ t_cls (field string t_fld))
-   (field string (as-dyn (compile-e Ψ Γ Γ t_fld)))]
-  [(compile-m Ψ Γ t_slf (method string_method x_slf ([x_arg t_arg] ...) t_ret d s))
-   (method string_method x_slf ([x_arg e-_arg] ...) e-_ret d- s-)
-   (where (def tmp ([x_slf e-_slf] [x_arg e-_arg] ...)
-            e-_ret
-            d-
-            s-)
-          (compile-s
-           Ψ Γ Γ ☠
-           (def tmp ([x_slf t_slf] [x_arg t_arg] ...)
-             t_ret
-             d
-             s)))])
-
-(module+ test
-  (test-equal (term (compile-e (base-Ψ) (base-Γ) (base-Γ) ((attribute 2 "__add__") 3)))
-              (term [((ref (attribute "float" "__add__"))
-                      (ref (con 2))
-                      (ref (con 3)))
-                     (instancesof "float")]))
-  (test-equal (term (compile-e (base-Ψ)
-                               (extend (base-Γ) [x dynamic])
-                               (extend (base-Γ) [x (instancesof "int")])
-                               ((attribute x "__add__") 3)))
-              (term [((ref (attribute "float" "__add__"))
-                      x
-                      (ref (con 3)))
-                     (instancesof "float")]))
-  (test-equal (term (compile-e (base-Ψ)
-                               (extend (base-Γ)
-                                       [CheckedDict (prim-generic "CheckedDict")])
-                               (extend (base-Γ)
-                                       [CheckedDict (prim-generic "CheckedDict")])
-                               ((attribute CheckedDict "__getitem__")
-                                (tuple-syntax int str))))
-              (term [((dynamic-attribute CheckedDict "__getitem__")
-                      (tuple-syntax int str))
-                     (classitself ("CheckedDict" (instancesof "int")
-                                                 (instancesof "str")))]))
-  (test-equal (term (compile-e (base-Ψ)
-                               (extend (base-Γ)
-                                       [CheckedDict (prim-generic "CheckedDict")]
-                                       [Optional (prim-generic Optional)])
-                               (extend (base-Γ)
-                                       [CheckedDict (prim-generic "CheckedDict")]
-                                       [Optional (prim-generic Optional)])
-                               ((attribute CheckedDict "__getitem__")
-                                (tuple-syntax str
-                                              ((attribute Optional "__getitem__") str)))))
-              (term [((dynamic-attribute CheckedDict "__getitem__")
-                      (tuple-syntax str ((dynamic-attribute Optional "__getitem__") str)))
-                     (classitself ("CheckedDict" (instancesof "str")
-                                                 (Optional "str")))]))
-  (test-equal (term (compile-e (base-Ψ)
-                               (extend (base-Γ)
-                                       [CheckedDict (prim-generic "CheckedDict")])
-                               (extend (base-Γ)
-                                       [CheckedDict (prim-generic "CheckedDict")])
-                               (((attribute CheckedDict "__getitem__")
-                                 (tuple-syntax int str))
-                                (dict-syntax))))
-              (term [(((dynamic-attribute CheckedDict "__getitem__")
-                       (tuple-syntax int str))
-                      (dict-syntax))
-                     (instancesof ("CheckedDict" (instancesof "int")
-                                                 (instancesof "str")))]))
-  )
+  gather-class : [x d] ... -> ([x (class (e ...) ([x d] ...))] ...)
+  [(gather-class)
+   ()]
+  [(gather-class [x_1 class-d] [x_2 d_2] ...)
+   (append ([x_1 class-d]) (gather-class [x_2 d_2] ...))]
+  [(gather-class [x_1 d_1] [x_2 d_2] ...)
+   (gather-class [x_2 d_2] ...)])
 (define-metafunction SP-compiled
-  compile-e : Ψ Γ Γ e -> (e- T)
-  ;; variable
-  [(compile-e Ψ Γ_dcl Γ_lcl x)
-   [x T]
-   (where T (lookup Γ_lcl x))]
-  ;; constant
-  [(compile-e Ψ Γ_dcl Γ_lcl c)
-   [(ref (con c))
-    (instancesof (type-of-c c))]]
-  ;; set literal
-  [(compile-e Ψ Γ_dcl Γ_lcl (set-syntax e ...))
-   [(set-syntax (get-e (compile-e Ψ Γ_dcl Γ_lcl e)) ...)
-    (instancesof "set")]]
-  ;; tuple literal
-  [(compile-e Ψ Γ_dcl Γ_lcl (tuple-syntax e ...))
-   [(tuple-syntax (get-e (compile-e Ψ Γ_dcl Γ_lcl e)) ...)
-    (instancesof "tuple")]]
-  ;; dict literal
-  [(compile-e Ψ Γ_dcl Γ_lcl (dict-syntax [e_key e_val] ...))
-   [(dict-syntax [(get-e (compile-e Ψ Γ_dcl Γ_lcl e_key)) (get-e (compile-e Ψ Γ_dcl Γ_lcl e_val))] ...)
-    (instancesof "dict")]]
-  ;; is
-  [(compile-e Ψ Γ_dcl Γ_lcl (is e_lft e_rht))
-   [(is (get-e (compile-e Ψ Γ_dcl Γ_lcl e_lft)) (get-e (compile-e Ψ Γ_dcl Γ_lcl e_rht)))
-    (instancesof "bool")]]
-  ;; is-not
-  [(compile-e Ψ Γ_dcl Γ_lcl (is-not e_lft e_rht))
-   [(is-not (get-e (compile-e Ψ Γ_dcl Γ_lcl e_lft)) (get-e (compile-e Ψ Γ_dcl Γ_lcl e_rht)))
-    (instancesof "bool")]]
-  ;; if  TODO need refinement
-  [(compile-e Ψ Γ_dcl Γ_lcl (if e_cnd e_thn e_els))
-   ((if (get-e (compile-e Ψ Γ_dcl Γ_lcl e_cnd))
-        e-_thn
-        e-_els)
-    (union Ψ T_thn T_els))
-   (where [e-_thn T_thn] (compile-e Ψ Γ_dcl Γ_lcl e_thn))
-   (where [e-_els T_els] (compile-e Ψ Γ_dcl Γ_lcl e_els))]
-  ;; generic class
-  [(compile-e Ψ Γ_dcl Γ_lcl ((attribute x "__getitem__") (tuple-syntax t ...)))
-   [(ref cid) (classitself cid)]
-   (judgment-holds (evalo Ψ Γ_lcl ((attribute x "__getitem__") (tuple-syntax t ...)) (instancesof cid)))]
-  ;; attribute
-  [(compile-e Ψ Γ_dcl Γ_lcl (attribute e string))
-   [(dynamic-attribute (get-e (compile-e Ψ Γ_dcl Γ_lcl e)) string)
-    dynamic]]
-  ;; Optimization!!
-  ;; TODO debug
-  [(compile-e Ψ Γ_dcl Γ_lcl ((attribute e_obj string_mth) e_arg ...))
-   [((ref l_mth) e-_obj (maybe-cast! Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...)
-    T_ret]
-   (where [e-_obj T_obj] (compile-e Ψ Γ_dcl Γ_lcl e_obj))
-   (where (instancesof cid) T_obj)
-   (where (-> ([x+☠_prm T_arg] ...) T_ret) (lookup-member Ψ T_obj string_mth))
-   (where l_mth (lookup-member-label Ψ T_obj string_mth))
-   (where #t (= (len (T_arg ...)) (len (e_arg ...))))]
-  [(compile-e Ψ Γ_dcl Γ_lcl (e_fun e_arg ...))
-   [(e-_fun (maybe-cast! Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...)
-    T_ret]
-   (where [e-_fun T_fun] (compile-e Ψ Γ_dcl Γ_lcl e_fun))
-   (judgment-holds (as-fun Ψ T_fun (len (e_arg ...)) (-> ([x+☠_arg T_arg] ...) T_ret)))])
+  gather-other : [x d] ... -> ([x d]...)
+  [(gather-other)
+   ()]
+  [(gather-other [x_1 other-d] [x_2 d_2] ...)
+   (append ([x_1 other-d]) (gather-other [x_2 d_2] ...))]
+  [(gather-other [x_1 d_1] [x_2 d_2] ...)
+   (gather-other [x_2 d_2] ...)])
 
-
-(define-metafunction SP-compiled
-  lookup-member-label : Ψ T string -> l
-  ;; TODO: this looks a bit too ad hoc ...
-  [(lookup-member-label Ψ (instancesof cid) string)
-   (attribute cid string)
-   (where C (lookup-class Ψ cid))
-   (where (class any_nam
-            ;; parents
-            cid+dynamic+☠
-            ;; fields
-            ([string_fld T_fld] ...)
-            ;; methods
-            ([string_mth ([x+☠_arg T_arg] ...) T_ret] ...))
-          C)
-   (where (any_1 ... string any_2 ...)
-          (string_fld ... string_mth ...))]
-  [(lookup-member-label Ψ (instancesof cid_slf) string)
-   (lookup-member-label Ψ (instancesof cid_prn) string)
-   (where C (lookup-class Ψ cid_slf))
-   (where (class any_nam
-            ;; parents
-            cid_prn
-            ;; fields
-            ([string_fld T_fld] ...)
-            ;; methods
-            ([string_mth ([x+☠_arg T_arg] ...) T_ret] ...))
-          C)])
-
-
-(define-metafunction SP-compiled
-  l-of-builtin-class : T -> l
-  [(l-of-builtin-class (instancesof string))
-   string]
-  [(l-of-builtin-class (instancesof ("CheckedDict" T_key T_val)))
-   (checked-dict (l-of-builtin-class T_key)
-                 (l-of-builtin-class T_val))])
-
-(define-judgment-form SP-compiled
-  #:mode (is-builtin-class I)
-  #:contract (is-builtin-class T)
-
-  ;; basically, primitive-cid recursively.
-
-  [----------------------------------
-   (is-builtin-class (instancesof string))]
-
-  [(is-builtin-class T_key)
-   (is-builtin-class T_val)
-   ----------------------------------
-   (is-builtin-class (instancesof ("CheckedDict" T_key T_val)))])
-
-(define-metafunction SP-compiled
-  compile-e* : Ψ Γ Γ e ... -> ([e- T] ...)
-  [(compile-e* Ψ Γ_dcl Γ_lcl) ()]
-  [(compile-e* Ψ Γ_dcl Γ_lcl e_1 e_2 ...)
-   ([e-_1 T_1] [e-_2 T_2] ...)
-   (where [e-_1 T_1]
-          (compile-e Ψ Γ_dcl Γ_lcl e_1))
-   (where ([e-_2 T_2] ...)
-          (compile-e* Ψ Γ_dcl Γ_lcl e_2 ...))])
-|#

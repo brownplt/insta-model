@@ -150,9 +150,6 @@
 ;; conformance_suite/test_bind_none_compare_op.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (function-def "has_none" (("x" dynamic)) "bool" ((return (compare (con None) ((in "x")))))) (function-def "has_no_none" (("x" dynamic)) "bool" ((return (compare (con None) ((not-in "x")))))))))))
 
-;; conformance_suite/test_call_function_unknown_ret_type.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__future__" ("annotations")) (function-def "g" () "foo" ((return (con 42)))) (function-def "testfunc" () dynamic ((return (call "g" ())))))))))
-
 ;; conformance_suite/test_chkdict_literal.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("int" "str"))) (dict-syntax ())) (return "x"))))))))
 
@@ -270,9 +267,6 @@
 ;; conformance_suite/test_module_subclass.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None)))))))))))
 
-;; conformance_suite/test_named_tuple.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("NamedTuple")) (class "C" ("NamedTuple") ((ann-assign "x" "int") (ann-assign "y" "str"))) (function-def "myfunc" (("x" "C")) dynamic ((return (attribute "x" "x")))))))))
-
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign "x" (call "f" ())) (return (call (attribute "x" "bit_length") ())))))))))
 
@@ -285,17 +279,8 @@
 ;; conformance_suite/test_override_okay.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))))))))
 
-;; conformance_suite/test_override_override_inherited.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "B" () ((function-def "f" (("self" dynamic)) (con "Optional[B]") ((return "self"))))) (class "D" ("B") (pass)) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))))))))
-
 ;; conformance_suite/test_package_no_parent.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))))))))
-
-;; conformance_suite/test_prod_assert.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (import-from "__static__" ("prod_assert")) (function-def "foo" (("x" (subscript "Optional" "int"))) "int" ((expr (call "prod_assert" ("x"))) (return "x"))))))))
-
-;; conformance_suite/test_protocol_is_dynamic.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Protocol")) (class "CallableProtocol" ("Protocol") ((function-def "__call__" (("self" dynamic) ("x" "int")) "str" (pass)))) (function-def "foo" (("x" "str")) "int" ((return (call "int" ("x"))))) (ann-assign "c" "CallableProtocol" "foo"))))))
 
 ;; conformance_suite/test_pydict_arg_annotation.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (function-def "f" (("d" (subscript "PyDict" (tuple-syntax ("str" "int"))))) "str" ((return (subscript "d" (con 3))))))))))
@@ -314,9 +299,6 @@
 
 ;; conformance_suite/test_str_split.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign (tuple-syntax ("a" "b")) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b"))))))))
-
-;; conformance_suite/test_union_compare.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" "float"))) "bool" ((return (compare "x" ((> (con 0))))))))))))
 
 ;; conformance_suite/test_unknown_isinstance_bool_ret.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "__eq__" (("self" dynamic) ("other" "Any")) "bool" ((return (call "isinstance" ("other" "C"))))))))))))

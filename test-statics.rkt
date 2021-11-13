@@ -344,9 +344,6 @@
 ;; conformance_suite/test_bool_int.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "int" (con #t)) (return "x")))))))
 
-;; conformance_suite/test_call_function_unknown_ret_type.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "__future__" ("annotations")) (function-def "g" () "foo" ((return (con 42)))) (function-def "testfunc" () dynamic ((return (call "g" ()))))))))
-
 ;; conformance_suite/test_cast_unknown_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("cast")) (function-def "f" () dynamic ((expr (call "cast" ("abc" (con 42))))))))))
 
@@ -557,9 +554,6 @@
 ;; conformance_suite/test_multiple_dynamic_base_class.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "something" ("A" "B")) (class "C" ("A" "B") ((function-def "__init__" (("self" dynamic)) dynamic (pass))))))))
 
-;; conformance_suite/test_named_tuple.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("NamedTuple")) (class "C" ("NamedTuple") ((ann-assign "x" "int") (ann-assign "y" "str"))) (function-def "myfunc" (("x" "C")) dynamic ((return (attribute "x" "x"))))))))
-
 ;; conformance_suite/test_narrow_or.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" (con None)))) "int" ((if (bool-op or ((compare "x" ((is (con None)))) (compare "x" ((> (con 1)))))) ((assign "x" (con 1))) ()) (return "x")))))))
 
@@ -611,17 +605,8 @@
 ;; conformance_suite/test_override_okay.py
 (check-judgment-holds* (⊢p (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ()))))))))
 
-;; conformance_suite/test_override_override_inherited.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (class "B" () ((function-def "f" (("self" dynamic)) (con "Optional[B]") ((return "self"))))) (class "D" ("B") (pass)) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ()))))))))
-
 ;; conformance_suite/test_package_no_parent.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42))))))))))
-
-;; conformance_suite/test_prod_assert.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (import-from "__static__" ("prod_assert")) (function-def "foo" (("x" (subscript "Optional" "int"))) "int" ((expr (call "prod_assert" ("x"))) (return "x")))))))
-
-;; conformance_suite/test_protocol_is_dynamic.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Protocol")) (class "CallableProtocol" ("Protocol") ((function-def "__call__" (("self" dynamic) ("x" "int")) "str" (pass)))) (function-def "foo" (("x" "str")) "int" ((return (call "int" ("x"))))) (ann-assign "c" "CallableProtocol" "foo")))))
 
 ;; conformance_suite/test_pydict_arg_annotation.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("PyDict")) (function-def "f" (("d" (subscript "PyDict" (tuple-syntax ("str" "int"))))) "str" ((return (subscript "d" (con 3)))))))))
@@ -664,9 +649,6 @@
 
 ;; conformance_suite/test_unannotated_assign_no_later_declare.py
 (check-not-judgment-holds* (⊢p (desugar-program ((function-def "f" (("flag" dynamic)) dynamic ((assign "x" (con None)) (if "flag" ((ann-assign "x" "str" (con "foo"))) ())))))))
-
-;; conformance_suite/test_union_compare.py
-(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" "float"))) "bool" ((return (compare "x" ((> (con 0)))))))))))
 
 ;; conformance_suite/test_unknown_isinstance_bool_ret.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "__eq__" (("self" dynamic) ("other" "Any")) "bool" ((return (call "isinstance" ("other" "C")))))))))))

@@ -59,16 +59,28 @@ ban_in_test_name = [
     # The annotation is too bad... it uses 42 as type.
     'test_compile_checked_dict_wrong_unknown_type',
     # This test uses dict comprehension.
+    'test_call_function_unknown_ret_type',
+    # This test uses an unbound identifier in type annotation
+    'test_override_override_inherited',
+    # This test uses string literal to write Optional type...
 ]
 skip_anywhere_in_test = [
-    # Waiting on Shriram and Ben
+    # float are fairly broken
+    #   it is not a super class of int
+    #   many systems consider float a super type, but in fact it is not
+    #   because .is_integer is not in int.
+    'float',
+    # To confirm
+    'Protocol',
+    'NamedTuple',
+    'prod_assert',
+    # Skip for now
     '@property',
     '__static__.compiler_flags',
     'weakref',
     '@_donotcompile',
     '__setattr__',
     '__slots__',
-    # Skip for now
     'while',
     'raise',
     'for ',
@@ -82,6 +94,9 @@ skip_anywhere_in_test = [
     'reveal_type',
 ]
 skip_in_code = [
+    # TODO
+    ' | '
+    # Don't worry
     'with ',
     'try:'
 ]

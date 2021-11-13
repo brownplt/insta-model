@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Test hitted some skipped words
 def test_load_iterable_arg_default_overridden(self):
     codestr = """
         def x(a: int, b: int, c: str, d: float = 10.1, e: float = 20.1) -> bool:
