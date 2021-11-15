@@ -42,21 +42,20 @@
      (terminate (v ...)))
   (P [Σ l ((expr v) ... S s- ...)])
   ;; expression contexts
-  (E hole
-     (tuple (v ... E e- ...))
-     (set (v ... E e- ...))
+  (E (tuple (v ... hole e- ...))
+     (set (v ... hole e- ...))
      (dict ([v v] ... [E e-] [e- e-] ...))
      (dict ([v v] ... [v E] [e- e-] ...))
-     (is E e-)
+     (is hole e-)
      (is v E)
-     (if E e- e-)
-     (attribute mode E x)
-     (invoke-function l (v ... E e- ...))
-     (invoke-method l x E (e- ...))
-     (invoke-method l x v (v ... E e- ...))
-     (call-function E (e- ...))
-     (call-function v (v ... E e- ...))
-     (class (v ... E e- ...) ([x s-+☠] ...)))
+     (if hole e- e-)
+     (attribute mode hole x)
+     (invoke-function l (v ... hole e- ...))
+     (invoke-method l x hole (e- ...))
+     (invoke-method l x v (v ... hole e- ...))
+     (call-function hole (e- ...))
+     (call-function v (v ... hole e- ...))
+     (class (v ... hole e- ...) ([x s-+☠] ...)))
   ;; statement contexts
   (S (expr E)
      (return E)
@@ -281,7 +280,11 @@
    [--> [Σ_1 l_env (dict ([v_key v_val] ...))]
         [Σ_2 l_env (ref l)]
         (where (Σ_2 l) (alloc Σ_1 (obj (ref "dict") (dict ([v_key v_val] ...)) ())))
-        "dict"]))
+        "dict"]
+   [--> (in-hole [Σ_1 l_env E] e-_1)
+        (in-hole [Σ_2 l_env E] e-_2)
+        (where ([Σ_2 l e-_2]) ,(apply-reduction-relation red-e (term [Σ_1 l e-_1])))
+        "in-hole"]))
 
 (module+ test
   (test-->> red-p
