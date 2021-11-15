@@ -38,8 +38,9 @@
   (e- .... (local l s-))
   ;; runtime representation of programs
   (p [Σ l (s- ...)]
-     (error))
-  (P [Σ l (v ... S s- ...)])
+     (error)
+     (terminate (v ...)))
+  (P [Σ l ((expr v) ... S s- ...)])
   ;; expression contexts
   (E hole
      (tuple (v ... E e- ...))
@@ -114,6 +115,10 @@
    ()])
 (module+ test
   (test-equal (term
+               (lookup-Σ ([0 (env () ☠)]) 0))
+              (term
+               (env () ☠)))
+  (test-equal (term
                (lookup-Σ (base-Σ) "builtin-env"))
               (term
                (env
@@ -150,22 +155,41 @@
               (term ([0 (env (["x" (ref "bool")]) ☠)])))
   (test-equal (term (update-env ([1 (env () 0)]
                                  [0 (env (["x" (ref "int")]) ☠)]) 1
-                                "x" (ref "bool")))
+                                                                  "x" (ref "bool")))
               (term ([1 (env () 0)]
                      [0 (env (["x" (ref "bool")]) ☠)]))))
 (define-metafunction SP-dynamics
   update-env : Σ l x v -> Σ
   [(update-env Σ l x v_new)
    (update Σ [l (env (any_1 ... [x v_new] any_2 ...) l+☠_out)])
-   (where (env (any_1 ... [x v_old] any_2 ...) l+☠_out) (lookup-Σ Σ l))]
+   (where (env (any_1 ... [x v+☠] any_2 ...) l+☠_out) (lookup-Σ Σ l))]
   [(update-env Σ l x v)
    (update-env Σ l_out x v)
    (where (env any_map l_out) (lookup-Σ Σ l))])
 
+(module+ test
+  (test-equal (term (lookup-env ([0 (env (["x" (ref "int")]) ☠)])
+                                0
+                                "x"))
+              (term (ref "int")))
+  (test-equal (term (lookup-env ([1 (env () 0)]
+                                 [0 (env (["x" (ref "int")]) ☠)])
+                                1
+                                "x"))
+              (term (ref "int"))))
+(define-metafunction SP-dynamics
+  lookup-env : Σ l x -> v
+  [(lookup-env Σ l x)
+   (lookup (any_1 ... [x v+☠] any_2 ...) x)
+   (where (env (any_1 ... [x v+☠] any_2 ...) l+☠_out) (lookup-Σ Σ l))]
+  [(lookup-env Σ l x)
+   (lookup-env Σ l_out x)
+   (where (env any_map l_out) (lookup-Σ Σ l))])
+
 
 (module+ test
-  (test-equal (term (super-load ()))
-              (term [([1 (env () 0)]
+  (test-equal (term (super-load ((ann-assign "i" "int" (con 42)))))
+              (term [([1 (env (["i" ☠]) 0)]
                       [0
                        (env
                         (["object" (ref "object")]
@@ -183,7 +207,7 @@
                          ["issubclass" (ref "issubclass")])
                         ☠)])
                      1
-                     ((begin))])))
+                     ((assign "i" (ref (con 42))))])))
 (define-metafunction SP-dynamics
   super-load : program+ -> [Σ l (s- ...)]
   [(super-load program+)
@@ -196,49 +220,102 @@
    (where (Σ_1 l_1) (alloc (base-Σ) (env ([x_builtin (ref x_builtin)] ...) ☠)))
    (where (Σ_2 l_2) (alloc Σ_1 (env ([x ☠] ...) l_1)))])
 
-#|
-(define red-e
-  (reduction-relation
-    SP-dynamics
-    #:domain [Σ l e-]
-    [--> [Σ l x]
-         [Σ l v]
-         (where v-env (lookup (lookup Σ l) x))]))
 
 (module+ test
-  (test--> red-p
-     (term (super-load ((ann-assign "i" "int" (con 42)))))
-     (term [()
-            0
-            ()]))
-  (test--> red-p
-     (term (super-load ((ann-assign "i" "int" (con 42))
-                        (expr "i"))))
-     (term [()
-            0
-            ((ref (con 42)))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (con 2)])
+            (term [([0 (env () ☠)]) 0 (ref (con 2))]))
+  (test-->> red-e
+            (term [([1 (env () 0)]
+                    [0 (env (["x" (ref (con 2))]) ☠)])
+                   1
+                   "x"])
+            (term [([1 (env () 0)]
+                    [0 (env (["x" (ref (con 2))]) ☠)])
+                   1
+                   (ref (con 2))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)])
+                   0
+                   (tuple ((ref (con 2)) (ref (con 3))))])
+            (term [([1 (obj (ref "tuple") (tuple ((ref (con 2)) (ref (con 3)))) ())]
+                    [0 (env () ☠)])
+                   0
+                   (ref 1)]))
+  (test-->> red-e
+            (term [([0 (env () ☠)])
+                   0
+                   (set ((ref (con 2)) (ref (con 3))))])
+            (term [([1 (obj (ref "set") (set ((ref (con 2)) (ref (con 3)))) ())]
+                    [0 (env () ☠)])
+                   0
+                   (ref 1)]))
+  (test-->> red-e
+            (term [([0 (env () ☠)])
+                   0
+                   (dict ([(ref (con 2)) (ref (con 3))]))])
+            (term [([1 (obj (ref "dict") (dict ([(ref (con 2)) (ref (con 3))])) ())]
+                    [0 (env () ☠)])
+                   0
+                   (ref 1)]))
 )
+(define red-e
+  (reduction-relation
+   SP-dynamics
+   #:domain [Σ l e-]
+   [--> [Σ l_env x]
+        [Σ l_env v]
+        (where v (lookup-env Σ l_env x))
+        "variable"]
+   [--> [Σ l_env (con c)]
+        [Σ l_env (ref (con c))]
+        "constant"]
+   [--> [Σ_1 l_env (tuple (v ...))]
+        [Σ_2 l_env (ref l)]
+        (where (Σ_2 l) (alloc Σ_1 (obj (ref "tuple") (tuple (v ...)) ())))
+        "tuple"]
+   [--> [Σ_1 l_env (set (v ...))]
+        [Σ_2 l_env (ref l)]
+        (where (Σ_2 l) (alloc Σ_1 (obj (ref "set") (set (v ...)) ())))
+        "set"]
+   [--> [Σ_1 l_env (dict ([v_key v_val] ...))]
+        [Σ_2 l_env (ref l)]
+        (where (Σ_2 l) (alloc Σ_1 (obj (ref "dict") (dict ([v_key v_val] ...)) ())))
+        "dict"]))
+
+(module+ test
+  (test-->> red-p
+            (term (super-load ((ann-assign "i" "int" (con 42)))))
+            (term (terminate ())))
+  (test-->> red-p
+            (term (super-load ((expr (con 2)))))
+            (term (terminate ((ref (con 2))))))
+  (test-->> red-p
+            (term (super-load ((ann-assign "i" "int" (con 42)) (expr "i"))))
+            (term (terminate ((ref (con 42))))))
+  )
 
 (define red-p
   (reduction-relation
    SP-dynamics
    #:domain p
-   [--> (Σ l (v_1 ... (expr v_n) s- ...))
-        (Σ l (v_1 ... v_n s- ...))
-        "expr-terminate"]
-   [--> (Σ l (v_1 ... (begin s-_1 ...) s-_2 ...))
-        (Σ l (v_1 ... s-_1 ... s-_2 ...))
+
+   [--> [Σ l ((expr v) ...)]
+        (terminate (v ...))
+        "terminate"]
+   [--> [Σ l ((expr v_1) ... (begin s-_1 ...) s-_2 ...)]
+        [Σ l ((expr v_1) ... s-_1 ... s-_2 ...)]
         "begin"]
-   [--> (Σ_1 l (v ... (assign x_var v_new) s- ...))
-        (Σ_2 l (v ... s- ...))
+   [--> [Σ_1 l ((expr v) ... (assign x_var v_new) s- ...)]
+        [Σ_2 l ((expr v) ... s- ...)]
         (where Σ_2 (update-env Σ_1 l x_var v_new))
         "assign"]
-   [--> (Σ_1 l (v_1 ... (expr e-_1) s- ...))
-        (Σ_2 l (v_1 ... (expr e-_2) s- ...))
-        (where [Σ_2 l e-_2]
+   [--> [Σ_1 l ((expr v_1) ... (expr e-_1) s- ...)]
+        [Σ_2 l ((expr v_1) ... (expr e-_2) s- ...)]
+        (where ([Σ_2 l e-_2])
                ,(apply-reduction-relation red-e (term [Σ_1 l e-_1])))
         "expr"]))
-
+#|
 ; (define red-s
 ;   (reduction-relation
 ;   SP-dynamics
