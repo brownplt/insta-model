@@ -6,100 +6,100 @@
 (require "dynamics.rkt")
 
 ;; conformance_suite/CheckedDict_delete_bad_key.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "other")))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "other")))))))))
 
 ;; conformance_suite/CheckedDict_delete_checks_keys.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2))))))) (delete (subscript (call "asDyn" ("x")) (con 42)))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2))))))) (delete (subscript (call "asDyn" ("x")) (con 42)))))))))
 
 ;; conformance_suite/CheckedDict_delete_good_key.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "bar")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "bar")))))))))
 
 ;; conformance_suite/CheckedDict_delete_pos.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 1))))))) (delete (subscript "x" (con "foo")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 1))))))) (delete (subscript "x" (con "foo")))))))))
 
 ;; conformance_suite/CheckedDict_delete_then_lookup.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "bar"))) (expr (subscript "x" (con "bar")))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "bar"))) (expr (subscript "x" (con "bar")))))))))
 
 ;; conformance_suite/CheckedDict_from_bad_dict.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("int" "str"))) (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 2) (con "a")) ((con 3) (con 4)))))))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 2) (con "a")) ((con 3) (con 4)))))))))))))
 
 ;; conformance_suite/CheckedDict_from_good_dict.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("int" "str"))) (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 2) (con "a")) ((con 3) (con "b")))))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 2) (con "a")) ((con 3) (con "b")))))))))))))
 
 ;; conformance_suite/CheckedDict_from_nondict.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("int" "str"))) (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((con 42))))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (call (subscript "CheckedDict" (tuple ("int" "str"))) ((con 42))))))))))
 
 ;; conformance_suite/CheckedDict_insert.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con 3))))))) (assign (subscript "x" (con "new")) (con 4))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3))))))) (assign (subscript "x" (con "new")) (con 4))))))))
 
 ;; conformance_suite/CheckedDict_insert_then_lookup.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax ())))) (assign (subscript "x" (con "foo")) (con 42)) (expr (subscript "x" (con "foo")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict ())))) (assign (subscript "x" (con "foo")) (con 42)) (expr (subscript "x" (con "foo")))))))))
 
 ;; conformance_suite/CheckedDict_is_inhabitable.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con 3)))))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3)))))))))))))
 
 ;; conformance_suite/CheckedDict_key_can_be_Optional.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ((subscript "Optional" "str") "int"))) (call (subscript "CheckedDict" (tuple-syntax ((subscript "Optional" "str") "int"))) ((dict-syntax (((con "foo") (con 2)) ((con None) (con 3))))))) (assert (compare (subscript "x" (con None)) ((is (con 3)))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "int"))) (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "int"))) ((dict (((con "foo") (con 2)) ((con None) (con 3))))))) (assert (compare (subscript "x" (con None)) ((is (con 3)))))))))))
 
 ;; conformance_suite/CheckedDict_lookup_checks_keys.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2))))))) (expr (subscript (call "asDyn" ("x")) (con 42)))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2))))))) (expr (subscript (call "asDyn" ("x")) (con 42)))))))))
 
 ;; conformance_suite/CheckedDict_lookup_key_pos.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 1))))))) (expr (subscript "x" (con "foo")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 1))))))) (expr (subscript "x" (con "foo")))))))))
 
 ;; conformance_suite/CheckedDict_lookup_val_pos.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 1))))))) (ann-assign "y" "int" (subscript "x" (con "foo")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 1))))))) (ann-assign "y" "int" (subscript "x" (con "foo")))))))))
 
 ;; conformance_suite/CheckedDict_update.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con 3))))))) (assign (subscript "x" (con "bar")) (con 4))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3))))))) (assign (subscript "x" (con "bar")) (con 4))))))))
 
 ;; conformance_suite/CheckedDict_update_checks_keys.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2))))))) (assign (subscript (call "asDyn" ("x")) (con 42)) (con "bar"))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2))))))) (assign (subscript (call "asDyn" ("x")) (con 42)) (con "bar"))))))))
 
 ;; conformance_suite/CheckedDict_update_checks_values.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2))))))) (assign (subscript (call "asDyn" ("x")) (con "foo")) (con "bar"))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2))))))) (assign (subscript (call "asDyn" ("x")) (con "foo")) (con "bar"))))))))
 
 ;; conformance_suite/CheckedDict_update_key_pos.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 1))))))) (assign (subscript "x" (con "bar")) (con 3))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 1))))))) (assign (subscript "x" (con "bar")) (con 3))))))))
 
 ;; conformance_suite/CheckedDict_update_then_lookup.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 2))))))) (assign (subscript "x" (con "foo")) (con 3)) (assert (compare (subscript "x" (con "foo")) ((is (con 3)))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2))))))) (assign (subscript "x" (con "foo")) (con 3)) (assert (compare (subscript "x" (con "foo")) ((is (con 3)))))))))))
 
 ;; conformance_suite/CheckedDict_update_val_pos.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("str" "int"))) ((dict-syntax (((con "foo") (con 1))))))) (assign (subscript "x" (con "bar")) (con 2))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict" "CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 1))))))) (assign (subscript "x" (con "bar")) (con 2))))))))
 
 ;; conformance_suite/CheckedDict_val_can_be_Optional.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "int")))) (call (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "int")))) ((dict-syntax (((con "foo") (con 2)) ((con "bar") (con None))))))) (assert (compare (subscript "x" (con "bar")) ((is (con None)))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) ((dict (((con "foo") (con 2)) ((con "bar") (con None))))))) (assert (compare (subscript "x" (con "bar")) ((is (con None)))))))))))
 
 ;; conformance_suite/PyDict_delete_bad_key.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "other")))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "other")))))))))
 
 ;; conformance_suite/PyDict_delete_good_key.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "bar")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "bar")))))))))
 
 ;; conformance_suite/PyDict_delete_then_lookup.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "bar"))) (expr (subscript "x" (con "bar")))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "bar"))) (expr (subscript "x" (con "bar")))))))))
 
 ;; conformance_suite/PyDict_insert.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (assign (subscript "x" (con "new")) (con "hello"))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (assign (subscript "x" (con "new")) (con "hello"))))))))
 
 ;; conformance_suite/PyDict_insert_then_lookup.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax ())) (assign (subscript "x" (con "foo")) (con 42)) (expr (subscript "x" (con "foo")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict ())) (assign (subscript "x" (con "foo")) (con 42)) (expr (subscript "x" (con "foo")))))))))
 
 ;; conformance_suite/PyDict_is_inhabitable.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2)))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2)))))))))))
 
 ;; conformance_suite/PyDict_lookup_bad_key.py
-(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (expr (subscript "x" (con "other")))))))))
+(test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (expr (subscript "x" (con "other")))))))))
 
 ;; conformance_suite/PyDict_lookup_good_key.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (expr (subscript "x" (con "bar")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (expr (subscript "x" (con "bar")))))))))
 
 ;; conformance_suite/PyDict_update.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con 1) (con "foo")) ((con "bar") (con 2))))) (assign (subscript "x" (con "bar")) (con "hello"))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (assign (subscript "x" (con "bar")) (con "hello"))))))))
 
 ;; conformance_suite/PyDict_update_then_lookup.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict-syntax (((con "foo") (con 2))))) (assign (subscript "x" (con "foo")) (con 3)) (assert (compare (subscript "x" (con "foo")) ((is (con 3)))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con "foo") (con 2))))) (assign (subscript "x" (con "foo")) (con 3)) (assert (compare (subscript "x" (con "foo")) ((is (con 3)))))))))))
 
 ;; conformance_suite/bool_is_inhabitable.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((ann-assign "x" "bool" (con #t))))))))
@@ -153,7 +153,7 @@
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (function-def "has_none" (("x" dynamic)) "bool" ((return (compare (con None) ((in "x")))))) (function-def "has_no_none" (("x" dynamic)) "bool" ((return (compare (con None) ((not-in "x"))))))))))))
 
 ;; conformance_suite/test_chkdict_literal.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("int" "str"))) (dict-syntax ())) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict ())) (return "x")))))))))
 
 ;; conformance_suite/test_class_static_tpflag.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "A" () (pass))))))))
@@ -162,40 +162,40 @@
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((function-def "dec" (("f" dynamic)) dynamic ((return "f"))) (class "C" () ((function-def "foo" (("self" dynamic)) "int" ((return (con 3)))) (function-def "f" (("self" dynamic)) dynamic ((return (call (attribute "self" "foo") ()))))))))))))
 
 ;; conformance_suite/test_compile_checked_dict_explicit_dict.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "pydict" (dict-syntax (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "pydict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_checked_dict_explicit_dict_as_dict.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "dict" (dict-syntax (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "dict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_checked_dict_len.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (return (call "len" ("x")))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (return (call "len" ("x")))))))))))
 
 ;; conformance_suite/test_compile_checked_dict_opt_out_by_default.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign "x" (dict-syntax (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign "x" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_checked_dict_optional.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("str" (bin-op bit-or "str" (con None))))) ((dict-syntax (((con "x") (con None)) ((con "y") (con "z"))))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("str" (bin-op bit-or "str" (con None))))) ((dict (((con "x") (con None)) ((con "y") (con "z"))))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_checked_dict_reversed.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("B" "int"))) ((dict-syntax (((call "D" ()) (con 42)) ((call "B" ()) (con 42))))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42)) ((call "B" ()) (con 42))))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_checked_dict_type_specified.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("B" "int"))) (call (subscript "CheckedDict" (tuple-syntax ("B" "int"))) ((dict-syntax (((call "D" ()) (con 42))))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42))))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_checked_dict_with_annotation.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple-syntax ("B" "int"))) (dict-syntax (((call "B" ()) (con 42))))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (dict (((call "B" ()) (con 42))))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_dict_setitem.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (expr (call (attribute "x" "__setitem__") ((con 2) (con "def")))) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (expr (call (attribute "x" "__setitem__") ((con 2) (con "def")))) (return "x")))))))))
 
 ;; conformance_suite/test_compile_dict_setitem_subscr.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (assign (subscript "x" (con 2)) (con "def")) (return "x")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (assign (subscript "x" (con 2)) (con "def")) (return "x")))))))))
 
 ;; conformance_suite/test_compile_nested_class_in_fn.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((function-def "fn" () dynamic ((class "C" () ((ann-assign "c" "int" (con 1)))) (return (call "C" ()))))))))))
 
 ;; conformance_suite/test_compile_nested_dict.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("B" "int"))) ((dict-syntax (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign "y" (call (subscript "CheckedDict" (tuple-syntax ("int" (subscript "CheckedDict" (tuple-syntax ("B" "int")))))) ((dict-syntax (((con 42) "x")))))) (return "y")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign "y" (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y")))))))))
 
 ;; conformance_suite/test_decorated_function_ignored.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (function-def "mydecorator" (("x" dynamic)) dynamic ((return "C"))) (function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ()))))))))))
@@ -210,7 +210,7 @@
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "typing" ("Final")) (ann-assign "X" "str" (con "omg")) (function-def "f" () "str" ((return (subscript "X" (con 1)))))))))))
 
 ;; conformance_suite/test_generic_method_ret_type.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "str")))) ((dict-syntax (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x")))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x")))))))))))
 
 ;; conformance_suite/test_incompat_override_init_okay.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "A" () ((function-def "__init__" (("self" dynamic)) (con None) (pass)))) (class "B" ("A") ((function-def "__init__" (("self" dynamic) ("x" "int")) (con None) (pass)))) (function-def "f" (("x" "A")) dynamic ((expr (call (attribute "x" "__init__") ()))))))))))
@@ -231,7 +231,7 @@
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((function-def "target" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic)) dynamic ((return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * "a" (con 2)) (bin-op * "b" (con 3))) (bin-op * "c" (con 4))) (bin-op * "d" (con 5))) (bin-op * "e" (con 6))) (bin-op * "f" (con 7)))))) (function-def "testfunc" () dynamic ((return (call "target" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6))))))))))))
 
 ;; conformance_suite/test_invoke_chkdict_method.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple-syntax ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple-syntax ("int" "int"))) ((dict-syntax (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign "a" (call "dict_maker" ())) (return (call (attribute "a" "keys") ()))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple ("int" "int"))) ((dict (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign "a" (call "dict_maker" ())) (return (call (attribute "a" "keys") ()))))))))))
 
 ;; conformance_suite/test_invoke_int_method.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((function-def "func" () dynamic ((assign "a" (con 42)) (return (call (attribute "a" "bit_length") ()))))))))))
@@ -285,7 +285,7 @@
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42))))))))))))
 
 ;; conformance_suite/test_pydict_arg_annotation.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (function-def "f" (("d" (subscript "PyDict" (tuple-syntax ("str" "int"))))) "str" ((return (subscript "d" (con 3)))))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (function-def "f" (("d" (subscript "PyDict" (tuple ("str" "int"))))) "str" ((return (subscript "d" (con 3)))))))))))
 
 ;; conformance_suite/test_refine_or_expression.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("s" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s" (con "hi"))))))))))))
@@ -300,7 +300,7 @@
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((class "_Inner" () (pass)) (function-def "something" (("klass" dynamic)) dynamic ((return "_Inner"))) (class "C" () ((function-def "f" (("self" dynamic)) dynamic (pass)))) (function-def "f" () dynamic ((return (call (attribute (call "C" ()) "f") ()))))))))))
 
 ;; conformance_suite/test_str_split.py
-(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign (tuple-syntax ("a" "b")) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b")))))))))
+(test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign (tuple ("a" "b")) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b")))))))))
 
 ;; conformance_suite/test_unknown_isinstance_bool_ret.py
 (test-match SP-dynamics (begin (expr v) ...) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "__eq__" (("self" dynamic) ("other" "Any")) "bool" ((return (call "isinstance" ("other" "C")))))))))))))

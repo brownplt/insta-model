@@ -11,9 +11,9 @@
   ;; expressions
   (e x
      (con c)
-     (tuple-syntax (e ...))
-     (set-syntax (e ...))
-     (dict-syntax ([e e] ...))
+     (tuple (e ...))
+     (set (e ...))
+     (dict ([e e] ...))
      (not e)
      (ob e e)
      (is e e)
@@ -93,12 +93,12 @@
               (term "xyz"))
   (test-equal (term (desugar-e (con 42)))
               (term (con 42)))
-  (test-equal (term (desugar-e (tuple-syntax ((con 2) (con 3)))))
-              (term (tuple-syntax ((con 2) (con 3)))))
-  (test-equal (term (desugar-e (set-syntax ((con 2) (con 3)))))
-              (term (set-syntax ((con 2) (con 3)))))
-  (test-equal (term (desugar-e (dict-syntax ([(con 2) (con 3)]))))
-              (term (dict-syntax ([(con 2) (con 3)]))))
+  (test-equal (term (desugar-e (tuple ((con 2) (con 3)))))
+              (term (tuple ((con 2) (con 3)))))
+  (test-equal (term (desugar-e (set ((con 2) (con 3)))))
+              (term (set ((con 2) (con 3)))))
+  (test-equal (term (desugar-e (dict ([(con 2) (con 3)]))))
+              (term (dict ([(con 2) (con 3)]))))
   (test-equal (term (desugar-e (if-exp (con 1) (con 2) (con 3))))
               (term (if-exp (con 1) (con 2) (con 3))))
   (test-equal (term (desugar-e (attribute "int" "__add__")))
@@ -121,12 +121,12 @@
   desugar-e : e+ -> e
   [(desugar-e x) x]
   [(desugar-e (con c)) (con c)]
-  [(desugar-e (tuple-syntax (e+ ...)))
-   (tuple-syntax ((desugar-e e+) ...))]
-  [(desugar-e (set-syntax (e+ ...)))
-   (set-syntax ((desugar-e e+) ...))]
-  [(desugar-e (dict-syntax ([e+_key e+_val] ...)))
-   (dict-syntax ([(desugar-e e+_key) (desugar-e e+_val)] ...))]
+  [(desugar-e (tuple (e+ ...)))
+   (tuple ((desugar-e e+) ...))]
+  [(desugar-e (set (e+ ...)))
+   (set ((desugar-e e+) ...))]
+  [(desugar-e (dict ([e+_key e+_val] ...)))
+   (dict ([(desugar-e e+_key) (desugar-e e+_val)] ...))]
   [(desugar-e (if-exp e+_cnd e+_thn e+_els))
    (if-exp (desugar-e e+_cnd) (desugar-e e+_thn) (desugar-e e+_els))]
   [(desugar-e (attribute e+ x))
@@ -347,7 +347,7 @@
               (term (ann-assign (attribute "obj" "i") "int" "abc")))
   (test-equal (term (desugar-ann-assign (subscript "lst" "i") dynamic "abc"))
               (term (expr (call (attribute "lst" "__setitem__") ("i" "abc")))))
-  (test-equal (term (desugar-ann-assign (tuple-syntax ("i" "j")) dynamic "tpl"))
+  (test-equal (term (desugar-ann-assign (tuple ("i" "j")) dynamic "tpl"))
               (term (begin
                       (ann-assign "i" dynamic (call (attribute "tpl" "__getitem__") ((con 0))))
                       (ann-assign "j" dynamic (call (attribute "tpl" "__getitem__") ((con 1))))))))
@@ -359,7 +359,7 @@
    (ann-assign (attribute (desugar-e e+_obj) x_atr) t e_src)]
   [(desugar-ann-assign (subscript e+_map e_key) dynamic e_src)
    (expr (call (attribute (desugar-e e+_map) "__setitem__") (e_key e_src)))]
-  [(desugar-ann-assign (tuple-syntax (e+_dst ...)) dynamic e_src)
+  [(desugar-ann-assign (tuple (e+_dst ...)) dynamic e_src)
    (make-begin
     (desugar-ann-assign e+_dst dynamic (desugar-subscript e_src (con number_src)))
     ...)
@@ -377,12 +377,12 @@
                                           (local (["self" dynamic]
                                                   ["a" "int"]
                                                   ["b" "str"])
-                                            (return (dict-syntax (["a" "b"])))))))
+                                            (return (dict (["a" "b"])))))))
               (term (method "x" (["self" dynamic] ["a" "int"] ["b" "str"]) "dict"
                             (local (["self" dynamic]
                                     ["a" "int"]
                                     ["b" "str"])
-                              (return (dict-syntax (["a" "b"]))))))))
+                              (return (dict (["a" "b"]))))))))
 (define-metafunction SP-core
   m-of-s : s -> m
   [(m-of-s (ann x t))

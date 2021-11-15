@@ -31,9 +31,9 @@
   (e- v
       x
       (con c)
-      (tuple-syntax (e- ...))
-      (set-syntax (e- ...))
-      (dict-syntax ([e- e-] ...))
+      (tuple (e- ...))
+      (set (e- ...))
+      (dict ([e- e-] ...))
       (is e- e-)
       (if-exp e- e- e-)
       ;; two kinds of attribute!
@@ -47,20 +47,19 @@
       ;; annotations are removed!
       ;;   the s- is the check to be perform
       (lambda (x ...) s- level-)
-      (let ([x e-] ...) s-)
       (class
           ;; parent classes
           (e- ...)
         ;; members and corresponding checks
         ;;   when no check is present, the member is immutable
         ([x s-+☠] ...))
-      ;; new construct! declare (x ...) then do s-
-      level-)
+      ;; new construct
+      (raise-error)
+      )
 
   ;; statements
   (s- (expr e-)
       (return e-)
-      (raise-error)
       (begin s- ...)
       (if e- s- s-)
       (delete x)
@@ -174,6 +173,12 @@
    "CheckedDict[_,_]"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T)))
+
+(define-metafunction SP-compiled
+  let : ([x e-] ...) s- -> e-
+  [(let ([x e-] ...) s-)
+   (call-function (lambda (x ...) (begin) (local (x ...) s-))
+                  (e- ...))])
 
 (define-metafunction SP-compiled
   lookup-Ψ : Ψ class-l -> (class l*+dynamic Γ ρ)
@@ -438,7 +443,7 @@
   (test-equal (term (eval-t (base-Ψ) (prim-Γ) (prim-Γ) "int"))
               (term (subof "int")))
   (test-equal (term (eval-t (base-Ψ) (prim-Γ) (prim-Γ)
-                            (desugar-e (subscript "CheckedDict" (tuple-syntax ("int" "str"))))))
+                            (desugar-e (subscript "CheckedDict" (tuple ("int" "str"))))))
               (term (subof (chkdict (subof "int") (subof "str"))))))
 (define-metafunction SP-compiled
   eval-t : Ψ Γ Γ t -> T
@@ -467,13 +472,13 @@
               (term ["int" (Type (subof "int"))]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (con "foo")))
               (term [(ref (con "foo")) (exact "str")]))
-  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (tuple-syntax ("int" "str"))))
-              (term [(tuple-syntax ("int" "str"))
+  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (tuple ("int" "str"))))
+              (term [(tuple ("int" "str"))
                      (exact (tuple ((Type (subof "int")) (Type (subof "str")))))]))
-  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (set-syntax ())))
-              (term [(set-syntax ()) (exact "set")]))
-  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (dict-syntax ())))
-              (term [(dict-syntax ()) (exact "dict")]))
+  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (set ())))
+              (term [(set ()) (exact "set")]))
+  (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (dict ())))
+              (term [(dict ()) (exact "dict")]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (not (con None))))
               (term [(if-exp (ref (con None)) (ref (con #f)) (ref (con #t)))
                      (exact "bool")]))
@@ -511,17 +516,17 @@
    [(ref (con c))
     (T-of-c c)]]
   ;; tuple literal
-  [(compile-e Ψ Γ_dcl Γ_lcl (tuple-syntax (e ...)))
-   [(tuple-syntax (e- ...))
+  [(compile-e Ψ Γ_dcl Γ_lcl (tuple (e ...)))
+   [(tuple (e- ...))
     (exact (tuple (T ...)))]
    (where ([e- T] ...) ((compile-e Ψ Γ_dcl Γ_lcl e) ...))]
   ;; set literal
-  [(compile-e Ψ Γ_dcl Γ_lcl (set-syntax (e ...)))
-   [(set-syntax ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) ...))
+  [(compile-e Ψ Γ_dcl Γ_lcl (set (e ...)))
+   [(set ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) ...))
     (exact "set")]]
   ;; dict literal
-  [(compile-e Ψ Γ_dcl Γ_lcl (dict-syntax ([e_key e_val] ...)))
-   [(dict-syntax ([(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_key))
+  [(compile-e Ψ Γ_dcl Γ_lcl (dict ([e_key e_val] ...)))
+   [(dict ([(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_key))
                    (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_val))] ...))
     (exact "dict")]]
   ;; not
@@ -591,10 +596,10 @@
                      (subof "int")]))
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute "CheckedDict" "__getitem__")
-                                    ((tuple-syntax ("int" "str")))))
+                                    ((tuple ("int" "str")))))
               (term [(invoke-function (method "CheckedDict[_,_]" "__getitem__")
                                       ("CheckedDict"
-                                       (tuple-syntax ("int" "str"))))
+                                       (tuple ("int" "str"))))
                      (Type (subof (chkdict (subof "int") (subof "str"))))])))
 (define-metafunction SP-compiled
   compile-e-call : Ψ Γ Γ e (e ...) -> [e- T]
@@ -705,7 +710,7 @@
   ;; assert
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (assert (con #t))))
-              (term (if (ref (con #t)) (begin) (raise-error))))
+              (term (if (ref (con #t)) (begin) (expr (raise-error)))))
   ;; begin
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (begin (expr "int") (expr "bool"))))
@@ -745,7 +750,7 @@
                                                          ((invoke-function "type" ("i"))
                                                           (ref "int")))
                                         (begin)
-                                        (raise-error)))
+                                        (expr (raise-error))))
                                   (local ("i")
                                     (return "i"))))))
   ;; class
@@ -762,9 +767,9 @@
                                                                ((invoke-function "type" ("a"))
                                                                 (ref "int")))
                                               (begin)
-                                              (raise-error))]
+                                              (expr (raise-error)))]
                                      ["b" (begin)]
-                                     ["f" (raise-error)])))
+                                     ["f" (expr (raise-error))])))
                       (assign (attribute fast "C" "a") (ref (con 2)))
                       (assign (attribute fast "C" "f")
                               (lambda ("self" "i")
@@ -773,7 +778,7 @@
                                                        ((invoke-function "type" ("i"))
                                                         (ref "int")))
                                       (begin)
-                                      (raise-error)))
+                                      (expr (raise-error))))
                                 (local ("self" "i")
                                   (return "i")))))))
   )
@@ -833,7 +838,7 @@
 (define-metafunction SP-compiled
   make-assert : e- -> s-
   [(make-assert e-)
-   (if e- (begin) (raise-error))])
+   (if e- (begin) (expr (raise-error)))])
 (define-metafunction SP-compiled
   compile-m : Ψ Γ Γ x m -> [x s- s-]
   [(compile-m Ψ Γ_dcl Γ_lcl x_cls (field x t))
@@ -849,7 +854,7 @@
    (where T (eval-t Ψ Γ_dcl Γ_lcl t))]
   [(compile-m Ψ Γ_dcl Γ_lcl x_cls (method x ([x_arg t_arg] ...) t_out level))
    [x
-    (raise-error) ;; TODO: let's assume methods are immutable right now
+    (expr (raise-error)) ;; TODO: let's assume methods are immutable right now
     (assign (attribute fast x_cls x) e-)]
    (where [e- T]
           (compile-function Ψ Γ_dcl ([x_arg t_arg] ...) t_out level))])
@@ -937,9 +942,9 @@
   (test-equal (term (compile-program
                      (desugar-program
                       ((import-from "__static__" ("CheckedDict"))
-                       (ann-assign "d" (subscript "CheckedDict" (tuple-syntax ("str" "int")))
-                                   (call (subscript "CheckedDict" (tuple-syntax ("str" "int")))
-                                         ((dict-syntax ([(con "foo") (con "123")])))))))))
+                       (ann-assign "d" (subscript "CheckedDict" (tuple ("str" "int")))
+                                   (call (subscript "CheckedDict" (tuple ("str" "int")))
+                                         ((dict ([(con "foo") (con "123")])))))))))
               ;; TODO: This isn't ideal
               (term (local
                       ("CheckedDict" "d")
@@ -950,13 +955,13 @@
                          (call-function
                           (invoke-function
                            (method "CheckedDict[_,_]" "__getitem__")
-                           ("CheckedDict" (tuple-syntax ("str" "int"))))
-                          ((dict-syntax
+                           ("CheckedDict" (tuple ("str" "int"))))
+                          ((dict
                             (((ref (con "foo")) (ref (con "123"))))))))))))
   (test-equal (term (compile-program
                      (desugar-program
                       ((import-from "__static__" ("CheckedDict"))
-                       (class "C" ((subscript "CheckedDict" (tuple-syntax ("str" "int"))))
+                       (class "C" ((subscript "CheckedDict" (tuple ("str" "int"))))
                          (pass))
                        (class "D" ("C")
                          (pass))))))
@@ -969,7 +974,7 @@
                          (class ((invoke-function
                                   (method "CheckedDict[_,_]" "__getitem__")
                                   ("CheckedDict"
-                                   (tuple-syntax ("str" "int")))))
+                                   (tuple ("str" "int")))))
                            ()))
                         (assign "D" (class ("C") ())))))))
 (define-metafunction SP-compiled

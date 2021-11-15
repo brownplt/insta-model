@@ -1,82 +1,69 @@
 #lang racket
-(require redex)
+(require redex/reduction-semantics)
 (require redex-abbrevs)
 (require "grammar.rkt")
 (require "desugar.rkt")
-(require "statics.rkt")
 (require "compile.rkt")
+(require "utilities.rkt")
 (provide (all-defined-out))
 
 (define-extended-language SP-dynamics SP-compiled
-  ;; environments maps variables to heap labels, which map to values.
-  ;;   The indirection is necessary because varaibles are mutable
-  (ρ ([x number] ...))
-  ;; heaps map addresses (heap labels) to values
-  (Σ ([number h+☠] ...))
-  ;; heap labels
+  ;; We extended global names to create heap labels
   (l .... number)
-  ;; heap values
+  ;; heaps map global names to heap allocated things
+  (Σ ([number h] ...))
+  ;; heap allocated things includes objects, and environments
+  ;; the ☠ represents uninitialized variables
+  (h object
+     (env ([x v+☠] ...) l+☠))
   ;; According to Python's Data model: "every object has an identity,
   ;; a type and a value"
   ;; We don't need to store the identity here -- the heap Σ already did it.
-  ;; But we still need a type (l), and an object value (g).
-  (h (l g)
-     ;; The v case is only used to represent (mutable) variables
-     v)
-  (h+☠ h ☠)
-  ;; "Values" in the sense of Python's Data model. They are *before*
-  ;; heap values (h), hence g
-  (g c
-     (tuple-syntax v ...)
-     (set-syntax v ...)
-     (dict-syntax [v v] ...)
-     (def ρ ([x T] ...) d- s-)
-     (class (l ...) ([string l] ...) ...)
+  ;; But we still need a type (v), and an object value.
+  ;; We actually need two things to represent an object values:
+  ;;   - primitive values
+  ;;   - key-attribute map
+  (object (obj v g ([x v] ...)))
+  ;; Object values in the sense of Python's Data model.
+  (g (con c)
+     (tuple (v ...))
+     (set (v ...))
+     (dict ([v v] ...))
+     (lambda v (x ...) s- level-)
+     (class (v ...) ([string v] ...))
      (prim-op builtin)
-     (method l l)
-     ;; general purpose objects
-     ([string l] ...))
-  ;; results are values or (error)
-  (r v ☠)
-  ;; at runtime immediate values can go into expressions.
-  (e- ....
-      ☠
-      (enter ρ s-)
-      (leave ρ s-))
-  (s- .... (error))
+     (method v v)
+     (nothing))
+  ;; runtime involves applied functions
+  (e- .... (local l s-))
+  ;; runtime representation of programs
+  (p [Σ l (s- ...)]
+     (error))
+  (P [Σ l (v ... S s- ...)])
   ;; expression contexts
   (E hole
-     (tuple-syntax v ... E e- ...)
-     (set-syntax v ... E e- ...)
-     (dict-syntax [v v] ... [E e-] [e- e-] ...)
-     (dict-syntax [v v] ... [v E] [e- e-] ...)
+     (tuple (v ... E e- ...))
+     (set (v ... E e- ...))
+     (dict ([v v] ... [E e-] [e- e-] ...))
+     (dict ([v v] ... [v E] [e- e-] ...))
      (is E e-)
      (is v E)
-     (is-not E e-)
-     (is-not v E)
      (if E e- e-)
-     (dynamic-attribute E string)
-     (static-attribute E string)
-     (v ... E e- ...)
-     (reveal-type any ... E)
-     (let ([x v] ... [x E] [x e-] ...) s-)
-     (check-isinstance! E e-)
-     (check-isinstance! v E)
-     (leave ρ S))
+     (attribute mode E x)
+     (invoke-function l (v ... E e- ...))
+     (invoke-method l x E (e- ...))
+     (invoke-method l x v (v ... E e- ...))
+     (call-function E (e- ...))
+     (call-function v (v ... E e- ...))
+     (class (v ... E e- ...) ([x s-+☠] ...)))
   ;; statement contexts
-  (S hole
-     (define/assign x E)
-     (define/assign (attribute E string) e-)
-     (define/assign (attribute v string) E)
-     (class x (v ... E e- ...) m ...)
-     (if E s- s-)
-     (begin (expr v) ... S s- ...)
-     (delete (attribute E string))
+  (S (expr E)
      (return E)
-     (expr E)
-     (claim x E)
-     (assert E))
-  (Program (import-type ... d- S))
+     (if E s- s-)
+     (delete (attribute E x))
+     (assign x E)
+     (assign (attribute E x) e-)
+     (assign (attribute v x) E))
   (builtin-op
    "isinstance"
    (attribute "float" "__add__")
@@ -92,25 +79,226 @@
    (attribute ("CheckedDict" checkable-T checkable-T) "__getitem__")
    (attribute ("CheckedDict" checkable-T checkable-T) "__setitem__")
    (attribute ("CheckedDict" checkable-T checkable-T) "__delitem__"))
+  ;; utilities
+  (v+☠ v ☠)
+  (l+☠ l ☠)
   )
 
+(module+ test
+  (test-equal (term (alloc ()))
+              (term (())))
+  (test-equal (term (alloc ()
+                           (obj (ref "int") (con 2) ())
+                           (env () "builtin-env")))
+              (term (([1 (env () "builtin-env")]
+                      [0 (obj (ref "int") (con 2) ())])
+                     0
+                     1))))
 (define-metafunction SP-dynamics
-  alloc : Σ h+☠ ... -> (Σ l ...)
+  alloc : Σ h ... -> (Σ l ...)
   [(alloc Σ)
    (Σ)]
-  [(alloc Σ h+☠)
-   ((extend Σ [l h+☠]) l)
+  [(alloc Σ h)
+   ((extend Σ [l h]) l)
    (where l ,(length (term Σ)))]
-  [(alloc Σ_1 h+☠_1 h+☠_2 ...)
+  [(alloc Σ_1 h_1 h_2 ...)
    (Σ_3 l_1 l_2 ...)
-   (where (Σ_2 l_1) (alloc Σ_1 h+☠_1))
-   (where (Σ_3 l_2 ...) (alloc Σ_2 h+☠_2 ...))]) 
+   (where (Σ_2 l_1) (alloc Σ_1 h_1))
+   (where (Σ_3 l_2 ...) (alloc Σ_2 h_2 ...))])
+
+(module+ test
+  (test-match SP-dynamics Σ (term (base-Σ))))
+(define-metafunction SP-dynamics
+  base-Σ : -> Σ
+  [(base-Σ)
+   ()])
+(module+ test
+  (test-equal (term
+               (lookup-Σ (base-Σ) "builtin-env"))
+              (term
+               (env
+                (["object" (ref "object")]
+                 ["int" (ref "int")]
+                 ["bool" (ref "bool")]
+                 ["str" (ref "str")]
+                 ["dict" (ref "dict")]
+                 ["set" (ref "set")]
+                 ["type" (ref "type")]
+                 ["isinstance" (ref "isinstance")]
+                 ["len" (ref "len")]
+                 ["Exception" (ref "Exception")]
+                 ["max" (ref "max")]
+                 ["min" (ref "min")]
+                 ["issubclass" (ref "issubclass")])
+                ☠))))
+(define-metafunction SP-dynamics
+  lookup-Σ : Σ l -> h
+  [(lookup-Σ Σ number)
+   (lookup Σ number)]
+  [(lookup-Σ Σ l)
+   (lookup-Σ-primitive l)])
+(define-metafunction SP-dynamics
+  lookup-Σ-primitive : l -> h
+  [(lookup-Σ-primitive "builtin-env")
+   (env ([x (ref x)] ...) ☠)
+   (where ([x T] ...) (base-Γ))])
+
+
+(module+ test
+  (test-equal (term (update-env ([0 (env (["x" (ref "int")]) ☠)]) 0
+                                "x" (ref "bool")))
+              (term ([0 (env (["x" (ref "bool")]) ☠)])))
+  (test-equal (term (update-env ([1 (env () 0)]
+                                 [0 (env (["x" (ref "int")]) ☠)]) 1
+                                "x" (ref "bool")))
+              (term ([1 (env () 0)]
+                     [0 (env (["x" (ref "bool")]) ☠)]))))
+(define-metafunction SP-dynamics
+  update-env : Σ l x v -> Σ
+  [(update-env Σ l x v_new)
+   (update Σ [l (env (any_1 ... [x v_new] any_2 ...) l+☠_out)])
+   (where (env (any_1 ... [x v_old] any_2 ...) l+☠_out) (lookup-Σ Σ l))]
+  [(update-env Σ l x v)
+   (update-env Σ l_out x v)
+   (where (env any_map l_out) (lookup-Σ Σ l))])
+
+
+(module+ test
+  (test-equal (term (super-load ()))
+              (term [([1 (env () 0)]
+                      [0
+                       (env
+                        (["object" (ref "object")]
+                         ["int" (ref "int")]
+                         ["bool" (ref "bool")]
+                         ["str" (ref "str")]
+                         ["dict" (ref "dict")]
+                         ["set" (ref "set")]
+                         ["type" (ref "type")]
+                         ["isinstance" (ref "isinstance")]
+                         ["len" (ref "len")]
+                         ["Exception" (ref "Exception")]
+                         ["max" (ref "max")]
+                         ["min" (ref "min")]
+                         ["issubclass" (ref "issubclass")])
+                        ☠)])
+                     1
+                     ((begin))])))
+(define-metafunction SP-dynamics
+  super-load : program+ -> [Σ l (s- ...)]
+  [(super-load program+)
+   (load (compile-program (desugar-program program+)))])
+(define-metafunction SP-dynamics
+  load : program- -> [Σ l (s- ...)]
+  [(load (local (x ...) s-))
+   [Σ_2 l_2 (s-)]
+   (where ([x_builtin T] ...) (base-Γ))
+   (where (Σ_1 l_1) (alloc (base-Σ) (env ([x_builtin (ref x_builtin)] ...) ☠)))
+   (where (Σ_2 l_2) (alloc Σ_1 (env ([x ☠] ...) l_1)))])
+
+#|
+(define red-e
+  (reduction-relation
+    SP-dynamics
+    #:domain [Σ l e-]
+    [--> [Σ l x]
+         [Σ l v]
+         (where v-env (lookup (lookup Σ l) x))]))
+
+(module+ test
+  (test--> red-p
+     (term (super-load ((ann-assign "i" "int" (con 42)))))
+     (term [()
+            0
+            ()]))
+  (test--> red-p
+     (term (super-load ((ann-assign "i" "int" (con 42))
+                        (expr "i"))))
+     (term [()
+            0
+            ((ref (con 42)))]))
+)
+
+(define red-p
+  (reduction-relation
+   SP-dynamics
+   #:domain p
+   [--> (Σ l (v_1 ... (expr v_n) s- ...))
+        (Σ l (v_1 ... v_n s- ...))
+        "expr-terminate"]
+   [--> (Σ l (v_1 ... (begin s-_1 ...) s-_2 ...))
+        (Σ l (v_1 ... s-_1 ... s-_2 ...))
+        "begin"]
+   [--> (Σ_1 l (v ... (assign x_var v_new) s- ...))
+        (Σ_2 l (v ... s- ...))
+        (where Σ_2 (update-env Σ_1 l x_var v_new))
+        "assign"]
+   [--> (Σ_1 l (v_1 ... (expr e-_1) s- ...))
+        (Σ_2 l (v_1 ... (expr e-_2) s- ...))
+        (where [Σ_2 l e-_2]
+               ,(apply-reduction-relation red-e (term [Σ_1 l e-_1])))
+        "expr"]))
+
+; (define red-s
+;   (reduction-relation
+;   SP-dynamics
+;   #:domain (s)
+;   [(expr )]))
+#|
+(define e→e
+  (reduction-relation
+   SP-dynamics
+   #:domain (Σ ρ e-)
+   [--> (in-hole (Σ ρ E) x)
+        (in-hole (Σ ρ E) (lookup Σ l))
+        (where l (lookup ρ x))
+        "lookup"]
+   [--> (in-hole (Σ ρ E) (con c))
+        (in-hole (Σ ρ E) (ref (con c)))
+        "constant"]
+   [--> (in-hole (Σ_1 ρ E) (tuple v ...))
+        (in-hole (Σ_2 ρ E) (ref l))
+        (where (Σ_2 l) (alloc Σ_1 ("tuple" (tuple v ...))))
+        "tuple"]
+   [--> (in-hole (Σ_1 ρ E) (set v ...))
+        (in-hole (Σ_2 ρ E) (ref l))
+        (where (Σ_2 l) (alloc Σ_1 ("set" (set v ...))))
+        "set"]
+   [--> (in-hole (Σ_1 ρ E) (dict [v_key v_val] ...))
+        (in-hole (Σ_2 ρ E) (ref l))
+        (where (Σ_2 l) (alloc Σ_1 ("dict" (dict [v_key v_val] ...))))
+        "dict"]
+   [--> (in-hole (Σ ρ E) (is v_1 v_2))
+        (in-hole (Σ ρ E) (ref (con (= v_1 v_2))))
+        "is"]
+   [--> (in-hole (Σ ρ E) (is-not v_1 v_2))
+        (in-hole (Σ ρ E) (ref (con (≠ v_1 v_2))))
+        "is-not"]
+   [--> (in-hole (Σ ρ E) (if (ref l_cnd) e-_thn e-_els))
+        (in-hole (Σ ρ E) (do-if (lookup-Σ Σ l_cnd) e-_thn e-_els))
+        "if"]
+   [--> (in-hole (Σ_1 ρ E) (dynamic-attribute v_map string))
+        (in-hole (Σ_2 ρ E) r_val)
+        (where (Σ_2 r_val) (get-attr Σ_1 v_map string))
+        "dynamic-attribute"]
+   [--> (in-hole (Σ_1 ρ E) (let ([x v] ...) s-))
+        (in-hole (Σ_2 ρ E) (enter (extend ρ [x l] ...) s-))
+        (where (Σ_2 l ...) (alloc Σ_1 v ...))
+        "let"]
+   [--> (in-hole (Σ ρ_1 E) (enter ρ_2 s-))
+        (in-hole (Σ ρ_2 E) (leave ρ_1 s-))
+        "enter"]
+   [--> (in-hole (Σ ρ_1 E) (leave ρ_2 (return v)))
+        (in-hole (Σ ρ_2 E) v)
+        "leave"]
+   [--> (in-hole (Σ_1 ρ E) (v_fun v_arg ...))
+        (in-hole (Σ_2 ρ E) e-_ret)
+        (where (Σ_2 e-_ret) (do-app Σ_1 v_fun v_arg ...))
+        "procedure call / function application / function call"]))
 
 (module+ test
   (test-equal (term (lookup-Σ (base-Σ) (con 2)))
               (term ("int" 2)))
-  (test-equal (term (lookup-Σ (base-Σ) (con 2.0)))
-              (term ("float" 2.0)))
   (test-equal (term (lookup-Σ (base-Σ) (con #t)))
               (term ("bool" #t)))
   (test-equal (term (lookup-Σ (base-Σ) (con #f)))
@@ -170,16 +358,15 @@
    ("type" (class ("object") ()))]
   [(lookup-builtin builtin-op)
    ("primitive_operator" (prim-op builtin-op))])
-
 (module+ test
   (test-equal (term (delta (base-Σ) "isinstance" (ref (con 23)) (ref "int")))
               (term ((base-Σ) (ref (con #t))))))
 (define-metafunction SP-dynamics
   delta : Σ builtin v ... -> (Σ e-)
-  
+
   [(delta Σ (attribute "object" "__init__") v_slf v_arg ...)
    (Σ v_slf)]
-  
+
   [(delta Σ (attribute "float" "__add__") (ref (con number_1)) (ref (con number_2)))
    (Σ (ref (con ,(+ (term number_1) (term number_2)))))]
   [(delta Σ (attribute "float" "__sub__") (ref (con number_1)) (ref (con number_2)))
@@ -188,38 +375,38 @@
    (Σ (ref (con ,(* (term number_1) (term number_2)))))]
   [(delta Σ (attribute "float" "__div__") (ref (con number_1)) (ref (con number_2)))
    (Σ (ref (con ,(/ (term number_1) (term number_2)))))]
-  
+
   ;; dict operators
   [(delta Σ (attribute "dict" "__getitem__") (ref l_map) v_key)
    (Σ v_val)
-   (where (l_cls (dict-syntax any_1 ... [v_key v_val] any_2 ...))
+   (where (l_cls (dict any_1 ... [v_key v_val] any_2 ...))
           (lookup-Σ Σ l_map))]
   [(delta Σ_1 (attribute "dict" "__setitem__") (ref l_map) v_key v_new)
    (Σ_2 (ref (con None)))
-   (where (l_cls (dict-syntax any_1 ... [v_key v_old] any_2 ...))
+   (where (l_cls (dict any_1 ... [v_key v_old] any_2 ...))
           (lookup-Σ Σ_1 l_map))
-   (where Σ_2 (update Σ_1 [l_map (l_cls (dict-syntax any_1 ... [v_key v_new] any_2 ...))]))]
+   (where Σ_2 (update Σ_1 [l_map (l_cls (dict any_1 ... [v_key v_new] any_2 ...))]))]
   [(delta Σ_1 (attribute "dict" "__setitem__") (ref l_map) v_key v_val)
    (Σ_2 (ref (con None)))
-   (where (l_cls (dict-syntax any ...))
+   (where (l_cls (dict any ...))
           (lookup-Σ Σ_1 l_map))
-   (where Σ_2 (update Σ_1 [l_map ("dict" (dict-syntax [v_key v_val] any ...))]))]
+   (where Σ_2 (update Σ_1 [l_map ("dict" (dict [v_key v_val] any ...))]))]
   [(delta Σ_1 (attribute "dict" "__delitem__") (ref l_map) v_key)
    (Σ_2 (ref (con None)))
-   (where (l_cls (dict-syntax any_1 ... [v_key v_val] any_2 ...))
+   (where (l_cls (dict any_1 ... [v_key v_val] any_2 ...))
           (lookup-Σ Σ_1 l_map))
-   (where Σ_2 (update Σ_1 [l_map (l_cls (dict-syntax any_1 ... any_2 ...))]))]
-  
+   (where Σ_2 (update Σ_1 [l_map (l_cls (dict any_1 ... any_2 ...))]))]
+
   [(delta Σ "isinstance" (ref l_ins) (ref l_tgt))
    (Σ (ref (con (issubclass Σ l_src l_tgt))))
    (where (l_src _) (lookup-Σ Σ l_ins))]
-  
+
   [(delta Σ (attribute "CheckedDict" "__getitem__") (ref l_tpl))
    (Σ (ref ("CheckedDict" (instancesof l_key) (instancesof l_val))))
-   (where ("tuple" (tuple-syntax (ref l_key) (ref l_val))) (lookup-Σ Σ l_tpl))
+   (where ("tuple" (tuple (ref l_key) (ref l_val))) (lookup-Σ Σ l_tpl))
    (where ("type" any_key) (lookup-Σ Σ l_key))
    (where ("type" any_val) (lookup-Σ Σ l_val))]
-  
+
   [(delta Σ_1 (attribute ("CheckedDict" checkable-T_key checkable-T_val) "__init__")
           (ref l_obj) (ref l_dct))
    (Σ_2 (let ()
@@ -227,10 +414,10 @@
             (compile-check checkable-T_key v_key) ...
             (compile-check checkable-T_val v_val) ...
             (return None))))
-   (where ("dict" (dict-syntax [v_key v_val] ...))
+   (where ("dict" (dict [v_key v_val] ...))
           (lookup-Σ Σ_1 l_dct))
    (where Σ_2 (update Σ_1 [l_obj (("CheckedDict" checkable-T_key checkable-T_val)
-                                  (dict-syntax [v_key v_val] ...))]))]
+                                  (dict [v_key v_val] ...))]))]
 
   [(delta Σ (attribute ("CheckedDict" checkable-T_key checkable-T_val) "__getitem__") v_obj v_key)
    (Σ (let ()
@@ -300,21 +487,21 @@
   (test-equal (term #t) (term (falsy ("float" 0.0))))
   (test-equal (term #t) (term (falsy ("int" 0))))
   (test-equal (term #t) (term (falsy ("bool" #f))))
-  (test-equal (term #t) (term (falsy ("tuple" (tuple-syntax)))))
-  (test-equal (term #t) (term (falsy ("set" (set-syntax)))))
-  (test-equal (term #t) (term (falsy ("dict" (dict-syntax)))))
+  (test-equal (term #t) (term (falsy ("tuple" (tuple)))))
+  (test-equal (term #t) (term (falsy ("set" (set)))))
+  (test-equal (term #t) (term (falsy ("dict" (dict)))))
   (test-equal (term #f) (term (falsy ("int" 2))))
   (test-equal (term #f) (term (falsy ("bool" #t))))
-  (test-equal (term #f) (term (falsy ("tuple" (tuple-syntax (ref (con None))))))))
+  (test-equal (term #f) (term (falsy ("tuple" (tuple (ref (con None))))))))
 (define-metafunction SP-dynamics
   falsy : h -> boolean
   [(falsy ("NoneType" None)) #t]
   [(falsy ("float" 0.0)) #t]
   [(falsy ("int" 0)) #t]
   [(falsy ("bool" #f)) #t]
-  [(falsy ("tuple" (tuple-syntax))) #t]
-  [(falsy ("set" (set-syntax))) #t]
-  [(falsy ("dict" (dict-syntax))) #t]
+  [(falsy ("tuple" (tuple))) #t]
+  [(falsy ("set" (set))) #t]
+  [(falsy ("dict" (dict))) #t]
   [(falsy h) #f])
 
 (module+ test
@@ -351,7 +538,7 @@
    (where (Σ_3 l_insval) (alloc Σ_2 ("method" (method l_clsval l_ins))))])
 
 (module+ test
-  (define-syntax-rule (test-e-->e source target)
+  (define-rule (test-e-->e source target)
     (test-match SP-dynamics
                 ((Σ ρ target))
                 (apply-reduction-relation* e→e (term ((base-Σ)
@@ -372,25 +559,25 @@
             (term ((base-Σ) (base-ρ) int))
             (term ((base-Σ) (base-ρ) (ref "int"))))
   (test-->> e→e
-            (term ((base-Σ) (base-ρ) (tuple-syntax 2 "foo")))
+            (term ((base-Σ) (base-ρ) (tuple 2 "foo")))
             (term ((extend (base-Σ)
-                           [8 ("tuple" (tuple-syntax (ref (con 2))
-                                                     (ref (con "foo"))))])
+                           [8 ("tuple" (tuple (ref (con 2))
+                                              (ref (con "foo"))))])
                    (base-ρ)
                    (ref 8))))
   (test-->> e→e
-            (term ((base-Σ) (base-ρ) (set-syntax 2 "foo")))
+            (term ((base-Σ) (base-ρ) (set 2 "foo")))
             (term ((extend (base-Σ)
-                           [8 ("set" (set-syntax (ref (con 2))
-                                                 (ref (con "foo"))))])
+                           [8 ("set" (set (ref (con 2))
+                                          (ref (con "foo"))))])
                    (base-ρ)
                    (ref 8))))
   (test-->> e→e
-            (term ((base-Σ) (base-ρ) (dict-syntax [2 "foo"] ["bar" 3])))
+            (term ((base-Σ) (base-ρ) (dict [2 "foo"] ["bar" 3])))
             (term ((extend (base-Σ)
                            [8 ("dict"
-                               (dict-syntax [(ref (con 2)) (ref (con "foo"))]
-                                            [(ref (con "bar")) (ref (con 3))]))])
+                               (dict [(ref (con 2)) (ref (con "foo"))]
+                                     [(ref (con "bar")) (ref (con 3))]))])
                    (base-ρ) (ref 8))))
   (test-->> e→e
             (term ((base-Σ) (base-ρ) (is int int)))
@@ -437,14 +624,14 @@
    (Σ ((ref l_mth) (ref l_slf) v_arg ...))
    (where ("method" (method l_mth l_slf))
           (lookup-Σ Σ l_fun))]
-  
+
   ;; arity error
   [(do-app Σ (ref l_fun) v_arg ...)
    (Σ ☠)
    (where ("function" (def ρ ([x_arg T_arg] ...) (x_lcl ...) s-))
           (lookup-Σ Σ l_fun))
    (where #f (= (len (v_arg ...)) (len (x_arg ...))))]
-  
+
   ;; function call
   [(do-app Σ_1 (ref l_fun) v_arg ...)
    (Σ_2
@@ -476,56 +663,7 @@
    (where ("type" _) (lookup-Σ Σ_1 l_prc))
    (where (Σ_2 l_ins) (alloc Σ_1 (l_prc ())))])
 
-(define e→e
-  (reduction-relation
-   SP-dynamics
-   #:domain (Σ ρ e-)
-   [--> (in-hole (Σ ρ E) c)
-        (in-hole (Σ ρ E) (ref (con c)))
-        "constant"]
-   [--> (in-hole (Σ ρ E) x)
-        (in-hole (Σ ρ E) (lookup Σ l))
-        (where l (lookup ρ x))
-        "lookup"]
-   [--> (in-hole (Σ_1 ρ E) (tuple-syntax v ...))
-        (in-hole (Σ_2 ρ E) (ref l))
-        (where (Σ_2 l) (alloc Σ_1 ("tuple" (tuple-syntax v ...))))
-        "tuple"]
-   [--> (in-hole (Σ_1 ρ E) (set-syntax v ...))
-        (in-hole (Σ_2 ρ E) (ref l))
-        (where (Σ_2 l) (alloc Σ_1 ("set" (set-syntax v ...))))
-        "set"]
-   [--> (in-hole (Σ_1 ρ E) (dict-syntax [v_key v_val] ...))
-        (in-hole (Σ_2 ρ E) (ref l))
-        (where (Σ_2 l) (alloc Σ_1 ("dict" (dict-syntax [v_key v_val] ...))))
-        "dict"]
-   [--> (in-hole (Σ ρ E) (is v_1 v_2))
-        (in-hole (Σ ρ E) (ref (con (= v_1 v_2))))
-        "is"]
-   [--> (in-hole (Σ ρ E) (is-not v_1 v_2))
-        (in-hole (Σ ρ E) (ref (con (≠ v_1 v_2))))
-        "is-not"]
-   [--> (in-hole (Σ ρ E) (if (ref l_cnd) e-_thn e-_els))
-        (in-hole (Σ ρ E) (do-if (lookup-Σ Σ l_cnd) e-_thn e-_els))
-        "if"]
-   [--> (in-hole (Σ_1 ρ E) (dynamic-attribute v_map string))
-        (in-hole (Σ_2 ρ E) r_val)
-        (where (Σ_2 r_val) (get-attr Σ_1 v_map string))
-        "dynamic-attribute"]
-   [--> (in-hole (Σ_1 ρ E) (let ([x v] ...) s-))
-        (in-hole (Σ_2 ρ E) (enter (extend ρ [x l] ...) s-))
-        (where (Σ_2 l ...) (alloc Σ_1 v ...))
-        "let"]
-   [--> (in-hole (Σ ρ_1 E) (enter ρ_2 s-))
-        (in-hole (Σ ρ_2 E) (leave ρ_1 s-))
-        "enter"]
-   [--> (in-hole (Σ ρ_1 E) (leave ρ_2 (return v)))
-        (in-hole (Σ ρ_2 E) v)
-        "leave"]
-   [--> (in-hole (Σ_1 ρ E) (v_fun v_arg ...))
-        (in-hole (Σ_2 ρ E) e-_ret)
-        (where (Σ_2 e-_ret) (do-app Σ_1 v_fun v_arg ...))
-        "procedure call / function application / function call"]))
+
 
 
 (define s→s
@@ -689,9 +827,9 @@
    (compile-program
     (desugar-program
      ((import-from "__static__" ("PyDict" "CheckedDict"))
-      (define/assign x (subscript CheckedDict (tuple-syntax str int))
-        ((subscript CheckedDict (tuple-syntax str int))
-         (dict-syntax ("foo" 1))))
+      (define/assign x (subscript CheckedDict (tuple str int))
+        ((subscript CheckedDict (tuple str int))
+         (dict ("foo" 1))))
       (delete (subscript x "foo"))))))))
 ;
 ;(define-judgment-form SP-dynamics
@@ -707,3 +845,5 @@
 ;
 ;  [-------------------------
 ;   (error (expr (error)))])
+|#
+|#

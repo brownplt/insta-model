@@ -29,9 +29,9 @@
   ;; expressions
   (e+ x
       (con c)
-      (tuple-syntax (e+ ...))
-      (set-syntax (e+ ...))
-      (dict-syntax ([e+ e+] ...))
+      (tuple (e+ ...))
+      (set (e+ ...))
+      (dict ([e+ e+] ...))
       (unary-op o1 e+)
       (bin-op o2 e+ e+)
       (bool-op ob (e+ ...))
@@ -67,7 +67,7 @@
    x
    (attribute e+ x)
    (subscript e+ e+)
-   (tuple-syntax (a-target ...)))
+   (tuple (a-target ...)))
 
   ;; targets of ann-assign,
   ;;   which is a subset of assign-target

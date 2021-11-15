@@ -98,7 +98,7 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.Dict):
         return [
-            symbol('dict-syntax'),
+            symbol('dict'),
             [
                 [ast_to_sexp(k), ast_to_sexp(v)]
                 for k, v in zip(node.keys, node.values)
@@ -106,7 +106,7 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.Set):
         return [
-            symbol('set-syntax'),
+            symbol('set'),
             [
                 ast_to_sexp(v)
                 for v in node.elts
@@ -114,7 +114,7 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.Tuple):
         return [
-            symbol('tuple-syntax'),
+            symbol('tuple'),
             [
                 ast_to_sexp(e) for e in node.elts
             ]

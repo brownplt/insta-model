@@ -37,7 +37,7 @@ def t():
 
 
 ;; conformance_suite/test_compile_checked_dict_len.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (return (call "len" ("x"))))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (return (call "len" ("x"))))))))))
 #|
 
 from __static__ import CheckedDict
@@ -64,7 +64,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_compile_dict_setitem.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (expr (call (attribute "x" "__setitem__") ((con 2) (con "def")))) (return "x"))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (expr (call (attribute "x" "__setitem__") ((con 2) (con "def")))) (return "x"))))))))
 #|
 
 from __static__ import CheckedDict
@@ -101,7 +101,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_compile_dict_setitem_subscr.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple-syntax ("int" "str"))) ((dict-syntax (((con 1) (con "abc"))))))) (assign (subscript "x" (con 2)) (con "def")) (return "x"))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign "x" (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (assign (subscript "x" (con 2)) (con "def")) (return "x"))))))))
 #|
 
 from __static__ import CheckedDict
@@ -232,7 +232,7 @@ def f() -> str:
 
 
 ;; conformance_suite/test_generic_method_ret_type.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple-syntax ("str" (subscript "Optional" "str")))) ((dict-syntax (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))))
 #|
 
 from __static__ import CheckedDict
@@ -411,7 +411,7 @@ def testfunc():
 
 
 ;; conformance_suite/test_invoke_chkdict_method.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple-syntax ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple-syntax ("int" "int"))) ((dict-syntax (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign "a" (call "dict_maker" ())) (return (call (attribute "a" "keys") ())))))))))
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple ("int" "int"))) ((dict (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign "a" (call "dict_maker" ())) (return (call (attribute "a" "keys") ())))))))))
 #|
 
 from __static__ import CheckedDict
