@@ -117,6 +117,9 @@
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "int" (con 42)))))))
 
+;; conformance_suite/partially_static_class_update_dynamic_field.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "make_C1" () dynamic ((class "C" () ((ann-assign "x" "str"))) (return "C"))) (assign "C1" (call "make_C1" ())) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo")) (assert (compare (attribute "c" "abc") ((== (con "foo"))))))))))
+
 ;; conformance_suite/procedure_check_argument_type_dynamically.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (function-def "f" (("x" "int")) dynamic (pass)) (expr (call "f" ((call "asDyn" ((con "foo")))))))))))
 
@@ -128,6 +131,24 @@
 
 ;; conformance_suite/procedure_works.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" "int") ("y" dynamic)) dynamic ((return (bin-op - "y" "x")))) (assert (compare (call "f" ((con 2) (con 3))) ((is (con 1))))))))))
+
+;; conformance_suite/slots_are_defined.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (assert (compare (attribute "C" "__slots__") ((== (tuple ()))))))))))
+
+;; conformance_suite/slots_contain_object_fields_but_not_class_fields.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 2)) (ann-assign "y" "str"))) (assert (compare (attribute "C" "__slots__") ((== (tuple ((con "y"))))))))))))
+
+;; conformance_suite/slots_do_not_accumulate.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assert (compare (attribute "C2" "__slots__") ((== (tuple ((con "y"))))))))))))
+
+;; conformance_suite/slots_do_not_contain_methods.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () ((function-def "mth1" (("self" dynamic)) dynamic (pass)))) (assert (compare (attribute "C" "__slots__") ((== (tuple ()))))))))))
+
+;; conformance_suite/static_class_update_dynamic_field.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo")))))))
+
+;; conformance_suite/static_class_update_static_field.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "x") (con "foo")) (assert (compare (attribute "c" "x") ((== (con "foo"))))))))))
 
 ;; conformance_suite/test_assert_narrowing_debug.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))))))))

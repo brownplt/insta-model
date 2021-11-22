@@ -52,7 +52,7 @@
           (e- ...)
         ;; members and corresponding checks
         ;;   when no check is present, the member is immutable
-        ([x s-+☠] ...))
+        ([x s-] ...))
       ;; new construct
       (raise-error)
       )

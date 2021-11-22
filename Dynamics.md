@@ -155,3 +155,16 @@ Casting to a sub class may or maynot be okay
 - [downcast_int_to_bool_neg.py](conformance_suite/downcast_int_to_bool_neg.py)
 
 TODO: cast PyDict to CheckedDict and the other way
+
+## Slots
+
+- [slots_are_defined.py](conformance_suite/slots_are_defined.py)
+- [slots_contain_object_fields_but_not_class_fields.py](conformance_suite/slots_contain_object_fields_but_not_class_fields.py)
+- [slots_do_not_contain_methods.py](conformance_suite/slots_do_not_contain_methods.py)
+- [slots_do_not_accumulate.py](conformance_suite/slots_do_not_accumulate.py)
+
+## Attributes / fields
+
+- [partially_static_class_update_dynamic_field.py](conformance_suite/partially_static_class_update_dynamic_field.py)
+- [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
+- [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)

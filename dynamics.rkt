@@ -23,15 +23,15 @@
   ;; We actually need two things to represent an object values:
   ;;   - primitive values
   ;;   - key-attribute map
-  (object (obj v g ([x v] ...)))
+  (object (obj l g ρ))
   ;; Object values in the sense of Python's Data model.
   (g (con c)
      (tuple (v ...))
      (set (v ...))
      (dict ([v v] ...))
-     (lambda v (x ...) s- level-)
-     (class (v ...) ([string v] ...))
-     (prim-op builtin)
+     (lambda l (x ...) s- level-)
+     (class (v ...) ([x s-] ...))
+     (prim-op l)
      (method v v)
      (nothing))
   ;; runtime involves applied functions
@@ -42,20 +42,21 @@
      (terminate (v ...)))
   (P [Σ l ((expr v) ... S s- ...)])
   ;; expression contexts
-  (E (tuple (v ... hole e- ...))
-     (set (v ... hole e- ...))
+  (E hole
+     (tuple (v ... E e- ...))
+     (set (v ... E e- ...))
      (dict ([v v] ... [E e-] [e- e-] ...))
      (dict ([v v] ... [v E] [e- e-] ...))
-     (is hole e-)
+     (is E e-)
      (is v E)
-     (if hole e- e-)
-     (attribute mode hole x)
-     (invoke-function l (v ... hole e- ...))
-     (invoke-method l x hole (e- ...))
-     (invoke-method l x v (v ... hole e- ...))
-     (call-function hole (e- ...))
-     (call-function v (v ... hole e- ...))
-     (class (v ... hole e- ...) ([x s-+☠] ...)))
+     (if E e- e-)
+     (attribute mode E x)
+     (invoke-function l (v ... E e- ...))
+     (invoke-method l x E (e- ...))
+     (invoke-method l x v (v ... E e- ...))
+     (call-function E (e- ...))
+     (call-function v (v ... E e- ...))
+     (class (v ... E e- ...) ([x s-+☠] ...)))
   ;; statement contexts
   (S (expr E)
      (return E)
@@ -64,12 +65,13 @@
      (assign x E)
      (assign (attribute E x) e-)
      (assign (attribute v x) E))
-  (builtin-op
+  ;; builtin-op-l, a subset of l
+  (builtin-op-l
    "isinstance"
-   (attribute "float" "__add__")
-   (attribute "float" "__sub__")
-   (attribute "float" "__mul__")
-   (attribute "float" "__div__")
+   (attribute "int" "__add__")
+   (attribute "int" "__sub__")
+   (attribute "int" "__mul__")
+   (attribute "int" "__div__")
    (attribute "dict" "__init__")
    (attribute "dict" "__getitem__")
    (attribute "dict" "__setitem__")
@@ -81,17 +83,16 @@
    (attribute ("CheckedDict" checkable-T checkable-T) "__delitem__"))
   ;; utilities
   (v+☠ v ☠)
-  (l+☠ l ☠)
-  )
+  (l+☠ l ☠))
 
 (module+ test
   (test-equal (term (alloc ()))
               (term (())))
   (test-equal (term (alloc ()
-                           (obj (ref "int") (con 2) ())
+                           (obj "int" (con 2) ())
                            (env () "builtin-env")))
               (term (([1 (env () "builtin-env")]
-                      [0 (obj (ref "int") (con 2) ())])
+                      [0 (obj "int" (con 2) ())])
                      0
                      1))))
 (define-metafunction SP-dynamics
@@ -145,8 +146,15 @@
   lookup-Σ-primitive : l -> h
   [(lookup-Σ-primitive "builtin-env")
    (env ([x (ref x)] ...) ☠)
-   (where ([x T] ...) (base-Γ))])
-
+   (where ([x T] ...) (base-Γ))]
+  [(lookup-Σ-primitive (con c))
+   (obj (l-of-c c) (con c) ())]
+  [(lookup-Σ-primitive string)
+   (obj "type" (class ((ref l_sup) ...) ([x (expr (raise-error))] ...)) ([x l] ...))
+   (where (class (l_sup ...) Γ ([x l] ...))
+          (lookup-Ψ (base-Ψ) string))]
+  [(lookup-Σ-primitive l)
+   (obj "prim" (prim-op l) ())])
 
 (module+ test
   (test-equal (term (update-env ([0 (env (["x" (ref "int")]) ☠)]) 0
@@ -158,10 +166,10 @@
               (term ([1 (env () 0)]
                      [0 (env (["x" (ref "bool")]) ☠)]))))
 (define-metafunction SP-dynamics
-  update-env : Σ l x v -> Σ
-  [(update-env Σ l x v_new)
-   (update Σ [l (env (any_1 ... [x v_new] any_2 ...) l+☠_out)])
-   (where (env (any_1 ... [x v+☠] any_2 ...) l+☠_out) (lookup-Σ Σ l))]
+  update-env : Σ l x v+☠ -> Σ
+  [(update-env Σ l x v+☠_new)
+   (update Σ [l (env (any_1 ... [x v+☠_new] any_2 ...) l+☠_out)])
+   (where (env (any_1 ... [x v+☠_old] any_2 ...) l+☠_out) (lookup-Σ Σ l))]
   [(update-env Σ l x v)
    (update-env Σ l_out x v)
    (where (env any_map l_out) (lookup-Σ Σ l))])
@@ -206,15 +214,15 @@
                          ["issubclass" (ref "issubclass")])
                         ☠)])
                      1
-                     ((assign "i" (ref (con 42))))])))
+                     (assign "i" (ref (con 42)))])))
 (define-metafunction SP-dynamics
-  super-load : program+ -> [Σ l (s- ...)]
+  super-load : program+ -> [Σ l s-]
   [(super-load program+)
    (load (compile-program (desugar-program program+)))])
 (define-metafunction SP-dynamics
-  load : program- -> [Σ l (s- ...)]
+  load : program- -> [Σ l s-]
   [(load (local (x ...) s-))
-   [Σ_2 l_2 (s-)]
+   [Σ_2 l_2 s-]
    (where ([x_builtin T] ...) (base-Γ))
    (where (Σ_1 l_1) (alloc (base-Σ) (env ([x_builtin (ref x_builtin)] ...) ☠)))
    (where (Σ_2 l_2) (alloc Σ_1 (env ([x ☠] ...) l_1)))])
@@ -237,7 +245,7 @@
             (term [([0 (env () ☠)])
                    0
                    (tuple ((ref (con 2)) (ref (con 3))))])
-            (term [([1 (obj (ref "tuple") (tuple ((ref (con 2)) (ref (con 3)))) ())]
+            (term [([1 (obj "tuple" (tuple ((ref (con 2)) (ref (con 3)))) ())]
                     [0 (env () ☠)])
                    0
                    (ref 1)]))
@@ -245,7 +253,7 @@
             (term [([0 (env () ☠)])
                    0
                    (set ((ref (con 2)) (ref (con 3))))])
-            (term [([1 (obj (ref "set") (set ((ref (con 2)) (ref (con 3)))) ())]
+            (term [([1 (obj "set" (set ((ref (con 2)) (ref (con 3)))) ())]
                     [0 (env () ☠)])
                    0
                    (ref 1)]))
@@ -253,11 +261,50 @@
             (term [([0 (env () ☠)])
                    0
                    (dict ([(ref (con 2)) (ref (con 3))]))])
-            (term [([1 (obj (ref "dict") (dict ([(ref (con 2)) (ref (con 3))])) ())]
+            (term [([1 (obj "dict" (dict ([(ref (con 2)) (ref (con 3))])) ())]
                     [0 (env () ☠)])
                    0
                    (ref 1)]))
-)
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (is (ref (con 2)) (ref (con 3)))])
+            (term [([0 (env () ☠)]) 0 (ref (con #f))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (if-exp (ref (con 0)) (con 1) (con 2))])
+            (term [([0 (env () ☠)]) 0 (ref (con 2))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (attribute fast (ref "int") "__add__")])
+            (term [([0 (env () ☠)]) 0 (ref (method "int" "__add__"))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (invoke-function (method "int" "__add__")
+                                                       ((ref (con 2)) (ref (con 3))))])
+            (term [([0 (env () ☠)]) 0 (ref (con 5))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (invoke-method "int" "__add__" (ref (con 2)) ((ref (con 3))))])
+            (term [([0 (env () ☠)]) 0 (ref (con 5))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)]) 0 (call-function (ref (method "int" "__add__"))
+                                                     ((ref (con 2)) (ref (con 3))))])
+            (term [([0 (env () ☠)]) 0 (ref (con 5))]))
+  (test-->> red-e
+            (term [([0 (env () ☠)])
+                   0
+                   (lambda ("a") (begin) (local ("a" "b") (return (con 2))))])
+            (term [([1 (obj "function"
+                            (lambda 0 ("a") (begin) (local ("a" "b") (return (con 2))))
+                            ())]
+                    [0 (env () ☠)])
+                   0
+                   (ref 1)]))
+  (test-->> red-e
+            (term [([0 (env () ☠)])
+                   0
+                   (class ((ref "int")) (["abc" (begin)]))])
+            (term [([1 (obj "type"
+                            (class ((ref "int")) (["abc" (begin)]))
+                            ())]
+                    [0 (env () ☠)])
+                   0
+                   (ref 1)])))
 (define red-e
   (reduction-relation
    SP-dynamics
@@ -271,53 +318,256 @@
         "constant"]
    [--> [Σ_1 l_env (tuple (v ...))]
         [Σ_2 l_env (ref l)]
-        (where (Σ_2 l) (alloc Σ_1 (obj (ref "tuple") (tuple (v ...)) ())))
+        (where [Σ_2 l] (alloc Σ_1 (obj "tuple" (tuple (v ...)) ())))
         "tuple"]
    [--> [Σ_1 l_env (set (v ...))]
         [Σ_2 l_env (ref l)]
-        (where (Σ_2 l) (alloc Σ_1 (obj (ref "set") (set (v ...)) ())))
+        (where [Σ_2 l] (alloc Σ_1 (obj "set" (set (v ...)) ())))
         "set"]
    [--> [Σ_1 l_env (dict ([v_key v_val] ...))]
         [Σ_2 l_env (ref l)]
-        (where (Σ_2 l) (alloc Σ_1 (obj (ref "dict") (dict ([v_key v_val] ...)) ())))
+        (where [Σ_2 l] (alloc Σ_1 (obj "dict" (dict ([v_key v_val] ...)) ())))
         "dict"]
-   [--> (in-hole [Σ_1 l_env E] e-_1)
-        (in-hole [Σ_2 l_env E] e-_2)
+   [--> [Σ l_env (is v_1 v_2)]
+        [Σ l_env (ref (con (do-is v_1 v_2)))]
+        "is"]
+   [--> [Σ l_env (if-exp (ref l) e-_thn e-_els)]
+        [Σ l_env (do-if-exp (lookup-Σ Σ l) e-_thn e-_els)]
+        "if-exp"]
+   [--> [Σ l_env (attribute mode (ref l) x)]
+        [Σ l_env (do-attribute mode (lookup-Σ Σ l) x)]
+        "attribute"]
+   [--> [Σ_1 l_env (invoke-function l (v ...))]
+        [Σ_2 l_env e-]
+        (where [Σ_2 e-] (do-invoke-function Σ_1 (lookup-Σ Σ_1 l) (v ...)))
+        "invoke-function"]
+   [--> [Σ_1 l_env (invoke-method l x v_obj (v_arg ...))]
+        [Σ_2 l_env e-]
+        (where [Σ_2 e-] (do-invoke-method Σ_1 l x v_obj (v_arg ...)))
+        "invoke-method"]
+   [--> [Σ_1 l_env (call-function (ref l_fun) (v_arg ...))]
+        [Σ_2 l_env e-]
+        (where [Σ_2 e-] (do-call-function Σ_1 (lookup-Σ Σ_1 l_fun) (v_arg ...)))
+        "call-function"]
+   [--> [Σ_1 l_env (lambda (x ...) s- level-)]
+        [Σ_2 l_env (ref l_fun)]
+        (where [Σ_2 l_fun] (alloc Σ_1 (obj "function" (lambda l_env (x ...) s- level-) ())))
+        "lambda"]
+   [--> [Σ_1 l_env (class (v ...) ([x s-] ...))]
+        [Σ_2 l_env (ref l_cls)]
+        (where [Σ_2 l_cls] (alloc Σ_1 (obj "type" (class (v ...) ([x s-] ...)) ())))
+        "class"]
+   [--> [Σ l_1 (local l_2 (return v))]
+        [Σ l_1 v]
+        "local"]
+   [--> [Σ_1 l_env (local l_lcl s-_1)]
+        [Σ_2 l_env (local l_lcl s-_2)]
+        (where ([Σ_2 l_lcl s-_2]) ,(apply-reduction-relation red-s (term [Σ_1 l_lcl s-_1])))
+        "within local"]))
+
+(define-metafunction SP-dynamics
+  delta : Σ l (v ...) -> [Σ e-]
+  [(delta Σ (method "int" "__add__") ((ref (con number_1)) (ref (con number_2))))
+   [Σ (ref (con ,(+ (term number_1) (term number_2))))]])
+
+;; TODO: We should perform some checks here. do-invoke-function shouldn't raise errors.
+(define-metafunction SP-dynamics
+  do-call-function : Σ h (v ...) -> [Σ e-]
+  [(do-call-function Σ h (v ...))
+   (do-invoke-function Σ h (v ...))])
+
+;; TODO: This is not quite right. The exact type is not necessarily l_cls
+(define-metafunction SP-dynamics
+  do-invoke-method : Σ l x v (v ...) -> [Σ e-]
+  [(do-invoke-method Σ l_cls x v_obj (v_arg ...))
+   (do-invoke-function Σ h_mth (v_obj v_arg ...))
+   (where (obj "type" (class (v ...) ([x_mem s-_mem] ...)) ρ) (lookup-Σ Σ l_cls))
+   (where l_mth (lookup ρ x))
+   (where h_mth (lookup-Σ Σ l_mth))])
+
+(define-metafunction SP-dynamics
+  do-invoke-function : Σ h (v ...) -> [Σ e-]
+  [(do-invoke-function Σ_1 (obj "function"
+                                (lambda l_1 (x_arg ...)
+                                  s-_chk
+                                  (local (x_var ...) s-_bdy))
+                                ρ)
+                       (v_arg ...))
+   [Σ_2
+    (local l_2
+      (begin
+        (assign x_arg v_arg)
+        ...
+        s-_chk
+        s-_bdy))]
+   (where (Σ_2 l_2) (alloc Σ_1 (env ([x_var ☠] ...) l_1)))]
+  [(do-invoke-function Σ (obj "prim" (prim-op l) ()) (v ...))
+   (delta Σ l (v ...))])
+
+(define-metafunction SP-dynamics
+  do-attribute : mode h x -> v
+  [(do-attribute mode (obj l g ρ) x)
+   (ref (lookup ρ x))])
+
+(define-syntax-rule (m? x y)
+  (redex-match? SP-dynamics x y))
+
+(module+ test
+  (test-equal (term (do-is (ref (con 1)) (ref (con 2))))
+              (term #f))
+  (test-equal (term (do-is (ref (con 2)) (ref (con 2))))
+              (term #t)))
+(define-metafunction SP-dynamics
+  do-is : v v -> boolean
+  [(do-is v v) #t]
+  [(do-is v_1 v_2) #f])
+(module+ test
+  (test-equal (term #t) (term (falsy? (obj "NoneType" (con None) ()))))
+  (test-equal (term #t) (term (falsy? (obj "int" (con 0) ()))))
+  (test-equal (term #t) (term (falsy? (obj "bool" (con #f) ()))))
+  (test-equal (term #t) (term (falsy? (obj "tuple" (tuple ()) ()))))
+  (test-equal (term #t) (term (falsy? (obj "set" (set ()) ()))))
+  (test-equal (term #t) (term (falsy? (obj "dict" (dict ()) ()))))
+  (test-equal (term #f) (term (falsy? (obj "int" (con 2) ()))))
+  (test-equal (term #f) (term (falsy? (obj "bool" (con #t) ()))))
+  (test-equal (term #f) (term (falsy? (obj "tuple" (tuple ((ref (con None)))) ())))))
+(define-metafunction SP-dynamics
+  falsy? : h -> boolean
+  [(falsy? (obj "NoneType" (con None) ())) #t]
+  [(falsy? (obj "int" (con 0) ())) #t]
+  [(falsy? (obj "bool" (con #f) ())) #t]
+  [(falsy? (obj "tuple" (tuple ()) ())) #t]
+  [(falsy? (obj "set" (set ()) ())) #t]
+  [(falsy? (obj "dict" (dict ()) ())) #t]
+  [(falsy? h) #f])
+(module+ test
+  (test-equal (term (do-if-exp (obj "int" (con 1) ()) "x" "y"))
+              (term "x"))
+  (test-equal (term (do-if-exp (obj "int" (con 0) ()) "x" "y"))
+              (term "y")))
+(define-metafunction SP-dynamics
+  do-if-exp : h e- e- -> e-
+  [(do-if-exp h e-_thn e-_els)
+   e-_els
+   (where #t (falsy? h))]
+  [(do-if-exp h e-_thn e-_els)
+   e-_thn])
+
+(module+ test
+  (test-->> red-s
+            (term [([0 (env () ☠)]) 0 (expr (ref (con 2)))])
+            (term [([0 (env () ☠)]) 0 (begin)]))
+  (test-->> red-s
+            (term [([0 (env () ☠)]) 0 (begin (begin (expr (con 2))) (expr (con 3)))])
+            (term [([0 (env () ☠)]) 0 (begin (expr (con 2)) (expr (con 3)))]))
+  (test-->> red-s
+            (term [([0 (env () ☠)]) 0 (if (ref (con 0))
+                                          (expr (con 2))
+                                          (expr (con 3)))])
+            (term [([0 (env () ☠)]) 0 (begin)]))
+  (test-->> red-s
+            (term [([0 (env (["abc" (ref (con 2))]) ☠)]) 0 (delete "abc")])
+            (term [([0 (env (["abc" ☠]) ☠)]) 0 (begin)]))
+  (test-->> red-s
+            (term [([0 (env () ☠)]
+                    [1 (obj "MyClass" (nothing) (["abc" (con 2)]))])
+                   0
+                   (delete (attribute fast (ref 1) "abc"))])
+            (term [([0 (env () ☠)]
+                    [1 (obj "MyClass" (nothing) ())])
+                   0
+                   (begin)]))
+  (test-->> red-s
+            (term [([0 (env (["abc" (ref (con 2))]) ☠)])
+                   0
+                   (assign "abc" (ref (con 3)))])
+            (term [([0 (env (["abc" (ref (con 3))]) ☠)])
+                   0
+                   (begin)]))
+  (test-->> red-s
+            (term [([0 (env () ☠)]
+                    [1 (obj "MyClass" (nothing) (["abc" (con 2)]))])
+                   0
+                   (assign (attribute fast (ref 1) "abc") (ref (con 3)))])
+            (term [([0 (env () ☠)]
+                    [1 (obj "MyClass" (nothing) (["abc" (con 3)]))])
+                   0
+                   (begin)]))
+  )
+(define red-s
+  (reduction-relation
+   SP-dynamics
+   #:domain [Σ l s-]
+   [--> [Σ l (expr v)]
+        [Σ l (begin)]
+        "expr"]
+   [--> [Σ l (begin (begin s-_1 ...) s-_2 ...)]
+        [Σ l (begin s-_1 ... s-_2 ...)]
+        "begin"]
+   [--> [Σ l (if (ref l_cnd) s-_thn s-_els)]
+        [Σ l (do-if (lookup-Σ Σ l_cnd) s-_thn s-_els)]
+        "if"]
+   [--> [Σ_1 l (delete x)]
+        [Σ_2 l (begin)]
+        (where Σ_2 (update-env Σ_1 l x ☠))
+        "delete"]
+   [--> [Σ_1 l (delete (attribute mode (ref l_obj) x))]
+        [Σ_2 l (begin)]
+        (where Σ_2 (do-delete-attribute Σ_1 mode l_obj x))
+        "delete attribute"]
+   [--> [Σ_1 l (assign x_var v_new)]
+        [Σ_2 l (begin)]
+        (where Σ_2 (update-env Σ_1 l x_var v_new))
+        "assign"]
+   [--> [Σ_1 l (assign (attribute mode (ref l_obj) x_mem) v_new)]
+        [Σ_2 l (begin)]
+        (where Σ_2 (do-assign-attribute Σ_1 mode l_obj x_mem v_new))
+        "assign attribute"]
+   [--> [Σ_1 l_env (import-from x_mod x_var)]
+        [Σ_2 l_env (begin)]
+        (where (Type (subof l)) (T-of-import x_mod x_var))
+        (where Σ_2 (update-env Σ_1 l_env x_var (ref l)))
+        "import-from"]
+   [--> (in-hole [Σ_1 l S] e-_1)
+        (in-hole [Σ_2 l S] e-_2)
         (where ([Σ_2 l e-_2]) ,(apply-reduction-relation red-e (term [Σ_1 l e-_1])))
-        "in-hole"]))
+        "reduce e"]))
+(define-metafunction SP-dynamics
+  do-assign-attribute : Σ mode l x v -> Σ
+  [(do-assign-attribute Σ mode l_obj x_mem (ref l_new))
+   (update Σ [l_obj (obj l_cls g (update ρ [x_mem l_new]))])
+   (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))])
+(define-metafunction SP-dynamics
+  do-delete-attribute : Σ mode l x -> Σ
+  [(do-delete-attribute Σ mode l_obj x_mem)
+   (update Σ [l_obj (obj l_cls g (any_1 ... any_2 ...))])
+   (where (obj l_cls g (any_1 ... [x_mem l_mem] any_2 ...)) (lookup-Σ Σ l_obj))])
+(define-metafunction SP-dynamics
+  do-if : h s- s- -> s-
+  [(do-if h s-_thn s-_els)
+   s-_els
+   (where #t (falsy? h))]
+  [(do-if h s-_thn s-_els)
+   s-_thn])
 
 (module+ test
   (test-->> red-p
             (term (super-load ((ann-assign "i" "int" (con 42)))))
-            (term (terminate ())))
+            (term (begi)))
   (test-->> red-p
             (term (super-load ((expr (con 2)))))
             (term (terminate ((ref (con 2))))))
   (test-->> red-p
             (term (super-load ((ann-assign "i" "int" (con 42)) (expr "i"))))
-            (term (terminate ((ref (con 42))))))
-  )
-
+            (term (terminate ((ref (con 42)))))))
 (define red-p
   (reduction-relation
    SP-dynamics
-   #:domain p
-
-   [--> [Σ l ((expr v) ...)]
-        (terminate (v ...))
-        "terminate"]
-   [--> [Σ l ((expr v_1) ... (begin s-_1 ...) s-_2 ...)]
-        [Σ l ((expr v_1) ... s-_1 ... s-_2 ...)]
-        "begin"]
-   [--> [Σ_1 l ((expr v) ... (assign x_var v_new) s- ...)]
-        [Σ_2 l ((expr v) ... s- ...)]
-        (where Σ_2 (update-env Σ_1 l x_var v_new))
-        "assign"]
-   [--> [Σ_1 l ((expr v_1) ... (expr e-_1) s- ...)]
-        [Σ_2 l ((expr v_1) ... (expr e-_2) s- ...)]
-        (where ([Σ_2 l e-_2])
-               ,(apply-reduction-relation red-e (term [Σ_1 l e-_1])))
-        "expr"]))
+   #:domain [Σ l s-]
+   [--> [Σ_1 l s-_1]
+        [Σ_2 l s-_2]
+        (where ([Σ_2 l s-_2]) ,(apply-reduction-relation red-s (term [Σ_1 l s-_1])))
+        "reduce s"]))
 #|
 ; (define red-s
 ;   (reduction-relation
@@ -561,28 +811,6 @@
    ,(for/list ([name builtin-names]
                [i (in-naturals)])
       `[,(string->symbol name) ,i])])
-
-(module+ test
-  (test-equal (term #t) (term (falsy ("NoneType" None))))
-  (test-equal (term #t) (term (falsy ("float" 0.0))))
-  (test-equal (term #t) (term (falsy ("int" 0))))
-  (test-equal (term #t) (term (falsy ("bool" #f))))
-  (test-equal (term #t) (term (falsy ("tuple" (tuple)))))
-  (test-equal (term #t) (term (falsy ("set" (set)))))
-  (test-equal (term #t) (term (falsy ("dict" (dict)))))
-  (test-equal (term #f) (term (falsy ("int" 2))))
-  (test-equal (term #f) (term (falsy ("bool" #t))))
-  (test-equal (term #f) (term (falsy ("tuple" (tuple (ref (con None))))))))
-(define-metafunction SP-dynamics
-  falsy : h -> boolean
-  [(falsy ("NoneType" None)) #t]
-  [(falsy ("float" 0.0)) #t]
-  [(falsy ("int" 0)) #t]
-  [(falsy ("bool" #f)) #t]
-  [(falsy ("tuple" (tuple))) #t]
-  [(falsy ("set" (set))) #t]
-  [(falsy ("dict" (dict))) #t]
-  [(falsy h) #f])
 
 (module+ test
   (test-equal (term (get-attr (base-Σ) (ref "float") "__add__"))
