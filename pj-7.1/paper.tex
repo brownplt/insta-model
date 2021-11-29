@@ -1,0 +1,794 @@
+\documentclass[english,submission]{programming}
+
+%% Thesis:
+%%  the addition of sound nominal types to an optionally-typed codebase
+%%  can effectively improve peformance
+
+% > Here’s the thing: I think this is the sort of thing an academic might say “oh,
+% > this is too much work, it’d never work” But in fact it looks like they seem to
+% > be making it work -- Shriram 2021-09-30
+
+%% TODO before submission
+%% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
+%%   helps the static checker find new errors. ChkDict is one example.
+%% - idea: formalism would be a SUBSET of Nom, so our burden of proof is low
+
+%% TODO after submission, before camera-ready
+%% - 
+
+\newcommand{\shorturl}[2]{\href{#1#2}{#2}}
+\newcommand{\SP}{Static Python}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\defeq}{=}
+\newcommand{\mfeq}{=}
+\newcommand{\langmid}{\mathrel{\mathbf{\Big\vert}}}
+\newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
+
+\newcommand{\typefont}[1]{\mathsf{#1}}
+\newcommand{\paramtype}[2]{#1[#2]}
+\newcommand{\sptype}{\typefont{T}}
+\newcommand{\sptclass}{\typefont{C}}
+\newcommand{\sptint}{\typefont{Int}}
+\newcommand{\sptfloat}{\typefont{Float}}
+\newcommand{\sptdyn}{\typefont{Dynamic}}
+\newcommand{\sptobject}{\typefont{Object}}
+\newcommand{\sptnone}{\typefont{NoneType}}
+\newcommand{\sptinstanceof}[1]{\paramtype{\typefont{Instance}}{#1}}
+\newcommand{\sptfun}[2]{#1 \rightarrow #2}
+\newcommand{\sptunion}[2]{#1 \cup #2}
+\newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
+\newcommand{\sptpydict}[2]{\paramtype{\typefont{PyDict}}{#1, #2}}
+\newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
+
+\newcommand{\spexpr}{e}
+\newcommand{\spvalue}{v}
+
+\newcommand{\sprred}{\rightarrow^*}
+
+\newcommand{\mfapply}[2]{#1\,(#2)}
+\newcommand{\mffont}[1]{\mathit{#1}}
+\newcommand{\mftypeF}[1]{\mfapply{\mffont{F}}{#1}}
+\newcommand{\mfopt}[1]{\mfapply{\mffont{opt}}{#1}}
+
+\newcommand{\sperror}{\mathrm{Error}}
+
+%\overfullrule=1mm
+
+%\usepackage{draftwatermark}
+%\SetWatermarkText{DRAFT}
+%\SetWatermarkScale{1}
+
+%% BEGIN tobias pape 2021-11-06
+\makeatletter
+\newcommand*\abstractpart[1]{\unskip\par\noindent{\firamedium\color{P@GrayFG}{#1}}\enspace}
+\makeatother
+%% END
+
+\usepackage{cleveref}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\usepackage[backend=biber]{biblatex}
+\addbibresource{bg.bib}
+
+\begin{document}
+
+\title{Gradual Soundness: Lessons from Static Python}
+%% ... types make things fast?
+%% ... gradual migratory progressive soundness
+
+%\titlerunning{short title}
+
+\author[a]{Kuang-Chen Lu}
+\authorinfo{(\email{LuKuangchen1024@gmail.com}) is a PhD student at Brown University.}
+\affiliation[a]{Brown University, Providence, RI, USA}
+\author[a]{Ben Greenman}
+\authorinfo{(\email{benjamin.l.greenman@gmail.com}) is a PLT member and a postdoc at Brown University.}
+\author[b]{Carl Meyer}
+\authorinfo{(\email{carljm@fb.com}) FILL}
+\affiliation[b]{Facebook, Inc.}
+\author[b]{Dino Viehland}
+\authorinfo{(\email{dinoviehland@fb.com}) FILL}
+\author[a]{Shriram Krishnamurthi}
+\authorinfo{(\email{shriram@brown.edu}) is the Vice President of Programming Languages (no, not really) at Brown University.}
+
+\authorrunning{K-C. Lu, B. Greenman, C. Meyer, D. Viehland, S. Krishnamurthi}
+%TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
+
+\keywords{gradual typing, migratory typing}
+
+\begin{CCSXML}
+\end{CCSXML}
+% \ccsdesc[100]{FILL}
+%TODO mandatory: Please choose ACM 2012 classifications from https://dl.acm.org/ccs/ccs_flat.cfm 
+
+\paperdetails{
+  %% perspective options are: art, sciencetheoretical, scienceempirical, engineering.
+  perspective=scienceempirical,
+  %% State one or more areas, separated by a comma. (see 2.2)
+  %% Please see list of areas in http://programming-journal.org/cfp/
+  %% The list is open-ended, so use other areas if yours is/are not listed.
+  area={Database programming, General-purpose programming, Program
+    verification, Programming education},
+  %% License options include: cc-by (default), cc-by-nc
+  % license=cc-by,
+}
+
+\maketitle
+
+\begin{abstract}
+%  Soundness, migratory typing.
+%  Novel run-time check strategy, combines concrete and transient for ergonomics.
+
+  \let\paragraph\abstractpart
+
+  \paragraph{Context}
+  % What is the broad context of the work? What is
+  % the importance of the general research area?
+  FILL
+
+  \paragraph{Inquiry}
+  % What problem or question does the paper
+  % address? How has this problem or question been
+  % addressed by others (if at all)?
+  FILL
+
+  \paragraph{Approach}
+  % What was done that unveiled new knowledge?
+  FILL
+
+  \paragraph{Knowledge}
+  % What new facts were uncovered? If the
+  % research was not results oriented, what new
+  % capabilities are enabled by the work?
+  FILL
+
+  \paragraph{Grounding}
+  % What argument, feasibility proof, artifacts,
+  % or results and evaluation support this work?
+  FILL
+
+  \paragraph{Importance}
+  % Why does this work matter?
+  FILL
+
+\end{abstract}
+
+
+\section{Typing for Performance}
+\label{s:intro}
+
+Gradual typing has attracted significant interest as a solution to
+the impasse between static and dynamic typing.
+The premise is simple: let programmers introduce types in part of a
+codebase and while leaving the rest untyped.
+Run-time checks can in principle enforce the assumptions that
+typed code makes about untyped components, thereby ensuring that
+the types are sound no matter how the untyped code behaves.
+
+Unfortunately, the high run-time cost of sound types has split
+the gradual typing community.
+Industry teams have developed innovative type systems that accommodate
+untyped designs, but these systems are all unsound [CITE].
+These systems intentionally check nothing at run-time when untyped values enter
+typed code.
+Academic teams have primarily focused on the theory of sound
+gradual types, formulating correctness properties and studying ever-more-descriptive types [CITE].
+A few academics have studied the cost of run-time checks
+in detail [CITE] and proposed implementation methods [CITE],
+compiler technology [CITE],
+and even weakened semantics [CITE], but none of these efforts
+decisively close the performance gap.
+The most promising attempt is the \emph{concrete} semantics
+for gradual types [CITE kafka nom etc], but its low performance
+overhead stems from severe restrictions on untyped code.
+These restrictions may not be acceptable to the maintainers of a
+working untyped codebase.
+Indeed, the maintainers might prefer to re-implement their system
+in a typed language, as Dropbox recently did with its core sync
+engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}}
+
+In short, academic researchers are working to close the performance gap
+without overly restricting the promise of gradual typing.
+Industry researchers are sidestepping the problem with unsound types---for the most part.
+
+This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
+The \SP{} team at Instagram has developed a sound type system for a subset of
+Python along with a runtime system designed to
+capitalize on the benefits of sound types.
+The language design is a variation of concrete types that lets programmers
+begin with shallow claims about data structures and gradually opt in to deeper soundness.
+Remarkably, the performance of Python is an upper bound on the observed performance of
+Static Python.
+
+
+\paragraph*{Contributions}
+
+\begin{itemize}
+  \item
+    Evidence that gradual soundness delivers fast performance incrementally,
+    as programmers migrate to sound types.
+    \SP{} can be applied to a codebase with no refactoring and no performance overhead.
+    After refactoring to sound types, \SP{} performs well on a microbenchmark
+    suite and in production.
+  \item
+    A formal description of the \SP{} core language and an analysis of its soundness
+    and optimizations.
+    Soundness is not uniform across all types.
+    Some are fully sound while others are constructor sound.
+  \item
+    In-depth discussions of the expressiveness limitations in \SP{} relative to
+    idealized gradual type systems, and the programming discipline that Instagram
+    follows in their gradually-sound codebase.
+\end{itemize}
+
+
+\paragraph*{Significance}
+
+We have written this paper with two audiences in mind.
+First, we want to encourage system-builders to reproduce the
+\SP{} language design in another context and measure performance.
+Second, we want to lend focus to theoretical research on gradual typing.
+The restrictions that \SP{} adopts
+may be worthwhile assumptions for theory going forward.
+On the flip side, future research may find a way to lift some of
+the restrictions currently in \SP{}.
+
+
+\section{\SP{} and the Cinder JIT}
+\label{s:tour}
+%% purpose = SP looks like Pyre, adds soundness to certain types
+
+% {Language Pipeline}
+% \begin{enumerate}
+%   \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
+%   \item SP type checker
+%   \item Custom bytecode, Cinder JIT
+% \end{enumerate}
+
+\SP{} is a type checker and bytecode compiler.
+It validates programs written in ordinary Python syntax
+and generates type-specific instructions for the Cinder runtime.
+The type system can express common Python idioms and is guaranteed
+sound through run-time checks, which in turn enable optimizations.
+The type system also includes a dynamic type as an escape hatch to
+untyped behavior.
+An unannotated variable behaves exactly as it would in Python.
+
+Cinder is an extension of CPython 3.8 that adds a method-based
+JIT compiler, virtual method tables, and several bytecode instructions
+to directly express type checks and type-based optimizations.
+These enhancements take full advantage of \SP{} type information;
+they are built on top of CPython so that untyped code runs on
+the platform.
+
+Using \SP{} and Cinder is as easy as installing a new version
+of CPython.
+The main executable compiles programs to bytecode on the fly,
+same as CPython, allowing standard developer tools to work.
+By contrast, the only effective way to get type-directed optimizations
+without changing CPython is to use C extension modules,
+which introduce an extra compilation step and get in the way
+of tooling~(\cref{s:related}).
+
+\begin{figure}
+  %% TODO replace with a real program
+%  \begin{minipage}[t]{0.5\columnwidth}
+  \begin{verbatim}
+    from __static__ import PyDict
+
+    def f(x: PyDict[str, int]):
+      return x["A"]
+
+    f({"A": 1}) # ==> 1
+  \end{verbatim}
+%  \end{minipage}\begin{minipage}[t]{0.5\columnwidth}
+%  \begin{verbatim}
+%    from __static__ import PyDict
+%
+%    def f(x: PyDict[str, int]):
+%      check_args(x, PyDict)
+%      return cast(x["A"], int)
+%
+%    invoke_function(f, {"A": 1}) # ==> 1
+%  \end{verbatim}
+%  %  ....
+%  %  CHECK_ARGS
+%  %  ....
+%  %  INVOKE_FUNCTION
+%  \end{minipage}
+%  \begin{verbatim}
+%    from __static__ import CheckedDict
+%
+%    def f(x: CheckedDict[str, int]):
+%      return x["A"]
+%
+%    f(CheckedDict({"A": 1}))
+%  \end{verbatim}
+  \caption{A first \SP{} program}
+  \label{fig:sp-example}
+\end{figure}
+
+\Cref{fig:sp-example} presents a first example program.
+It defines a function \code{f} and calls it from typed code.
+The syntax is normal Python with type annotations.
+Only the import statement makes special use of \SP{};
+it imports a type \code{PyDict} that describes Python dictionaries.
+
+Although this program is typed, a different untyped module is free
+to import the function \code{f} and invoke it with any sort of
+argument.
+For this reason, the compiled version of \cref{fig:sp-example} must
+include a few run-time casts:
+\begin{itemize}
+  \item
+    The function \code{f} must check that its arguments match the \code{PyDict} domain annotation.
+    Concretely, this check accepts any Python dictionary.
+  \item
+    Because the domain check does not validate the contents of an incoming dictionary,
+    the dict access (\code{x["A"]}) must check that its result matches the function codomain.
+\end{itemize}
+These checks ensure a \emph{shape-level} notion of type soundness~(\cite{s:model}).
+In short: if an expression has type \code{T} and reduces to a value, then the value
+matches the top-level constructor, or shape, of the type.
+The shape for a Python dictionary is merely \code{dict}.
+Other types have deeper shapes; for example, \SP{} includes a \code{ChkDict}
+type that predicts the keys and values in a special kind of dictionary.
+
+Thanks to these checks, \SP{} can leverage type soundness to generate efficient code.
+Because the call to \code{f} in \cref{fig:sp-example} appears in typed code,
+there is no need to check that it sends type-correct inputs.
+Thus, the compiled call uses a Cinder bytecode instruction to skip past the
+domain check and immediately enter the function body.
+
+The checks and optimizations in this example illustrate the general balancing act
+of \SP{}.
+Type soundness requires run-time checks, but also enables optimizations.
+The gamble is that the optizations help more that the checks hurt.
+
+
+\subsection{Type System Highlights}
+
+\subsubsection{Type Dynamic}
+
+[FILL]
+
+The dynamic type is an important part of Static Python.
+Dynamic avoids the need for whole-sale migration,
+lets programmers work around dynamic features like splatting,
+and is in some cases necessary for optimal performance (evidence?).
+
+Can't really write the dynamic type.
+But ANY unbound id. or non-type object gets interpreted as the dynamic type for now.
+
+Cannot appear everywhere ... ChkDict can't hold a Dynamic (or rather, you can declare this type and cannot instantiate it),
+and primitives are incompatible with Dynamic. 
+
+Dynamic behavior is always (?) the same as normal Python.
+
+
+\subsubsection{Checked Types}
+
+%% more to say about the style of migration in SP?
+[FILL]
+
+Enabling sound types on a function has a ripple effect on callers.
+All untyped callers are now forced to supply type-correct inputs; may call for
+refactoring.
+
+Enabling checked types has a huge ripple effect.
+The worst case is changing an annotation to a expect a checked data structure:
+\begin{enumerate}
+  \item all callers must create a checked value by invoking the right constructor, and
+  \item all clients of those callers can no longer expect an unchecked type.
+\end{enumerate}
+Programmers have to trace the annotation back to value-creation points, and then
+ensure that all uses of those values are compatible.
+
+
+
+\subsubsection{Restrictions}
+
+OO restrictions:
+
+\begin{itemize}
+  \item \textbf{First-order Typed Classes}.
+    In order to benefit from types, class definitions must be defined at the top level of a module.
+    Nested classes are supported by the language, but have type \code{Dynamic} according
+    to the type checker.
+
+  \item \textbf{No Overloading}.
+    Methods cannot be overloaded. Each combination of a class
+    and a name can refer to at most one method.
+    This ensures that method resolution depends only on the
+    type of the receiver object.
+    % resolution does NOT depend on result type (T doesn't matter in `x:T = o.m()`)
+    % Q. does resolution depend on args?
+
+  %\item \textbf{Single Inheritance}.
+  %  Multiple inheritance is not supported.
+  %  But, it might someday be supported.
+
+  \item \textbf{Compatible method overrides}.
+    Methods may be overridden, either by \SP{} classes or
+    untyped Python classes.
+    Overrides that appear in \emph{the same} \SP{} file as the class definition, however,
+    must supply a method whose type is a static subtype of the previous method.
+    In particular, a parent method that returns type \code{int} cannot be
+    overridden by a child method that returns type \code{Dynamic}.
+    %% TODO what does this enable ... optimizations in the same file?
+
+  % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
+  % but the normal field access syntax skips any overrides (o.f)
+
+  \item \textbf{Compatible field overrides}.
+    Similarly, object fields and class variables may be overridden
+    only with subtype-compatible values.
+    In fact, \SP{} compiles fields using Python slots
+    declarations (\code{\_\_slots\_\_}).
+    This declaration prevent new fields from arising at runtime,
+    but saves space and speeds up field accesses.
+
+
+\end{itemize}
+
+
+Type restrictions:
+
+\begin{itemize}
+  \item \textbf{Parameterized Classes}.
+    At present, \SP{} treats all class parameters as type \code{Dynamic}.
+    The team plans to lift this restriction (\cref{s:future}).
+
+  \item \textbf{Callable}.
+    The type system cannot yet express first-class functions.
+    The team plans to lift this restriction~(\cref{s:future}),
+    but there is little internal pressure to do so.
+
+  \item \textbf{Dynamic Checked Types}.
+    A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
+    keys or values.
+    [FILL] no desire, and makes runtime checks much simpler.
+    %% NB can't do ChkDict[ChkDict[_,_],_] either but that's because ChkDict is unhashable for now
+
+  \item \textbf{Recursive Types}.
+    Sadly this is normal for Python type checkers.
+
+\end{itemize}
+
+
+
+
+\subsection{Runtime System Highlights}
+
+\begin{itemize}
+  \item
+    \textbf{VTables}
+    Cinder adds virtual method tables to typed classes.
+    ``The v-tables are only used for the \code{INVOKE\_METHOD} opcode, which
+    the static compiler will only emit against a statically known static type.'' -Carl
+
+%    No, there’s no overload resolution by arguments in Python. This difference
+%    in behavior isn’t so much desired as just a consequence of making
+%    `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
+%    the callable is placed on the stack, then the arguments, then there is a
+%    `CALL_FUNCTION` (with number of args in oparg) to perform the call. This
+%    means that first the callable is resolved, then the arguments. But with
+%    `INVOKE_METHOD` we want to resolve the callable as part of the invoke
+%    itself, since this gives us opportunity to inline-cache the target of the
+%    call instead of always having to call something dynamic and unknown that’s
+%    on the stack. So that necessarily implies that first the arguments are
+%    resolved and placed on the stack, then the callable is resolved as part of
+%    the `INVOKE_METHOD`. -Carl
+
+%    2021-11-15: Dino says the JIT will check/upgrade INVOKE_METHOD to INVOKE_FUNCTION
+%    2021-07-23: final classes get INVOKE_FUNCTION, not INVOKE_METHOD
+
+  \item
+    \textbf{Bytecode Optimization}
+    (could use a full section)
+
+  %\item
+  %  \textbf{Shadow Frames}
+  %  (CinderDoc/static_python.rst)
+  %  magic import that signals to the Static
+  %  Python compiler to enable “shadow frame” mode in the Cinder JIT. This
+  %  improves performance of function calls by avoiding the creation of full
+  %  Python frame objects until they are definitely needed (e.g. if an
+  %  exception is raised.) In the future this should become default.
+
+  \item
+    \textbf{Checked Dict}
+    Implementation too, to support the types.
+
+\end{itemize}
+
+
+\subsection{Additional Features}
+
+% things we did not model ... is that worth making a distinction here?
+
+strict modules
+
+decorator to force inlining, for 1-line functions
+
+
+\subsubsection{Primitive Types}
+
+For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
+that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
+Cinder implements these types with unboxed C values, which are much simpler and cheaper
+than their Python counterparts.
+\SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives efficiently.
+These are not themselves primitive.
+
+Primitives are carefully limited by the type system.
+Neither a module-level nor a closure-level variable may have a primitive
+type---because untyped code can mutate such variables.
+Primitive types are incompatible with the dynamic type,
+and there are no implicit upcasts from primitives
+to a matching Python type.
+Even a conjunction disallows mixing; for example, the \code{and} operator
+requires either two Python booleans or two primitive booleans.
+The only way for Python values and primitive values to interact
+is through dedicated conversion functions.
+Cinder handles conversions at the boundaries between \SP{} code
+and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere else.
+Within typed code, programmers must satisfy the type checker with
+appropriate conversions.
+
+% For now, programmers have to write and manage primitive types.
+% In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
+
+% https://github.com/facebookincubator/cinder/issues/52
+
+
+
+\section{Model}
+\label{s:model}
+%% purpose = types, checks, and optimizations can be formalized and analyzed
+
+
+\subsection{Goals and Limitations}
+
+The designers of Static Python hope to eventually build a system that is sound for arbitrary Python code,
+but are not there yet.
+The known side channels include:
+eval, the locals and globals dicts (the latter can be accessed through frame objects at the moment),
+and mutable closure cells.
+Our model does not cover these either.
+We essentially ban all these features, rejecting any program in which they appear.
+Code mining in JS (and perhaps the newer R work?) suggests that at least eval
+uses can be rewritten without too much pain. The few exceptions would point
+to language weaknesses / call for new semantically-descriptive features.
+
+FILL do we stop at strict modules?\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
+A strict module is 100\% repeatable and isolated from the side effects of other modules.
+
+
+
+\subsection{Surface Language}
+
+\begin{figure}[t]
+  %% ported types from redex model
+  \begin{langarray}
+    \sptype & \defeq &
+      \sptdyn \langmid
+      \sptnone \langmid
+      \sptclass \langmid
+      \sptinstanceof{\sptclass} \langmid
+      \sptfun{\sptype}{\sptype} \langmid
+      \sptunion{\sptclass}{\sptclass}
+  \\
+    \sptclass & \defeq &
+      \sptint \langmid
+      \sptfloat \langmid
+      \sptobject \langmid
+      \sptpydict{\sptclass}{\sptclass} \langmid
+      \sptchkdict{\sptclass}{\sptclass} \langmid
+      \mbox{(user defined class)}
+  \end{langarray}
+
+  \begin{center}\parbox{0.8\columnwidth}{
+    Abbreviation: $\sptoptional{\sptclass} \defeq \sptunion{\sptclass}{\sptnone}$
+
+    EXCEPT THAT $\sptoptional{\sptclass}$ may be a generic parameter just like any other class $\sptclass$
+
+    Function types cannot expect or return other function types.
+  }\end{center}
+
+  \caption{Surface Types}
+  \label{f:surface-types}
+\end{figure}
+
+
+\subsection{Evaluation Language, Optimizations}
+
+\begin{figure}[t]
+  \(
+    \mftypeF{\sptype_0}
+    \mfeq
+    \left\{\begin{array}{ll}
+      \sptpydict{}{} & \mbox{if $\sptype_0 = \sptpydict{\sptclass}{\sptclass}$}
+    \\
+      \sptype_0 & \mbox{otherwise}
+    \end{array}\right.
+  \)
+
+  \caption{Surface Types to Evaluation Types}
+  \label{f:surface-to-eval-types}
+\end{figure}
+
+
+\subsection{Properties}
+
+\begin{theorem}[Type Soundness]
+  If\ \(\vdash \spexpr_0 : \sptype_0\)
+  then one of the following holds:
+  \begin{itemize}
+    \item
+      \(\spexpr_0 \sprred \spvalue_0
+        \mbox{ and }
+        \vdash \spvalue_0 : \mftypeF{\sptype_0}
+      \)
+    \item
+      \(\spexpr_0\) diverges
+    \item
+      \(\spexpr_0 \sprred \sperror\)
+  \end{itemize}
+\end{theorem}
+
+\begin{theorem}[Optimization Soundness]
+  If\ \(\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
+  then\ \(\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
+\end{theorem}
+
+\begin{theorem}[Optimization Effectiveness]
+  FILL how do we know optimizations are useful rather than trivial?
+  %% - length of eval(e) vs. eval(opt(e)) might be longer (good) or shorter (bad)
+  %%   for general heuristic opts.
+  %% - is [opt(e) != e] true for interesting programs?
+\end{theorem}
+
+
+\subsection{Bug Reports}
+
+While formalizing Static Python, we submitted N bug reports to the language developers.
+The developers acknowledged M of these bugs as issues to fix.
+
+
+\section{Under the Hood: Static Python Specifics}
+\label{s:impl}
+
+Purpose: explain significant gaps between the model and the implementation.
+E.g. what would the TypeScript team need to know before using our model
+to add soundness?
+
+
+\section{Evaluation}
+\label{s:eval}
+
+
+\subsection{Microbenchmarks}
+
+richards etc.
+
+
+\subsection{Production Experience}
+
+
+\section{Design Principles}
+
+\subsection{Nominal, Checked Types}
+
+CheckedDict enables strong type checks and optimizations, but is incredibly painful to use.
+It is painful even though ChkDict supports the full dict API
+(any context that uses a Python dict can use a ChkDict without code changes).
+
+The problem is that the ChkDict type rejects all Python values.
+It accepts only ChkDict values, built through a special constructor
+that installs a tag for type tests and guards writes.
+Suppose that \code{f} is an untyped dict function.
+As is, it can process ChkDict but gets no benefit from type checks nor from optimizations.
+Adding a ChkDict domain type enables optimizations within \code{f} but raises a non-local
+problem: all callers of \code{f} must be sure to create a ChkDict.
+These ChkDicts must also be monomorphic to match whatever type \code{f} chose.
+It can take many edits to get a program running again after adding a ChkDict type.
+
+Lessons:
+\begin{itemize}
+  \item
+    Nominal types are not compatible with structual values, such as Python values.
+    Programmers are forced to edit old code to use such types ... unless the recent Nom work has a better idea~\cite{mt-oopsla-2021}
+  \item
+    Monomorphic nominal types are even worse.
+    Editing old code to fit their rigid constraints may not be feasible.
+
+\end{itemize}
+
+
+
+\section{Related Work}
+\label{s:related}
+
+Nom~\cite{mt-oopsla-2017} is foundational.
+
+Full Monty(?)~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational.
+
+Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
+
+PyPy is another runtime for Python
+Pycket is built on PyPy and improves both Typed Racket~\cite{bbst-oopsla-2017}
+and Reticulated Python~\cite{vsc-dls-2019}.
+
+Type systems for Python ...
+mypy pyre pytype;
+Reticulated;
+
+Optimizing type systems for Python ...
+Reticulated;
+mypyc;
+Developer experience is one of the main advantages of \SP{} over mypyc,
+which implements type-directed optimizations for CPython
+by compiling source code to C extension modules.
+
+
+
+\section{Future Work}
+\label{s:future}
+
+Adapt SP ideas to a new setting, test performance takeaways.
+
+Improve SP with generic types, structural types (lambda), \ldots.
+
+Use confined GT to relax ChkDict ... let programmers decide whether
+the type should reject or convert untyped data.
+Maybe a ChkDict function could compile to an "overloaded" version with
+fast and slow paths for ChkDict vs normal dict.
+
+Build an automatic migration tool for Checked data.
+
+Build a static analysis that hoists transient annotations to an early, shared point.
+Take care to give quality error messages.
+
+Optimize Python integer operations (in addition to the ctypes).
+Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
+or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
+
+
+\section{Conclusion}
+\label{s:conclusion}
+
+Sound types in Static Python give programmers a way to improve performance.
+The change is not forced, not intrusive;
+programmers can keep using unsound types when working toward a deadline.
+
+Conjecture that soundness will find bugs too, and lead to more reliable products.
+Too soon to say.
+
+
+\subsection{Communication}
+
+How did we communicate effectively?
+Starting point was GT survey [CITE].
+Moved forward with example programs, see emails and github issues.
+Our formalism had to cover their unit tests.
+FILL
+
+\acks{
+  Thanks to
+   Guido van Rossom for stimulating tweets.
+  This work was partly supported by the US National Science Foundation.
+  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
+  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
+  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+}
+
+
+{\sloppy
+\printbibliography
+}
+
+%\appendix
+
+\end{document}
