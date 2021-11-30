@@ -390,12 +390,7 @@ def python_file_to_redex_compile_test(spec, prog):
 def python_file_to_redex_dynamic_test(spec, prog):
     if spec['run']:
         check = [
-            symbol('begin'),
-            [
-                symbol('expr'),
-                symbol('v')
-            ],
-            symbol('...')
+            symbol('terminate'),
         ]
     else:
         check = [
