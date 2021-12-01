@@ -110,7 +110,8 @@
    (attribute ("CheckedDict" checkable-T checkable-T) "__delitem__"))
   ;; utilities
   (v+☠ v ☠)
-  (l+☠ l ☠))
+  (l+☠ l ☠)
+  (vv [v v]))
 
 (module+ test
   (test-equal (term (alloc ()))
@@ -176,6 +177,8 @@
    (where ([x T] ...) (base-Γ))]
   [(lookup-Σ-primitive (con c))
    (obj (l-of-c c) (con c) ())]
+  [(lookup-Σ-primitive "issubclass")
+   (obj "prim" (prim-op "issubclass") ())]
   [(lookup-Σ-primitive string)
    (obj "type" (class ((ref l_sup) ...) ([x (expr (raise-error))] ...)) ([x l] ...))
    (where (class (l_sup ...) Γ ([x l] ...))
@@ -254,7 +257,56 @@
 (define-metafunction SP-dynamics
   delta : Σ l (v ...) -> [Σ e-]
   [(delta Σ (method "int" "__add__") ((ref (con number_1)) (ref (con number_2))))
-   [Σ (ref (con ,(+ (term number_1) (term number_2))))]])
+   [Σ (ref (con ,(+ (term number_1) (term number_2))))]]
+  [(delta Σ (method "dict" "__delitem__") (v ...))
+   (delta-dict-delitem Σ v ...)]
+  [(delta Σ (method "dict" "__getitem__") (v ...))
+   (delta-dict-getitem Σ v ...)]
+  [(delta Σ (method "dict" "__setitem__") (v ...))
+   (delta-dict-setitem Σ v ...)]
+  [(delta Σ "issubclass" (v ...))
+   (delta-issubclass Σ v ...)])
+(define-metafunction SP-dynamics
+  delta-dict-getitem : Σ v ... -> [Σ e-]
+  [(delta-dict-getitem Σ_0 (ref l_map) v_key)
+   [Σ_0 v_val]
+   (where (obj l_typ (dict (vv_1 ... [v_key v_val] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))]
+  [(delta-dict-getitem Σ v ...)
+   [Σ (raise-error)]])
+(define-metafunction SP-dynamics
+  delta-dict-setitem : Σ v ... -> [Σ e-]
+  [(delta-dict-setitem Σ_0 (ref l_map) v_key v_new)
+   [Σ_1 (ref (con None))]
+   (where (obj l_typ (dict (vv_1 ... [v_key v_old] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))
+   (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict (vv_1 ... [v_key v_new] vv_2 ...)) ρ)]))]
+  [(delta-dict-setitem Σ_0 (ref l_map) v_key v_val)
+   [Σ_1 (ref (con None))]
+   (where (obj l_typ (dict (vv ...)) ρ) (lookup-Σ Σ_0 l_map))
+   (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict ([v_key v_val] vv ...)) ρ)]))]
+  [(delta-dict-setitem Σ v ...)
+   [Σ (raise-error)]])
+(define-metafunction SP-dynamics
+  delta-dict-delitem : Σ v ... -> [Σ e-]
+  [(delta-dict-delitem Σ_0 (ref l_map) v_key)
+   [Σ_1 (ref (con None))]
+   (where (obj l_typ (dict (vv_1 ... [v_key v_val] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))
+   (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict (vv_1 ... vv_2 ...)) ρ)]))]
+  [(delta-dict-delitem Σ v ...)
+   [Σ (raise-error)]])
+(define-metafunction SP-dynamics
+  delta-issubclass : Σ v ... -> [Σ e-]
+  [(delta-issubclass Σ (ref l) (ref l))
+   [Σ (ref (con #t))]
+   (where (obj "type" (class ((ref l_1par)) ([x_1 s-_1] ...)) ρ_1) (lookup-Σ Σ l))]
+  [(delta-issubclass Σ (ref l_1) (ref l_2))
+   (delta-issubclass Σ (ref l_1par) (ref l_2par))
+   (where (obj "type" (class ((ref l_1par)) ([x_1 s-_1] ...)) ρ_1) (lookup-Σ Σ l_1))
+   (where (obj "type" (class ((ref l_2par)) ([x_2 s-_2] ...)) ρ_2) (lookup-Σ Σ l_2))]
+  [(delta-issubclass Σ (ref "object") (ref l))
+   [Σ (ref (con #f))]
+   (where (obj "type" (class ((ref l_1par)) ([x_1 s-_1] ...)) ρ_1) (lookup-Σ Σ l))]
+  [(delta-issubclass Σ v ...)
+   [Σ (raise-error)]])
 
 ;; TODO: We should perform some checks here. do-invoke-function shouldn't raise errors.
 (define-metafunction SP-dynamics
@@ -293,7 +345,11 @@
         ...
         s-_chk
         s-_bdy))]
-   (where (Σ_2 l_2) (alloc Σ_1 (env ([x_var ☠] ...) l_1)))])
+   (where (Σ_2 l_2) (alloc Σ_1 (env ([x_var ☠] ...) l_1)))]
+  [(do-invoke-function Σ l_env h ((ref l_arg)))
+   [Σ l_env (ref l_cls)]
+   (where h (lookup-Σ Σ "type"))
+   (where (obj l_cls g ρ) (lookup-Σ Σ l_arg))])
 
 (define-metafunction SP-dynamics
   do-attribute : mode h x -> v
@@ -448,6 +504,9 @@
         (in-hole [Σ l_env ss] (begin s- ...))
         "begin"]
    ;; reduce expression
+   [--> (in-hole [Σ l_env se] (raise-error))
+        (error)
+        "error"]
    [--> (in-hole [Σ l_env se] x)
         (in-hole [Σ l_env se] v)
         (where v (lookup-env Σ l_env x))

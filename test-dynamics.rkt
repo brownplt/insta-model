@@ -71,7 +71,7 @@
 
 ;; conformance_suite/CheckedDict_val_can_be_Optional.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) ((dict (((con "foo") (con 2)) ((con "bar") (con None))))))) (assert (compare (subscript "x" (con "bar")) ((is (con None)))))))))))
-
+|#
 ;; conformance_suite/PyDict_delete_bad_key.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "other")))))))))
 
@@ -101,7 +101,7 @@
 
 ;; conformance_suite/PyDict_update_then_lookup.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con "foo") (con 2))))) (assign (subscript "x" (con "foo")) (con 3)) (assert (compare (subscript "x" (con "foo")) ((is (con 3)))))))))))
-|#
+
 ;; conformance_suite/bool_is_inhabitable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "bool" (con #t))))))))
 
