@@ -133,6 +133,14 @@ Procedures check return types.
 
 - [procedure_check_return_type_dynamically.py](conformance_suite/procedure_check_return_type_dynamically.py)
 
+There is only one function type. It is shared by `def`s and `lambda`s
+
+- [defs_and_lambdas_are_of_the_function_class.py](conformance_suite/defs_and_lambdas_are_of_the_function_class.py)
+
+Programmers can not subclass from the function class.
+
+- [the_function_class_is_not_subclassable.py](conformance_suite/the_function_class_is_not_subclassable.py)
+
 ## Optional types
 
 TODO
