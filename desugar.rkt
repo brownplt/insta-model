@@ -285,8 +285,8 @@
    (desugar-delete e+)]
   [(desugar-s (ann-assign e+_dst e+_ann))
    (desugar-ann e+_dst (desugar-t e+_ann))]
-  [(desugar-s (ann-assign e+_dst e+_ann e+_src))
-   (desugar-ann-assign e+_dst (desugar-t e+_ann) (desugar-e e+_src))]
+  [(desugar-s (ann-assign e+_dst t+_ann e+_src))
+   (desugar-ann-assign e+_dst (desugar-t t+_ann) (desugar-e e+_src))]
   [(desugar-s (assign e+_dst e+_src))
    (desugar-ann-assign e+_dst dynamic (desugar-e e+_src))]
   [(desugar-s (aug-assign e+_dst o2 e+_src))

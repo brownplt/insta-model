@@ -400,6 +400,29 @@
    -----------------
    (Ψ⊢T<:T Ψ T_src T_dst)])
 
+(define-metafunction SP-compiled
+  intersection : Ψ T T -> T+☠
+  [(intersection Ψ T_1 T_2)
+   T_1
+   (judgment-holds (Ψ⊢T<:T Ψ T_1 T_2))]
+  [(intersection Ψ T_1 T_2)
+   T_2
+   (judgment-holds (Ψ⊢T<:T Ψ T_2 T_1))]
+  [(intersection Ψ (Optional T_1) (Optional T_2))
+   (subof "NoneType")]
+  [(intersection Ψ T_1 T_2) ☠])
+
+(module+ test
+  (test-equal (term (remove-None (Optional "int")))
+              (term (instancesof "int")))
+  (test-equal (term (remove-None (instancesof "int")))
+              (term (instancesof "int"))))
+(define-metafunction SP-compiled
+  remove-None : T -> T
+  [(remove-None (Optional T)) T]
+  ;[(remove-None (subof "NoneType")) dynamic]  ;; If we want to be pedantic, should be bottom
+  [(remove-None T) T])
+
 (module+ test
   (test-equal (term (lookup-method-T (base-Ψ) "bool" "__add__"))
               (term (-> (dynamic (subof "int")) (subof "int")))))
@@ -814,8 +837,10 @@
    (begin)]
   ;; ann-assign x, annotations are ignored
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann-assign x t e))
-   (assign x e-)
-   (where [e- T_lcl] (compile-e Ψ Γ_dcl Γ_lcl e))]
+   (assign x (maybe-cast Ψ [e- T_src] T_dst))
+   (where [e- T_src] (compile-e Ψ Γ_dcl Γ_lcl e))
+   (where T_dcl (lookup Γ_dcl x))
+   (where T_dst (intersection Ψ T_src T_dcl))]
   ;; ann-assign attribute, the annotation (t) is ignored
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann-assign (attribute e x) t e_src))
    (assign (attribute mode e- x) (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_src) T))
