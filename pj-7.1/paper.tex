@@ -1,4 +1,4 @@
-\documentclass[english,submission]{programming}
+\documentclass[english,cleveref,submission]{programming}
 
 %% Thesis:
 %%  the addition of sound nominal types to an optionally-typed codebase
@@ -37,7 +37,8 @@
 \newcommand{\sptfun}[2]{#1 \rightarrow #2}
 \newcommand{\sptunion}[2]{#1 \cup #2}
 \newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
-\newcommand{\sptpydict}[2]{\paramtype{\typefont{PyDict}}{#1, #2}}
+\newcommand{\sptrawpydict}{\typefont{PyDict}}
+\newcommand{\sptpydict}[2]{\paramtype{\sptrawpydict}{#1, #2}}
 \newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
 
 \newcommand{\spexpr}{e}
@@ -64,7 +65,7 @@
 \makeatother
 %% END
 
-\usepackage{cleveref}
+%\usepackage{cleveref}
 \usepackage{amsthm}
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
@@ -92,8 +93,7 @@
 \author[a]{Shriram Krishnamurthi}
 \authorinfo{(\email{shriram@brown.edu}) is the Vice President of Programming Languages (no, not really) at Brown University.}
 
-\authorrunning{K-C. Lu, B. Greenman, C. Meyer, D. Viehland, S. Krishnamurthi}
-%TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
+%\authorrunning{K-C. Lu, B. Greenman, C. Meyer, D. Viehland, S. Krishnamurthi}
 
 \keywords{gradual typing, migratory typing}
 
@@ -169,7 +169,7 @@ the types are sound no matter how the untyped code behaves.
 Unfortunately, the high run-time cost of sound types has split
 the gradual typing community.
 Industry teams have developed innovative type systems that accommodate
-untyped designs, but these systems are all unsound [CITE].
+untyped designs, but are unsound [CITE].
 These systems intentionally check nothing at run-time when untyped values enter
 typed code.
 Academic teams have primarily focused on the theory of sound
@@ -177,38 +177,47 @@ gradual types, formulating correctness properties and studying ever-more-descrip
 A few academics have studied the cost of run-time checks
 in detail [CITE] and proposed implementation methods [CITE],
 compiler technology [CITE],
-and even weakened semantics [CITE], but none of these efforts
-decisively close the performance gap.
+and even weakened semantics [CITE], but these efforts have not yet
+decisively closed the performance gap.
 The most promising attempt is the \emph{concrete} semantics
 for gradual types [CITE kafka nom etc], but its low performance
 overhead stems from severe restrictions on untyped code.
-These restrictions may not be acceptable to the maintainers of a
-working untyped codebase.
-Indeed, the maintainers might prefer to re-implement their system
-in a typed language, as Dropbox recently did with its core sync
-engine.\footnote{\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}}
+%% In other words, concrete types impose low performance costs
+%% but high migration costs.
+%% ... you can have any color as long as it's black -h.ford
+%% ... concrete expresses few programs, but runs them all nicely
+Whether developers can accept these restrictions is unclear;
+indeed, they may prefer a whole-sale migration over an awkward
+gradual transition.\footnote{Successful migrations of untyped codebases
+to a typed language are rare, but not unheard of.
+Twitter ported its server-side code from Ruby to Scala
+and Dropbox moved its core sync engine from Python mypy to Rust: see
+\shorturl{http://www.}{artima.com/scalazine/articles/twitter\_on\_scala.html} and
+\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}.}
 
 In short, academic researchers are working to close the performance gap
 without overly restricting the promise of gradual typing.
 Industry researchers are sidestepping the problem with unsound types---for the most part.
 
 This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
-The \SP{} team at Instagram has developed a sound type system for a subset of
-Python along with a runtime system designed to
-capitalize on the benefits of sound types.
-The language design is a variation of concrete types that lets programmers
-begin with shallow claims about data structures and gradually opt in to deeper soundness.
-Remarkably, the performance of Python is an upper bound on the observed performance of
-Static Python.
+The \SP{} team at Instagram has developed a \emph{sound} type system for a subset of
+Python along with a runtime system that uses soundness to drive optimizations.
+The language design is a variation of concrete types that eases its restrictions.
+Instead of asking programmers to migrate from untyped code to sound concrete types
+in one leap, \SP{} offers an intermediate step via shallow types that enforce
+only the top-level shape of values.
+Programmers can begin with shallow claims and gradually dial up soundness.
+On a suite of benchmarks and production modules, Static Python out-performs untyped
+Python across the board.
 
 
 \paragraph*{Contributions}
 
 \begin{itemize}
   \item
-    Evidence that gradual soundness delivers fast performance incrementally,
-    as programmers migrate to sound types.
-    \SP{} can be applied to a codebase with no refactoring and no performance overhead.
+    Evidence that gradual soundness delivers Python-level performance at a low migration cost
+    and faster performance as programmers gradually incorporate sound types.
+    \SP{} can be applied to a codebase with no refactoring and marginal performance overhead.
     After refactoring to sound types, \SP{} performs well on a microbenchmark
     suite and in production.
   \item
@@ -217,7 +226,7 @@ Static Python.
     Soundness is not uniform across all types.
     Some are fully sound while others are constructor sound.
   \item
-    In-depth discussions of the expressiveness limitations in \SP{} relative to
+    Discussions of the expressiveness limitations in \SP{} relative to
     idealized gradual type systems, and the programming discipline that Instagram
     follows in their gradually-sound codebase.
 \end{itemize}
@@ -227,12 +236,11 @@ Static Python.
 
 We have written this paper with two audiences in mind.
 First, we want to encourage system-builders to reproduce the
-\SP{} language design in another context and measure performance.
-Second, we want to lend focus to theoretical research on gradual typing.
-The restrictions that \SP{} adopts
-may be worthwhile assumptions for theory going forward.
-On the flip side, future research may find a way to lift some of
-the restrictions currently in \SP{}.
+\SP{} language design in another context and measure its performance.
+Second, we want to lend focus to researchers.
+Some of the restrictions that \SP{} adopts may be useful for
+other languages.
+Other restrictions might be lifted by future research.
 
 
 \section{\SP{} and the Cinder JIT}
@@ -323,12 +331,12 @@ include a few run-time casts:
 \begin{itemize}
   \item
     The function \code{f} must check that its arguments match the \code{PyDict} domain annotation.
-    Concretely, this check accepts any Python dictionary.
+    \SP{} inserts a check that accepts any Python dictionary.
   \item
-    Because the domain check does not validate the contents of an incoming dictionary,
+    Because the domain check does not validate the elements of an incoming dictionary,
     the dict access (\code{x["A"]}) must check that its result matches the function codomain.
 \end{itemize}
-These checks ensure a \emph{shape-level} notion of type soundness~(\cite{s:model}).
+These checks ensure a \emph{shape-level} notion of type soundness~(\cref{s:model}).
 In short: if an expression has type \code{T} and reduces to a value, then the value
 matches the top-level constructor, or shape, of the type.
 The shape for a Python dictionary is merely \code{dict}.
@@ -338,8 +346,8 @@ type that predicts the keys and values in a special kind of dictionary.
 Thanks to these checks, \SP{} can leverage type soundness to generate efficient code.
 Because the call to \code{f} in \cref{fig:sp-example} appears in typed code,
 there is no need to check that it sends type-correct inputs.
-Thus, the compiled call uses a Cinder bytecode instruction to skip past the
-domain check and immediately enter the function body.
+Thus, the compiled call is optimized to use a Cinder bytecode instruction
+that skips the domain check and immediately enters the function body.
 
 The checks and optimizations in this example illustrate the general balancing act
 of \SP{}.
@@ -348,6 +356,9 @@ The gamble is that the optizations help more that the checks hurt.
 
 
 \subsection{Type System Highlights}
+
+[FILL]
+
 
 \subsubsection{Type Dynamic}
 
@@ -367,7 +378,7 @@ and primitives are incompatible with Dynamic.
 Dynamic behavior is always (?) the same as normal Python.
 
 
-\subsubsection{Checked Types}
+\subsubsection{Checked Types and Shallow Types}
 
 %% more to say about the style of migration in SP?
 [FILL]
@@ -386,10 +397,41 @@ Programmers have to trace the annotation back to value-creation points, and then
 ensure that all uses of those values are compatible.
 
 
+\subsubsection{Mixed-Typed Class Hierarchies}
+
+[FILL]
+
+Typed classes can inherit from untyped classes.
+Untyped classes can inherit from typed classes.
+
+Interesting, because StrongScript disallowed.
+(But Nom allowed right?! Maybe allowed in a funny way, possibly to support their Dyn.)
+
+
+
+\subsubsection{Types for Python}
+
+[FILL]
+
+Which types accommodate Python code? Which from PEP typing etc.
+
+Surprisingly Unions are static only.
+Except for unions to false because those are so common.
+
+
+\subsubsection{Other}
+
+More notes and surprises:
+
+\begin{itemize}
+  \item
+    Optional(T) is the only union. Others turn into Dynamic.
+  \item
+    TBD
+\end{itemize}
+
 
 \subsubsection{Restrictions}
-
-OO restrictions:
 
 \begin{itemize}
   \item \textbf{First-order Typed Classes}.
@@ -609,7 +651,7 @@ A strict module is 100\% repeatable and isolated from the side effects of other 
     \mftypeF{\sptype_0}
     \mfeq
     \left\{\begin{array}{ll}
-      \sptpydict{}{} & \mbox{if $\sptype_0 = \sptpydict{\sptclass}{\sptclass}$}
+      \sptrawpydict & \mbox{if $\sptype_0 = \sptpydict{\sptclass}{\sptclass}$}
     \\
       \sptype_0 & \mbox{otherwise}
     \end{array}\right.
@@ -623,7 +665,7 @@ A strict module is 100\% repeatable and isolated from the side effects of other 
 \subsection{Properties}
 
 \begin{theorem}[Type Soundness]
-  If\ \(\vdash \spexpr_0 : \sptype_0\)
+  If\ \(~\vdash \spexpr_0 : \sptype_0\)
   then one of the following holds:
   \begin{itemize}
     \item
@@ -639,22 +681,26 @@ A strict module is 100\% repeatable and isolated from the side effects of other 
 \end{theorem}
 
 \begin{theorem}[Optimization Soundness]
-  If\ \(\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
-  then\ \(\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
+  If\ \(~\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
+  then\ \(~\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
 \end{theorem}
 
-\begin{theorem}[Optimization Effectiveness]
-  FILL how do we know optimizations are useful rather than trivial?
-  %% - length of eval(e) vs. eval(opt(e)) might be longer (good) or shorter (bad)
-  %%   for general heuristic opts.
-  %% - is [opt(e) != e] true for interesting programs?
-\end{theorem}
+%\begin{theorem}[Optimization Effectiveness]
+%  FILL how do we know optimizations are useful rather than trivial?
+%  %% - length of eval(e) vs. eval(opt(e)) might be longer (good) or shorter (bad)
+%  %%   for general heuristic opts.
+%  %% - is [opt(e) != e] true for interesting programs?
+%\end{theorem}
 
 
 \subsection{Bug Reports}
 
 While formalizing Static Python, we submitted N bug reports to the language developers.
 The developers acknowledged M of these bugs as issues to fix.
+
+\begin{center}
+  \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024}
+\end{center}
 
 
 \section{Under the Hood: Static Python Specifics}
@@ -711,9 +757,9 @@ Lessons:
 \section{Related Work}
 \label{s:related}
 
-Nom~\cite{mt-oopsla-2017} is foundational.
+Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021} are foundational.
 
-Full Monty(?)~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational.
+Full Monty~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational for us.
 
 Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
 
@@ -775,14 +821,14 @@ Moved forward with example programs, see emails and github issues.
 Our formalism had to cover their unit tests.
 FILL
 
-\acks{
-  Thanks to
-   Guido van Rossom for stimulating tweets.
-  This work was partly supported by the US National Science Foundation.
-  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
-  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
-  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-}
+%\acks{
+%  Thanks to
+%  Guido van Rossum for stimulating tweets.
+%  This work was partly supported by the US National Science Foundation.
+%  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
+%  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
+%  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+%}
 
 
 {\sloppy
