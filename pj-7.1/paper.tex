@@ -223,8 +223,8 @@ Python across the board.
   \item
     A formal description of the \SP{} core language and an analysis of its soundness
     and optimizations.
-    Soundness is not uniform across all types.
-    Some are fully sound while others are constructor sound.
+    Soundness is gradual in the sense that some types are fully sound and others validate
+    only top-level shapes.
   \item
     Discussions of the expressiveness limitations in \SP{} relative to
     idealized gradual type systems, and the programming discipline that Instagram
@@ -593,20 +593,24 @@ appropriate conversions.
 
 \subsection{Goals and Limitations}
 
-The designers of Static Python hope to eventually build a system that is sound for arbitrary Python code,
-but are not there yet.
-The known side channels include:
-eval, the locals and globals dicts (the latter can be accessed through frame objects at the moment),
-and mutable closure cells.
-Our model does not cover these either.
-We essentially ban all these features, rejecting any program in which they appear.
-Code mining in JS (and perhaps the newer R work?) suggests that at least eval
-uses can be rewritten without too much pain. The few exceptions would point
-to language weaknesses / call for new semantically-descriptive features.
+Our model of \SP{} includes the key aspects of its types,
+statements, and values.
+There are two main goals:
+illustrate the boundaries where typed and untyped code can mix,
+and to show how to soundly protect these boundaries.
+Compared to other gradual languages, these boundaries are quite restrictive---which
+partly explains \SP{} performance~(\cref{s:eval}).
+Indeed the model is nearly a subset of model for Nom~\cite{mt-oopsla-2021},
+hence we focus on explaining the gaps and omit formal proofs.
 
-FILL do we stop at strict modules?\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
-A strict module is 100\% repeatable and isolated from the side effects of other modules.
-
+The model intentionally does not cover all of Python.
+Some aspects of \SP{} are left out because they are straightforward to
+handle soundly (FILL examples ... while loop?);
+omitting these lets us focus on the difficult corners.
+Other Python features are left out because \SP{} does not ascribe types
+to them.
+These include \code{eval}, first-class classes, and module-level cells;
+see \cref{s:impl} for further discussion.
 
 
 \subsection{Surface Language}
@@ -706,9 +710,87 @@ The developers acknowledged M of these bugs as issues to fix.
 \section{Under the Hood: Static Python Specifics}
 \label{s:impl}
 
+%% SP side channels:
+%% eval,
+%% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
+%% and mutable closure cells.
+
 Purpose: explain significant gaps between the model and the implementation.
 E.g. what would the TypeScript team need to know before using our model
 to add soundness?
+
+\subsection{Dynamic Python Features}
+
+\SP{} does not ascribe types to the following Python features.
+These are not covered in our model because the implementation simply
+gives them the dynamic type and lets the runtime treat them as untyped
+Python code.
+For each one, the dynamic type is a reasonable choice; static types are
+likely to cause more trouble than helpful structure.
+
+
+\paragraph{First-Class Classes}
+
+\SP{} does not attempt to type first-class classes:
+partly because they see little use at Instagram (FILL how much?)
+and partly because it is unclear how to incorporate them into
+the nominal type system.
+The straightforward but restrictive approach is to force code
+that uses a first-class class to expect instances of a particular
+static class.
+FILL is the bracha cook mixin pattern a way to work within nominal~\cite{bc-oopsla-1990}?
+\cite{fkf-popl-1998} propose a different method that accommodates mixins,
+but the method calls a second layer of interface types.
+\cite{mt-oopsla-2021} similarly allow structural objects with interfaces.
+Adding these layers to \SP{} is an open question; in particular,
+prior work does not handle multiple inheritance.
+
+%First-class classes are untyped
+%(good discussion here:
+%- mixin based tends to structrural types
+%- nominality overly restrictive, get forced into <: hierarchy
+%- but don't have NO IDEA for wat to do
+%  + classes and mixins paper shows one idea,
+%    ... need complicated mixin study??? (many sub objects)
+%    built new type system to be mixin-aware, layered atop java
+%    unsure if such extension works for SP
+%    furthermor, class-and-mixins depends on Java single inheritance
+%  + bracha cook mixin pattern
+%  + tate muehlboeck structural object + interfaces
+
+
+\paragraph{Dynamic Execution}
+%% TODO is eval a side channel, or safe?
+%% TODO check that eval/exec args really are unoptimized / sound etc.
+Results computed by calls to \code{eval} and \code{exec}
+have the dynamic type.
+Their inputs run without being rewritten
+by the optimizer.
+
+Studies of JavaScript and R have shown that many uses of dynamic execution
+can be removed through simple adjustments~\cite{rhbv-ecoop-2011,gdkkv-oopsla-2021,mrmv-esop-2012}.
+Assuming these findings carry over to Python, we recommend either similar
+adjustments or the introduction of semantically-descriptive replacements
+over attempting to type eval.
+
+
+\paragraph{Module-Level Variables}
+
+Any Python module can read and write to the module-level variables of another module.
+When compiling a module, \SP{} therefore assumes that its module-level variables
+may be modified by untyped code and assigns the dynamic type.
+
+Cinder offers \emph{strict modules} as an alternative to the Python
+semantics.\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
+If a programmer chooses to declare a module as strict, then its module-level varibles
+are immutable and thus typeable.
+
+Another potential solution is for the Cinder runtime to check that writes to module-level variables
+preserve their types.
+There are two downsides to this idea:
+it will add some performance overhead,
+and it will force developers to rewrite untyped code in order to fix any errors that arise.
+%% Because of the latter concern, type dynamic is a very reasonable default.
 
 
 \section{Evaluation}
