@@ -1,5 +1,6 @@
 import ast
 import asyncio
+import builtins
 import dis
 import gc
 import inspect
@@ -13,10 +14,10 @@ import warnings
 from array import array
 from collections import UserDict
 from compiler.consts import CO_SHADOW_FRAME, CO_STATICALLY_COMPILED
+from compiler.errors import CollectingErrorSink
 from compiler.pycodegen import PythonCodeGenerator, make_compiler
 from compiler.static import StaticCodeGenerator
 from compiler.static.compiler import Compiler
-from compiler.static.errors import CollectingErrorSink
 from compiler.static.types import (
     prim_name_to_type,
     AWAITABLE_TYPE,
@@ -108,6 +109,7 @@ from compiler.static.types import (
 )
 from compiler.strict.common import FIXED_MODULES
 from compiler.strict.runtime import set_freeze_enabled
+from compiler.symbols import SymbolVisitor, CinderSymbolVisitor
 from contextlib import contextmanager
 from copy import deepcopy
 from io import StringIO
@@ -216,7 +218,7 @@ def init_xxclassloader():
     tree = ast.parse(inspect.cleandoc(codestr))
     tree = comp.add_module("xxclassloader", "", tree, optimize=0)
     code = comp.compile("xxclassloader", "", tree, optimize=0)
-    d = {}
+    d = {"<builtins>": builtins.__dict__}
     add_fixed_module(d)
     exec(code, d, d)
 
@@ -1946,7 +1948,7 @@ class StaticCompilationTests(StaticTestBase):
             f = mod.f
             with self.assertRaisesRegex(
                 TypeError,
-                "(expected int, bool or float, got str)|(an integer is required)",
+                "(expected int, enum, bool or float, got str)|(an integer is required)",
             ):
                 f()
 
@@ -1964,7 +1966,7 @@ class StaticCompilationTests(StaticTestBase):
             self.assertInBytecode(f, "PRIMITIVE_UNBOX")
             with self.assertRaisesRegex(
                 TypeError,
-                "(expected int, bool or float, got str)|(an integer is required)",
+                "(expected int, enum, bool or float, got str)|(an integer is required)",
             ):
                 self.assertEqual(f("abc"), 42)
 
@@ -2685,8 +2687,7 @@ class StaticCompilationTests(StaticTestBase):
         """
         with self.in_module(code) as mod:
             f = mod.f
-            gen_code = [x for x in f.__code__.co_consts if isinstance(x, CodeType)][0]
-            self.assertInBytecode(gen_code, "POP_JUMP_IF_ZERO")
+            self.assertInBytecode(f.__code__, "POP_JUMP_IF_ZERO")
             self.assertEqual(f([1, 2, 3]), [])
 
     def test_generator_primitive_iter(self):
@@ -2987,6 +2988,18 @@ class StaticCompilationTests(StaticTestBase):
         """
         self.compile_strict(code)
 
+    def test_strict_module_mutable(self):
+        code = """
+            from __strict__ import mutable
+
+            @mutable
+            class C:
+                def __init__(self, x):
+                    self.x = 1
+        """
+        with self.in_module(code) as mod:
+            self.assertInBytecode(mod.C.__init__, "STORE_FIELD")
+
     def test_cross_module_inheritance(self) -> None:
         acode = """
             class C:
@@ -3075,6 +3088,30 @@ class StaticCompilationTests(StaticTestBase):
             C = mod.C
             x = C()
             self.assertFalse(gc.is_tracked(x))
+
+    def test_invoke_base_inited(self):
+        """when the base class v-table is initialized before a derived
+        class we still have a properly initialized v-table for the
+        derived type"""
+
+        codestr = """
+            class B:
+                def f(self):
+                    return 42
+
+            X = B().f()
+
+            class D(B):
+                def g(self):
+                    return 100
+
+            def g(x: D):
+                return x.g()
+        """
+        with self.in_module(codestr) as mod:
+            self.assertEqual(mod.X, 42)
+            d = mod.D()
+            self.assertEqual(mod.g(d), 100)
 
     def test_invoke_explicit_slots(self):
         codestr = """
@@ -8021,7 +8058,7 @@ class StaticCompilationTests(StaticTestBase):
             x = test()
             self.assertInBytecode(
                 test,
-                "INVOKE_METHOD",
+                "INVOKE_FUNCTION",
                 (
                     (
                         "__static__",
@@ -8029,7 +8066,7 @@ class StaticCompilationTests(StaticTestBase):
                         (("builtins", "int"), ("builtins", "str")),
                         "__setitem__",
                     ),
-                    2,
+                    3,
                 ),
             )
             self.assertEqual(x, {1: "abc", 2: "def"})
@@ -8641,8 +8678,8 @@ class StaticCompilationTests(StaticTestBase):
             coro = D().g()
             try:
                 coro.send(None)
-            except StopIteration as e:
-                self.assertEqual(e.args[0], 100)
+            except RuntimeError as e:
+                self.assertEqual(e.__cause__.args[0], 100)
             loop.close()
 
     def test_async_method_throw_incorrect_type(self):
@@ -9228,7 +9265,7 @@ class StaticCompilationTests(StaticTestBase):
         ]
         tf = [True, False]
         for (type, val), box, strict, error, unjitable in itertools.product(
-            cases, [False], [True], [False], [True]
+            cases, tf, tf, tf, tf
         ):
             if type == "cbool":
                 op = "or"
@@ -10414,7 +10451,8 @@ class StaticCompilationTests(StaticTestBase):
 
         with self.in_module(codestr) as mod:
             f = mod.fn
-            self.assertInBytecode(f, "CALL_FUNCTION")
+            self.assertNotInBytecode(f, "TP_ALLOC")
+            self.assertEqual(f().c, 1)
 
 
 class StaticRuntimeTests(StaticTestBase):
@@ -11106,387 +11144,6 @@ class StaticRuntimeTests(StaticTestBase):
             self.make_async_func_hot(mod.f)
             asyncio.run(mod.f())
 
-    def test_load_iterable_arg(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def y() -> int:
-            p = ("hi", 0.1, 0.2)
-            return x(1, 3, *p)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 0)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 1)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 2)
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertEqual(y_callable(), 7)
-
-    def test_load_iterable_arg_default_overridden(self):
-        codestr = """
-            def x(a: int, b: int, c: str, d: float = 10.1, e: float = 20.1) -> bool:
-                return bool(
-                    a == 1
-                    and b == 3
-                    and c == "hi"
-                    and d == 0.1
-                    and e == 0.2
-                )
-
-            def y() -> bool:
-                p = ("hi", 0.1, 0.2)
-                return x(1, 3, *p)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG", 3)
-        self.assertNotInBytecode(y, "LOAD_MAPPING_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertTrue(y_callable())
-
-    def test_load_iterable_arg_multi_star(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def y() -> int:
-            p = (1, 3)
-            q = ("hi", 0.1, 0.2)
-            return x(*p, *q)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        # we should fallback to the normal Python compiler for this
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG")
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertEqual(y_callable(), 7)
-
-    def test_load_iterable_arg_star_not_last(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def y() -> int:
-            p = (1, 3, 'abc', 0.1)
-            return x(*p, 1.0)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        # we should fallback to the normal Python compiler for this
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG")
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertEqual(y_callable(), 7)
-
-    def test_load_iterable_arg_failure(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def y() -> int:
-            p = ("hi", 0.1)
-            return x(1, 3, *p)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 0)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 1)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 2)
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            with self.assertRaises(IndexError):
-                y_callable()
-
-    def test_load_iterable_arg_sequence(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def y() -> int:
-            p = ["hi", 0.1, 0.2]
-            return x(1, 3, *p)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 0)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 1)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 2)
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertEqual(y_callable(), 7)
-
-    def test_load_iterable_arg_sequence_1(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def gen():
-            for i in ["hi", 0.05, 0.2]:
-                yield i
-
-        def y() -> int:
-            g = gen()
-            return x(1, 3, *g)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 0)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 1)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 2)
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertEqual(y_callable(), 7)
-
-    def test_load_iterable_arg_sequence_failure(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float, e: float) -> int:
-            return 7
-
-        def y() -> int:
-            p = ["hi", 0.1]
-            return x(1, 3, *p)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 0)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 1)
-        self.assertInBytecode(y, "LOAD_ITERABLE_ARG", 2)
-        self.assertNotInBytecode(y, "LOAD_ITERABLE_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            with self.assertRaises(IndexError):
-                y_callable()
-
-    def test_load_mapping_arg(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=-0.1, e: float=1.1, f: str="something") -> bool:
-            return bool(f == "yo" and d == 1.0 and e == 1.1)
-
-        def y() -> bool:
-            d = {"d": 1.0}
-            return x(1, 3, "hi", f="yo", **d)
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_MAPPING_ARG", 3)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertTrue(y_callable())
-
-    def test_load_mapping_and_iterable_args_failure_1(self):
-        """
-        Fails because we don't supply enough positional args
-        """
-
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=2.2, e: float=1.1, f: str="something") -> bool:
-            return bool(a == 1 and b == 3 and f == "yo" and d == 2.2 and e == 1.1)
-
-        def y() -> bool:
-            return x(1, 3, f="yo")
-        """
-        with self.assertRaisesRegex(
-            SyntaxError, "Function foo.x expects a value for argument c"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_load_mapping_arg_failure(self):
-        """
-        Fails because we supply an extra kwarg
-        """
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=2.2, e: float=1.1, f: str="something") -> bool:
-            return bool(a == 1 and b == 3 and f == "yo" and d == 2.2 and e == 1.1)
-
-        def y() -> bool:
-            return x(1, 3, "hi", f="yo", g="lol")
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError,
-            "Given argument g does not exist in the definition of foo.x",
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_load_mapping_arg_custom_class(self):
-        """
-        Fails because we supply a custom class for the mapped args, instead of a dict
-        """
-        codestr = """
-        def x(a: int, b: int, c: str="hello") -> bool:
-            return bool(a == 1 and b == 3 and c == "hello")
-
-        class C:
-            def __getitem__(self, key: str) -> str:
-                if key == "c":
-                    return "hi"
-
-            def keys(self):
-                return ["c"]
-
-        def y() -> bool:
-            return x(1, 3, **C())
-        """
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            with self.assertRaisesRegex(
-                TypeError, r"argument after \*\* must be a dict, not C"
-            ):
-                self.assertTrue(y_callable())
-
-    def test_load_mapping_arg_use_defaults(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=-0.1, e: float=1.1, f: str="something") -> bool:
-            return bool(f == "yo" and d == -0.1 and e == 1.1)
-
-        def y() -> bool:
-            d = {"d": 1.0}
-            return x(1, 3, "hi", f="yo")
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "LOAD_CONST", 1.1)
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertTrue(y_callable())
-
-    def test_default_arg_non_const(self):
-        codestr = """
-        class C: pass
-        def x(val=C()) -> C:
-            return val
-
-        def f() -> C:
-            return x()
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertInBytecode(f, "CALL_FUNCTION")
-
-    def test_default_arg_non_const_kw_provided(self):
-        codestr = """
-        class C: pass
-        def x(val:object=C()):
-            return val
-
-        def f():
-            return x(val=42)
-        """
-
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertEqual(f(), 42)
-
-    def test_load_mapping_arg_order(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=-0.1, e: float=1.1, f: str="something") -> bool:
-            return bool(
-                a == 1
-                and b == 3
-                and c == "hi"
-                and d == 1.1
-                and e == 3.3
-                and f == "hmm"
-            )
-
-        stuff = []
-        def q() -> float:
-            stuff.append("q")
-            return 1.1
-
-        def r() -> float:
-            stuff.append("r")
-            return 3.3
-
-        def s() -> str:
-            stuff.append("s")
-            return "hmm"
-
-        def y() -> bool:
-            return x(1, 3, "hi", f=s(), d=q(), e=r())
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "STORE_FAST", "_pystatic_.0._tmp__d")
-        self.assertInBytecode(y, "LOAD_FAST", "_pystatic_.0._tmp__d")
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertTrue(y_callable())
-            self.assertEqual(["s", "q", "r"], mod.stuff)
-
-    def test_load_mapping_arg_order_with_variadic_kw_args(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=-0.1, e: float=1.1, f: str="something", g: str="look-here") -> bool:
-            return bool(
-                a == 1
-                and b == 3
-                and c == "hi"
-                and d == 1.1
-                and e == 3.3
-                and f == "hmm"
-                and g == "overridden"
-            )
-
-        stuff = []
-        def q() -> float:
-            stuff.append("q")
-            return 1.1
-
-        def r() -> float:
-            stuff.append("r")
-            return 3.3
-
-        def s() -> str:
-            stuff.append("s")
-            return "hmm"
-
-        def y() -> bool:
-            kw = {"g": "overridden"}
-            return x(1, 3, "hi", f=s(), **kw, d=q(), e=r())
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertInBytecode(y, "STORE_FAST", "_pystatic_.0._tmp__d")
-        self.assertInBytecode(y, "LOAD_FAST", "_pystatic_.0._tmp__d")
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertTrue(y_callable())
-            self.assertEqual(["s", "q", "r"], mod.stuff)
-
-    def test_load_mapping_arg_order_with_variadic_kw_args_one_positional(self):
-        codestr = """
-        def x(a: int, b: int, c: str, d: float=-0.1, e: float=1.1, f: str="something", g: str="look-here") -> bool:
-            return bool(
-                a == 1
-                and b == 3
-                and c == "hi"
-                and d == 1.1
-                and e == 3.3
-                and f == "hmm"
-                and g == "overridden"
-            )
-
-        stuff = []
-        def q() -> float:
-            stuff.append("q")
-            return 1.1
-
-        def r() -> float:
-            stuff.append("r")
-            return 3.3
-
-        def s() -> str:
-            stuff.append("s")
-            return "hmm"
-
-
-        def y() -> bool:
-            kw = {"g": "overridden"}
-            return x(1, 3, "hi", 1.1, f=s(), **kw, e=r())
-        """
-        y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-        self.assertNotInBytecode(y, "STORE_FAST", "_pystatic_.0._tmp__d")
-        self.assertNotInBytecode(y, "LOAD_FAST", "_pystatic_.0._tmp__d")
-        with self.in_module(codestr) as mod:
-            y_callable = mod.y
-            self.assertTrue(y_callable())
-            self.assertEqual(["s", "r"], mod.stuff)
-
     def test_vector_generics(self):
         T = TypeVar("T")
         VT = Vector[T]
@@ -11595,7 +11252,7 @@ class StaticRuntimeTests(StaticTestBase):
         self.assertTrue(issubclass(Array[int64], Array[int64]))
         self.assertFalse(issubclass(Array[int64], Array[int32]))
 
-    def test_array_weird_type_constrution(self):
+    def test_array_weird_type_construction(self):
         self.assertIs(
             Array[int64],
             Array[
@@ -12197,6 +11854,23 @@ class StaticRuntimeTests(StaticTestBase):
             actual = m()
             self.assertEqual(actual, 111)
 
+    def test_array_get_dynamic_idx(self):
+        codestr = """
+            from __static__ import Array, int8, box
+
+            def x():
+                return 33
+
+            def m() -> int:
+                content = list(range(121))
+                a = Array[int8](content)
+                return box(a[x()])
+        """
+        with self.in_module(codestr) as mod:
+            m = mod.m
+            actual = m()
+            self.assertEqual(actual, 33)
+
     def test_array_get_failure(self):
         codestr = """
             from __static__ import Array, int8, box
@@ -12363,6 +12037,47 @@ class StaticRuntimeTests(StaticTestBase):
             m = mod.m
             with self.assertRaisesRegex(TypeError, "array indices must be integers"):
                 m()
+
+    def test_array_set_success_dynamic_subscript(self):
+        codestr = """
+            from __static__ import Array, int8
+
+            def x():
+                return 1
+
+            def m() -> Array[int8]:
+                a = Array[int8]([1, 3, -5])
+                a[x()] = 37
+                return a
+        """
+        c = self.compile(codestr, modname="foo.py")
+        m = self.find_code(c, "m")
+        self.assertInBytecode(m, "PRIMITIVE_LOAD_CONST", (37, TYPED_INT8))
+        with self.in_module(codestr) as mod:
+            m = mod.m
+            r = m()
+            self.assertEqual(r, array("b", [1, 37, -5]))
+
+    def test_array_set_success_dynamic_subscript_2(self):
+        codestr = """
+            from __static__ import Array, int8
+
+            def x():
+                return 1
+
+            def m() -> Array[int8]:
+                a = Array[int8]([1, 3, -5])
+                v: int8 = 37
+                a[x()] = v
+                return a
+        """
+        c = self.compile(codestr, modname="foo.py")
+        m = self.find_code(c, "m")
+        self.assertInBytecode(m, "PRIMITIVE_LOAD_CONST", (37, TYPED_INT8))
+        with self.in_module(codestr) as mod:
+            m = mod.m
+            r = m()
+            self.assertEqual(r, array("b", [1, 37, -5]))
 
     def test_fast_len_list(self):
         codestr = """

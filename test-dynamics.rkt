@@ -72,6 +72,7 @@
 ;; conformance_suite/CheckedDict_val_can_be_Optional.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) ((dict (((con "foo") (con 2)) ((con "bar") (con None))))))) (assert (compare (subscript "x" (con "bar")) ((is (con None)))))))))))
 |#
+
 ;; conformance_suite/PyDict_delete_bad_key.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "other")))))))))
 
@@ -119,9 +120,11 @@
 
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "int" (con 42))))))))
+
 #|
 ;; conformance_suite/partially_static_class_update_dynamic_field.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "make_C1" () dynamic ((class "C" () ((ann-assign "x" "str"))) (return "C"))) (assign "C1" (call "make_C1" ())) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo")) (assert (compare (attribute "c" "abc") ((== (con "foo")))))))))))
+|#
 
 ;; conformance_suite/procedure_check_argument_type_dynamically.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (function-def "f" (("x" "int")) dynamic (pass)) (expr (call "f" ((call "asDyn" ((con "foo"))))))))))))
@@ -134,7 +137,7 @@
 
 ;; conformance_suite/procedure_works.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "int") ("y" dynamic)) dynamic ((return (bin-op - "y" "x")))) (assert (compare (call "f" ((con 2) (con 3))) ((is (con 1)))))))))))
-
+#|
 ;; conformance_suite/slots_are_defined.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (assert (compare (attribute "C" "__slots__") ((== (tuple ())))))))))))
 

@@ -27,6 +27,15 @@
    (lookup (any_2 ...) any_key)])
 
 (define-metafunction SP
+  lookup? : ((any any) ...) any -> any
+  [(lookup? () any_key)
+   (no ☠)]
+  [(lookup? ([any_key any_val] any_rst ...) any_key)
+   (yes any_val)]
+  [(lookup? (any_1 any_2 ...) any_key)
+   (lookup? (any_2 ...) any_key)])
+
+(define-metafunction SP
   extend : ([any any] ...) [any any] ... -> ([any any] ...)
   [(extend (any_ent ...) [any_key any_val])
    ([any_key any_val] any_ent ...)]

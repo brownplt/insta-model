@@ -412,11 +412,6 @@
    (subof "NoneType")]
   [(intersection Ψ T_1 T_2) ☠])
 
-(module+ test
-  (test-equal (term (remove-None (Optional "int")))
-              (term (instancesof "int")))
-  (test-equal (term (remove-None (instancesof "int")))
-              (term (instancesof "int"))))
 (define-metafunction SP-compiled
   remove-None : T -> T
   [(remove-None (Optional T)) T]
