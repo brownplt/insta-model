@@ -176,3 +176,6 @@ TODO: cast PyDict to CheckedDict and the other way
 - [partially_static_class_update_dynamic_field.py](conformance_suite/partially_static_class_update_dynamic_field.py)
 - [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
 - [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)
+- [method_from_def.py](conformance_suite/method_from_def.py)
+- [method_from_lambda.py](conformance_suite/method_from_lambda.py)
+- [method_generative.py](conformance_suite/method_generative.py)
