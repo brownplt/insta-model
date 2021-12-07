@@ -12,6 +12,11 @@ output_path_prefix = "./conformance_suite/"
 skipped_tests_path_prefix = "./skipped_tests/"
 # Ignore a test if it contains one of the following word
 ban_anywhere_in_test = [
+    # float are fairly broken
+    #   it is not a super class of int
+    #   many systems consider float a super type, but in fact it is not
+    #   because .is_integer is not in int.
+    'float',
     # Weird python scope
     'nonlocal',
     'global',
@@ -65,11 +70,6 @@ ban_in_test_name = [
     # This test uses string literal to write Optional type...
 ]
 skip_anywhere_in_test = [
-    # float are fairly broken
-    #   it is not a super class of int
-    #   many systems consider float a super type, but in fact it is not
-    #   because .is_integer is not in int.
-    'float',
     # To confirm
     'Protocol',
     'NamedTuple',

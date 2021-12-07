@@ -164,12 +164,9 @@ Casting to a sub class may or maynot be okay
 
 TODO: cast PyDict to CheckedDict and the other way
 
-## Slots
+## User-defined classes
 
-- [slots_are_defined.py](conformance_suite/slots_are_defined.py)
-- [slots_contain_object_fields_but_not_class_fields.py](conformance_suite/slots_contain_object_fields_but_not_class_fields.py)
-- [slots_do_not_contain_methods.py](conformance_suite/slots_do_not_contain_methods.py)
-- [slots_do_not_accumulate.py](conformance_suite/slots_do_not_accumulate.py)
+- [classes_work.py](conformance_suite/classes_work.py)
 
 ## Attributes / fields
 

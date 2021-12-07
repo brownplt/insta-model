@@ -1,8 +1,8 @@
-# slots_is_defined.py
+# classes_work.py
 # This should pass.
 # This should terminate.
 
 class C:
     pass
 
-assert C.__slots__ == ()
+o = C()

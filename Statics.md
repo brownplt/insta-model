@@ -156,28 +156,35 @@ Classes aren't first-class. Unresolved types are NOT checked.
 ## Instances
 
 Looking up a declared field has the expected type.
+
 - [lookup_declared_field_pos.py](conformance_suite/lookup_declared_field_pos.py)
 - [lookup_declared_field_neg.py](conformance_suite/lookup_declared_field_neg.py)
 
 Looking up an undeclared field falls back to `dynamic`.
+
 - [lookup_undeclared_field.py](conformance_suite/lookup_undeclared_field.py)
 
 Looking up a declared parent field has the expected type.
+
 - [lookup_parent_field_pos.py](conformance_suite/lookup_parent_field_pos.py)
 - [lookup_parent_field_neg.py](conformance_suite/lookup_parent_field_neg.py)
 
 Assigning to a declared field requires matched type, even if that field is declared in the parent class.
+
 - [assign_declared_field_pos.py](conformance_suite/assign_declared_field_pos.py)
 - [assign_declared_field_neg.py](conformance_suite/assign_declared_field_neg.py)
 
 Inserting new fields is allowed.
+
 - [insert_new_field.py](conformance_suite/insert_new_field.py)
 
 Deleting fields is allowed.
+
 - [delete_declared_fields.py](conformance_suite/delete_declared_fields.py)
 - [delete_undeclared_fields.py](conformance_suite/delete_undeclared_fields.py)
 
 Declared methods check expected things.
+
 - [methods_work.py](conformance_suite/methods_work.py)
 - [methods_check_input_arity.py](conformance_suite/methods_check_input_arity.py)
 - [methods_check_input_types.py](conformance_suite/methods_check_input_types.py)
@@ -199,6 +206,7 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 ## The dynamic type
 
 `dynamic` is compatible with any type
+
 - [dynamic_as_int.py](conformance_suite/dynamic_as_int.py)
 - [dynamic_as_callable.py](conformance_suite/dynamic_as_callable.py)
 - [dynamic_as_CheckedDict.py](conformance_suite/dynamic_as_CheckedDict.py)
