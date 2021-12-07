@@ -607,9 +607,10 @@ The model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
 handle soundly (FILL examples ... while loop?);
 omitting these lets us focus on the difficult corners.
-Other Python features are left out because \SP{} does not ascribe types
-to them.
-These include \code{eval}, first-class classes, and module-level cells;
+Other Python features are left out because their \SP{} semantics is identical
+to Python.
+These include \code{eval}, first-class classes, multiple inheritance, and module-level cells.
+\SP{} does not rely on types for these features to guide program transformations;
 see \cref{s:impl} for further discussion.
 
 
@@ -710,8 +711,10 @@ The developers acknowledged M of these bugs as issues to fix.
 \section{Under the Hood: Static Python Specifics}
 \label{s:impl}
 
-%% SP side channels:
-%% eval,
+%% TODO discuss optimizations here, not in sec 2
+
+%% TODO SP side channels:
+%% ?? eval,
 %% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
 %% and mutable closure cells.
 
@@ -739,9 +742,9 @@ The straightforward but restrictive approach is to force code
 that uses a first-class class to expect instances of a particular
 static class.
 FILL is the bracha cook mixin pattern a way to work within nominal~\cite{bc-oopsla-1990}?
-\cite{fkf-popl-1998} propose a different method that accommodates mixins,
+Flatt et al.~\cite{fkf-popl-1998} propose a different method that accommodates mixins,
 but the method calls a second layer of interface types.
-\cite{mt-oopsla-2021} similarly allow structural objects with interfaces.
+Muehlboeck and Tate~\cite{mt-oopsla-2021} similarly allow structural objects with interfaces.
 Adding these layers to \SP{} is an open question; in particular,
 prior work does not handle multiple inheritance.
 
@@ -757,6 +760,23 @@ prior work does not handle multiple inheritance.
 %    furthermor, class-and-mixins depends on Java single inheritance
 %  + bracha cook mixin pattern
 %  + tate muehlboeck structural object + interfaces
+
+
+\paragraph{Multiple Inheritance}
+
+%% https://docs.python.org/3/reference/datamodel.html
+
+Python allows multiple inheritance.
+Classes can inherit from any number of other classes.
+To resolve method calls, Python traverses the class hierarchy
+to find the first matching receiver (MRO).
+
+[FILL]
+\SP{} lets most programs use multiple inheritance.
+The one constraint is that a class cannot have two
+values bound to the same member name, to ensure v-table
+integrity.
+
 
 
 \paragraph{Dynamic Execution}
