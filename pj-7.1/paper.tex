@@ -1,8 +1,9 @@
 \documentclass[english,cleveref,submission]{programming}
 
 %% Thesis:
-%%  the addition of sound nominal types to an optionally-typed codebase
-%%  can effectively improve peformance
+%%  1. Static Python is sound, fast, and practical
+%%  2. SP has unique features and restrictions for speed
+%%  3. Gradual soundness is a feature: start with weak types and eventually migrate to checked types
 
 % > Here’s the thing: I think this is the sort of thing an academic might say “oh,
 % > this is too much work, it’d never work” But in fact it looks like they seem to
@@ -227,7 +228,7 @@ Python across the board.
     only top-level shapes.
   \item
     Discussions of the expressiveness limitations in \SP{} relative to
-    idealized gradual type systems, and the programming discipline that Instagram
+    idealized gradual type systems, and of the programming discipline that Instagram
     follows in their gradually-sound codebase.
 \end{itemize}
 
@@ -404,7 +405,7 @@ ensure that all uses of those values are compatible.
 Typed classes can inherit from untyped classes.
 Untyped classes can inherit from typed classes.
 
-Interesting, because StrongScript disallowed.
+Interesting because StrongScript disallowed.
 (But Nom allowed right?! Maybe allowed in a funny way, possibly to support their Dyn.)
 
 
@@ -415,8 +416,8 @@ Interesting, because StrongScript disallowed.
 
 Which types accommodate Python code? Which from PEP typing etc.
 
-Surprisingly Unions are static only.
-Except for unions to false because those are so common.
+Unions are static only,
+except for unions to false because those are common and can be implemented efficiently.
 
 
 \subsubsection{Other}
@@ -522,7 +523,7 @@ Type restrictions:
 %    on the stack. So that necessarily implies that first the arguments are
 %    resolved and placed on the stack, then the callable is resolved as part of
 %    the `INVOKE_METHOD`. -Carl
-
+%
 %    2021-11-15: Dino says the JIT will check/upgrade INVOKE_METHOD to INVOKE_FUNCTION
 %    2021-07-23: final classes get INVOKE_FUNCTION, not INVOKE_METHOD
 
@@ -704,11 +705,12 @@ While formalizing Static Python, we submitted N bug reports to the language deve
 The developers acknowledged M of these bugs as issues to fix.
 
 \begin{center}
+  %% most filed by KC, a few by Ben
   \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024}
 \end{center}
 
 
-\section{Under the Hood: Static Python Specifics}
+\section{Scaling to Python}
 \label{s:impl}
 
 %% TODO discuss optimizations here, not in sec 2
@@ -748,16 +750,15 @@ Muehlboeck and Tate~\cite{mt-oopsla-2021} similarly allow structural objects wit
 Adding these layers to \SP{} is an open question; in particular,
 prior work does not handle multiple inheritance.
 
-%First-class classes are untyped
-%(good discussion here:
-%- mixin based tends to structrural types
+%Notes on first-class classes being untyped:
+%- mixin-based code tends to structrural types
 %- nominality overly restrictive, get forced into <: hierarchy
 %- but don't have NO IDEA for wat to do
 %  + classes and mixins paper shows one idea,
 %    ... need complicated mixin study??? (many sub objects)
 %    built new type system to be mixin-aware, layered atop java
 %    unsure if such extension works for SP
-%    furthermor, class-and-mixins depends on Java single inheritance
+%    furthermore, class-and-mixins depends on Java single inheritance
 %  + bracha cook mixin pattern
 %  + tate muehlboeck structural object + interfaces
 
@@ -816,7 +817,6 @@ and it will force developers to rewrite untyped code in order to fix any errors 
 \section{Evaluation}
 \label{s:eval}
 
-
 \subsection{Microbenchmarks}
 
 richards etc.
@@ -829,7 +829,7 @@ richards etc.
 
 \subsection{Nominal, Checked Types}
 
-CheckedDict enables strong type checks and optimizations, but is incredibly painful to use.
+CheckedDict enables strong type checks and optimizations, but is painful to use.
 It is painful even though ChkDict supports the full dict API
 (any context that uses a Python dict can use a ChkDict without code changes).
 
