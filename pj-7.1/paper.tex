@@ -596,18 +596,18 @@ appropriate conversions.
 
 Our model of \SP{} includes the key aspects of its types,
 statements, and values.
-There are two main goals:
+The model has two main goals:
 illustrate the boundaries where typed and untyped code can mix,
-and to show how to soundly protect these boundaries.
+and show how to soundly protect these boundaries.
 Compared to other gradual languages, these boundaries are quite restrictive---which
 partly explains \SP{} performance~(\cref{s:eval}).
-Indeed the model is nearly a subset of model for Nom~\cite{mt-oopsla-2021},
+Indeed, the model is nearly a subset of the model for Nom~\cite{mt-oopsla-2021},
 hence we focus on explaining the gaps and omit formal proofs.
 
 The model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
-handle soundly (FILL examples ... while loop?);
-omitting these lets us focus on the difficult corners.
+handle soundly (FILL examples ... while loop?).
+Omitting these lets us focus on the difficult corners.
 Other Python features are left out because their \SP{} semantics is identical
 to Python.
 These include \code{eval}, first-class classes, multiple inheritance, and module-level cells.
@@ -720,6 +720,8 @@ The developers acknowledged M of these bugs as issues to fix.
 %% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
 %% and mutable closure cells.
 
+[FILL]
+
 Purpose: explain significant gaps between the model and the implementation.
 E.g. what would the TypeScript team need to know before using our model
 to add soundness?
@@ -728,10 +730,10 @@ to add soundness?
 
 \SP{} does not ascribe types to the following Python features.
 These are not covered in our model because the implementation simply
-gives them the dynamic type and lets the runtime treat them as untyped
+assigns the dynamic type and lets the runtime treat them as untyped
 Python code.
-For each one, the dynamic type is a reasonable choice; static types are
-likely to cause more trouble than helpful structure.
+For each, we claim that the dynamic type is a reasonable choice;
+accurate static types would be difficult to maintain.
 
 
 \paragraph{First-Class Classes}
@@ -748,7 +750,7 @@ Flatt et al.~\cite{fkf-popl-1998} propose a different method that accommodates m
 but the method calls a second layer of interface types.
 Muehlboeck and Tate~\cite{mt-oopsla-2021} similarly allow structural objects with interfaces.
 Adding these layers to \SP{} is an open question; in particular,
-prior work does not handle multiple inheritance.
+Python's multiple inheritance would complicate the mixin story.
 
 %Notes on first-class classes being untyped:
 %- mixin-based code tends to structrural types
@@ -767,17 +769,15 @@ prior work does not handle multiple inheritance.
 
 %% https://docs.python.org/3/reference/datamodel.html
 
-Python allows multiple inheritance.
-Classes can inherit from any number of other classes.
-To resolve method calls, Python traverses the class hierarchy
-to find the first matching receiver (MRO).
+Python allows classes to inherit from a list of parents.
+When resolving a method call to such a class, Python
+dynamically traverses the parent list in a fixed order
+seeking a first match.
 
-[FILL]
-\SP{} lets most programs use multiple inheritance.
-The one constraint is that a class cannot have two
-values bound to the same member name, to ensure v-table
-integrity.
-
+Due to the dynamic method resolution order (MRO),
+\SP{} does not track types for classes with multiple parents.
+Method calls to these classes execute the same way as
+in Python, with no type-directed optimizations to speed up dispatch.
 
 
 \paragraph{Dynamic Execution}
