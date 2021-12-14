@@ -126,32 +126,65 @@
   \paragraph{Context}
   % What is the broad context of the work? What is
   % the importance of the general research area?
-  FILL
+  Gradually-typed languages allow typed and untyped code to interoperate,
+  but typically come with some kind of drawback.
+  In some languages, the types are unreliable;
+  in others, communication across type boundaries can be extremely expensive;
+  and still others allow only limited forms of interoperability.
+  The research community is actively seeking a sound, fast, and expressive
+  approach to gradual typing.
+
+  %% TODO acknowlegde the success of new language / tracing JIT approaches
 
   \paragraph{Inquiry}
   % What problem or question does the paper
   % address? How has this problem or question been
   % addressed by others (if at all)?
-  FILL
+  This paper describes \SP{}, a language developed by engineers at Instagram
+  that has proven itself sound, fast, and reasonably expressive in production.
+  \SP{}'s approach to gradual types is essentially a programmer-tunable combination of
+  the \emph{concrete}\/ and \emph{transient}\/ approaches from the literature.
+  Concrete types provide soundness in an efficient but difficult-to-use way.
+  Transient types are sound in a shallow sense and easier to use; they help
+  to bridge the gap between untyped code and typed concrete code.
 
   \paragraph{Approach}
   % What was done that unveiled new knowledge?
-  FILL
+  In collaboration with the \SP{} team, we have evaluated the language
+  as it exists today and developed a model to capture the essence of its
+  approach to gradual types.
+  We drew upon personal communications, bug reports, and the \SP{}
+  regression test suite.
 
   \paragraph{Knowledge}
   % What new facts were uncovered? If the
   % research was not results oriented, what new
   % capabilities are enabled by the work?
-  FILL
+  Our main finding is that the \emph{gradual soundness}\/ that
+  arises from a mix of concrete and transient types is an effective
+  way to lower the maintenance cost of the concrete approach.
+  On a more technical level, this paper contributes two artifacts:
+  a model of \SP{} that passes all relevant tests from the \SP{} codebase
+  and a performance evaluation of \SP{}.
 
   \paragraph{Grounding}
   % What argument, feasibility proof, artifacts,
   % or results and evaluation support this work?
-  FILL
+  Our model of \SP{} is implemented in PLT Redex and tested against
+  the \SP{} regression suite.
+  This paper includes a small core of the model to convey the main ideas
+  of the \SP{} approach and its soundness.
+  Our performance claims are supported by data from both
+  a public suite a microbenchmarks and the proprietary Instagram codebase.
 
   \paragraph{Importance}
   % Why does this work matter?
-  FILL
+  \SP{} is the first language that improves performance across the board through
+  the addition of sound types to an untyped language.
+  %% Prior work on Nom and Dart 2 showed that concrete types are promising.
+  Other language designers may wish to replicate its approach,
+  especially those who maintain unsound type checkers for untyped languages,
+  e.g., JavaScript.
 
 \end{abstract}
 
@@ -769,6 +802,7 @@ Adding an interface layer to \SP{} is an open question.
 \paragraph{Multiple Inheritance}
 
 %% https://docs.python.org/3/reference/datamodel.html
+%% TODO check Dino email, confirm with C&D that layout conflict is unrelated to vtables
 
 Python allows classes to inherit from a list of parents.
 When resolving a method call to such a class, Python
