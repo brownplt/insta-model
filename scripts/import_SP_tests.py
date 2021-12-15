@@ -70,27 +70,26 @@ ban_in_test_name = [
     # This test uses string literal to write Optional type...
 ]
 skip_anywhere_in_test = [
-    # To confirm
-    'Protocol',
-    'NamedTuple',
-    'prod_assert',
     # Skip for now
-    '@property',
-    '__static__.compiler_flags',
-    'weakref',
-    '@_donotcompile',
-    '__setattr__',
-    '__slots__',
     'while',
-    'raise',
     'for ',
+    'raise',
     '@staticmethod',
     '@final',
     'Final[',
     'assign_chained',
     'chain_assign',
     'chained_assign',
-    # Maybe enable later, it might be useful.
+    # To confirm
+    'Protocol',
+    'NamedTuple',
+    'prod_assert',
+    '@property',
+    '__static__.compiler_flags',
+    'weakref',
+    '@_donotcompile',
+    '__setattr__',
+    '__slots__',
     'reveal_type',
 ]
 skip_in_code = [

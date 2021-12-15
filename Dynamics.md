@@ -137,10 +137,6 @@ There is only one function type. It is shared by `def`s and `lambda`s
 
 - [defs_and_lambdas_are_of_the_function_class.py](conformance_suite/defs_and_lambdas_are_of_the_function_class.py)
 
-Programmers can not subclass from the function class.
-
-- [the_function_class_is_not_subclassable.py](conformance_suite/the_function_class_is_not_subclassable.py)
-
 ## Optional types
 
 TODO
@@ -170,7 +166,6 @@ TODO: cast PyDict to CheckedDict and the other way
 
 ## Attributes / fields
 
-- [partially_static_class_update_dynamic_field.py](conformance_suite/partially_static_class_update_dynamic_field.py)
 - [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
 - [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)
 - [method_from_def.py](conformance_suite/method_from_def.py)

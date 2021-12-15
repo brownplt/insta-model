@@ -21,7 +21,7 @@ def testfunc():
 #         x = test()
 #         self.assertInBytecode(
 #             test,
-#             "INVOKE_METHOD",
+#             "INVOKE_FUNCTION",
 #             (
 #                 (
 #                     "__static__",
@@ -29,7 +29,7 @@ def testfunc():
 #                     (("builtins", "int"), ("builtins", "str")),
 #                     "__setitem__",
 #                 ),
-#                 2,
+#                 3,
 #             ),
 #         )
 #         self.assertEqual(x, {1: "abc", 2: "def"})

@@ -123,7 +123,8 @@ Procedure check return types.
 
 Inheriting builtin classes is allowed.
 
-- [subclass_builtin.py](conformance_suite/subclass_builtin.py)
+- [subclass_builtin_atomic.py](conformance_suite/subclass_builtin_atomic.py)
+- [subclass_builtin_generic.py](conformance_suite/subclass_builtin_generic.py)
 
 Overriding a method with a field is a static error.
 
@@ -146,6 +147,16 @@ Overriding a method requires that the new input type is a supertype of the old o
 
 - [override_instance_method_contravariant_inputs_neg.py](conformance_suite/override_instance_method_contravariant_inputs_neg.py)
 - [override_instance_method_contravariant_inputs_pos.py](conformance_suite/override_instance_method_contravariant_inputs_pos.py)
+
+Overriding a method permits a possibly less precise domain.
+
+- [override_instance_method_domain_gain_precision.py](conformance_suite/override_instance_method_domain_gain_precision.py)
+- [override_instance_method_domain_lose_precision.py](conformance_suite/override_instance_method_domain_lose_precision.py)
+
+Overriding a method permits a possibly more precise codomain.
+
+- [override_instance_method_codomain_gain_precision.py](conformance_suite/override_instance_method_codomain_gain_precision.py)
+- [override_instance_method_codomain_lose_precision.py](conformance_suite/override_instance_method_codomain_lose_precision.py)
 
 ### Classes as types
 

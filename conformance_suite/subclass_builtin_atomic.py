@@ -1,7 +1,5 @@
-# subclass_builtin.py
+# subclass_builtin_atomic.py
 # This should pass.
-
-from __static__ import cast
 
 class C(int):
     pass

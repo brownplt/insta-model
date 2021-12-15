@@ -1,7 +1,7 @@
 # test_compile_nested_class_in_fn.py
 # This should pass.
 # This should terminate.
-# This should be optimized.
+
 
 def fn():
     class C:
@@ -16,4 +16,5 @@ def fn():
 #     """
 #     with self.in_module(codestr) as mod:
 #         f = mod.fn
-#         self.assertInBytecode(f, "CALL_FUNCTION")
+#         self.assertNotInBytecode(f, "TP_ALLOC")
+#         self.assertEqual(f().c, 1)

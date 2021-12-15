@@ -370,21 +370,41 @@ def python_file_to_redex_static_test(spec, prog):
 
 
 def python_file_to_redex_compile_test(spec, prog):
-    return [
-        symbol('test-match'),
-        symbol('SP-compiled'),
-        symbol('program-'),
-        [
-            symbol('term'),
+    if spec['compile']:
+        return [
+            symbol('test-match'),
+            symbol('SP-compiled'),
+            symbol('program-'),
             [
-                symbol('compile-program'),
+                symbol('term'),
                 [
-                    symbol('desugar-program'),
-                    prog
+                    symbol('compile-program'),
+                    [
+                        symbol('desugar-program'),
+                        prog
+                    ]
                 ]
             ]
         ]
-    ]
+    else:
+        return [
+            symbol('check-exn'),
+            symbol('exn:fail:redex?'),
+            [
+                symbol('lambda'),
+                [],
+                [
+                    symbol('term'),
+                    [
+                        symbol('compile-program'),
+                        [
+                            symbol('desugar-program'),
+                            prog
+                        ]
+                    ]
+                ]
+            ]
+        ]
 
 
 def python_file_to_redex_dynamic_test(spec, prog):
@@ -500,18 +520,18 @@ def main():
     with open(path_to_test_compile, 'w') as f:
         f.write('\n'.join([
             '#lang racket',
+            '(require rackunit)',
             '(require redex/reduction-semantics)',
             '(require "desugar.rkt")',
             '(require "compile.rkt")',
             ''
         ]))
         for name, spec, prog, source in parsed_test_files:
-            if spec['compile'] and (spec['run'] is not None):
-                test = python_file_to_redex_compile_test(spec, prog)
-                f.write('\n')
-                f.write(';; ' + name + '\n')
-                f.write(str_of_sexp(test))
-                f.write('\n')
+            test = python_file_to_redex_compile_test(spec, prog)
+            f.write('\n')
+            f.write(';; ' + name + '\n')
+            f.write(str_of_sexp(test))
+            f.write('\n')
     # output test_dynamics.rkt
     with open(path_to_test_dynamics, 'w') as f:
         f.write('\n'.join([
