@@ -5,7 +5,6 @@
 (require "compile.rkt")
 (require "dynamics.rkt")
 
-#|
 ;; conformance_suite/CheckedDict_delete_bad_key.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" "int"))) (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "foo") (con 2)) ((con "bar") (con 3))))))) (delete (subscript "x" (con "other")))))))))
 
@@ -71,7 +70,6 @@
 
 ;; conformance_suite/CheckedDict_val_can_be_Optional.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) ((dict (((con "foo") (con 2)) ((con "bar") (con None))))))) (assert (compare (subscript "x" (con "bar")) ((is (con None)))))))))))
-|#
 
 ;; conformance_suite/PyDict_delete_bad_key.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "other")))))))))
@@ -109,6 +107,12 @@
 ;; conformance_suite/classes_are_not_first-class.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42))))))))))
 
+;; conformance_suite/classes_work.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (assign "o" (call "C" ()))))))))
+
+;; conformance_suite/defs_and_lambdas_are_of_the_function_class.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 2)))) (assert (compare (call "type" ("f")) ((is (call "type" ((lambda () (con 3))))))))))))))
+
 ;; conformance_suite/downcast_int_to_bool_neg.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "int" (con 2)) (ann-assign "y" "bool" (call "asDyn" ("x")))))))))
 
@@ -121,10 +125,14 @@
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "int" (con 42))))))))
 
-#|
-;; conformance_suite/partially_static_class_update_dynamic_field.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "make_C1" () dynamic ((class "C" () ((ann-assign "x" "str"))) (return "C"))) (assign "C1" (call "make_C1" ())) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo")) (assert (compare (attribute "c" "abc") ((== (con "foo")))))))))))
-|#
+;; conformance_suite/method_from_def.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign "obj" (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))))
+
+;; conformance_suite/method_from_lambda.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((assign "m" (lambda (("self" dynamic)) (con 2))))) (assign "obj" (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))))
+
+;; conformance_suite/method_generative.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((assign "m1" (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign "obj" (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2")))))))))))
 
 ;; conformance_suite/procedure_check_argument_type_dynamically.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (function-def "f" (("x" "int")) dynamic (pass)) (expr (call "f" ((call "asDyn" ((con "foo"))))))))))))
@@ -137,18 +145,6 @@
 
 ;; conformance_suite/procedure_works.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "int") ("y" dynamic)) dynamic ((return (bin-op - "y" "x")))) (assert (compare (call "f" ((con 2) (con 3))) ((is (con 1)))))))))))
-#|
-;; conformance_suite/slots_are_defined.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (assert (compare (attribute "C" "__slots__") ((== (tuple ())))))))))))
-
-;; conformance_suite/slots_contain_object_fields_but_not_class_fields.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 2)) (ann-assign "y" "str"))) (assert (compare (attribute "C" "__slots__") ((== (tuple ((con "y")))))))))))))
-
-;; conformance_suite/slots_do_not_accumulate.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assert (compare (attribute "C2" "__slots__") ((== (tuple ((con "y")))))))))))))
-
-;; conformance_suite/slots_do_not_contain_methods.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "mth1" (("self" dynamic)) dynamic (pass)))) (assert (compare (attribute "C" "__slots__") ((== (tuple ())))))))))))
 
 ;; conformance_suite/static_class_update_dynamic_field.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo"))))))))
@@ -356,4 +352,3 @@
 
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x")))))))
-|#

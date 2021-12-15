@@ -35,7 +35,7 @@
      (method l l)
      (nothing))
   ;; runtime expression involves applied functions
-  (e- .... (deref v) (frame l s-))
+  (e- .... (frame l s-))
   ;; runtime representation of programs
   (p [Σ l s-]
      (error)
@@ -56,7 +56,8 @@
       (call-function ee (e- ...))
       (call-function v (v ... ee e- ...))
       (class (v ... ee e- ...) ([x s-+☠] ...))
-      (frame l se))
+      (frame l se)
+      (new l (v ... ee e- ...)))
   ;; in expression reduce statement
   (es (tuple (v ... es e- ...))
       (set (v ... es e- ...))
@@ -72,7 +73,8 @@
       (call-function es (e- ...))
       (call-function v (v ... es e- ...))
       (class (v ... es e- ...) ([x s-+☠] ...))
-      (frame l ss))
+      (frame l ss)
+      (new l (v ... es e- ...)))
   ;; in statement reduce expression
   (se (expr ee)
       (return ee)
@@ -182,10 +184,10 @@
    (obj (l-of-c c) (con c) ())]
   [(lookup-Σ-primitive "issubclass")
    (obj "function" (prim-op "issubclass") ())]
-  [(lookup-Σ-primitive string)
+  [(lookup-Σ-primitive class-l)
    (obj "type" (class ((ref l_sup) ...) ([x (expr (raise-error))] ...)) ([x l] ...))
    (where (class (l_sup ...) Γ ([x l] ...))
-          (lookup-Ψ (base-Ψ) string))]
+          (lookup-Ψ (base-Ψ) class-l))]
   [(lookup-Σ-primitive l)
    (obj "function" (prim-op l) ())])
 
@@ -273,10 +275,25 @@
    (delta-dict-getitem Σ v ...)]
   [(delta Σ (method "dict" "__setitem__") (v ...))
    (delta-dict-setitem Σ v ...)]
+  #; ;; TODO remove this
   [(delta Σ (method "CheckedDict[_,_]" "__getitem__") (v ...))
    (delta-checkeddict-type-app Σ v ...)]
+  ;; TODO we shouldn't keep any T at runtime
+  [(delta Σ (method (chkdict T_key T_val) "__init__") ((ref l_obj) (ref l_dct)))
+   (delta-checkeddict-init Σ T_key T_val l_obj l_dct)]
   [(delta Σ "issubclass" (v ...))
    (delta-issubclass Σ v ...)])
+(define-metafunction SP-dynamics
+  delta-checkeddict-init : Σ T_key T_val l_obj l_dct -> [Σ e-]
+  [(delta-checkeddict-init Σ T_key T_val l_obj l_dct)
+   [Σ (begin
+        ;; TODO
+        (assert )
+        (ref l_obj))]
+   (where (obj (chkdict T_key T_val) (nothing) ())
+          (lookup-Σ Σ l_obj))
+   (where (obj "dict" (dict ([v_key v_val] ...)) ρ)
+          (lookup-Σ Σ l_dct))])
 (define-metafunction SP-dynamics
   delta-checkeddict-type-app : Σ v ... -> [Σ e-]
   [(delta-checkeddict-type-app Σ (ref "CheckedDict[_,_]") (ref l))
@@ -284,7 +301,7 @@
   ;; TODO
    (where (obj "tuple" (tuple ((ref l_key) (ref l_val))) ρ) (lookup-Σ Σ l))]
   [(delta-checkeddict-type-app Σ v ...)
-   (raise-error)])
+   [Σ (raise-error)]])
 (define-metafunction SP-dynamics
   delta-dict-getitem : Σ v ... -> [Σ e-]
   [(delta-dict-getitem Σ_0 (ref l_map) v_key)
@@ -608,7 +625,15 @@
    [--> (in-hole [Σ_0 l_env0 se] (call-function (ref l_fun) (v_arg ...)))
         (in-hole [Σ_1 l_env1 se] e-)
         (where [Σ_1 l_env1 e-] (do-call-function Σ_0 l_env0 (lookup-Σ Σ_0 l_fun) (v_arg ...)))
-        "call-function"]))
+        "call-function"]
+   [--> (in-hole [Σ_0 l_env se] (new l_cls (v_arg ...)))
+        (in-hole [Σ_1 l_env se] (frame l_env
+                                  (begin
+                                    (expr (call-function (attribute fast (ref l_obj) "__init__")
+                                                         (v_arg ...)))
+                                    (return (ref l_obj)))))
+        (where [Σ_1 l_obj] (alloc Σ_0 (obj l_cls (nothing) ())))
+        "new"]))
 
 (define-metafunction SP-dynamics
   calc : program- -> p

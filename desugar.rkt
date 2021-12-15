@@ -68,6 +68,7 @@
   ;; utilities
   (xd [x d])
   (xd* ([x d] ...))
+  (e+e+ [e+ e+])
   )
 
 
@@ -214,7 +215,24 @@
 (define-metafunction SP-core
   desugar-t : t+ -> t
   [(desugar-t dynamic) dynamic]
-  [(desugar-t e+) (desugar-e e+)])
+  [(desugar-t e+) (t-of-e (desugar-e e+))])
+(define-metafunction SP-core
+  t-of-e : e -> t
+  [(t-of-e x)
+   x]
+  [(t-of-e (con None))
+   (con None)]
+  [(t-of-e (con string))
+   x
+   (where x string)]
+  [(t-of-e (tuple (e ...)))
+   (tuple ((t-of-e e) ...))]
+  [(t-of-e (ob e_l e_r))
+   (ob (t-of-e e_l) (t-of-e e_r))]
+  [(t-of-e (attribute e x))
+   (attribute (t-of-e e) x)]
+  [(t-of-e (call e_fun (e_arg ...)))
+   (call (t-of-e e_fun) ((t-of-e e_arg) ...))])
 
 (module+ test
   (test-equal (term (desugar-s pass))
@@ -283,8 +301,17 @@
        (make-begin (desugar-s s+_els) ...))]
   [(desugar-s (delete e+))
    (desugar-delete e+)]
+  ;; ann-assign without ann
   [(desugar-s (ann-assign e+_dst e+_ann))
    (desugar-ann e+_dst (desugar-t e+_ann))]
+  ;; ann-assign with dict literal
+  [(desugar-s (ann-assign e+_dst
+                          (subscript "CheckedDict" (tuple (e+_1 e+_2)))
+                          (dict ([e+_k e+_v] ...))))
+   (desugar-ann-assign e+_dst
+                       (desugar-t (subscript "CheckedDict" (tuple (e+_1 e+_2))))
+                       (desugar-e (call (subscript "CheckedDict" (tuple (e+_1 e+_2)))
+                                        ((dict ([e+_k e+_v] ...))))))]
   [(desugar-s (ann-assign e+_dst t+_ann e+_src))
    (desugar-ann-assign e+_dst (desugar-t t+_ann) (desugar-e e+_src))]
   [(desugar-s (assign e+_dst e+_src))

@@ -122,7 +122,7 @@ def testfunc():
 #         x = test()
 #         self.assertInBytecode(
 #             test,
-#             "INVOKE_METHOD",
+#             "INVOKE_FUNCTION",
 #             (
 #                 (
 #                     "__static__",
@@ -130,31 +130,10 @@ def testfunc():
 #                     (("builtins", "int"), ("builtins", "str")),
 #                     "__setitem__",
 #                 ),
-#                 2,
+#                 3,
 #             ),
 #         )
 #         self.assertEqual(x, {1: "abc", 2: "def"})
-|#
-
-
-;; conformance_suite/test_compile_nested_class_in_fn.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "fn" () dynamic ((class "C" () ((ann-assign "c" "int" (con 1)))) (return (call "C" ())))))))))
-#|
-
-def fn():
-    class C:
-        c: int = 1
-    return C()
-# def test_compile_nested_class_in_fn(self):
-#     codestr = """
-#     def fn():
-#         class C:
-#             c: int = 1
-#         return C()
-#     """
-#     with self.in_module(codestr) as mod:
-#         f = mod.fn
-#         self.assertInBytecode(f, "CALL_FUNCTION")
 |#
 
 

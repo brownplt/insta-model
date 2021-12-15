@@ -1,7 +1,7 @@
 # subclass_builtin_generic.py
 # This should pass.
 
-from typing import CheckedDict
+from __static__ import CheckedDict
 
 class C(CheckedDict[str, int]):
     pass

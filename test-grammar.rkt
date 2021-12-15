@@ -140,6 +140,12 @@
 ;; conformance_suite/classes_are_not_first-class.py
 (test-match SP program+ (term ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42)))))))
 
+;; conformance_suite/classes_work.py
+(test-match SP program+ (term ((class "C" () (pass)) (assign "o" (call "C" ())))))
+
+;; conformance_suite/defs_and_lambdas_are_of_the_function_class.py
+(test-match SP program+ (term ((function-def "f" () dynamic ((return (con 2)))) (assert (compare (call "type" ("f")) ((is (call "type" ((lambda () (con 3)))))))))))
+
 ;; conformance_suite/delete_declared_field.py
 (test-match SP program+ (term ((class "C" () ((ann-assign "x" "str"))) (function-def "f" (("c" "C")) dynamic ((delete (attribute "c" "x")))))))
 
@@ -194,6 +200,15 @@
 ;; conformance_suite/lookup_undeclared_field.py
 (test-match SP program+ (term ((class "C" () (pass)) (function-def "expectInt" (("i" "int")) dynamic (pass)) (function-def "f" (("c" "C")) dynamic ((return (call "expectInt" ((attribute "c" "x")))))))))
 
+;; conformance_suite/method_from_def.py
+(test-match SP program+ (term ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign "obj" (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2))))))))
+
+;; conformance_suite/method_from_lambda.py
+(test-match SP program+ (term ((class "C" () ((assign "m" (lambda (("self" dynamic)) (con 2))))) (assign "obj" (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2))))))))
+
+;; conformance_suite/method_generative.py
+(test-match SP program+ (term ((class "C" () ((assign "m1" (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign "obj" (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2"))))))))
+
 ;; conformance_suite/methods_check_input_arity.py
 (test-match SP program+ (term ((class "C" () ((function-def "m" (("self" dynamic) ("x" dynamic)) dynamic (pass)))) (function-def "f" () dynamic ((expr (call (attribute (call "C" ()) "m") ((con 1) (con 2)))))))))
 
@@ -212,26 +227,17 @@
 ;; conformance_suite/optional_is_inhabitable_2.py
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con None)))))
 
-;; conformance_suite/override_instance_field_with_imprecise_type.py
-(test-match SP program+ (term ((import-from "typing" ("Any")) (class "C" () ((ann-assign "x" "str"))) (class "D" ("C") ((ann-assign "x" "Any"))))))
-
-;; conformance_suite/override_instance_field_with_incompatible_type.py
+;; conformance_suite/override_instance_field.py
 (test-match SP program+ (term ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((ann-assign "x" "str"))))))
 
 ;; conformance_suite/override_instance_field_with_method.py
 (test-match SP program+ (term ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((function-def "x" (("self" dynamic)) dynamic (pass)))))))
 
-;; conformance_suite/override_instance_field_with_precise_type.py
-(test-match SP program+ (term ((import-from "typing" ("Any")) (class "C" () ((ann-assign "x" "Any"))) (class "D" ("C") ((ann-assign "x" "str"))))))
+;; conformance_suite/override_instance_method_codomain_gain_precision.py
+(test-match SP program+ (term ((import-from "typing" ("Any")) (class "C1" () ((function-def "m" (("self" dynamic)) "Any" ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic)) "int" ((return (con 3)))))))))
 
-;; conformance_suite/override_instance_field_with_same_type.py
-(test-match SP program+ (term ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((ann-assign "x" "int"))))))
-
-;; conformance_suite/override_instance_field_with_subtype.py
-(test-match SP program+ (term ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((ann-assign "x" "bool"))))))
-
-;; conformance_suite/override_instance_field_with_suptype.py
-(test-match SP program+ (term ((class "C" () ((ann-assign "x" "bool"))) (class "D" ("C") ((ann-assign "x" "int"))))))
+;; conformance_suite/override_instance_method_codomain_lose_precision.py
+(test-match SP program+ (term ((import-from "typing" ("Any")) (class "C1" () ((function-def "m" (("self" dynamic)) "int" ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic)) "Any" ((return (con 3)))))))))
 
 ;; conformance_suite/override_instance_method_contravariant_inputs_neg.py
 (test-match SP program+ (term ((class "C" () (pass)) (class "D" ("C") (pass)) (class "A" () ((function-def "m" (("self" dynamic) ("x" "C")) (con None) ((return (con None)))))) (class "B" ("A") ((function-def "m" (("self" dynamic) ("x" "D")) (con None) ((return (con None)))))))))
@@ -245,11 +251,14 @@
 ;; conformance_suite/override_instance_method_covariant_output_pos.py
 (test-match SP program+ (term ((class "C" () (pass)) (class "D" ("C") (pass)) (class "A" () ((function-def "m" (("self" dynamic)) "C" ((return (call "C" ())))))) (class "B" ("A") ((function-def "m" (("self" dynamic)) "D" ((return (call "D" ())))))))))
 
+;; conformance_suite/override_instance_method_domain_gain_precision.py
+(test-match SP program+ (term ((import-from "typing" ("Any")) (class "C1" () ((function-def "m" (("self" dynamic) ("x" "Any")) dynamic ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic) ("x" "int")) dynamic ((return (con 3)))))))))
+
+;; conformance_suite/override_instance_method_domain_lose_precision.py
+(test-match SP program+ (term ((import-from "typing" ("Any")) (class "C1" () ((function-def "m" (("self" dynamic) ("x" "int")) dynamic ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic) ("x" "Any")) dynamic ((return (con 3)))))))))
+
 ;; conformance_suite/override_instance_method_with_field.py
 (test-match SP program+ (term ((class "C" () ((function-def "x" (("self" dynamic)) dynamic (pass)))) (class "D" ("C") ((ann-assign "x" "int"))))))
-
-;; conformance_suite/partially_static_class_update_dynamic_field.py
-(test-match SP program+ (term ((function-def "make_C1" () dynamic ((class "C" () ((ann-assign "x" "str"))) (return "C"))) (assign "C1" (call "make_C1" ())) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo")) (assert (compare (attribute "c" "abc") ((== (con "foo"))))))))
 
 ;; conformance_suite/procedure_check_argument_type_dynamically.py
 (test-match SP program+ (term ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (function-def "f" (("x" "int")) dynamic (pass)) (expr (call "f" ((call "asDyn" ((con "foo")))))))))
@@ -287,18 +296,6 @@
 ;; conformance_suite/redeclare_var_with_var_same_type.py
 (test-match SP program+ (term ((ann-assign "x" "int" (con 2)) (ann-assign "x" "int" (con 3)))))
 
-;; conformance_suite/slots_are_defined.py
-(test-match SP program+ (term ((class "C" () (pass)) (assert (compare (attribute "C" "__slots__") ((== (tuple ()))))))))
-
-;; conformance_suite/slots_contain_object_fields_but_not_class_fields.py
-(test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 2)) (ann-assign "y" "str"))) (assert (compare (attribute "C" "__slots__") ((== (tuple ((con "y"))))))))))
-
-;; conformance_suite/slots_do_not_accumulate.py
-(test-match SP program+ (term ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assert (compare (attribute "C2" "__slots__") ((== (tuple ((con "y"))))))))))
-
-;; conformance_suite/slots_do_not_contain_methods.py
-(test-match SP program+ (term ((class "C" () ((function-def "mth1" (("self" dynamic)) dynamic (pass)))) (assert (compare (attribute "C" "__slots__") ((== (tuple ()))))))))
-
 ;; conformance_suite/static_class_update_dynamic_field.py
 (test-match SP program+ (term ((class "C1" () ((ann-assign "x" "str"))) (class "C2" ("C1") ((ann-assign "y" "int"))) (assign "c" (call "C2" ())) (assign (attribute "c" "abc") (con "foo")))))
 
@@ -308,8 +305,11 @@
 ;; conformance_suite/str_is_inhabitable.py
 (test-match SP program+ (term ((ann-assign "x" "str" (con "hello")))))
 
-;; conformance_suite/subclass_builtin.py
-(test-match SP program+ (term ((import-from "__static__" ("cast")) (class "C" ("int") (pass)) (ann-assign "x" "C" (call "C" ((con 42)))) (ann-assign "y" "int" "x"))))
+;; conformance_suite/subclass_builtin_atomic.py
+(test-match SP program+ (term ((class "C" ("int") (pass)) (ann-assign "x" "C" (call "C" ((con 42)))) (ann-assign "y" "int" "x"))))
+
+;; conformance_suite/subclass_builtin_generic.py
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (class "C" ((subscript "CheckedDict" (tuple ("str" "int")))) (pass)) (ann-assign "x" "C" (call "C" ((dict ())))) (ann-assign "y" (subscript "CheckedDict" (tuple ("str" "int"))) "x"))))
 
 ;; conformance_suite/test_assert_narrowing_debug.py
 (test-match SP program+ (term ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))))))
