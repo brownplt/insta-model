@@ -183,8 +183,8 @@
   the addition of sound types to an untyped language.
   %% Prior work on Nom and Dart 2 showed that concrete types are promising.
   Other language designers may wish to replicate its approach,
-  especially those who maintain unsound type checkers for untyped languages,
-  e.g., JavaScript.
+  especially those who maintain unsound type checkers for untyped languages
+  such as JavaScript.
 
 \end{abstract}
 
@@ -270,10 +270,13 @@ Python across the board.
 
 We have written this paper with two audiences in mind.
 First, we want to encourage system-builders to reproduce the
-\SP{} language design in another context and measure its performance.
+\SP{} language design.
+In particular, the maintainers of optionally-typed languages
+may find that adding transient and concrete types is a low-overhead
+way to turn types into reliable claims.
 Second, we want to lend focus to researchers.
-Some of the restrictions that \SP{} adopts may be useful for
-other languages.
+Some of the restrictions that \SP{} adopts may be useful to
+ground theoretical work.
 Other restrictions might be lifted by future research.
 
 
@@ -391,10 +394,53 @@ The gamble is that the optizations help more that the checks hurt.
 
 \subsection{Type System Highlights}
 
-[FILL]
+The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
+and prior work on types for Python.
+Nom~\cite{mt-oopsla-2017,mt-oopsla-2021} and PEP 484~[CITE] are two notable sources.
+Relative to these sources, the \SP{} takes some interesting turns
+because of the engineering context at Instagram.
+The following contextual points are important to bear in mind as we present
+notable aspects of the type system:
+\begin{itemize}
+  \item
+    Performance is the bottom line.
+    Unless \SP{} helps production code run faster, the team will be disbanded
+    and reallocated.
+    %% 2021-12-14: too extreme? and what about soundness?
+  \item
+    Instagram is / had been using Cython for performance.
+    Cython compiles Python source code to C extension modules for
+    a faster Python [CITE].
+    Instagram had converted several performance-critical modules to Cython prior
+    to starting work on \SP{}.
+    \SP{} replaced them.
+    (How does this help understanding type system highlights?)
+  \item
+    The Instagram codebase is already typed.
+    Developers use Pyre [CITE], an optional type checker for Python,
+    to write type annotations and to drive IDE tools (e.g., autocompletion).
+  \item
+    Q. why is the python so nominal? style guide? java background?
+\end{itemize}
+
 
 
 \subsubsection{Type Dynamic}
+
+%% 2021-12-14:
+%% - anything to say about Any being a "meta" type in Python typing module?
+
+\SP{} includes a dynamic type to accommodate untyped Python code.
+Any un-annotated value or expression gets the dynamic type by default.
+\SP{} does not make any predicitions / optimizations about dynamic code;
+it assumes nothing and lets the Python runtime handle.
+
+- lack of ann
+- or, incorrect ann
+- at toplevel, everything compatible
+- diffirent rules inside data structures
+
+
 
 [FILL]
 
@@ -452,27 +498,39 @@ Which types accommodate Python code? Which from PEP typing etc.
 Unions are static only,
 except for unions to false because those are common and can be implemented efficiently.
 
+    Optional(T) is the only union. Others turn into Dynamic.
+
 
 \subsubsection{Other}
 
-More notes and surprises:
-
 \begin{itemize}
-  \item
-    Optional(T) is the only union. Others turn into Dynamic.
-  \item
-    TBD
+  \item \textbf{Recursive Types}.
+    Sadly this is normal for Python type checkers.
 \end{itemize}
 
+\subsubsection{First-Order Functions and Classes}
 
-\subsubsection{Restrictions}
+Incidentally, \SP{} is a first-order type system.
 
-\begin{itemize}
+... no user-facing type for functions
+ imports / exports follow transient
+
+... ditto for classes (see below)
+
   \item \textbf{First-order Typed Classes}.
     In order to benefit from types, class definitions must be defined at the top level of a module.
     Nested classes are supported by the language, but have type \code{Dynamic} according
     to the type checker.
 
+  \item \textbf{Callable}.
+    The type system cannot yet express first-class functions.
+    The team plans to lift this restriction~(\cref{s:future}),
+    but there is little internal pressure to do so.
+
+
+\subsubsection{Restrictions}
+
+\begin{itemize}
   \item \textbf{No Overloading}.
     Methods cannot be overloaded. Each combination of a class
     and a name can refer to at most one method.
@@ -516,19 +574,11 @@ Type restrictions:
     At present, \SP{} treats all class parameters as type \code{Dynamic}.
     The team plans to lift this restriction (\cref{s:future}).
 
-  \item \textbf{Callable}.
-    The type system cannot yet express first-class functions.
-    The team plans to lift this restriction~(\cref{s:future}),
-    but there is little internal pressure to do so.
-
-  \item \textbf{Dynamic Checked Types}.
-    A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
-    keys or values.
-    [FILL] no desire, and makes runtime checks much simpler.
-    %% NB can't do ChkDict[ChkDict[_,_],_] either but that's because ChkDict is unhashable for now
-
-  \item \textbf{Recursive Types}.
-    Sadly this is normal for Python type checkers.
+%  \item \textbf{Dynamic Checked Types}.
+%    A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
+%    keys or values.
+%    [FILL] no desire, and makes runtime checks much simpler.
+%    %% NB can't do ChkDict[ChkDict[_,_],_] either but that's because ChkDict is unhashable for now
 
 \end{itemize}
 
