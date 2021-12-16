@@ -286,10 +286,14 @@
 (define-metafunction SP-dynamics
   delta-checkeddict-init : Σ T_key T_val l_obj l_dct -> [Σ e-]
   [(delta-checkeddict-init Σ T_key T_val l_obj l_dct)
-   [Σ (begin
-        ;; TODO
-        (assert )
-        (ref l_obj))]
+   [Σ (local ()
+        ;; TODO: switch to for, because we can't know v_key and v_val at compile time
+        (begin
+          (compile-check v_key T_key)
+          ...
+          (compile-check v_val T_val)
+          ...
+          (return (ref l_obj))))]
    (where (obj (chkdict T_key T_val) (nothing) ())
           (lookup-Σ Σ l_obj))
    (where (obj "dict" (dict ([v_key v_val] ...)) ρ)

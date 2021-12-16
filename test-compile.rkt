@@ -313,6 +313,18 @@
 ;; conformance_suite/subclass_builtin_generic.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" ((subscript "CheckedDict" (tuple ("str" "int")))) (pass)) (ann-assign "x" "C" (call "C" ((dict ())))) (ann-assign "y" (subscript "CheckedDict" (tuple ("str" "int"))) "x"))))))
 
+;; conformance_suite/subtype_CheckedDict_key_contravariant.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" () (pass)) (ann-assign "d" (subscript "CheckedDict" (tuple ("C" "str"))) (call (subscript "CheckedDict" (tuple ("object" "str"))) ((dict ()))))))))))
+
+;; conformance_suite/subtype_CheckedDict_key_covariant.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" () (pass)) (ann-assign "d" (subscript "CheckedDict" (tuple ("object" "str"))) (call (subscript "CheckedDict" (tuple ("C" "str"))) ((dict ()))))))))))
+
+;; conformance_suite/subtype_CheckedDict_value_contravariant.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" () (pass)) (ann-assign "d" (subscript "CheckedDict" (tuple ("str" "C"))) (call (subscript "CheckedDict" (tuple ("str" "object"))) ((dict ()))))))))))
+
+;; conformance_suite/subtype_CheckedDict_value_covariant.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" () (pass)) (ann-assign "d" (subscript "CheckedDict" (tuple ("str" "object"))) (call (subscript "CheckedDict" (tuple ("str" "C"))) ((dict ()))))))))))
+
 ;; conformance_suite/test_assert_narrowing_debug.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))))))))
 

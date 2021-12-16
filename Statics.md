@@ -205,7 +205,6 @@ Declared methods check expected things.
 
 `bool` is a subtype of `int`
 
-- https://github.com/facebookincubator/cinder/issues/46
 - [bool_is_a_subtype_of_int_neg.py](conformance_suite/bool_is_a_subtype_of_int_neg.py)
 - [bool_is_a_subtype_of_int_pos.py](conformance_suite/bool_is_a_subtype_of_int_pos.py)
 
@@ -213,6 +212,13 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 
 - [child_is_a_subtype_of_parent_neg.py](conformance_suite/child_is_a_subtype_of_parent_neg.py)
 - [child_is_a_subtype_of_parent_pos.py](conformance_suite/child_is_a_subtype_of_parent_pos.py)
+
+`CheckedDict` keys and values are all invariant.
+
+- [subtype_CheckedDict_key_covariant.py](conformance_suite/subtype_CheckedDict_key_covariant.py)
+- [subtype_CheckedDict_key_contravariant.py](conformance_suite/subtype_CheckedDict_key_contravariant.py)
+- [subtype_CheckedDict_value_covariant.py](conformance_suite/subtype_CheckedDict_value_covariant.py)
+- [subtype_CheckedDict_value_contravariant.py](conformance_suite/subtype_CheckedDict_value_contravariant.py)
 
 ## The dynamic type
 
