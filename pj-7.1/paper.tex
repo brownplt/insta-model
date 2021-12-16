@@ -13,6 +13,7 @@
 %% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
 %%   helps the static checker find new errors. ChkDict is one example.
 %% - idea: formalism would be a SUBSET of Nom, so our burden of proof is low
+%% - what are the idiomatic base SP types ... int or Int ?
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -397,7 +398,7 @@ The gamble is that the optizations help more that the checks hurt.
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
 Nom~\cite{mt-oopsla-2017,mt-oopsla-2021} and PEP 484~[CITE] are two notable sources.
-Relative to these sources, the \SP{} takes some interesting turns
+Relative to these, the \SP{} takes some interesting turns
 because of the engineering context at Instagram.
 The following contextual points are important to bear in mind as we present
 notable aspects of the type system:
@@ -408,7 +409,11 @@ notable aspects of the type system:
     and reallocated.
     %% 2021-12-14: too extreme? and what about soundness?
   \item
-    Instagram is / had been using Cython for performance.
+    %% Q. why is the python so nominal? style guide? java background?
+    The codebase makes heavy use of first-order classes and objects.
+    First-class classes, objects, and even functions are rare.
+  \item
+    Instagram is / had been using Cython to improve the performance of select modules.
     Cython compiles Python source code to C extension modules for
     a faster Python [CITE].
     Instagram had converted several performance-critical modules to Cython prior
@@ -419,46 +424,106 @@ notable aspects of the type system:
     The Instagram codebase is already typed.
     Developers use Pyre [CITE], an optional type checker for Python,
     to write type annotations and to drive IDE tools (e.g., autocompletion).
-  \item
-    Q. why is the python so nominal? style guide? java background?
 \end{itemize}
 
 
 
 \subsubsection{Type Dynamic}
+\label{s:type-dynamic}
 
 %% 2021-12-14:
 %% - anything to say about Any being a "meta" type in Python typing module?
+%% - 3 classes of code ... how does dynamic differ from untyped?
 
-\SP{} includes a dynamic type to accommodate untyped Python code.
-Any un-annotated value or expression gets the dynamic type by default.
-\SP{} does not make any predicitions / optimizations about dynamic code;
-it assumes nothing and lets the Python runtime handle.
+Like most gradual languages, \SP{} includes a dynamic type
+that allows untyped expressions within a statically-typed context.
+Whenever an expression or variable lacks a type annotation,
+\SP{} uses the dynamic type as a default and skips most compile-time checks.
+Every untyped Python program is thus a well-formed \SP{} program.
+Furthermore, programmers can omit the annotations for specific
+function arguments without losing the benefits of other type checks.
+Freedom to omit annotations helps programmers convert modules to \SP{}
+with little initial refactoring.
 
-- lack of ann
-- or, incorrect ann
-- at toplevel, everything compatible
-- diffirent rules inside data structures
+In addition to serving as a default, the dynamic type also replaces any undefined types.
+For example, suppose that the type \code{X} is undefined in \SP{} and that a
+program contains the annotation \code{ChkDict[int, X]}, which describes a
+dictionary with integer keys and \code{X}-typed values.
+\SP{} interprets this annotation as \code{ChkDict[int, dynamic]} and allows any sort
+of values inside the dictionary at runtime.
+To an outsider, this behavior might seem odd: why not reject undefined types with an error?
+The reason is to reduce friction with the Pyre annotations that are already
+widely-used at Instagram.
+Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
+efficiently, e.g., the type \code{Union[t1, ..., tn]} of arbitrary-width unions.
+By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
+
+The dynamic type is not, however, the flexible dynamic type provided
+by \emph{true} gradual languages~\cite{svcb-snapl-2015}.
+Replacing part of a type with dynamic can lead to both compile-time errors
+and run-time errors.
+In other words, \SP{} satisfies neither the static nor the dynamic gradual guarantee.\footnote{We
+assume a standard type precision relation. Of course, one could argue that these programs
+do not break the gradual guarantees if type precision does not allow our uses of the dynamic type.}
+\Cref{fig:gg-failure} presents two examples, one for each kind of failure:
+\begin{itemize}
+  \item
+    \cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
+    The subclass definition raises a compile-time error because it attempts to override
+    the typed \code{m1} method with another method that returns the dynamic type.
+  \item
+    \cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
+    uses the type \code{ChkDict} for concrete-typed dictionaries (\cref{s:checked-type}).
+    It sends a dictionary with integer values to a function that expects
+    dictionaries with dynamic values.
+    At runtime, the function rejects this argument because its type is not an
+    exact match.
+\end{itemize}
+In sum, these behaviors show that performance is paramount in \SP{}.
+Static errors in dynamic-typed code are designed to protect the integrity of
+type-based optimizations.
+%% other examples?
+The dynamic errors are a consequence of strict run-time constraints, which provide stronger guarantees
+and are simpler to validate than lax constraints.
+%% hmph, unclear. Spell it out!
+
+\begin{figure}
+  \begin{subfigure}[t]{0.5\columnwidth}
+  \begin{verbatim}
+    class A:
+      def m1(self)->int:
+        return 0
+
+    class B(A):
+      def m1(self):
+        return 0
+    # Error: type dynamic does not match int
+  \end{verbatim}
+    \caption{Removing a type in \code{B} breaks the static gradual guarantee}
+    \label{f:gg-failure-stat}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[t]{0.5\columnwidth}
+  \begin{verbatim}
+    from __static__ import ChkDict
+
+    def f(x: ChkDict[str, dyn]):
+      return x["A"]
+
+    d = ChkDict[str, int]({"A": 1})
+    f(d)
+    # Error: f expected ChkDict[str, dyn]
+  \end{verbatim}
+    \caption{Removing part of the type for \code{x} breaks the dynamic gradual guarantee}
+    \label{f:gg-failure-dyn}
+  \end{subfigure}
+  \caption{\SP{} values performance over the gradual guarantees.}
+  \label{fig:gg-failure}
+\end{figure}
 
 
-
-[FILL]
-
-The dynamic type is an important part of Static Python.
-Dynamic avoids the need for whole-sale migration,
-lets programmers work around dynamic features like splatting,
-and is in some cases necessary for optimal performance (evidence?).
-
-Can't really write the dynamic type.
-But ANY unbound id. or non-type object gets interpreted as the dynamic type for now.
-
-Cannot appear everywhere ... ChkDict can't hold a Dynamic (or rather, you can declare this type and cannot instantiate it),
-and primitives are incompatible with Dynamic. 
-
-Dynamic behavior is always (?) the same as normal Python.
-
-
-\subsubsection{Checked Types and Shallow Types}
+\subsubsection{Concrete Types and Shallow Types}
+\label{s:checked-type}
 
 %% more to say about the style of migration in SP?
 [FILL]
@@ -478,6 +543,8 @@ ensure that all uses of those values are compatible.
 
 
 \subsubsection{Mixed-Typed Class Hierarchies}
+
+%% TODO very important, one of the main things IG does use!!!
 
 [FILL]
 
@@ -517,15 +584,15 @@ Incidentally, \SP{} is a first-order type system.
 
 ... ditto for classes (see below)
 
-  \item \textbf{First-order Typed Classes}.
-    In order to benefit from types, class definitions must be defined at the top level of a module.
-    Nested classes are supported by the language, but have type \code{Dynamic} according
-    to the type checker.
-
-  \item \textbf{Callable}.
-    The type system cannot yet express first-class functions.
-    The team plans to lift this restriction~(\cref{s:future}),
-    but there is little internal pressure to do so.
+%  \item \textbf{First-order Typed Classes}.
+%    In order to benefit from types, class definitions must be defined at the top level of a module.
+%    Nested classes are supported by the language, but have type \code{Dynamic} according
+%    to the type checker.
+%
+%  \item \textbf{Callable}.
+%    The type system cannot yet express first-class functions.
+%    The team plans to lift this restriction~(\cref{s:future}),
+%    but there is little internal pressure to do so.
 
 
 \subsubsection{Restrictions}
@@ -803,6 +870,25 @@ The developers acknowledged M of these bugs as issues to fix.
 %% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
 %% and mutable closure cells.
 
+%% TODO built-in vs. user defined ... 
+%% Carl: I don't think this is quite true the way it's phrased here? in general
+%%   for SP classes we wrap non-static subclass override methods at runtime (in our
+%%   vtable implementation) to enforce correct return type, so that we don't need
+%%   exact types, we can trust that Liskov is not broken.
+%%     The cases where we tend to be limited to exact types is in optimizing
+%%   operations on builtin types, where they aren't really static types and
+%%   methods called on them aren't going through SP vtables, so we don't have
+%%   the vtable wrappers to enforce LSP, we just know the behavior of the exact
+%%   builtin type
+
+%% TODO wherever we discuss optimizations, also talk about de-slowdowns
+%% Carl: not sure where this belongs exactly, but we go to a lot of work in the
+%%   compiler to intelligently minimize runtime checks by only inserting them when
+%%   the source value is of dynamic type (this includes also skipping CHECK_ARGS if
+%%   the function was statically invoked by another static function and thus we
+%%   know the compiler checked argument types)
+
+
 [FILL]
 
 Purpose: explain significant gaps between the model and the implementation.
@@ -923,35 +1009,71 @@ richards etc.
 
 \subsection{Production Experience}
 
+%% 2021-12-15: C&D may have an SP off/on switch soon
+%% - accumulated CPU savings since July 1 = ~2% total IG production CPU
+%%   ... how does that number work?
+%% - in the beginning (?) H1 got 1% from first conversions + 0.7% from all Cython (higher bar)
+%%   - no Cython regressions, SP + JIT is good enough
+%%   - some Cython still exists, imported as library code from another codebase
+%% - rough measure: 0 to 25% per module
+%%   ... but depends on nature of module
+%%   ... doesn't measure the cooperative effect of static-to-static cross-module calls
 
-\section{Design Principles}
+%% - 530 SP modules
+%%   - 400 from a codegen tool
+%%   - 130 by hand
+%%   - currently +~3/4 per week by hand
 
-\subsection{Nominal, Checked Types}
+%% - pushback one time about removing MI
+%% - otherwise, people happy with low-cost improvements
 
-CheckedDict enables strong type checks and optimizations, but is painful to use.
-It is painful even though ChkDict supports the full dict API
-(any context that uses a Python dict can use a ChkDict without code changes).
+%% - review of 30 winning diffs "provided the bulk of our wins this half"
+%%   most common changes, not in careful order, are:
+%%   1) adjustments to tests to pass correct types instead of mock objects, as as
+%%      not to fail type checks in SP code. This is an inherent and desired
+%%      incompatibility; next half we plan to work on improving the Python mock
+%%      framework to automatically create mocks of the correct types.
+%%      - bg: lookup the dino email about mocks
+%%   2) adjustments to mock assertions in tests about calls to adjust for the
+%%      fact that SP currently converts all call arguments to be positional (we plan
+%%      to fix this incompatibility by falling back to the original call arguments
+%%      when we detect the target function has been patched.)
+%%      - bg: ??? bit fuzzy about positional and others
+%%   3) adjustments around class attributes vs instance attributes (Python allows
+%%      this to be a bit fuzzy, where a class attribute can be a fallback default
+%%      for an instance attribute if not set, but SP currently requires an attribute
+%%      to be clearly one or the other, and we have more efficient access for
+%%      instance attributes via LOAD_FIELD that we don’t have for class attributes.)
+%%      - related to github #37 ?
+%%   4) convert @classmethod that don’t actually need the class to @staticmethod,
+%%      allowing for emitting direct INVOKE_FUNCTION instead of INVOKE_METHOD
+%%   5) extract special types that our compiler doesn’t yet support/understand
+%%      (classes decorated with @dataclass or inheriting from `enum.Enum`) out of
+%%      the module we are converting to static. We have work in progress on
+%%      supporting some Enum types, and plan to add a @dataclass intrinsic soon.
+%%   6) Removing the use of super-dynamic Python features like `__setattr__` that
+%%      we don’t support. So far in the cases where we’ve done this it hasn’t
+%%      required a major rewrite.
+%%      - bg: more details pls ,,, sketch the rewrite
+%%   7) Removing the use of keyword-only arguments (bare `*`) in function
+%%      signatures, since we don’t yet support calling such functions. We plan to
+%%      support this next half.
+%%   8) Convert Python integers and bools used in very hot code paths into SP
+%%      machine primitives.
+%%      - bg: focus on block, convert, no problem?
+%%   9) Occasionally converting a regular Python list or dict to a CheckedList or
+%%      CheckedDict.
+%%      - bg: how occasional? worried about power of the "gradual soundness" claim
+%%
+%% common theme: gotta change more tests than code
+%%
+%% significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
+%%  removes an extra call layer
+%%  helps with (timing [ context managers / decorators ])
+%%
+%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
+%%  because the pay / payoff isn't yet attractive
 
-The problem is that the ChkDict type rejects all Python values.
-It accepts only ChkDict values, built through a special constructor
-that installs a tag for type tests and guards writes.
-Suppose that \code{f} is an untyped dict function.
-As is, it can process ChkDict but gets no benefit from type checks nor from optimizations.
-Adding a ChkDict domain type enables optimizations within \code{f} but raises a non-local
-problem: all callers of \code{f} must be sure to create a ChkDict.
-These ChkDicts must also be monomorphic to match whatever type \code{f} chose.
-It can take many edits to get a program running again after adding a ChkDict type.
-
-Lessons:
-\begin{itemize}
-  \item
-    Nominal types are not compatible with structual values, such as Python values.
-    Programmers are forced to edit old code to use such types ... unless the recent Nom work has a better idea~\cite{mt-oopsla-2021}
-  \item
-    Monomorphic nominal types are even worse.
-    Editing old code to fit their rigid constraints may not be feasible.
-
-\end{itemize}
 
 
 
@@ -984,6 +1106,12 @@ by compiling source code to C extension modules.
 \section{Future Work}
 \label{s:future}
 
+%% Immediate future: fix adoption friction points
+%% 2021-12-15: WHAT ARE THESE?
+
+%% engineering: JIT profiling, instead of hand-requested JIT list
+%% model: metaclasses
+
 Adapt SP ideas to a new setting, test performance takeaways.
 
 Improve SP with generic types, structural types (lambda), \ldots.
@@ -1003,8 +1131,38 @@ Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_ad
 or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
 
-\section{Conclusion}
+\section{Conclusion / Lessons / Design Principles}
 \label{s:conclusion}
+
+\subsection{Nominal, Checked Types}
+
+CheckedDict enables strong type checks and optimizations, but is painful to use.
+It is painful even though ChkDict supports the full dict API
+(any context that uses a Python dict can use a ChkDict without code changes).
+
+The problem is that the ChkDict type rejects all Python values.
+It accepts only ChkDict values, built through a special constructor
+that installs a tag for type tests and guards writes.
+Suppose that \code{f} is an untyped dict function.
+As is, it can process ChkDict but gets no benefit from type checks nor from optimizations.
+Adding a ChkDict domain type enables optimizations within \code{f} but raises a non-local
+problem: all callers of \code{f} must be sure to create a ChkDict.
+These ChkDicts must also be monomorphic to match whatever type \code{f} chose.
+It can take many edits to get a program running again after adding a ChkDict type.
+
+Lessons:
+\begin{itemize}
+  \item
+    Nominal types are not compatible with structual values, such as Python values.
+    Programmers are forced to edit old code to use such types ... unless the recent Nom work has a better idea~\cite{mt-oopsla-2021}
+  \item
+    Monomorphic nominal types are even worse.
+    Editing old code to fit their rigid constraints may not be feasible.
+
+\end{itemize}
+
+
+
 
 Sound types in Static Python give programmers a way to improve performance.
 The change is not forced, not intrusive;
