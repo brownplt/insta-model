@@ -564,11 +564,8 @@ Consider \code{List[T]} as an example:
     \SP{} introduces a new data structure and parameterized type \code{ChkList[T]}
     for concrete types.
     The data structure implements the list API and comes with a checked constructor that
-    makes it impossible to create a \code{ChkList[int]} with non-integer elements.
-    Each instance of a \code{ChkList[int]} comes with the full type as a tag;
-    run-time checks inspect this tag for an exact match.\footnote{Immutable
-    data structures could use a subtype check. \SP{} does not have any of these
-    because the common Python data structures are all mutable.}
+    makes it impossible to create a \code{ChkList[int]} with non-integer elements;
+    \cref{s:chkdict-impl} discusses the implementation further.
 \end{enumerate}
 
 \begin{figure}[t]
@@ -622,11 +619,11 @@ except for unions to false because those are common and can be implemented effic
     Optional(T) is the only union. Others turn into Dynamic.
 
 
-\subsubsection{Non-Highlights, Restrictions}
+\subsubsection{Non-Highlights / Restrictions}
 
-The \SP{} type system does not include some features.
-Each of the following is low priority, but they are rougly ordered from most
-important (soonest to be implemented) to least.
+The \SP{} type system excludes include some features.
+Each of the following is low priority for the team; that said, they are
+ordered below rougly from most important (soonest to be implemented) to least.
 
 \begin{itemize}
   \item \emph{Concrete Parameterized Classes}.
@@ -665,18 +662,43 @@ important (soonest to be implemented) to least.
     \SP{} does not support recursive types.
     Neither does Pyre or mypy.
     %% demand seems low ... baffling
+    %% mypy = https://github.com/python/mypy/issues/731
+    %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 \end{itemize}
 
 
 
 \subsection{Runtime System Highlights}
+%% Non-Highlights:
+%% - shadow frames = JIT feature, lite array to track Python call stack
+%% - strict modules ... avoids toplevel function wrapper
 
-\begin{itemize}
-  \item
-    \textbf{VTables}
-    Cinder adds virtual method tables to typed classes.
-    ``The v-tables are only used for the \code{INVOKE\_METHOD} opcode, which
-    the static compiler will only emit against a statically known static type.'' -Carl
+\subsubsection{Bytecode Optimization}
+
+optimizations and bytecodes for: length, subscripting, function dispatch, method dispatch, field load/store
+
+table much later in paper 
+
+IN ADDITION to optimizations ...
+not sure where this belongs exactly, but we go to a lot of work in the compiler
+to intelligently minimize runtime checks by only inserting them when the source
+value is of dynamic type (this includes also skipping CHECK\_ARGS if the
+function was statically invoked by another static function and thus we know the
+compiler checked argument types)
+
+
+
+\subsubsection{Virtual Method Tables}
+
+Cinder adds virtual method tables to typed classes.
+``The v-tables are only used for the \code{INVOKE\_METHOD} opcode, which
+the static compiler will only emit against a statically known static type.'' -Carl
+
+with vtables, method resolution happens differently than Python: args. get
+resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
+
+vtables are built on Python's vectorcall signature; though new, they're not
+totally from scratch
 
 %    No, there’s no overload resolution by arguments in Python. This difference
 %    in behavior isn’t so much desired as just a consequence of making
@@ -694,36 +716,36 @@ important (soonest to be implemented) to least.
 %    2021-11-15: Dino says the JIT will check/upgrade INVOKE_METHOD to INVOKE_FUNCTION
 %    2021-07-23: final classes get INVOKE_FUNCTION, not INVOKE_METHOD
 
+
+\subsubsection{Checked Data Structures}
+\label{s:chkdict-impl}
+
+As mentioned above~(\cref{s:checked-type}), the concrete versions of built-in data structures
+come with both a type and an implementation.
+The implementation provides the same interface as the built-in;
+the main difference is that it adds type checks.
+
+For example, the type \code{ChkDict[K, V]} describes a concrete dictionary
+with keys of type \code{K} and values of type \code{V}.
+The implementation has three main components:
+\begin{itemize}
   \item
-    \textbf{Bytecode Optimization}
-    (could use a full section)
-
-  %\item
-  %  \textbf{Shadow Frames}
-  %  (CinderDoc/static_python.rst)
-  %  magic import that signals to the Static
-  %  Python compiler to enable “shadow frame” mode in the Cinder JIT. This
-  %  improves performance of function calls by avoiding the creation of full
-  %  Python frame objects until they are definitely needed (e.g. if an
-  %  exception is raised.) In the future this should become default.
-
+    Constructor, basically from dict to CD, checks integrity.
+    All CD valuess have to go through this, whether types or untyped.
   \item
-    \textbf{Checked Dict}
-    Implementation too, to support the types.
-
+    Instances keep a tag, used as exact type in boundary check.
+    (Tag may not be CD[i i] but rather a sentinel generated from it.)
+  \item
+    Writes are protected in every context.
 \end{itemize}
 
-
-\subsection{Additional Features}
-
-% things we did not model ... is that worth making a distinction here?
-
-strict modules
-
-decorator to force inlining, for 1-line functions
+%    Each instance of a \code{ChkList[int]} comes with the full type as a tag;
+%    run-time checks inspect this tag for an exact match.\footnote{Immutable
+%    data structures could use a subtype check. \SP{} does not have any of these
+%    because the common Python data structures are all mutable.}
 
 
-\subsubsection{Primitive Types}
+\subsubsection{Unboxed Primitive}
 
 For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
 that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
