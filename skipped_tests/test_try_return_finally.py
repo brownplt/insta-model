@@ -1,4 +1,4 @@
-# Reason: Code hitted some skipped words
+# Reason: Test hitted some skipped words
 def test_try_return_finally(self):
     codestr = """
     from typing import List

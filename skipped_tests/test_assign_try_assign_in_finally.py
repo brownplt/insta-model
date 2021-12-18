@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Test hitted some skipped words
 def test_assign_try_assign_in_finally(self):
     codestr = """
         class B:

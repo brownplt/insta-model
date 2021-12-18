@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Test hitted some skipped words
 def test_try_except_finally(self):
     codestr = """
         class B:
