@@ -134,6 +134,9 @@
 ;; conformance_suite/method_generative.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((assign "m1" (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign "obj" (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2")))))))))))
 
+;; conformance_suite/methods_mutable.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign (attribute "C" "m") (lambda (("self" dynamic)) (con 3)))))))))
+
 ;; conformance_suite/procedure_check_argument_type_dynamically.py
 (test-match SP-dynamics (error) (term (calc (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (function-def "f" (("x" "int")) dynamic (pass)) (expr (call "f" ((call "asDyn" ((con "foo"))))))))))))
 
@@ -226,9 +229,6 @@
 
 ;; conformance_suite/test_dict_invoke_ret.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (function-def "g" () dynamic ((return (con None)))) (function-def "f" (("x" dynamic)) dynamic ((ann-assign "y" "pydict" "x") (assign "z" (call (attribute "y" "get") ((con "foo")))) (assign "z" (con None)) (return "z")))))))))
-
-;; conformance_suite/test_final_constant_folding_disabled_on_nonfinals.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Final")) (ann-assign "X" "str" (con "omg")) (function-def "f" () "str" ((return (subscript "X" (con 1)))))))))))
 
 ;; conformance_suite/test_generic_method_ret_type.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x")))))))))))

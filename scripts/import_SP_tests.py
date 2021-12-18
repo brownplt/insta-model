@@ -68,6 +68,8 @@ ban_in_test_name = [
     # This test uses an unbound identifier in type annotation
     'test_override_override_inherited',
     # This test uses string literal to write Optional type...
+    'test_incompat_override_method_arg_name',
+    # We don't support this.
 ]
 skip_anywhere_in_test = [
     # Skip for now
@@ -75,6 +77,7 @@ skip_anywhere_in_test = [
     'for ',
     'raise',
     '@staticmethod',
+    'final',
     '@final',
     'Final[',
     'assign_chained',

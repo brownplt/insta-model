@@ -45,11 +45,9 @@
       ;; other calls
       (call-function e- (e- ...))
       ;; annotations are removed!
-      ;;   the s- is the check to be perform
+      ;;   the s- is the check to be perform on arguments
       (lambda (x ...) s- level-)
-      (class
-          ;; parent classes
-          (e- ...)
+      (class x (e- ...) ;; name and parent classes
         ;; members and corresponding checks
         ;;   when no check is present, the member is immutable
         ([x s-] ...))
@@ -978,14 +976,19 @@
   ;; class
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (class x (e ...) (m ...)))
    (make-begin
-    (assign x (class ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) ...)
+    (assign x (class x (e-_prn ...)
                 ([x_mem s-_check] ...)))
     s-_init ...)
+   (where (e-_prn ...) (maybe-add-object-e (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) ...))
    (where ([x_mem s-_check s-_init] ...)
           ((compile-m Ψ Γ_dcl Γ_lcl x m) ...))]
   ;; import-from
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (import-from x_mod x_var))
    (import-from x_mod x_var)])
+(define-metafunction SP-compiled
+  maybe-add-object-e : e- ... -> (e- ...)
+  [(maybe-add-object-e) ((ref "object"))]
+  [(maybe-add-object-e e- ...) (e- ...)])
 (define-metafunction SP-compiled
   make-assert : e- -> s-
   [(make-assert e-)
@@ -1138,14 +1141,17 @@
                       ("CheckedDict" "C" "D")
                       (begin
                         (import-from "__static__" "CheckedDict")
-                        (assign
-                         "C"
-                         (class ((invoke-function
-                                  (method "CheckedDict[_,_]" "__getitem__")
-                                  ("CheckedDict"
-                                   (tuple ("str" "int")))))
-                           ()))
-                        (assign "D" (class ("C") ())))))))
+                        (assign "C"
+                                (class "C"
+                                  ((invoke-function
+                                    (method "CheckedDict[_,_]" "__getitem__")
+                                    ("CheckedDict"
+                                     (tuple ("str" "int")))))
+                                  ()))
+                        (assign "D"
+                                (class "D"
+                                  ("C")
+                                  ())))))))
 (define-metafunction SP-compiled
   compile-program : program -> program-
   [(compile-program (local ([x d] ...) s))

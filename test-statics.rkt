@@ -221,6 +221,9 @@
 ;; conformance_suite/methods_check_output_types.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) "int" ((return (con "foo"))))))))))
 
+;; conformance_suite/methods_mutable.py
+(check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign (attribute "C" "m") (lambda (("self" dynamic)) (con 3)))))))
+
 ;; conformance_suite/methods_work.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic) ("x" "int")) "str" ((return (con "foo")))))) (ann-assign "s" "str" (call (attribute (call "C" ()) "m") ((con 42))))))))
 
@@ -470,12 +473,6 @@
 ;; conformance_suite/test_duplicate_function_replaces_function.py
 (check-not-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic (pass)) (function-def "f" () dynamic (pass))))))
 
-;; conformance_suite/test_final_constant_folding_disabled_on_nonfinals.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (ann-assign "X" "str" (con "omg")) (function-def "f" () "str" ((return (subscript "X" (con 1)))))))))
-
-;; conformance_suite/test_final_in_args.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (function-def "f" (("a" "Final")) (con None) (pass))))))
-
 ;; conformance_suite/test_generic_method_ret_type.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x")))))))))
 
@@ -508,9 +505,6 @@
 
 ;; conformance_suite/test_incompat_override_init_okay.py
 (check-judgment-holds* (⊢p (desugar-program ((class "A" () ((function-def "__init__" (("self" dynamic)) (con None) (pass)))) (class "B" ("A") ((function-def "__init__" (("self" dynamic) ("x" "int")) (con None) (pass)))) (function-def "f" (("x" "A")) dynamic ((expr (call (attribute "x" "__init__") ()))))))))
-
-;; conformance_suite/test_incompat_override_method_arg_name.py
-(check-not-judgment-holds* (⊢p (desugar-program ((class "A" () ((function-def "m" (("self" dynamic) ("x" "str")) "int" ((return (con 42)))))) (class "B" ("A") ((function-def "m" (("self" dynamic) ("y" "str")) "int" ((return (con 0))))))))))
 
 ;; conformance_suite/test_incompat_override_method_arg_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "A" () ((function-def "m" (("self" dynamic) ("x" "str")) "int" ((return (con 42)))))) (class "B" ("A") ((function-def "m" (("self" dynamic) ("x" "int")) "int" ((return (con 0))))))))))
@@ -577,9 +571,6 @@
 
 ;; conformance_suite/test_min_stability.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b")))))))))
-
-;; conformance_suite/test_module_level_final_decl.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (ann-assign "x" "Final")))))
 
 ;; conformance_suite/test_module_subclass.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None))))))))))
@@ -676,9 +667,6 @@
 
 ;; conformance_suite/test_type_of_or.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" "int") ("y" "str")) (bin-op bit-or "int" "str") ((return (bool-op or ("x" "y")))))))))
-
-;; conformance_suite/test_type_type_final.py
-(check-judgment-holds* (⊢p (desugar-program ((class "A" ("type") (pass))))))
 
 ;; conformance_suite/test_unannotated_assign_no_later_declare.py
 (check-not-judgment-holds* (⊢p (desugar-program ((function-def "f" (("flag" dynamic)) dynamic ((assign "x" (con None)) (if "flag" ((ann-assign "x" "str" (con "foo"))) ())))))))

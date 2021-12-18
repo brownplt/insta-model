@@ -187,29 +187,6 @@ def f(x):
 |#
 
 
-;; conformance_suite/test_final_constant_folding_disabled_on_nonfinals.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Final")) (ann-assign "X" "str" (con "omg")) (function-def "f" () "str" ((return (subscript "X" (con 1))))))))))
-#|
-
-from typing import Final
-X: str = "omg"
-def f() -> str:
-    return X[1]
-# def test_final_constant_folding_disabled_on_nonfinals(self):
-#     codestr = """
-#     from typing import Final
-#     X: str = "omg"
-#     def f() -> str:
-#         return X[1]
-#     """
-#     with self.in_module(codestr) as mod:
-#         f = mod.f
-#         self.assertNotInBytecode(f, "LOAD_CONST", "omg")
-#         self.assertInBytecode(f, "LOAD_GLOBAL", "X")
-#         self.assertEqual(f(), "m")
-|#
-
-
 ;; conformance_suite/test_generic_method_ret_type.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))))
 #|

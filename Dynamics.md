@@ -166,9 +166,20 @@ TODO: cast PyDict to CheckedDict and the other way
 
 ## Attributes / fields
 
+Programmers can't introduce new members.
+
 - [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
 - [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)
+
+Members are mutable.
+
+- [methods_mutable.py](conformance_suite/methods_mutable.py)
+
+Methods are just function-typed members.
+
 - [method_from_def.py](conformance_suite/method_from_def.py)
 - [method_from_lambda.py](conformance_suite/method_from_lambda.py)
+
+Methods are generative.
+
 - [method_generative.py](conformance_suite/method_generative.py)
-- [methods_mutable.py](conformance_suite/methods_mutable.py)
