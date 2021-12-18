@@ -57,7 +57,7 @@
       (invoke-method l x v (v ... ee e- ...))
       (call-function ee (e- ...))
       (call-function v (v ... ee e- ...))
-      (class (v ... ee e- ...) ([x s-+☠] ...))
+      (class x (v ... ee e- ...) ([x s-+☠] ...))
       (leave l se)
       (new l (v ... ee e- ...)))
   ;; in expression reduce statement
@@ -313,7 +313,10 @@
   [(delta Σ (method (chkdict T_key T_val) "__init__") ((ref l_obj) (ref l_dct)))
    (delta-checkeddict-init Σ T_key T_val l_obj l_dct)]
   [(delta Σ "issubclass" (v ...))
-   (delta-issubclass Σ v ...)])
+   (delta-issubclass Σ v ...)]
+  ;; fall back
+  [(delta Σ l (v ...))
+   [Σ (raise-error)]])
 (define-metafunction SP-dynamics
   delta-checkeddict-init : Σ T_key T_val l_obj l_dct -> [Σ e-]
   [(delta-checkeddict-init Σ_0 T_key T_val l_obj l_dct)
@@ -628,8 +631,7 @@
         "assign attribute"]
    [--> (in-hole [Σ_1 l_env ss] (import-from x_mod x_var))
         (in-hole [Σ_2 l_env ss] (begin))
-        (where (Type (subof l)) (T-of-import (import-from x_mod x_var)))
-        (where Σ_2 (update-env Σ_1 l_env x_var (ref l)))
+        (where Σ_2 (do-import Σ_1 l_env x_mod x_var))
         "import-from"]
    [--> (in-hole [Σ l_env ss] (begin (begin) s- ...))
         (in-hole [Σ l_env ss] (begin s- ...))
@@ -696,6 +698,14 @@
                                     (return (ref l_obj)))))
         (where [Σ_1 l_obj] (alloc Σ_0 (obj l_cls (nothing) ())))
         "new"]))
+(define-metafunction SP-dynamics
+  do-import : Σ l x x -> Σ
+  [(do-import Σ_1 l_env x_mod x_var)
+   Σ_2
+   (where (Type (subof l)) (T-of-import (import-from x_mod x_var)))
+   (where Σ_2 (update-env Σ_1 l_env x_var (ref l)))]
+  [(do-import Σ_1 l_env x_mod x_var)
+   Σ_1])
 
 (define-metafunction SP-dynamics
   calc : program- -> p

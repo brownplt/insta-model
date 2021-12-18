@@ -50,10 +50,11 @@ def ast_to_sexp(node):
                 ast_to_sexp(node.value)
             ]
     elif isinstance(node, ast.Assign):
-        assert len(node.targets) == 1
         return [
             symbol('assign'),
-            ast_to_sexp(node.targets[0]),
+            [
+                ast_to_sexp(t) for t in node.targets
+            ],
             ast_to_sexp(node.value)
         ]
     elif isinstance(node, ast.Pass):

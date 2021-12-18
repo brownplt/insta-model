@@ -10,4 +10,4 @@ class C2(C1):
 
 c = C2()
 c.x = "foo"
-assert c.x == "foo"
+assert c.x is "foo"

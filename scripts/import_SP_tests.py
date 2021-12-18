@@ -80,9 +80,6 @@ skip_anywhere_in_test = [
     'final',
     '@final',
     'Final[',
-    'assign_chained',
-    'chain_assign',
-    'chained_assign',
     # To confirm
     'Protocol',
     'NamedTuple',

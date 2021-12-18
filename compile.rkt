@@ -242,8 +242,10 @@
    (class ("int") () ())]
   [(lookup-Ψ Ψ "str")
    (class ("object")
-     (["__init__" (-> (dynamic dynamic) dynamic)])
-     (["__init__" (method "str" "__init__")]))]
+     (["__init__" (-> (dynamic dynamic) dynamic)]
+      ["__eq__" (-> (dynamic (subof "str")) (exact "bool"))])
+     (["__init__" (method "str" "__init__")]
+      ["__eq__" (method "str" "__eq__")]))]
   [(lookup-Ψ Ψ "dict")
    (class ("object")
      (["__init__" (-> (dynamic dynamic) dynamic)]
