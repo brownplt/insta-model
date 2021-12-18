@@ -468,24 +468,20 @@ do not break the gradual guarantees if type precision does not allow our uses of
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
 \begin{itemize}
   \item
-    \cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
+    \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
     The subclass definition raises a compile-time error because it attempts to override
     the typed \code{m1} method with another method that returns the dynamic type.
   \item
-    \cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
+    \Cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
     uses the type \code{ChkDict} for concrete-typed dictionaries (\cref{s:checked-type}).
     It sends a dictionary with integer values to a function that expects
     dictionaries with dynamic values.
     At runtime, the function rejects this argument because its type is not an
     exact match.
 \end{itemize}
-In sum, these behaviors show that performance is paramount in \SP{}.
-Static errors in dynamic-typed code are designed to protect the integrity of
-type-based optimizations.
-%% other examples?
-The dynamic errors are a consequence of strict run-time constraints, which provide stronger guarantees
-and are simpler to validate than lax constraints.
-%% hmph, unclear. Spell it out!
+These behaviors are a consequence of \SP{} being driven by the needs of an
+existing codebase.
+The literature on gradual types has served only as a guide, not a mandate.
 
 \begin{figure}
   \begin{subfigure}[t]{0.5\columnwidth}
@@ -525,34 +521,92 @@ and are simpler to validate than lax constraints.
 \subsubsection{Concrete Types and Shallow Types}
 \label{s:checked-type}
 
-%% more to say about the style of migration in SP?
-[FILL]
+Every \SP{} type corresponds to a simple run-time check.
+When an unknown value reaches a boundary to typed code at run-time,
+\SP{} uses these checks to quickly decide whether or not the value
+matches the type.\footnote{In other words, \SP{} provides \emph{immediate accountability}~\cite{mt-oopsla-2017}.}
+Unlike structural gradual type systems, \SP{} does not traverse
+incoming values nor does it create wrappers to enforce behavior.
 
-Enabling sound types on a function has a ripple effect on callers.
-All untyped callers are now forced to supply type-correct inputs; may call for
-refactoring.
+These checks try to faithfully enforce the full type, but some are incomplete.
+We call the incomplete ones \emph{shallow} types; examples follow.
 
-Enabling checked types has a huge ripple effect.
-The worst case is changing an annotation to a expect a checked data structure:
+First off, for a basic nominally-typed language (think Java 1.4, before
+generics), simple and full checks are easy to implement.
+Every type has a name and every value can carry a tag that corresponds to the
+name of its type.
+
+Parameterized types (generics) are more difficult to fully enforce without
+changing the language.
+Consider a list datatype \code{List[T]} that is parameterized by the
+e type of its elements.
+If a function expects lists of integers (\code{List[int]}), then a simple check
+for lists is not strong enough to decide whether an incoming value matches the
+type~(\cref{f:list-boundary}).
+A deeper check is needed to validate the list elements.
+But, the default \code{List} type cannot support such a check because untyped
+code is free to create lists.
+
+The \SP{} solution is to provide two versions of every parameterized type,
+both of which support efficient run-time checks.
+One version is shallow.
+The other is \emph{concrete}: complete, but new.
+Consider \code{List[T]} as an example:
 \begin{enumerate}
-  \item all callers must create a checked value by invoking the right constructor, and
-  \item all clients of those callers can no longer expect an unchecked type.
+  \item
+    \emph{Shallow type \code{List}}.
+    The default type \code{List[T]} gets enforced with a simple check for lists that ignores
+    the elements.
+    Consequently, every static type like \code{List[int]} is merely a promise of \code{List}
+    values at run-time.
+  \item
+    \emph{Concrete type \code{ChkList[T]}}.
+    \SP{} introduces a new data structure and parameterized type \code{ChkList[T]}
+    for concrete types.
+    The data structure implements the list API and comes with a checked constructor that
+    makes it impossible to create a \code{ChkList[int]} with non-integer elements.
+    Each instance of a \code{ChkList[int]} comes with the full type as a tag;
+    run-time checks inspect this tag for an exact match.\footnote{Immutable
+    data structures could use a subtype check. \SP{} does not have any of these
+    because the common Python data structures are all mutable.}
 \end{enumerate}
-Programmers have to trace the annotation back to value-creation points, and then
-ensure that all uses of those values are compatible.
+
+\begin{figure}[t]
+  How to enforce type \code{List[int]} simply?
+  \begin{itemize}
+    \item Checking for \code{List} is simple, but loose. It accepts \code{List[str]} and heterogeneous lists etc.
+    \item Can't check for \code{List[int]} by itself, the datatype does not support that.
+    \item Checking for \code{ChkList[int]} is simple, but needs buy-in from users.
+    \item Show venn diagram of the options?
+  \end{itemize}
+  \caption{FILL illustrate list boundary and checks}
+  \label{f:list-boundary}
+\end{figure}
+
+These options let programmers decide whether to change their code to benefit from
+fully-sound types, or leave it as-is for a lower payoff.
+Often, the shallow types are more attractive because concrete types impose
+a ripple effect throughout the codebase.
+If one type changes to concrete, then all data constructors that reach this type need
+to change \emph{and then} all their clients need to use the concrete type as well.
+\Cref{s:concrete-migration} discusses this migration cost of concrete types further.
 
 
 \subsubsection{Mixed-Typed Class Hierarchies}
 
 %% TODO very important, one of the main things IG does use!!!
 
-[FILL]
+The Instagram codebase uses lots of classes and objects.
+Most of these are simple, Java-style: classes declared on
+the top level and single inheritance.
+It was therefore essential to get inheritance working across type boundaries.
+Typed classes must be able to inherit from untyped classes,
+and vice-versa untyped classes must be able to inherit from typed ones.
 
-Typed classes can inherit from untyped classes.
-Untyped classes can inherit from typed classes.
+FILL literature? StrongScript Nom classic GT?
 
-Interesting because StrongScript disallowed.
-(But Nom allowed right?! Maybe allowed in a funny way, possibly to support their Dyn.)
+FILL either way, spell out what happens for these interactions.
+Where are the checks needed, checks skipped.
 
 
 
@@ -568,87 +622,50 @@ except for unions to false because those are common and can be implemented effic
     Optional(T) is the only union. Others turn into Dynamic.
 
 
-\subsubsection{Other}
+\subsubsection{Non-Highlights, Restrictions}
+
+The \SP{} type system does not include some features.
+Each of the following is low priority, but they are rougly ordered from most
+important (soonest to be implemented) to least.
 
 \begin{itemize}
-  \item \textbf{Recursive Types}.
-    Sadly this is normal for Python type checkers.
+  \item \emph{Concrete Parameterized Classes}.
+    Except for a handful of built-in types,
+    parameterized classes are enforced only with shallow checks.
+    In the near future, these classes will gain concrete versions
+    for programmers to opt-in to.
+
+  \item \emph{Callable Types, First-Class Classes}.
+    The Instagram codebase rarely uses first-class functions, classes, or objects.
+    Thus there is little need for either a \code{Callable} type to describe functions
+    or first-class types for objects.
+    When such values do appear, \SP{} assigns the dynamic type and spot-checks their
+    uses.
+    For example, every application of a first-class function gets wrapped in a check
+    if the context expects a certain type.
+
+  \item \emph{Method Overloading}.
+    Methods cannot be overloaded.
+    Each combination of a class and a name can refer to at most one method.
+    This behavior comes from Python.
+
+  \item \emph{Multiple Inheritance}.
+    Multiple inheritance is not supported in a typed way.
+    \Cref{s:impl} discusses this point further.
+
+  \item \emph{Strong overrides}.
+    Methods and fields may be overridden, but only with values of the same type.
+    % In fact, \SP{} compiles fields using Python slots
+    % declarations (\code{\_\_slots\_\_}).
+    %
+    % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
+    % but the normal field access syntax skips any overrides (o.f)
+
+  \item \emph{Recursive Types}.
+    \SP{} does not support recursive types.
+    Neither does Pyre or mypy.
+    %% demand seems low ... baffling
 \end{itemize}
-
-\subsubsection{First-Order Functions and Classes}
-
-Incidentally, \SP{} is a first-order type system.
-
-... no user-facing type for functions
- imports / exports follow transient
-
-... ditto for classes (see below)
-
-%  \item \textbf{First-order Typed Classes}.
-%    In order to benefit from types, class definitions must be defined at the top level of a module.
-%    Nested classes are supported by the language, but have type \code{Dynamic} according
-%    to the type checker.
-%
-%  \item \textbf{Callable}.
-%    The type system cannot yet express first-class functions.
-%    The team plans to lift this restriction~(\cref{s:future}),
-%    but there is little internal pressure to do so.
-
-
-\subsubsection{Restrictions}
-
-\begin{itemize}
-  \item \textbf{No Overloading}.
-    Methods cannot be overloaded. Each combination of a class
-    and a name can refer to at most one method.
-    This ensures that method resolution depends only on the
-    type of the receiver object.
-    % resolution does NOT depend on result type (T doesn't matter in `x:T = o.m()`)
-    % Q. does resolution depend on args?
-
-  %\item \textbf{Single Inheritance}.
-  %  Multiple inheritance is not supported.
-  %  But, it might someday be supported.
-
-  \item \textbf{Compatible method overrides}.
-    Methods may be overridden, either by \SP{} classes or
-    untyped Python classes.
-    Overrides that appear in \emph{the same} \SP{} file as the class definition, however,
-    must supply a method whose type is a static subtype of the previous method.
-    In particular, a parent method that returns type \code{int} cannot be
-    overridden by a child method that returns type \code{Dynamic}.
-    %% TODO what does this enable ... optimizations in the same file?
-
-  % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
-  % but the normal field access syntax skips any overrides (o.f)
-
-  \item \textbf{Compatible field overrides}.
-    Similarly, object fields and class variables may be overridden
-    only with subtype-compatible values.
-    In fact, \SP{} compiles fields using Python slots
-    declarations (\code{\_\_slots\_\_}).
-    This declaration prevent new fields from arising at runtime,
-    but saves space and speeds up field accesses.
-
-
-\end{itemize}
-
-
-Type restrictions:
-
-\begin{itemize}
-  \item \textbf{Parameterized Classes}.
-    At present, \SP{} treats all class parameters as type \code{Dynamic}.
-    The team plans to lift this restriction (\cref{s:future}).
-
-%  \item \textbf{Dynamic Checked Types}.
-%    A \code{CheckedDict} cannot be instantiated with \code{Dynamic}
-%    keys or values.
-%    [FILL] no desire, and makes runtime checks much simpler.
-%    %% NB can't do ChkDict[ChkDict[_,_],_] either but that's because ChkDict is unhashable for now
-
-\end{itemize}
-
 
 
 
@@ -741,6 +758,9 @@ appropriate conversions.
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
+%% NOTE
+%% - remark: model gives errors of the same kind in SP, but not always the same
+%%   message, after all its not our goal to reproduce SP exactly
 
 \subsection{Goals and Limitations}
 
@@ -1135,6 +1155,7 @@ or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 \label{s:conclusion}
 
 \subsection{Nominal, Checked Types}
+\label{s:concrete-migration}
 
 CheckedDict enables strong type checks and optimizations, but is painful to use.
 It is painful even though ChkDict supports the full dict API
@@ -1161,8 +1182,41 @@ Lessons:
 
 \end{itemize}
 
+Enabling checked types has a huge ripple effect.
+The worst case is changing an annotation to a expect a checked data structure:
+\begin{enumerate}
+  \item all callers must create a checked value by invoking the right constructor, and
+  \item all clients of those callers can no longer expect an unchecked type.
+\end{enumerate}
+Programmers have to trace the annotation back to value-creation points, and then
+ensure that all uses of those values are compatible.
 
 
+\subsection{Pyre Compatibility}
+
+Many decisions in \SP{} are influenced by the widespread use of Pyre at Instagram.
+\begin{itemize}
+  \item
+    To minimize changes needed to adapt Pyre-annotated programs
+    to \SP{}, the syntax of \SP{} is compatible with Pyre.
+    Pyre can run useful checks on every \SP{} program.
+  \item
+    Because Pyre is a mature type checker, the \SP{} team has taken a
+    depth-first approach to development.
+    The language implements a small set of sound types efficiently and ignores
+    other types.
+    Of course, programmers who use advanced Pyre types can still use Pyre to
+    get compile-time feedback.
+  \item
+    The fact that \SP{} interprets unknown Pyre types as type dynamic changes
+    users' expectations about what the dynamic type should mean.
+    It is not necessarily a label for untyped Python code; dynamic code
+    can be analyzed to catch static bugs.
+    %% FILL what are the checks?
+\end{itemize}
+
+
+\subsection{Conclusion}
 
 Sound types in Static Python give programmers a way to improve performance.
 The change is not forced, not intrusive;
@@ -1194,6 +1248,141 @@ FILL
 \printbibliography
 }
 
-%\appendix
+\appendix
+
+\section{Pyre Limitations}
+
+FILL condense the email thread in comment (see source)
+
+% Pyre limitations
+% 4 messages
+% Ben Greenman <benjaminlgreenman@gmail.com>	Fri, Sep 24, 2021 at 11:18 AM
+% To: Carl Meyer <carljm@fb.com>
+% Cc: Dino Viehland <dinoviehland@fb.com>, "Lu, Kuang-Chen" <kuang-chen_lu@brown.edu>, Shriram Krishnamurthi <shriram@gmail.com>
+% >>> When we “add types” to a function (by adopting its module into Static
+% >>> Python, meaning Static Python now cares about the type annotations on that
+% >>> function), there may be other code calling that function with types that
+% >>> don’t match what it is annotated to receive. This then causes new runtime
+% >>> type errors for those calls once the module is made static. So sometimes we
+% >>> do have to fix those – we consider that to be fixing pre-existing type
+% >>> errors that Pyre missed. We probably see a lot less of that because the
+% >>> codebase is already type annotated and statically checked by Pyre, than we
+% >>> would if we were adopting Static Python into a previously-not-type-checked
+% >>> codebase.
+% >>
+% >> I'm surprised that you see any errors like this. Is Pyre unsound at
+% >> these pre-existing spots?
+% >
+% > Yes, Pyre is unsound in various ways (as a purely static checker of a
+% > gradually typed language must inherently be):
+% >
+% > 1. Some code just isn’t covered or checked by Pyre, because Pyre’s gradual
+% > adoption strategy is to only check functions that have annotations in their
+% > signature, or in extreme cases because the “code” that’s calling into Python
+% > isn’t Python code at all, but rather Python C extension code or Cython code.
+% > So Pyre has no visibility into calls from code it isn’t even checking.
+% > 2. Any code with annotations involving the `Any` type (or missing
+% > annotations) will have values that Pyre types as `Any`, and Pyre will
+% > silently allow you to do anything with those values. (It has no other
+% > choice, this is the only way that static-only gradual typing can work and
+% > actually be gradual.) So anything typed as `Any` by Pyre is a potential
+% > unsoundness. And although I say our codebase is largely type annotated,
+% > given that lots of it is pre-typing code that can’t be accurately statically
+% > annotated without rewriting it, there are plenty of Any annotations
+% > (especially `Dict[str, Any]` annotations) floating around.
+% > 3. People can (and do) just silence Pyre by adding a `# pyre-fixme` comment
+% > that silences a type error on the following line, if they are doing some
+% > mass adoption of types or otherwise just don’t feel up to fixing a type
+% > error for whatever reason. This tends to happen most often in cases where an
+% > annotation is just overly restrictive (e.g. claims to require `str` but in
+% > fact the method handles `None` just fine, and the argument really should be
+% > annotated as `str | None`.) So we have to fix the annotation to actually
+% > match the runtime behavior, and then we also are able to remove the
+% > pyre-fixme comments; everyone wins :)
+% > 4. If the entire codebase and all its type annotations and type stubs agree
+% > to lie about some dynamic wrinkle, Pyre will be satisfied that everything is
+% > good (and will have no way to know otherwise). A particular case of this we
+% > hit recently is that lots of values annotated as `str` in our codebase can
+% > actually at runtime be `Promise` objects that dynamically behave like a
+% > `str` if you treat them as one, and implement lazy translation of that
+% > string to the current user’s language. So as we adopt such code into Static
+% > Python, we have to correct those annotations from `str` to `str | Promise`
+% > and handle the fallout. A similar case is the `weakref` module in the Python
+% > standard library, which allows you to create “weak references” to objects
+% > that will not keep them alive in the garbage collector, but will just
+% > resolve to None if the object dies. There’s a `weakref.proxy` that creates a
+% > transparent weak-reference proxy to any object, and sometimes methods will
+% > return one of those but be annotated as returning the proxied type. This is
+% > fine for Pyre, as long as the proxy is sufficiently transparent at the level
+% > of Python semantics, but it doesn’t work for Static Python.
+% 
+% Points 1, 2, and 3 make sense.
+% 
+% I'm wondering if there are ways to write a fully-typed Pyre program (that
+% doesn't use those escape hatches) but is still unsound.* It sounds like
+% point 4 might be on this track ... but also that unchecked code (points 1,2)
+% might be involved.
+% 
+% For the weakrefs case, would Pyre approve a function like this one:
+% 
+% ```
+%   def f()->C:
+%     return weakref.proxy(C())
+% ```
+% 
+% If so, is that because Pyre comes with a builtin annotation for
+% `weakrefs.proxy` that lets it return the Any type?
+% 
+% 
+% * For comparison, TypeScript is unsound by design in a few ways. Any computed
+% string can index any object. And all object properties are covariant, despite
+% being mutable. I wonder if Pyre has similar "static unsoundness" by design.
+% Lu, Kuang-Chen <kuang-chen_lu@brown.edu>	Fri, Sep 24, 2021 at 11:50 AM
+% To: Ben Greenman <benjaminlgreenman@gmail.com>
+% Cc: Shriram Krishnamurthi <shriram@gmail.com>
+% (Internal discussion)
+% 
+% I think point 4, especially the `str` example, comes from the lack of structural typing. Interfaces can partially solve this problem. But with Nom-style interfaces, they have to define an interface and annotate the classes involved.
+% [Quoted text hidden]
+% Carl Meyer <carljm@fb.com>	Fri, Sep 24, 2021 at 12:37 PM
+% To: Ben Greenman <benjaminlgreenman@gmail.com>
+% Cc: Dino Viehland <dinoviehland@fb.com>, "Lu, Kuang-Chen" <kuang-chen_lu@brown.edu>, Shriram Krishnamurthi <shriram@gmail.com>
+% [Quoted text hidden]
+% I think it could be reasonable to define “fully-typed” as to inherently exclude all four points above! This would also exclude most real-world Python programs, but might still be an interesting definition, because even then there are some unsoundnesses remaining (that I didn’t cover above because they are not usually a problem for us in practice; in most cases I think because they involve parts of the type system we don’t even pretend to support yet in Static Python.) I’ll list some of these known unsoundnesses within the type system below.
+% 
+% In practice the Python language and standard library include features that are considered too painful to use if fully typed, generally because sound typing would require typing things as `object` (the top type), requiring `isinstance` checks everywhere to keep the static checker happy, so an unsound `Any` is preferred for usability reasons. Weakref proxies are just one example of this; there are many others.
+% 
+% https://github.com/python/typeshed is the shared repository of type stubs for the Python standard library and popular third-party packages (used by all the static checkers: Pyre, mypy, pyright, pytype…). You can search it for `Any` to find many many more examples.
+% 
+% 
+% > For the weakrefs case, would Pyre approve a function like this one:
+% >
+% > ```
+% >  def f()->C:
+% >    return weakref.proxy(C())
+% > ```
+% >
+% > If so, is that because Pyre comes with a builtin annotation for
+% > `weakrefs.proxy` that lets it return the Any type?
+% 
+% Yes, exactly, this is in the shared “typeshed” repository: https://github.com/python/typeshed/blob/master/stdlib/_weakref.pyi#L33
+% 
+% >
+% > * For comparison, TypeScript is unsound by design in a few ways. Any computed
+% > string can index any object. And all object properties are covariant, despite
+% > being mutable. I wonder if Pyre has similar "static unsoundness" by design.
+% 
+% Right, and the Python type system has some similar unsound-by-design choices. A few that I’m aware of:
+% 
+% - Mutable attributes ought to be invariant (because they are in effect both getters and setters, thus appearing in both covariant and contravariant position), thus subclasses should not be allowed to change the type of a base class attribute. But in practice all Python type checkers permit a subclass to narrow the type of a base class attribute. Now that `Final[]` annotations are available on attributes (which would make them soundly covariant), it might be more reasonable to close this hole, here’s discussion on the mypy bug tracker: https://github.com/python/mypy/issues/3208. We are currently sound here in Static Python, but in an odd way; we should error on the subclass attribute type override itself, but instead we ignore it and continue to use the base class attribute type for the subclass also.
+% 
+% - There are some issues with `typing.Type[]` types (these are the types of class objects themselves) and the fact that they are covariant (which is widely relied on.) This is unsound because incompatible constructor signature overriding is allowed in subclasses (which is also widely used). It’s also unsound because the type of the `self` argument to any overridden method will be Parent on the parent method and Child on the child method, which is the opposite of the normal requirement that method arguments (appearing in a contravariant position) must only be widened on subclass overrides. This means that if some function accepts a type and calls an unbound method on it, providing the `self` arg explicitly, the covariance of `Type` is unsound. On these we are currently OK only because we don’t yet support `Type[]` annotations.
+% 
+% - Type checking argument splatting in calls is unsound. If we have a dynamic list `l` or dict `d` and we have a call like `foo(*l)` or `foo(**d)`, unless foo accepts `(*args, **kwds)` it is impossible to statically type check the call. Making this sound would have to either require the callee to accept (*args, **kwds) or require that the list or dict is a statically known literal; the latter totally defeats the purpose of argument splatting, the former is more conceivable but still makes it a lot less useful, so in practice type checkers just allow these calls. This one is OK in Static Python because we simply fallback to dynamic calls (and thus runtime argument type checks in the callee) for these calls (I mean it’s OK in that it doesn’t result in cascading unsoundness — it still means runtime error rather than static one for the call itself.)
+% 
+% There are more cases than just these, but I think the others are more esoteric.
+% 
+% Carl
+
 
 \end{document}
