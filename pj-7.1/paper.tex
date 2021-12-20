@@ -413,13 +413,11 @@ notable aspects of the type system:
     The codebase makes heavy use of first-order classes and objects.
     First-class classes, objects, and even functions are rare.
   \item
-    Instagram is / had been using Cython to improve the performance of select modules.
-    Cython compiles Python source code to C extension modules for
-    a faster Python [CITE].
-    Instagram had converted several performance-critical modules to Cython prior
-    to starting work on \SP{}.
-    \SP{} replaced them.
-    (How does this help understanding type system highlights?)
+    Prior to investing in \SP{}, Instagram used Cython to compile
+    performance-critical code to C extension modules.
+    Cython performed well, but mixing pure Python with a few compiled modules
+    made for an awkward developer experience.
+    \SP{} aims to match the Python workflow.
   \item
     The Instagram codebase is already typed.
     Developers use Pyre [CITE], an optional type checker for Python,
@@ -548,7 +546,9 @@ But, the default \code{List} type cannot support such a check because untyped
 code is free to create lists.
 
 The \SP{} solution is to provide two versions of every parameterized type,
-both of which support efficient run-time checks.
+both of which support efficient run-time checks.\footnote{Currently, only a handful
+of built-in data structures provide shallow and concrete versions. User-defined
+classes will soon follow this approach.}
 One version is shallow.
 The other is \emph{concrete}: complete, but new.
 Consider \code{List[T]} as an example:
@@ -567,6 +567,10 @@ Consider \code{List[T]} as an example:
     makes it impossible to create a \code{ChkList[int]} with non-integer elements;
     \cref{s:chkdict-impl} discusses the implementation further.
 \end{enumerate}
+%
+These options let programmers decide whether to change their code to benefit from
+fully-sound types, or leave it as-is for a lower payoff.
+
 
 \begin{figure}[t]
   How to enforce type \code{List[int]} simply?
@@ -580,87 +584,101 @@ Consider \code{List[T]} as an example:
   \label{f:list-boundary}
 \end{figure}
 
-These options let programmers decide whether to change their code to benefit from
-fully-sound types, or leave it as-is for a lower payoff.
 Often, the shallow types are more attractive because concrete types impose
 a ripple effect throughout the codebase.
 If one type changes to concrete, then all data constructors that reach this type need
 to change \emph{and then} all their clients need to use the concrete type as well.
 \Cref{s:concrete-migration} discusses this migration cost of concrete types further.
 
-%% TODO
-%  \item \emph{Concrete Parameterized Classes}.
-%    Except for a handful of built-in types,
-%    parameterized classes are enforced only with shallow checks.
-%    In the near future, these classes will gain concrete versions
-%    for programmers to opt-in to.
 
+\subsubsection{Gradual Class Hierarchies}
+\label{s:inheritance}
 
-\subsubsection{Mixed-Typed Class Hierarchies}
+One important feature of \SP{} is that class hierarchies can
+mix typed and untyped code.
+An untyped class may inherit from a typed one and vice-versa.
+The point of this feature is to let programmers add types to a single class
+independently of its ancestors and children.
 
-%% TODO very important, one of the main things IG does use!!!
+% st-ecoop-2007 has no inheritance, object is collection of members simple (Abadi--Cardelli)
 
-The Instagram codebase uses lots of classes and objects.
-Most of these are simple, Java-style: classes declared on
-the top level and single inheritance.
-It was therefore essential to get inheritance working across type boundaries.
-Typed classes must be able to inherit from untyped classes,
-and vice-versa untyped classes must be able to inherit from typed ones.
+Gradual class hierarchies are rarely studied in the literature, especially
+for a language where truly untyped classes can enter the mix.\footnote{Two
+languages that provide separate hierarchies for untyped and (gradually) typed
+classes are Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}.}
+The closest related work, for Nom~\cite{mt-oopsla-2017}, is much more flexible.
+\SP{} explores a simpler point in the design space, starting with
+a few restrictions on types and inheritance:
 
-FILL literature? StrongScript Nom classic GT?
+\begin{enumerate}
+  \item
+    To benefit from types, classes must be declared on the module top level
+    and may have at most one parent.
+    Nested class declarations, first-class classes, and classes with
+    multiple parents default to un-optimized Python behavior~(\cref{s:impl}).
 
-FILL either way, spell out what happens for these interactions.
-Where are the checks needed, checks skipped.
+  \item
+    Methods cannot be overloaded.
+    This restriction comes from Python.
 
-- static -> static overrides restricted, must be compatible
-- static -> dynamic overrides wrapped, in vtable
-- dyn -> stat ditto?
+  \item
+    Methods and fields may be overridden in arbitrary ways by untyped code.
+    In typed code, however, overrides must be compatible subtypes.
+    For example, a method that returns a number cannot be overridden by a method
+    that returns the dynamic type~(example: \cref{f:gg-failure-stat}).
 
-XX 
-%  \item \emph{Method Overloading}.
-%    Methods cannot be overloaded.
-%    Each combination of a class and a name can refer to at most one method.
-%    This behavior comes from Python.
+    % In fact, \SP{} compiles fields using Python slots
+    % declarations (\code{\_\_slots\_\_}).
+    %
+    % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
+    % but the normal field access syntax skips any overrides (o.f)
+
+\end{enumerate}
 %
-%  \item \emph{Multiple Inheritance}.
-%    Multiple inheritance is not supported in a typed way.
-%    \Cref{s:impl} discusses this point further.
-%
-%  \item \emph{Strong overrides}.
-%    Methods and fields may be overridden, but only with values of the same type.
-%    % In fact, \SP{} compiles fields using Python slots
-%    % declarations (\code{\_\_slots\_\_}).
-%    %
-%    % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
-%    % but the normal field access syntax skips any overrides (o.f)
+With this context in mind, every class member is either \emph{reliably} typed or untyped.
+In particular, a typed member cannot be overridden by a less-precise one that uses
+type dynamic.
+\SP{} can therefore optimize dispatch from typed callers to typed methods
+and use checked dispatch for other combinations.
+One extra step arises when an untyped class overrides a typed method.
+In this case, \SP{} creates a wrapper around the overriding method to check
+that it computes type-correct results.
+% Because these wrappers perform a simple first-order check, they
+% are supported by an efficiently implementation that cooperates with
+% \SP{}
+The wrappers are handled efficiently by \SP{}'s vtables~(\cref{s:vtable}).
 
 
-\subsubsection{Types for Python}
+\subsubsection{Tailored Types}
 
-[FILL]
+\SP{} is selective about which types to support and which to omit.
+In general, supported types are widely-used and come with an efficient
+implementation.
+Other widely-used types are deferred to Pyre for static checks until
+the day when \SP{} adds support.\footnote{At present, the \SP{} team
+has no plans to support all Pyre types. The top priority is to implement
+core types efficiently.}
 
-Which types accommodate Python code? Which from PEP typing etc.
+The core supported types describe basic data (integers, booleans, strings),
+data structures (lists, dicts, promises),
+and nominal classes.
+Additional ``C types'' enable aggressive compilation of primitive
+values~(\cref{s:ctypes}).
+Union types are well-supported statically and narrow down in accordance
+with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
+but hardly supported at run-time.
+Only binary unions of a type and false get enforced with a run-time check
+(\code{Union[T, False]}, or \code{Optional[t0]}).
 
-Unions are static only,
-except for unions to false because those are common and can be implemented efficiently.
-
-    Optional(T) is the only union. Others turn into Dynamic.
-
-%  \item \emph{Callable Types, First-Class Classes}.
-%    The Instagram codebase rarely uses first-class functions, classes, or objects.
-%    Thus there is little need for either a \code{Callable} type to describe functions
-%    or first-class types for objects.
-%    When such values do appear, \SP{} assigns the dynamic type and spot-checks their
-%    uses.
-%    For example, every application of a first-class function gets wrapped in a check
-%    if the context expects a certain type.
-%
-%  \item \emph{Recursive Types}.
-%    \SP{} does not support recursive types.
-%    Neither does Pyre or mypy.
-%    %% demand seems low ... baffling
-%    %% mypy = https://github.com/python/mypy/issues/731
-%    %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
+Three unsupported types bear special mention.
+There are no first-class class or object types, as noted in \cref{s:inheritance}.
+There are also no types for first-class functions (callables);
+functions are common at Instagram, but first-class functions are rare.
+Finally, \SP{} does not support recursive types due to low demand.
+Neither Pyre nor mypy have recursive types either.
+%% demand seems low ... baffling
+%% mypy = https://github.com/python/mypy/issues/731
+%% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
 
 \subsection{Runtime System Highlights}
@@ -684,6 +702,7 @@ compiler checked argument types)
 
 
 \subsubsection{Virtual Method Tables}
+\label{s:vtable}
 
 Cinder adds virtual method tables to typed classes.
 ``The v-tables are only used for the \code{INVOKE\_METHOD} opcode, which
@@ -741,6 +760,7 @@ The implementation has three main components:
 
 
 \subsubsection{Unboxed Primitive}
+\label{s:ctypes}
 
 For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
 that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
