@@ -588,6 +588,13 @@ If one type changes to concrete, then all data constructors that reach this type
 to change \emph{and then} all their clients need to use the concrete type as well.
 \Cref{s:concrete-migration} discusses this migration cost of concrete types further.
 
+%% TODO
+%  \item \emph{Concrete Parameterized Classes}.
+%    Except for a handful of built-in types,
+%    parameterized classes are enforced only with shallow checks.
+%    In the near future, these classes will gain concrete versions
+%    for programmers to opt-in to.
+
 
 \subsubsection{Mixed-Typed Class Hierarchies}
 
@@ -605,6 +612,27 @@ FILL literature? StrongScript Nom classic GT?
 FILL either way, spell out what happens for these interactions.
 Where are the checks needed, checks skipped.
 
+- static -> static overrides restricted, must be compatible
+- static -> dynamic overrides wrapped, in vtable
+- dyn -> stat ditto?
+
+XX 
+%  \item \emph{Method Overloading}.
+%    Methods cannot be overloaded.
+%    Each combination of a class and a name can refer to at most one method.
+%    This behavior comes from Python.
+%
+%  \item \emph{Multiple Inheritance}.
+%    Multiple inheritance is not supported in a typed way.
+%    \Cref{s:impl} discusses this point further.
+%
+%  \item \emph{Strong overrides}.
+%    Methods and fields may be overridden, but only with values of the same type.
+%    % In fact, \SP{} compiles fields using Python slots
+%    % declarations (\code{\_\_slots\_\_}).
+%    %
+%    % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
+%    % but the normal field access syntax skips any overrides (o.f)
 
 
 \subsubsection{Types for Python}
@@ -618,54 +646,21 @@ except for unions to false because those are common and can be implemented effic
 
     Optional(T) is the only union. Others turn into Dynamic.
 
-
-\subsubsection{Non-Highlights / Restrictions}
-
-The \SP{} type system excludes include some features.
-Each of the following is low priority for the team; that said, they are
-ordered below rougly from most important (soonest to be implemented) to least.
-
-\begin{itemize}
-  \item \emph{Concrete Parameterized Classes}.
-    Except for a handful of built-in types,
-    parameterized classes are enforced only with shallow checks.
-    In the near future, these classes will gain concrete versions
-    for programmers to opt-in to.
-
-  \item \emph{Callable Types, First-Class Classes}.
-    The Instagram codebase rarely uses first-class functions, classes, or objects.
-    Thus there is little need for either a \code{Callable} type to describe functions
-    or first-class types for objects.
-    When such values do appear, \SP{} assigns the dynamic type and spot-checks their
-    uses.
-    For example, every application of a first-class function gets wrapped in a check
-    if the context expects a certain type.
-
-  \item \emph{Method Overloading}.
-    Methods cannot be overloaded.
-    Each combination of a class and a name can refer to at most one method.
-    This behavior comes from Python.
-
-  \item \emph{Multiple Inheritance}.
-    Multiple inheritance is not supported in a typed way.
-    \Cref{s:impl} discusses this point further.
-
-  \item \emph{Strong overrides}.
-    Methods and fields may be overridden, but only with values of the same type.
-    % In fact, \SP{} compiles fields using Python slots
-    % declarations (\code{\_\_slots\_\_}).
-    %
-    % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
-    % but the normal field access syntax skips any overrides (o.f)
-
-  \item \emph{Recursive Types}.
-    \SP{} does not support recursive types.
-    Neither does Pyre or mypy.
-    %% demand seems low ... baffling
-    %% mypy = https://github.com/python/mypy/issues/731
-    %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
-\end{itemize}
-
+%  \item \emph{Callable Types, First-Class Classes}.
+%    The Instagram codebase rarely uses first-class functions, classes, or objects.
+%    Thus there is little need for either a \code{Callable} type to describe functions
+%    or first-class types for objects.
+%    When such values do appear, \SP{} assigns the dynamic type and spot-checks their
+%    uses.
+%    For example, every application of a first-class function gets wrapped in a check
+%    if the context expects a certain type.
+%
+%  \item \emph{Recursive Types}.
+%    \SP{} does not support recursive types.
+%    Neither does Pyre or mypy.
+%    %% demand seems low ... baffling
+%    %% mypy = https://github.com/python/mypy/issues/731
+%    %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
 
 \subsection{Runtime System Highlights}
