@@ -121,20 +121,35 @@ Procedure check return types.
 
 ### Class Variables
 
-Class variables should be declared as `ClassVar[T]`.
+If type-annotated, class variables should be declared as `ClassVar[T]`.
 
 - [class_variables_should_be_declared_with_ClassVar_pos.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py)
 - [class_variables_should_be_declared_with_ClassVar_neg.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_neg.py)
 
-Class variables can be shadowed. But the new class variable must be of the same type.
+Class variables can be declared without type annotations.
+
+- [class_variables_without_annotations.py](conformance_suite/class_variables_without_annotations.py)
+
+Class variables cannot be declared twice in the same class.
+
+- [class_variables_cannot_be_declared_twice.py](conformance_suite/class_variables_cannot_be_declared_twice.py)
+
+Class variables can be shadowed by class variables in sub-classes. But the new class variable must be of the same type.
 
 - [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)
 - [class_variables_shadow_same_type_pos.py](conformance_suite/class_variables_shadow_same_type_pos.py)
 - [class_variables_shadow_same_type_neg.py](conformance_suite/class_variables_shadow_same_type_neg.py)
 
+Class variables cannot be shadowed by instance variables. 
+TODO
+
 Class variables are read-only at instance level.
 
 - [class_variables_immutable_at_instance_level.py](conformance_suite/class_variables_immutable_at_instance_level.py)
+
+Methods can be declared as class variables.
+
+- [methods_can_be_declared_as_class_variables.py](conformance_suite/methods_can_be_declared_as_class_variables.py)
 
 ### Inheritance/subclassing
 

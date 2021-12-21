@@ -100,12 +100,12 @@
   (T dynamic
      (exactness class-l)
      (Optional nonnonable-T)
+     (ClassVar classvarable-T)
      (-> (T ...) T)
      ;; The remaining are not really types.
      ;;   Each of them only has one inhabitant
      (Type T)
-     type-op
-     cast)
+     type-op)
 
   ;; maybe type
   (T+☠ T ☠)
@@ -114,10 +114,16 @@
   (type-op "CheckedDict[_,_]"
            "Optional[_]"
            "Final[_]"
+           "ClassVar[_]"
            "cast"
            (Union class-l))
 
   (exactness exact subof)
+
+  ;; Types that can go into ClassVar[_]
+  (classvarable-T dynamic
+                  (exactness class-l)
+                  (Optional nonnonable-T))
 
   ;; Checkable types are real types but without functions
   (checkable-T
@@ -172,6 +178,7 @@
    "Exception"
    "Optional[_]"
    "Final[_]"
+   "ClassVar[_]"
    "CheckedDict[_,_]"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T))
@@ -202,6 +209,10 @@
    (class ("object")
      (["__getitem__" "Optional[_]"])
      (["__getitem__" (method "Optional[_]" "__getitem__")]))]
+  [(lookup-Ψ Ψ "ClassVar[_]")
+   (class ("object")
+     (["__getitem__" "ClassVar[_]"])
+     (["__getitem__" (method "ClassVar[_]" "__getitem__")]))]
   [(lookup-Ψ Ψ "object")
    (class ()
      (["__init__" (-> (dynamic) dynamic)])
@@ -706,7 +717,9 @@
   [(type-call Ψ "CheckedDict[_,_]" (exact (tuple (T_key T_val))))
    (Type (subof (chkdict (T-of-T T_key) (T-of-T T_val))))]
   [(type-call Ψ "Optional[_]" T)
-   (Type (Optional (T-of-T T)))])
+   (Type (Optional (T-of-T T)))]
+  [(type-call Ψ "ClassVar[_]" T)
+   (Type (ClassVar (T-of-T T)))])
 (module+ test
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute (con 2) "__add__") ((con 3))))
@@ -824,6 +837,7 @@
    (where #f ,(redex-match? SP-compiled "CheckedDict[_,_]" (term l)))
    (where #f ,(redex-match? SP-compiled "Optional[_]" (term l)))
    (where #f ,(redex-match? SP-compiled "Final[_]" (term l)))
+   (where #f ,(redex-match? SP-compiled "ClassVar[_]" (term l)))
    ----------------------
    (attributable (exactness l))])
 (define-metafunction SP-compiled
@@ -1015,7 +1029,7 @@
     (compile-check x T)
     (assign (attribute fast x_cls x)
             (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e) T))]
-   (where T (eval-t Ψ Γ_dcl Γ_lcl t))]
+   (where (ClassVar T) (eval-t Ψ Γ_dcl Γ_lcl t))]
   [(compile-m Ψ Γ_dcl Γ_lcl x_cls (method x_mth ([x_slf dynamic] [x_arg t_arg] ...) t_out level))
    [x_mth
     (expr (raise-error)) ;; TODO: let's assume methods are immutable right now
@@ -1131,7 +1145,7 @@
                       ((import-from "__static__" ("CheckedDict"))
                        (ann-assign "d" (subscript "CheckedDict" (tuple ("str" "int")))
                                    (call (subscript "CheckedDict" (tuple ("str" "int")))
-                                         ((dict ([(con "foo") (con "123")])))))))))
+                                         ((dict ([(con "foo") (con 123)])))))))))
               (term (local
                       ("CheckedDict" "d")
                       (begin
@@ -1139,7 +1153,7 @@
                         (assign
                          "d"
                          (new (chkdict (subof "str") (subof "int"))
-                              ((dict (((ref (con "foo")) (ref (con "123"))))))))))))
+                              ((dict (((ref (con "foo")) (ref (con 123))))))))))))
   (test-equal (term (compile-program
                      (desugar-program
                       ((import-from "__static__" ("CheckedDict"))
@@ -1181,6 +1195,7 @@
                              ...
                              [x_oth ☠]
                              ...))
+   (judgment-holds (show (Ψ_global-1 Γ_global-1)))
    (where Γ_global-2 (update Γ_global-1
                              [x_oth (T-of-d Ψ_global-1 Γ_global-1 d_oth)]
                              ...))
@@ -1188,6 +1203,7 @@
                              [(user-defined-class x_cls)
                               (eval-class-d Ψ_global-1 Γ_global-2 x_cls d_cls)]
                              ...))
+   (judgment-holds (show (Ψ_global-2 Γ_global-2)))
    (judgment-holds (⊢Ψ Ψ_global-2))
    (where Γ_global Γ_global-2)
    (where Ψ_global Ψ_global-2)])
@@ -1230,9 +1246,10 @@
    (Type (subof "Optional[_]"))]
   [(T-of-import (import-from "typing" "Any"))
    (Type dynamic)]
-  ;; TODO
   [(T-of-import (import-from "typing" "Final"))
    (Type (subof "Final[_]"))]
+  [(T-of-import (import-from "typing" "ClassVar"))
+   (Type (subof "ClassVar[_]"))]
   [(T-of-import (import-from "__future__" "annotations"))
    dynamic]
   ;; fallback to dynamic
