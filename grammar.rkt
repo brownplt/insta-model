@@ -54,7 +54,7 @@
       (delete d-target)
       (ann-assign aa-target t+)
       (ann-assign aa-target t+ e+)
-      (assign a-target e+)
+      (assign (a-target ...) e+)
       (aug-assign e+ o2 e+)
       (class x (e+ ...) (s+ ...))
       (function-def x ([x t+] ...) t+ (s+ ...))

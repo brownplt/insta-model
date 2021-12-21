@@ -746,6 +746,14 @@
    (where (-> (dynamic T_arg ...) T_out) (lookup-method-T Ψ l_cls x_mth))
    (where #t ,(= (length (term (e_arg ...)))
                  (length (term (T_arg ...)))))]
+  ;; new instance, special case
+  [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun ((dict ([e_key e_val] ...))))
+   [(new l ((dict ([(maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_key) T_key)
+                    (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_val) T_val)]
+                   ...))))
+    (exact l)]
+   (where [e-_fun (Type (subof l))] (compile-e Ψ Γ_dcl Γ_lcl e_fun))
+   (where (chkdict T_key T_val) l)]
   ;; new instance
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
    [(new l ((maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))

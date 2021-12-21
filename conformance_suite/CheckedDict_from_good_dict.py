@@ -3,4 +3,5 @@
 # This should terminate.
 from __static__ import CheckedDict
 
-x: CheckedDict[int, str] = CheckedDict[int, str]({2: 'a', 3: 'b'})
+d = {2: 'a', 3: 'b'}
+x: CheckedDict[int, str] = CheckedDict[int, str](d)

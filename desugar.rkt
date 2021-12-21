@@ -314,10 +314,10 @@
                                         ((dict ([e+_k e+_v] ...))))))]
   [(desugar-s (ann-assign e+_dst t+_ann e+_src))
    (desugar-ann-assign e+_dst (desugar-t t+_ann) (desugar-e e+_src))]
-  [(desugar-s (assign e+_dst e+_src))
-   (desugar-ann-assign e+_dst dynamic (desugar-e e+_src))]
+  [(desugar-s (assign (e+_dst ...) e+_src))
+   (desugar-s-assign (e+_dst ...) e+_src)]
   [(desugar-s (aug-assign e+_dst o2 e+_src))
-   (desugar-s (assign e+_dst (bin-op o2 e+_dst e+_src)))]
+   (desugar-s (assign (e+_dst) (bin-op o2 e+_dst e+_src)))]
   [(desugar-s (class x (t+ ...) (s+ ...)))
    (class x ((desugar-t t+) ...) (m*-of-begin (make-begin (desugar-s s+) ...)))]
   [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret (s+ ...)))
@@ -331,6 +331,14 @@
    (make-begin (import-from x_mod x_dst) ...)]
   [(desugar-s (import-from x_mod (*)))
    (desugar-import-from-* x_mod)])
+(define-metafunction SP-core
+  desugar-s-assign : (a-target ...) e+ -> s
+  [(desugar-s-assign (e+_dst) e+_src)
+   (desugar-ann-assign e+_dst dynamic (desugar-e e+_src))]
+  [(desugar-s-assign (e+_dst1 ... e+_dst2) e+_src)
+   (make-begin
+    (desugar-s-assign (e+_dst2) e+_src)
+    (desugar-s-assign (e+_dst1 ...) e+_dst2))])
 (module+ test
   (test-equal (term (desugar-import-from-* "__static__"))
               (term (begin
