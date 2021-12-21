@@ -14,6 +14,7 @@
 %%   helps the static checker find new errors. ChkDict is one example.
 %% - idea: formalism would be a SUBSET of Nom, so our burden of proof is low
 %% - what are the idiomatic base SP types ... int or Int ?
+%% - choose words: static vs typed, nonstatic vs dynamic vs untyped
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -304,8 +305,8 @@ An unannotated variable behaves exactly as it would in Python.
 Cinder is an extension of CPython 3.8 that adds a method-based
 JIT compiler, virtual method tables, and several bytecode instructions
 to directly express type checks and type-based optimizations.
-These enhancements take full advantage of \SP{} type information;
-they are built on top of CPython so that untyped code runs on
+These enhancements take full advantage of \SP{} type information.
+They are built on top of CPython so that untyped code runs on
 the platform.
 
 Using \SP{} and Cinder is as easy as installing a new version
@@ -693,7 +694,15 @@ Neither Pyre nor mypy have recursive types either.
 %% - shadow frames = JIT feature, lite array to track Python call stack
 %% - strict modules ... avoids toplevel function wrapper
 
+Cinder, the \SP{} runtime system, extends the standard Python runtime in
+several ways.
+Some of these ensure the integrity of types.
+Others use type soundness to generate efficient code.
+
+
 \subsubsection{Bytecode Optimization}
+
+TODO
 
 optimizations and bytecodes for: length, subscripting, function dispatch, method dispatch, field load/store
 
@@ -711,31 +720,34 @@ compiler checked argument types)
 \subsubsection{Virtual Method Tables}
 \label{s:vtable}
 
-Cinder adds virtual method tables to typed classes.
-``The v-tables are only used for the \code{INVOKE\_METHOD} opcode, which
-the static compiler will only emit against a statically known static type.'' -Carl
+Cinder adds virtual method tables (vtables) to typed classes.
+These tables help to speed up method dispatch relative to Python's
+dynamic lookup.
 
-with vtables, method resolution happens differently than Python: args. get
-resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
+Specifically, calls to static methods that appear in statically-typed
+code use the vtable to find an address for the method.
+If the method is part of a final class, then the call is further optimized
+to a direct function-call jump.
+JIT compilation can also upgrade vtable lookups to function calls.
 
-vtables are built on Python's vectorcall signature; though new, they're not
-totally from scratch
-
-%    No, there’s no overload resolution by arguments in Python. This difference
-%    in behavior isn’t so much desired as just a consequence of making
-%    `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
-%    the callable is placed on the stack, then the arguments, then there is a
-%    `CALL_FUNCTION` (with number of args in oparg) to perform the call. This
-%    means that first the callable is resolved, then the arguments. But with
-%    `INVOKE_METHOD` we want to resolve the callable as part of the invoke
-%    itself, since this gives us opportunity to inline-cache the target of the
-%    call instead of always having to call something dynamic and unknown that’s
-%    on the stack. So that necessarily implies that first the arguments are
-%    resolved and placed on the stack, then the callable is resolved as part of
-%    the `INVOKE_METHOD`. -Carl
-%
-%    2021-11-15: Dino says the JIT will check/upgrade INVOKE_METHOD to INVOKE_FUNCTION
-%    2021-07-23: final classes get INVOKE_FUNCTION, not INVOKE_METHOD
+%% related bytecodes: INVOKE_METHOD INVOKE_FUNCTION
+%%  JIT can upgrade I_METH to I_FUN
+%%  final classes get I_FUN
+%% implementation: built on Python vectorcalls, so it's not totally new
+%% beware: with vtables, method resolution is different than Python b/c args. get
+%%   resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
+%%
+%% > This difference in behavior isn’t so much desired as just a consequence of making
+%% > `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
+%% > the callable is placed on the stack, then the arguments, then there is a
+%% > `CALL_FUNCTION` (with number of args in oparg) to perform the call. This
+%% > means that first the callable is resolved, then the arguments. But with
+%% > `INVOKE_METHOD` we want to resolve the callable as part of the invoke
+%% > itself, since this gives us opportunity to inline-cache the target of the
+%% > call instead of always having to call something dynamic and unknown that’s
+%% > on the stack. So that necessarily implies that first the arguments are
+%% > resolved and placed on the stack, then the callable is resolved as part of
+%% > the `INVOKE_METHOD`. -Carl
 
 
 \subsubsection{Checked Data Structures}
@@ -743,27 +755,33 @@ totally from scratch
 
 As mentioned above~(\cref{s:checked-type}), the concrete versions of built-in data structures
 come with both a type and an implementation.
-The implementation provides the same interface as the built-in;
-the main difference is that it adds type checks.
+The implementation provides the same interface as the built-in,
+but uses the type to reject some uses.
 
 For example, the type \code{ChkDict[K, V]} describes a concrete dictionary
 with keys of type \code{K} and values of type \code{V}.
 The implementation has three main components:
 \begin{itemize}
   \item
-    Constructor, basically from dict to CD, checks integrity.
-    All CD valuess have to go through this, whether types or untyped.
+    A constructor that uses a type and a Python dictionary
+    to initialize a checked dictionary.
+    The constructor ensures that all values of type \code{ChkDict[K, V]}
+    begin with well-typed elements.
   \item
-    Instances keep a tag, used as exact type in boundary check.
-    (Tag may not be CD[i i] but rather a sentinel generated from it.)
+    Guarded update functions.
+    Every operation that mutates or extends a checked dictionary must
+    validate untyped arguments.
   \item
-    Writes are protected in every context.
+    A type tag for boundary checks.
+    When a checked dictionary enters typed code from an untyped context,
+    the runtime checks its key and value types for an exact match.
+    For example, a value of type \code{ChkDict[K, V]} matches the type
+    \code{ChkDict[str, dynamic]} only if \code{K} is type \code{str}
+    and \code{V} is dynamic.
 \end{itemize}
-
-%    Each instance of a \code{ChkList[int]} comes with the full type as a tag;
-%    run-time checks inspect this tag for an exact match.\footnote{Immutable
-%    data structures could use a subtype check. \SP{} does not have any of these
-%    because the common Python data structures are all mutable.}
+%
+In general, other checked datatypes have the same three components:
+a constructor, checked update functions, and a tag.
 
 
 \subsubsection{Unboxed Primitive}
