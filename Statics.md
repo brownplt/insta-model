@@ -48,7 +48,7 @@ Updating `PyDict` entries is allowed.
 Deleting `PyDict` entries with good keys is allowed.
 
 - [PyDict_delete_good_key.py](conformance_suite/PyDict_delete_good_key.py)
-- 
+
 Deleting `PyDict` entries with bad keys is allowed.
 
 - [PyDict_delete_bad_key.py](conformance_suite/PyDict_delete_bad_key.py)
@@ -64,27 +64,33 @@ Looking up `PyDict` entries with bad keys is allowed.
 ## CheckedDict[T0, T1]
 
 `CheckedDict` must be constructed from `dict`.
+
 - [CheckedDict_from_nondict.py](conformance_suite/CheckedDict_from_nondict.py)
 - [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
 - [CheckedDict_from_good_dict.py](conformance_suite/CheckedDict_from_good_dict.py)
 
 Looking up `CheckedDict[T0, T1]` expects a `T0` key.
+
 - [CheckedDict_lookup_key_neg.py](conformance_suite/CheckedDict_lookup_key_neg.py)
 - [CheckedDict_lookup_key_pos.py](conformance_suite/CheckedDict_lookup_key_pos.py)
 
 Looking up `CheckedDict[T0, T1]` returns a `T1` value.
+
 - [CheckedDict_lookup_val_neg.py](conformance_suite/CheckedDict_lookup_val_neg.py)
 - [CheckedDict_lookup_val_pos.py](conformance_suite/CheckedDict_lookup_val_pos.py)
 
 Updating a `CheckedDict[T0, T1]` checks the key.
+
 - [CheckedDict_update_key_neg.py](conformance_suite/CheckedDict_update_key_neg.py)
 - [CheckedDict_update_key_pos.py](conformance_suite/CheckedDict_update_key_pos.py)
 
 Updating a `CheckedDict[T0, T1]` checks the value.
+
 - [CheckedDict_update_val_neg.py](conformance_suite/CheckedDict_update_val_neg.py)
 - [CheckedDict_update_val_pos.py](conformance_suite/CheckedDict_update_val_pos.py)
 
 Deleting `CheckedDict[T0, T1]` entries checks the key.
+
 - [CheckedDict_delete_neg.py](conformance_suite/CheckedDict_delete_neg.py)
 - [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
 
@@ -140,8 +146,10 @@ Class variables can be shadowed by class variables in sub-classes. But the new c
 - [class_variables_shadow_same_type_pos.py](conformance_suite/class_variables_shadow_same_type_pos.py)
 - [class_variables_shadow_same_type_neg.py](conformance_suite/class_variables_shadow_same_type_neg.py)
 
-Class variables cannot be shadowed by instance variables. 
-TODO
+Class variables cannot be shadowed by instance variables.
+
+- [class_variables_shadow_by_instance_variables_same_class.py](conformance_suite/class_variables_shadow_by_instance_variables_same_class.py)
+- [class_variables_shadow_by_instance_variables_sub_class.py](conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py)
 
 Class variables are read-only at instance level.
 

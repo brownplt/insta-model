@@ -116,6 +116,9 @@
 ;; conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42)))))))))))
 
+;; conformance_suite/class_variables_without_annotations.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((assign ("x") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42)))))))))))
+
 ;; conformance_suite/classes_are_not_first-class.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42))))))))))
 
@@ -145,6 +148,9 @@
 
 ;; conformance_suite/method_generative.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((assign ("m1") (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2")))))))))))
+
+;; conformance_suite/methods_can_be_declared_as_class_variables.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "Any") (lambda (("self" dynamic) ("n" dynamic)) (bin-op + "n" (con 1)))))) (assign ("o") (call "C" ())) (assert (compare (call (attribute "o" "x") ((con 2))) ((is (con 3)))))))))))
 
 ;; conformance_suite/methods_mutable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign ((attribute "C" "m")) (lambda (("self" dynamic)) (con 3)))))))))

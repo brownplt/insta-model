@@ -137,6 +137,9 @@
 ;; conformance_suite/child_is_a_subtype_of_parent_pos.py
 (test-match SP program+ (term ((class "C" () (pass)) (class "D" ("C") (pass)) (ann-assign "x" "C" (call "D" ())))))
 
+;; conformance_suite/class_variables_cannot_be_declared_twice.py
+(test-match SP program+ (term ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")) (ann-assign "x" (subscript "ClassVar" "int")))))))
+
 ;; conformance_suite/class_variables_immutable_at_instance_level.py
 (test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 42)))))
 
@@ -145,6 +148,12 @@
 
 ;; conformance_suite/class_variables_readable_at_instance_level.py
 (test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C" "x")) (con 42)) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42))))))))
+
+;; conformance_suite/class_variables_shadow_by_instance_variables_same_class.py
+(test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")) (ann-assign "x" "int"))))))
+
+;; conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py
+(test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" "int"))))))
 
 ;; conformance_suite/class_variables_shadow_same_type_neg.py
 (test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "str")))))))
@@ -157,6 +166,9 @@
 
 ;; conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py
 (test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42))))))))
+
+;; conformance_suite/class_variables_without_annotations.py
+(test-match SP program+ (term ((class "C" () ((assign ("x") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42))))))))
 
 ;; conformance_suite/classes_are_not_first-class.py
 (test-match SP program+ (term ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42)))))))
@@ -229,6 +241,9 @@
 
 ;; conformance_suite/method_generative.py
 (test-match SP program+ (term ((class "C" () ((assign ("m1") (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2"))))))))
+
+;; conformance_suite/methods_can_be_declared_as_class_variables.py
+(test-match SP program+ (term ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "Any") (lambda (("self" dynamic) ("n" dynamic)) (bin-op + "n" (con 1)))))) (assign ("o") (call "C" ())) (assert (compare (call (attribute "o" "x") ((con 2))) ((is (con 3))))))))
 
 ;; conformance_suite/methods_check_input_arity.py
 (test-match SP program+ (term ((class "C" () ((function-def "m" (("self" dynamic) ("x" dynamic)) dynamic (pass)))) (function-def "f" () dynamic ((expr (call (attribute (call "C" ()) "m") ((con 1) (con 2)))))))))
