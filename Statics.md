@@ -126,11 +126,15 @@ Class variables should be declared as `ClassVar[T]`.
 - [class_variables_should_be_declared_with_ClassVar_pos.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py)
 - [class_variables_should_be_declared_with_ClassVar_neg.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_neg.py)
 
+Class variables can be shadowed. But the new class variable must be of the same type.
+
+- [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)
+- [class_variables_shadow_same_type_pos.py](conformance_suite/class_variables_shadow_same_type_pos.py)
+- [class_variables_shadow_same_type_neg.py](conformance_suite/class_variables_shadow_same_type_neg.py)
+
 Class variables are read-only at instance level.
 
 - [class_variables_immutable_at_instance_level.py](conformance_suite/class_variables_immutable_at_instance_level.py)
-
-
 
 ### Inheritance/subclassing
 

@@ -140,6 +140,27 @@
 ;; conformance_suite/child_is_a_subtype_of_parent_pos.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () (pass)) (class "D" ("C") (pass)) (ann-assign "x" "C" (call "D" ()))))))
 
+;; conformance_suite/class_variables_immutable_at_instance_level.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 42))))))
+
+;; conformance_suite/class_variables_may_shadow.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C1" "x")) (con 2)) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C2" "x")) (con 3)) (assert (compare (attribute "C1" "x") ((is (con 2))))) (assert (compare (attribute "C2" "x") ((is (con 3)))))))))
+
+;; conformance_suite/class_variables_readable_at_instance_level.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C" "x")) (con 42)) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))
+
+;; conformance_suite/class_variables_shadow_same_type_neg.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "str"))))))))
+
+;; conformance_suite/class_variables_shadow_same_type_pos.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int"))))))))
+
+;; conformance_suite/class_variables_should_be_declared_with_ClassVar_neg.py
+(check-not-judgment-holds* (⊢p (desugar-program ((class "C" () ((ann-assign "x" "int" (con 42))))))))
+
+;; conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42)))))))))
+
 ;; conformance_suite/classes_are_not_first-class.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42))))))))
 
