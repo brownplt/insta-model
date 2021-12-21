@@ -435,8 +435,8 @@ notable aspects of the type system:
 
 Like most gradual languages, \SP{} includes a dynamic type
 that allows untyped expressions within a statically-typed context.
-Whenever an expression or variable lacks a type annotation,
-\SP{} uses the dynamic type as a default and skips most compile-time checks.
+Whenever an expression or variable lacks a type annotation, \SP{} uses the
+dynamic type as a default and skips most (but not all!) compile-time checks.
 Every untyped Python program is thus a well-formed \SP{} program.
 Furthermore, programmers can omit the annotations for specific
 function arguments without losing the benefits of other type checks.
@@ -449,21 +449,27 @@ program contains the annotation \code{ChkDict[int, X]}, which describes a
 dictionary with integer keys and \code{X}-typed values.
 \SP{} interprets this annotation as \code{ChkDict[int, dynamic]} and allows any sort
 of values inside the dictionary at runtime.
-To an outsider, this behavior might seem odd: why not reject undefined types with an error?
+
+At first glance, this behavior might seem odd: why not reject undefined types with an error?
 The reason is to reduce friction with the Pyre annotations that are already
 widely-used at Instagram.
 Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
-efficiently, e.g., the type \code{Union[t1, ..., tn]} of arbitrary-width unions.
+efficiently, e.g., the type \code{Union[t1, ..., tn]} of arbitrary-width unions~(\cref{s:idiomatic-types}).
 By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
 
-The dynamic type is not, however, the flexible dynamic type provided
-by \emph{true} gradual languages~\cite{svcb-snapl-2015}.
+%% intro sentence
+The dynamic type is also different than the flexible dynamic type provided
+by true gradual languages~\cite{svcb-snapl-2015}.
 Replacing part of a type with dynamic can lead to both compile-time errors
 and run-time errors.
-In other words, \SP{} satisfies neither the static nor the dynamic gradual guarantee.\footnote{We
-assume a standard type precision relation. Of course, one could argue that these programs
-do not break the gradual guarantees if type precision does not allow our uses of the dynamic type.}
+In other words, \SP{} satisfies neither the static nor the dynamic gradual guarantee
+for a standard type precision relation.
+%% \footnote{We
+%% assume a standard type precision relation. Of course, one could argue that these programs
+%% do not break the gradual guarantees for a type precision relation that is tailored to \SP{}.}
+%%   %% tailored = describes exactly the migrations that SP allows
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
+%% \footnote{In addition, C types~(\cref{s:ctypes}) are incompatible with type dynamic.}
 \begin{itemize}
   \item
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
@@ -650,6 +656,7 @@ The wrappers are handled efficiently by \SP{}'s vtables~(\cref{s:vtable}).
 
 
 \subsubsection{Tailored Types}
+\label{s:idiomatic-types}
 
 \SP{} is selective about which types to support and which to omit.
 In general, supported types are widely-used and come with an efficient
