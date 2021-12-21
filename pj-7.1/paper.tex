@@ -700,20 +700,38 @@ Some of these ensure the integrity of types.
 Others use type soundness to generate efficient code.
 
 
-\subsubsection{Bytecode Optimization}
+\subsubsection{Bytecode Instructions}
 
-TODO
+Cinder is a bytecode compiler that extends the Python instruction set.
+All the standard Python instructions work similarly to Python 3.8;
+in other words, an untyped Python program has the same semantics in
+Cinder as in the standard interpreter.
+The added instructions help either to express runtime checks or to
+quickly perform a statically-determined action.
 
-optimizations and bytecodes for: length, subscripting, function dispatch, method dispatch, field load/store
+The two main instructions that express run-time checks are \code{CAST}
+and \code{CHECK\_ARGS}.
+The former checks a value against a type.
+The latter is a special cast for functions and methods;
+it appears at the top of every function and checks that the
+actual parameters match the types of the formal parameters.
 
-table much later in paper 
+A simple optimizing instruction is \code{FAST\_LEN}, which expects
+a built-in value\footnote{Because of subtyping, it does not suffice to check
+the type. All Python lists support \code{FAST\_LEN} but some subclasses
+of the Python list type may not.}
+and quickly computes its length.
+Another is \code{LOAD\_FIELD}, which scans a fixed offset within an object.
+By contrast, the standard Python instruction for loading a field needs to
+search a dictionary~(\code{LOAD\_ATTR}).
 
-IN ADDITION to optimizations ...
-not sure where this belongs exactly, but we go to a lot of work in the compiler
-to intelligently minimize runtime checks by only inserting them when the source
-value is of dynamic type (this includes also skipping CHECK\_ARGS if the
-function was statically invoked by another static function and thus we know the
-compiler checked argument types)
+In addition to speeding code up, the \SP{} compiler takes care
+to avoid slowing code down.
+It does so by avoiding casts and run-time checks that are certain to succeed.
+For example, calls from a typed context to a typed function are statically
+checked for compatibility.
+There is no need to run \code{CHECK\_ARGS} on typed inputs, so the bytecode
+compiler inserts a special call instruction to skip past the check.
 
 
 
