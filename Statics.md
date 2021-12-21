@@ -119,6 +119,19 @@ Procedure check return types.
 
 - [init_checks_type.py](conformance_suite/init_checks_type.py)
 
+### Class Variables
+
+Class variables should be declared as `ClassVar[T]`.
+
+- [class_variables_should_be_declared_with_ClassVar_pos.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py)
+- [class_variables_should_be_declared_with_ClassVar_neg.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_neg.py)
+
+Class variables are read-only at instance level.
+
+- [class_variables_immutable_at_instance_level.py](conformance_suite/class_variables_immutable_at_instance_level.py)
+
+
+
 ### Inheritance/subclassing
 
 Inheriting builtin classes is allowed.
