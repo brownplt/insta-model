@@ -1,7 +1,6 @@
 # unannotated_class_variables_readable.py
-# This should fail.
-
-from typing import ClassVar
+# This should pass.
+# This should terminate.
 
 class C:
     x = 42

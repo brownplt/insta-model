@@ -374,6 +374,9 @@
 ;; conformance_suite/test_visit_if_else.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42))))))))))))
 
+;; conformance_suite/unannotated_class_variables_readable.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((assign ("x") (con 42)))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))))
+
 ;; conformance_suite/unannotated_class_variables_redeclare_in_subclass_same_type.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((assign ("x") (con 2)))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "Any"))))))))))
 

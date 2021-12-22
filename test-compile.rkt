@@ -770,7 +770,7 @@
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((assign ("x") (con 2)))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 3))))))))
 
 ;; conformance_suite/unannotated_class_variables_readable.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((assign ("x") (con 42)))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () ((assign ("x") (con 42)))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42))))))))))
 
 ;; conformance_suite/unannotated_class_variables_redeclare.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((assign ("x") (con 2)) (ann-assign "x" (subscript "ClassVar" "Any"))))))))))
