@@ -14,24 +14,25 @@ import warnings
 from array import array
 from collections import UserDict
 from compiler.consts import CO_SHADOW_FRAME, CO_STATICALLY_COMPILED
-from compiler.errors import CollectingErrorSink
-from compiler.pycodegen import PythonCodeGenerator, make_compiler
+from compiler.pycodegen import PythonCodeGenerator
 from compiler.static import StaticCodeGenerator
 from compiler.static.compiler import Compiler
 from compiler.static.types import (
     prim_name_to_type,
-    AWAITABLE_TYPE,
+    ALL_CINT_TYPES,
     BASE_EXCEPTION_TYPE,
     BOOL_TYPE,
     BUILTIN_METHOD_DESC_TYPE,
     BUILTIN_METHOD_TYPE,
     BYTES_TYPE,
+    CBOOL_TYPE,
+    CHAR_TYPE,
     COMPLEX_EXACT_TYPE,
     COMPLEX_TYPE,
-    Class,
     Object,
     DICT_EXACT_TYPE,
     DICT_TYPE,
+    DOUBLE_TYPE,
     DYNAMIC,
     DYNAMIC_TYPE,
     ELLIPSIS_TYPE,
@@ -63,10 +64,8 @@ from compiler.static.types import (
     TYPE_TYPE,
     Function,
     TypedSyntaxError,
-    Value,
     TUPLE_EXACT_TYPE,
     TUPLE_TYPE,
-    UNION_TYPE,
     INT_EXACT_TYPE,
     FLOAT_EXACT_TYPE,
     SET_EXACT_TYPE,
@@ -105,20 +104,14 @@ from compiler.static.types import (
     FAST_LEN_STR,
     DICT_EXACT_TYPE,
     TYPED_DOUBLE,
-    InlinedCall,
 )
-from compiler.strict.common import FIXED_MODULES
-from compiler.strict.runtime import set_freeze_enabled
-from compiler.symbols import SymbolVisitor, CinderSymbolVisitor
-from contextlib import contextmanager
 from copy import deepcopy
 from io import StringIO
 from os import path
-from textwrap import dedent
-from types import CodeType, MemberDescriptorType, ModuleType
-from typing import Generic, Optional, Tuple, TypeVar, Dict
-from unittest import TestCase, skip, skipIf
-from unittest.mock import Mock, patch
+from types import ModuleType
+from typing import Optional, TypeVar
+from unittest import skipIf
+from unittest.mock import patch
 
 import cinder
 import xxclassloader
@@ -126,14 +119,11 @@ from __static__ import (
     Array,
     Vector,
     chkdict,
-    chklist,
     int32,
     int64,
-    int8,
     make_generic_type,
     StaticGeneric,
     is_type_static,
-    RAND_MAX,
 )
 from cinder import StrictModule
 
@@ -1320,6 +1310,19 @@ class StaticCompilationTests(StaticTestBase):
         self.assertEqual(f(), 100)
         self.assert_jitted(f)
 
+    def test_int_unbox_from_call(self):
+        codestr = f"""
+        from __static__ import int64
+        def foo() -> int:
+            return 1234
+
+        def testfunc() -> int64:
+            return int64(foo())
+        """
+        with self.in_module(codestr) as mod:
+            f = mod.testfunc
+            self.assertEqual(f(), 1234)
+
     def test_int_compare_or(self):
         codestr = """
         from __static__ import box, ssize_t
@@ -1386,9 +1389,10 @@ class StaticCompilationTests(StaticTestBase):
                 return True
             return False
         """
-        f = self.run_code(codestr)["testfunc"]
-        self.assertTrue(f(4.1))
-        self.assertFalse(f(1.1))
+        with self.in_module(codestr) as mod:
+            f = mod.testfunc
+            self.assertTrue(f(4.1))
+            self.assertFalse(f(1.1))
 
     def test_double_compare_with_integer_literal(self):
         codestr = f"""
@@ -1946,10 +1950,7 @@ class StaticCompilationTests(StaticTestBase):
 
         with self.in_module(codestr) as mod:
             f = mod.f
-            with self.assertRaisesRegex(
-                TypeError,
-                "(expected int, enum, bool or float, got str)|(an integer is required)",
-            ):
+            with self.assertRaisesRegex(TypeError, "expected 'int', got 'str'"):
                 f()
 
     def test_unbox_typed(self):
@@ -1964,10 +1965,7 @@ class StaticCompilationTests(StaticTestBase):
             f = mod.f
             self.assertEqual(f(42), 42)
             self.assertInBytecode(f, "PRIMITIVE_UNBOX")
-            with self.assertRaisesRegex(
-                TypeError,
-                "(expected int, enum, bool or float, got str)|(an integer is required)",
-            ):
+            with self.assertRaisesRegex(TypeError, "expected 'int', got 'str'"):
                 self.assertEqual(f("abc"), 42)
 
     def test_unbox_typed_bool(self):
@@ -2026,6 +2024,19 @@ class StaticCompilationTests(StaticTestBase):
         """
 
         self.type_error(codestr, "type mismatch: int cannot be assigned to cbool")
+
+    def test_box_cbool_to_bool(self):
+        codestr = """
+            from typing import final
+            from __static__ import cbool
+
+            def foo() -> bool:
+                b: cbool = True
+                return bool(b)
+        """
+        with self.in_module(codestr) as mod:
+            self.assertInBytecode(mod.foo, "PRIMITIVE_BOX")
+            self.assertTrue(mod.foo())
 
     def test_unbox_incompat_type(self):
         codestr = """
@@ -5707,17 +5718,6 @@ class StaticCompilationTests(StaticTestBase):
         ):
             self.compile(codestr)
 
-    def test_union_compare(self):
-        codestr = """
-            def f(x: int | float) -> bool:
-                return x > 0
-        """
-        with self.in_strict_module(codestr) as mod:
-            self.assertEqual(mod.f(3), True)
-            self.assertEqual(mod.f(3.1), True)
-            self.assertEqual(mod.f(-3), False)
-            self.assertEqual(mod.f(-3.1), False)
-
     def test_global_int(self):
         codestr = """
             X: int =  60 * 60 * 24
@@ -8438,6 +8438,22 @@ class StaticCompilationTests(StaticTestBase):
                 stats = cinderjit.get_and_clear_runtime_stats().get("deopt")
                 self.assertFalse(stats)
 
+    def test_compile_checked_dict_create_with_dictcomp(self):
+        codestr = """
+            from __static__ import CheckedDict, clen, int64
+
+            def testfunc() -> None:
+                x = CheckedDict[int, str]({int(i): int(i) for i in
+                               range(1, 5)})
+        """
+        with self.assertRaisesRegex(
+            TypedSyntaxError,
+            type_mismatch(
+                "Exact[chkdict[Exact[int], Exact[int]]]", "Exact[chkdict[int, str]]"
+            ),
+        ):
+            self.compile(codestr)
+
     def test_async_method_override(self):
         codestr = """
             class C:
@@ -9569,43 +9585,6 @@ class StaticCompilationTests(StaticTestBase):
             self.assertNotInBytecode(h, "CALL_FUNCTION")
             self.assertEqual(h(1, 2), True)
 
-    def test_final_multiple_typeargs(self):
-        codestr = """
-        from typing import Final
-        from something import hello
-
-        x: Final[int, str] = hello()
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError,
-            r"incorrect number of generic arguments for Final\[T\], expected 1, got 2",
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_annotation_nesting(self):
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Final annotation is only valid in initial declaration"
-        ):
-            self.compile(
-                """
-                from typing import Final, List
-
-                x: List[Final[str]] = []
-                """,
-                modname="foo",
-            )
-
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Final annotation is only valid in initial declaration"
-        ):
-            self.compile(
-                """
-                from typing import Final, List
-                x: List[int | Final] = []
-                """,
-                modname="foo",
-            )
-
     def test_frozenset_constant(self):
         codestr = """
         from __static__ import inline
@@ -9619,409 +9598,6 @@ class StaticCompilationTests(StaticTestBase):
         """
         self.compile(codestr, modname="foo")
 
-    def test_final(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-        """
-        self.compile(codestr, modname="foo")
-
-    def test_final_generic(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-        """
-        self.compile(codestr, modname="foo")
-
-    def test_final_generic_types(self):
-        codestr = """
-        from typing import Final
-
-        def g(i: int) -> int:
-            return i
-
-        def f() -> int:
-            x: Final[int] = 0xdeadbeef
-            return g(x)
-        """
-        self.compile(codestr, modname="foo")
-
-    def test_final_uninitialized(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int]
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Must assign a value when declaring a Final"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassign(self):
-        codestr = """
-        from typing import Any, Final
-
-        x: Final[Any] = 0xdeadbeef
-        x = "something"
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassign_explicit_global(self):
-        codestr = """
-            from typing import Final
-
-            a: Final[int] = 1337
-
-            def fn():
-                def fn2():
-                    global a
-                    a = 0
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassign_explicit_global_shadowed(self):
-        codestr = """
-            from typing import Final
-
-            a: Final[int] = 1337
-
-            def fn():
-                a = 2
-                def fn2():
-                    global a
-                    a = 0
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassign_nonlocal(self):
-        codestr = """
-            from typing import Final
-
-            a: Final[int] = 1337
-
-            def fn():
-                def fn2():
-                    nonlocal a
-                    a = 0
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassign_nonlocal_shadowed(self):
-        codestr = """
-            from typing import Final
-
-            a: Final[int] = 1337
-
-            def fn():
-                a = 3
-                def fn2():
-                    nonlocal a
-                    # should be allowed, we're assigning to the shadowed
-                    # value
-                    a = 0
-        """
-        self.compile(codestr, modname="foo")
-
-    def test_final_reassigned_in_tuple(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-        y = 3
-        x, y = 4, 5
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassigned_in_loop(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-
-        for x in [1, 3, 5]:
-            pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassigned_in_except(self):
-        codestr = """
-        from typing import Final
-
-        def f():
-            e: Final[int] = 3
-            try:
-                x = 1 + "2"
-            except Exception as e:
-                pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassigned_in_loop_target_tuple(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-
-        for x, y in [(1, 2)]:
-            pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_reassigned_in_ctxmgr(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-
-        with open("lol") as x:
-            pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_generic_reassign(self):
-        codestr = """
-        from typing import Final
-
-        x: Final[int] = 0xdeadbeef
-        x = 0x5ca1ab1e
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final variable"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_callable_protocol_retains_inferred_type(self):
-        codestr = """
-        from typing import Final, Protocol
-
-        def foo(x: int) -> str:
-            return "A"
-
-        class CallableProtocol(Protocol):
-            def __call__(self, x: int) -> str:
-                pass
-
-        f: Final[CallableProtocol] = foo
-
-        def bar(x: int) -> str:
-            return f(x)
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.bar
-            self.assertInBytecode(f, "INVOKE_FUNCTION")
-
-    def test_final_in_args(self):
-        codestr = """
-        from typing import Final
-
-        def f(a: Final) -> None:
-            pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError,
-            "Final annotation is only valid in initial declaration",
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_returns(self):
-        codestr = """
-        from typing import Final
-
-        def f() -> Final[int]:
-            return 1
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError,
-            "Final annotation is only valid in initial declaration",
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_decorator(self):
-        codestr = """
-        from typing import final
-
-        class C:
-            @final
-            def f():
-                pass
-        """
-        self.compile(codestr, modname="foo")
-
-    def test_final_decorator_override(self):
-        codestr = """
-        from typing import final
-
-        class C:
-            @final
-            def f():
-                pass
-
-        class D(C):
-            def f():
-                pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final attribute of foo.D:f"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_decorator_override_with_assignment(self):
-        codestr = """
-        from typing import final
-
-        class C:
-            @final
-            def f():
-                pass
-
-        class D(C):
-            f = print
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final attribute of foo.D:f"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_decorator_override_transitivity(self):
-        codestr = """
-        from typing import final
-
-        class C:
-            @final
-            def f():
-                pass
-
-        class D(C):
-            pass
-
-        class E(D):
-            def f():
-                pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Cannot assign to a Final attribute of foo.E:f"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_decorator_class(self):
-        codestr = """
-        from typing import final
-
-        @final
-        class C:
-            def f(self):
-                pass
-
-        def f():
-            return C().f()
-        """
-        c = self.compile(codestr, modname="foo")
-        f = self.find_code(c, "f")
-        self.assertInBytecode(f, "INVOKE_FUNCTION")
-
-    def test_final_decorator_class_inheritance(self):
-        codestr = """
-        from typing import final
-
-        @final
-        class C:
-            pass
-
-        class D(C):
-            pass
-        """
-        with self.assertRaisesRegex(
-            TypedSyntaxError, "Class `foo.D` cannot subclass a Final class: `foo.C`"
-        ):
-            self.compile(codestr, modname="foo")
-
-    def test_final_decorator_class_nonstatic_subclass(self):
-        codestr = """
-            from typing import final
-
-            @final
-            class C:
-                pass
-        """
-        with self.in_module(codestr) as mod:
-            with self.assertRaisesRegex(
-                TypeError, "type 'C' is not an acceptable base type"
-            ):
-
-                class D(mod.C):
-                    pass
-
-    def test_final_decorator_class_dynamic(self):
-        """We should never mark DYNAMIC_TYPE as final."""
-        codestr = """
-            from typing import final, Generic, NamedTuple
-
-            @final
-            class NT(NamedTuple):
-                x: int
-
-            class C(Generic):
-                pass
-        """
-        # No TypedSyntaxError "cannot inherit from Final class 'dynamic'"
-        self.compile(codestr)
-
-    def test_int_subclass_of_float(self):
-        """PEP 484 specifies that ints should be treated as subclasses of floats,
-        even though they differ in the runtime."""
-        codestr = """
-            def takes_float(f: float) -> float:
-                return f
-
-            a: int = 1
-            x: float = takes_float(a)
-        """
-        with self.in_module(codestr) as mod:
-            self.assertEqual(mod.x, 1)
-
-    def test_float_int_union_error_message(self):
-        codestr = """
-            class MyFloat(float):
-                pass
-
-            def f(x: int) -> int:
-                y = 1.0
-                if x:
-                    y = MyFloat("1.5")
-                z = x or y
-                return z
-        """
-        self.type_error(codestr, bad_ret_type("float", "int"))
-
     def test_exact_float_type(self):
         codestr = """
         def foo():
@@ -10031,6 +9607,20 @@ class StaticCompilationTests(StaticTestBase):
         with self.assertRaisesRegex(
             TypedSyntaxError,
             r"reveal_type\(f\): 'Exact\[float\]'",
+        ):
+            self.compile(codestr)
+
+    def test_chkdict_float_is_dynamic(self):
+        codestr = """
+        from __static__ import CheckedDict
+
+        def main():
+            d = CheckedDict[float, str]({2.0: "hello", 2.3: "foobar"})
+            reveal_type(d)
+        """
+        with self.assertRaisesRegex(
+            TypedSyntaxError,
+            r"reveal_type\(d\): 'Exact\[chkdict\[dynamic, str\]\]'",
         ):
             self.compile(codestr)
 
@@ -10453,6 +10043,22 @@ class StaticCompilationTests(StaticTestBase):
             f = mod.fn
             self.assertNotInBytecode(f, "TP_ALLOC")
             self.assertEqual(f().c, 1)
+
+    def test_primitive_types_final(self):
+        PRIMITIVE_TYPES = ALL_CINT_TYPES + [CBOOL_TYPE, CHAR_TYPE, DOUBLE_TYPE]
+        PRIMITIVE_NAMES = [klass.instance_name for klass in PRIMITIVE_TYPES]
+        for name in PRIMITIVE_NAMES:
+            codestr = f"""
+                from __static__ import {name}
+
+                class C({name}): pass
+            """
+            with self.subTest(klass=name):
+                self.type_error(
+                    codestr,
+                    f"Primitive type {name} cannot be subclassed: ",
+                    at="class C",
+                )
 
 
 class StaticRuntimeTests(StaticTestBase):
@@ -11895,6 +11501,28 @@ class StaticRuntimeTests(StaticTestBase):
         with self.in_module(codestr) as mod:
             m = mod.m
             self.assertEqual(m(), -5)
+
+    def test_array_call_typecheck(self):
+        codestr = """
+            from __static__ import Array, int32
+            def h(x: Array[int32]) -> int32:
+                return x[0]
+        """
+        error_msg = re.escape("h expected 'Array[int32]' for argument x, got 'list'")
+        with self.in_module(codestr) as mod:
+            with self.assertRaisesRegex(TypeError, error_msg):
+                mod.h(["B"])
+
+    def test_array_call_typecheck_double(self):
+        codestr = """
+            from __static__ import Array, int32, double, box
+            def h(x: Array[int32]) -> double:
+                return double(float(box(x[0])))
+        """
+        error_msg = re.escape("h expected 'Array[int32]' for argument x, got 'list'")
+        with self.in_module(codestr) as mod:
+            with self.assertRaisesRegex(TypeError, error_msg):
+                mod.h(["B"])
 
     def test_array_set_signed(self):
         int_types = [
@@ -13513,133 +13141,6 @@ class StaticRuntimeTests(StaticTestBase):
             ret = f()
             self.assertNotIn(1, ret)
             self.assertIn(2, ret)
-
-    def test_final_constant_folding_int(self):
-        codestr = """
-        from typing import Final
-
-        X: Final[int] = 1337
-
-        def plus_1337(i: int) -> int:
-            return i + X
-        """
-        with self.in_module(codestr) as mod:
-            plus_1337 = mod.plus_1337
-            self.assertInBytecode(plus_1337, "LOAD_CONST", 1337)
-            self.assertNotInBytecode(plus_1337, "LOAD_GLOBAL")
-            self.assertEqual(plus_1337(3), 1340)
-
-    def test_final_constant_folding_bool(self):
-        codestr = """
-        from typing import Final
-
-        X: Final[bool] = True
-
-        def f() -> bool:
-            return not X
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertInBytecode(f, "LOAD_CONST", True)
-            self.assertNotInBytecode(f, "LOAD_GLOBAL")
-            self.assertFalse(f())
-
-    def test_final_constant_folding_str(self):
-        codestr = """
-        from typing import Final
-
-        X: Final[str] = "omg"
-
-        def f() -> str:
-            return X[1]
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertInBytecode(f, "LOAD_CONST", "omg")
-            self.assertNotInBytecode(f, "LOAD_GLOBAL")
-            self.assertEqual(f(), "m")
-
-    def test_final_constant_folding_disabled_on_nonfinals(self):
-        codestr = """
-        from typing import Final
-
-        X: str = "omg"
-
-        def f() -> str:
-            return X[1]
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertNotInBytecode(f, "LOAD_CONST", "omg")
-            self.assertInBytecode(f, "LOAD_GLOBAL", "X")
-            self.assertEqual(f(), "m")
-
-    def test_final_constant_folding_disabled_on_nonconstant_finals(self):
-        codestr = """
-        from typing import Final
-
-        def p() -> str:
-            return "omg"
-
-        X: Final[str] = p()
-
-        def f() -> str:
-            return X[1]
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertNotInBytecode(f, "LOAD_CONST", "omg")
-            self.assertInBytecode(f, "LOAD_GLOBAL", "X")
-            self.assertEqual(f(), "m")
-
-    def test_final_constant_folding_shadowing(self):
-        codestr = """
-        from typing import Final
-
-        X: Final[str] = "omg"
-
-        def f() -> str:
-            X = "lol"
-            return X[1]
-        """
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            self.assertInBytecode(f, "LOAD_CONST", "lol")
-            self.assertNotInBytecode(f, "LOAD_GLOBAL", "omg")
-            self.assertEqual(f(), "o")
-
-    def test_final_constant_folding_in_module_scope(self):
-        codestr = """
-        from typing import Final
-
-        X: Final[int] = 21
-        y = X + 3
-        """
-        c = self.compile(codestr, modname="foo.py")
-        self.assertNotInBytecode(c, "LOAD_NAME", "X")
-        with self.in_module(codestr) as mod:
-            self.assertEqual(mod.y, 24)
-
-    def test_final_constant_in_module_scope(self):
-        codestr = """
-        from typing import Final
-
-        X: Final[int] = 21
-        """
-        with self.in_module(codestr) as mod:
-            self.assertEqual(mod.__final_constants__, ("X",))
-
-    def test_final_nonconstant_in_module_scope(self):
-        codestr = """
-        from typing import Final
-
-        def p() -> str:
-            return "omg"
-
-        X: Final[str] = p()
-        """
-        with self.in_module(codestr) as mod:
-            self.assertEqual(mod.__final_constants__, ())
 
     def test_double_load_const(self):
         codestr = """
