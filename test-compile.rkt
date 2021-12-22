@@ -139,32 +139,44 @@
 ;; conformance_suite/child_is_a_subtype_of_parent_pos.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (class "D" ("C") (pass)) (ann-assign "x" "C" (call "D" ())))))))
 
-;; conformance_suite/class_variables_cannot_be_declared_twice.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")) (ann-assign "x" (subscript "ClassVar" "int"))))))))))
+;; conformance_suite/class_variables_declare_and_init.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42)))))))))
 
-;; conformance_suite/class_variables_immutable_at_instance_level.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 42))))))))
+;; conformance_suite/class_variables_declare_only.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))))))))
 
 ;; conformance_suite/class_variables_may_shadow.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C1" "x")) (con 2)) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C2" "x")) (con 3)) (assert (compare (attribute "C1" "x") ((is (con 2))))) (assert (compare (attribute "C2" "x") ((is (con 3))))))))))
 
+;; conformance_suite/class_variables_nonwritable_at_instance_level.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 42))))))))
+
 ;; conformance_suite/class_variables_readable_at_instance_level.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C" "x")) (con 42)) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42))))))))))
+
+;; conformance_suite/class_variables_redeclare.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")) (ann-assign "x" (subscript "ClassVar" "int"))))))))))
+
+;; conformance_suite/class_variables_redeclare_in_subclass_less_precise_type.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "Any"))))))))))
+
+;; conformance_suite/class_variables_redeclare_in_subclass_more_precise_type.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "Any")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int"))))))))))
+
+;; conformance_suite/class_variables_redeclare_in_subclass_same_type.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int")))))))))
+
+;; conformance_suite/class_variables_redeclare_in_subclass_sub_type.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "bool"))))))))))
+
+;; conformance_suite/class_variables_redeclare_in_subclass_sup_type.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "bool")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int"))))))))))
 
 ;; conformance_suite/class_variables_shadow_by_instance_variables_same_class.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")) (ann-assign "x" "int")))))))))
 
 ;; conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" "int")))))))))
-
-;; conformance_suite/class_variables_shadow_same_type_neg.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "str"))))))))))
-
-;; conformance_suite/class_variables_shadow_same_type_pos.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int")))))))))
-
-;; conformance_suite/class_variables_should_be_declared_with_ClassVar_neg.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () ((ann-assign "x" "int" (con 42))))))))))
 
 ;; conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42))))))))))
@@ -216,6 +228,9 @@
 
 ;; conformance_suite/insert_new_field.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (function-def "f" (("c" "C")) dynamic ((assign ((attribute "c" "x")) (con 42)))))))))
+
+;; conformance_suite/instance_variables_initialize_at_class.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () ((ann-assign "x" "int" (con 42))))))))))
 
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "int" (con 42)))))))
@@ -750,6 +765,27 @@
 
 ;; conformance_suite/test_visit_if_else.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42)))))))))))
+
+;; conformance_suite/unannotated_class_variables_nonwritable.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((assign ("x") (con 2)))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 3))))))))
+
+;; conformance_suite/unannotated_class_variables_readable.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((assign ("x") (con 42)))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))))
+
+;; conformance_suite/unannotated_class_variables_redeclare.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((assign ("x") (con 2)) (ann-assign "x" (subscript "ClassVar" "Any"))))))))))
+
+;; conformance_suite/unannotated_class_variables_redeclare_in_subclass_more_precise_type.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((assign ("x") (con 42)))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int"))))))))))
+
+;; conformance_suite/unannotated_class_variables_redeclare_in_subclass_same_type.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((assign ("x") (con 2)))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "Any")))))))))
+
+;; conformance_suite/unannotated_class_variables_shadowed_by_instance_same_class.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C1" () ((assign ("x") (con 42)) (ann-assign "x" "int")))))))))
+
+;; conformance_suite/unannotated_class_variables_shadowed_by_instance_sub_class.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C1" () ((assign ("x") (con 42)))) (class "C2" ("C1") ((ann-assign "x" "int")))))))))
 
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x"))))))

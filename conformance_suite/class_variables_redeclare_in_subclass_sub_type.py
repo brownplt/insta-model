@@ -1,4 +1,4 @@
-# class_variables_shadow_same_type_neg.py
+# class_variables_redeclare_in_subclass_sub_type.py
 # This should fail.
 
 from typing import ClassVar
@@ -7,4 +7,4 @@ class C1:
     x: ClassVar[int]
 
 class C2(C1):
-    x: ClassVar[str]
+    x: ClassVar[bool]

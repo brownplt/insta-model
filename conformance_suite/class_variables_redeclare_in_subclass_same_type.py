@@ -1,4 +1,4 @@
-# class_variables_shadow_same_type_pos.py
+# class_variables_redeclare_in_subclass_same_type.py
 # This should pass.
 # This should terminate.
 

@@ -125,39 +125,55 @@ Procedure check return types.
 
 - [init_checks_type.py](conformance_suite/init_checks_type.py)
 
-### Class Variables
+### Class Variables (class-level members)
 
-If type-annotated, class variables should be declared as `ClassVar[T]`.
+Class variables might or might not be initialized at declaration.
 
-- [class_variables_should_be_declared_with_ClassVar_pos.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py)
-- [class_variables_should_be_declared_with_ClassVar_neg.py](conformance_suite/class_variables_should_be_declared_with_ClassVar_neg.py)
+- [class_variables_declare_only.py](conformance_suite/class_variables_declare_only.py)
+- [class_variables_declare_and_init.py](conformance_suite/class_variables_declare_and_init.py)
 
-Class variables can be declared without type annotations.
+Class variables must not be redeclared in the same class.
 
-- [class_variables_without_annotations.py](conformance_suite/class_variables_without_annotations.py)
+- [class_variables_redeclare.py](conformance_suite/class_variables_redeclare.py)
 
-Class variables cannot be declared twice in the same class.
+Class variables can be redeclared in subclasses. But the new class variable must be of the same type.
 
-- [class_variables_cannot_be_declared_twice.py](conformance_suite/class_variables_cannot_be_declared_twice.py)
+- [class_variables_redeclare_in_subclass_same_type.py](conformance_suite/class_variables_redeclare_in_subclass_same_type.py)
+- [class_variables_redeclare_in_subclass_sub_type.py](conformance_suite/class_variables_redeclare_in_subclass_sub_type.py)
+- [class_variables_redeclare_in_subclass_sup_type.py](conformance_suite/class_variables_redeclare_in_subclass_sup_type.py)
+- [class_variables_redeclare_in_subclass_less_precise_type.py](conformance_suite/class_variables_redeclare_in_subclass_less_precise_type.py)
+- [class_variables_redeclare_in_subclass_more_precise_type.py](conformance_suite/class_variables_redeclare_in_subclass_more_precise_type.py)
 
-Class variables can be shadowed by class variables in sub-classes. But the new class variable must be of the same type.
-
-- [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)
-- [class_variables_shadow_same_type_pos.py](conformance_suite/class_variables_shadow_same_type_pos.py)
-- [class_variables_shadow_same_type_neg.py](conformance_suite/class_variables_shadow_same_type_neg.py)
-
-Class variables cannot be shadowed by instance variables.
+Class variables must not be shadowed by instance variables.
 
 - [class_variables_shadow_by_instance_variables_same_class.py](conformance_suite/class_variables_shadow_by_instance_variables_same_class.py)
 - [class_variables_shadow_by_instance_variables_sub_class.py](conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py)
 
 Class variables are read-only at instance level.
 
-- [class_variables_immutable_at_instance_level.py](conformance_suite/class_variables_immutable_at_instance_level.py)
+- [class_variables_readable_at_instance_level.py](conformance_suite/class_variables_readable_at_instance_level.py)
+- [class_variables_nonwritable_at_instance_level.py](conformance_suite/class_variables_nonwritable_at_instance_level.py)
+
+Initialized and unannotated members are considered class variables.
+
+- [unannotated_class_variables_redeclare.py](conformance_suite/unannotated_class_variables_redeclare.py)
+- [unannotated_class_variables_redeclare_in_subclass_same_type.py](conformance_suite/unannotated_class_variables_redeclare_in_subclass_same_type.py)
+- [unannotated_class_variables_redeclare_in_subclass_more_precise_type.py](conformance_suite/unannotated_class_variables_redeclare_in_subclass_more_precise_type.py)
+- [unannotated_class_variables_shadowed_by_instance_same_class.py](conformance_suite/unannotated_class_variables_shadowed_by_instance_same_class.py)
+- [unannotated_class_variables_shadowed_by_instance_sub_class.py](conformance_suite/unannotated_class_variables_shadowed_by_instance_sub_class.py)
+- [unannotated_class_variables_readable.py](conformance_suite/unannotated_class_variables_readable.py)
+- [unannotated_class_variables_nonwritable.py](conformance_suite/unannotated_class_variables_nonwritable.py)
 
 Methods can be declared as class variables.
 
 - [methods_can_be_declared_as_class_variables.py](conformance_suite/methods_can_be_declared_as_class_variables.py)
+
+### Attributes (instance-level members)
+
+Attributes can not be initialized at class levels.
+
+- [instance_variables_initialize_at_class.py](conformance_suite/instance_variables_initialize_at_class.py)
+
 
 ### Inheritance/subclassing
 

@@ -1,10 +1,8 @@
-# class_variables_immutable_at_instance_level.py
+# class_variables_redeclare.py
 # This should fail.
 
 from typing import ClassVar
 
 class C:
     x: ClassVar[int]
-
-obj = C()
-obj.x = 42
+    x: ClassVar[int]

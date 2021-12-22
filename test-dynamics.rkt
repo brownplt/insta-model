@@ -104,13 +104,19 @@
 ;; conformance_suite/bool_is_inhabitable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "bool" (con #t))))))))
 
+;; conformance_suite/class_variables_declare_and_init.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42))))))))))
+
+;; conformance_suite/class_variables_declare_only.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int"))))))))))
+
 ;; conformance_suite/class_variables_may_shadow.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C1" "x")) (con 2)) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C2" "x")) (con 3)) (assert (compare (attribute "C1" "x") ((is (con 2))))) (assert (compare (attribute "C2" "x") ((is (con 3)))))))))))
 
 ;; conformance_suite/class_variables_readable_at_instance_level.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C" "x")) (con 42)) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))))
 
-;; conformance_suite/class_variables_shadow_same_type_pos.py
+;; conformance_suite/class_variables_redeclare_in_subclass_same_type.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int"))))))))))
 
 ;; conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py
@@ -367,6 +373,9 @@
 
 ;; conformance_suite/test_visit_if_else.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42))))))))))))
+
+;; conformance_suite/unannotated_class_variables_redeclare_in_subclass_same_type.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((assign ("x") (con 2)))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "Any"))))))))))
 
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x")))))))

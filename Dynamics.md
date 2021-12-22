@@ -166,6 +166,9 @@ TODO: cast PyDict to CheckedDict and the other way
 
 ## Attributes / fields
 
+
+- [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)
+
 Programmers can't introduce new members.
 
 - [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
