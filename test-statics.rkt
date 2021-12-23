@@ -155,9 +155,6 @@
 ;; conformance_suite/class_variables_readable_at_instance_level.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")))) (assign ((attribute "C" "x")) (con 42)) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))
 
-;; conformance_suite/class_variables_redeclare.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int")) (ann-assign "x" (subscript "ClassVar" "int"))))))))
-
 ;; conformance_suite/class_variables_redeclare_in_subclass_less_precise_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((ann-assign "x" (subscript "ClassVar" "int")))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "Any"))))))))
 
@@ -181,9 +178,6 @@
 
 ;; conformance_suite/class_variables_should_be_declared_with_ClassVar_pos.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "int") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42)))))))))
-
-;; conformance_suite/class_variables_without_annotations.py
-(check-judgment-holds* (⊢p (desugar-program ((class "C" () ((assign ("x") (con 42)))) (assert (compare (attribute "C" "x") ((is (con 42)))))))))
 
 ;; conformance_suite/classes_are_not_first-class.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () (pass)) (function-def "checkExpect" (("cls" dynamic) ("obj" dynamic)) dynamic ((ann-assign "x" "cls" "obj") (return "x"))) (expr (call "checkExpect" ("C" (con 42))))))))
@@ -255,10 +249,10 @@
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign ("obj") (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))
 
 ;; conformance_suite/method_from_lambda.py
-(check-judgment-holds* (⊢p (desugar-program ((class "C" () ((assign ("m") (lambda (("self" dynamic)) (con 2))))) (assign ("obj") (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((ann-assign "m" (subscript "ClassVar" "Any") (lambda (("self" dynamic)) (con 2))))) (assign ("obj") (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))
 
 ;; conformance_suite/method_generative.py
-(check-judgment-holds* (⊢p (desugar-program ((class "C" () ((assign ("m1") (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2")))))))))
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((ann-assign "m1" (subscript "ClassVar" "Any") (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2")))))))))
 
 ;; conformance_suite/methods_can_be_declared_as_class_variables.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "Any") (lambda (("self" dynamic) ("n" dynamic)) (bin-op + "n" (con 1)))))) (assign ("o") (call "C" ())) (assert (compare (call (attribute "o" "x") ((con 2))) ((is (con 3)))))))))
@@ -271,9 +265,6 @@
 
 ;; conformance_suite/methods_check_output_types.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) "int" ((return (con "foo"))))))))))
-
-;; conformance_suite/methods_mutable.py
-(check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign ((attribute "C" "m")) (lambda (("self" dynamic)) (con 3)))))))
 
 ;; conformance_suite/methods_work.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "m" (("self" dynamic) ("x" "int")) "str" ((return (con "foo")))))) (ann-assign "s" "str" (call (attribute (call "C" ()) "m") ((con 42))))))))
@@ -508,9 +499,6 @@
 
 ;; conformance_suite/test_compile_generic_dict_setitem_bad_type_2.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "abc") (con 42))))))) (assign ((subscript "x" (con "foo"))) (con "abc"))))))))
-
-;; conformance_suite/test_compile_nested_class_in_fn.py
-(check-judgment-holds* (⊢p (desugar-program ((function-def "fn" () dynamic ((class "C" () ((ann-assign "c" "int" (con 1)))) (return (call "C" ()))))))))
 
 ;; conformance_suite/test_compile_nested_dict.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y")))))))
@@ -766,27 +754,6 @@
 
 ;; conformance_suite/test_visit_if_else.py
 (check-judgment-holds* (⊢p (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42))))))))))
-
-;; conformance_suite/unannotated_class_variables_nonwritable.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (class "C" () ((assign ("x") (con 2)))) (assign ("obj") (call "C" ())) (assign ((attribute "obj" "x")) (con 3))))))
-
-;; conformance_suite/unannotated_class_variables_readable.py
-(check-judgment-holds* (⊢p (desugar-program ((class "C" () ((assign ("x") (con 42)))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "x") ((is (con 42)))))))))
-
-;; conformance_suite/unannotated_class_variables_redeclare.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((assign ("x") (con 2)) (ann-assign "x" (subscript "ClassVar" "Any"))))))))
-
-;; conformance_suite/unannotated_class_variables_redeclare_in_subclass_more_precise_type.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((assign ("x") (con 42)))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "int"))))))))
-
-;; conformance_suite/unannotated_class_variables_redeclare_in_subclass_same_type.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C1" () ((assign ("x") (con 2)))) (class "C2" ("C1") ((ann-assign "x" (subscript "ClassVar" "Any"))))))))
-
-;; conformance_suite/unannotated_class_variables_shadowed_by_instance_same_class.py
-(check-not-judgment-holds* (⊢p (desugar-program ((class "C1" () ((assign ("x") (con 42)) (ann-assign "x" "int")))))))
-
-;; conformance_suite/unannotated_class_variables_shadowed_by_instance_sub_class.py
-(check-not-judgment-holds* (⊢p (desugar-program ((class "C1" () ((assign ("x") (con 42)))) (class "C2" ("C1") ((ann-assign "x" "int")))))))
 
 ;; conformance_suite/upcast_bool_to_int.py
 (check-judgment-holds* (⊢p (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x")))))

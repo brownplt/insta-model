@@ -53,10 +53,10 @@
   ;; rhs of declaration
   (d t
      (function-def (t ...) t)
-     (class (e ...) ([x d] ...))
+     (class (e ...) (m ...))
      (import-from x x))
   (import-d (import-from x x))
-  (class-d (class (e ...) ([x d] ...)))
+  (class-d (class (e ...) (m ...)))
   (other-d t
            (function-def (t ...) t))
 
@@ -498,9 +498,8 @@
   ;; interesting case!
   [(xd*-of-s (function-def x ([x_arg t_arg] ...) t_ret level_bdy))
    ([x (function-def (t_arg ...) t_ret)])]
-  ;; interesting case!
   [(xd*-of-s (class x (e ...) (m ...)))
-   ([x (class (e ...) ((xd-of-m m) ...))])]
+   ([x (class (e ...) (m ...))])]
   ;; interesting case!
   [(xd*-of-s (import-from x_mod x_var))
    ([x_var (import-from x_mod x_var)])])
@@ -515,6 +514,7 @@
    ()]
   [(xd*-of-s-begin xd*_1 xd*_2 ...)
    (append xd*_1 (xd*-of-s-begin xd*_2 ...))])
+#;
 (module+ test
   (test-equal (term (xd-of-m (field "i" "int")))
               (term ["i" "int"]))
@@ -522,6 +522,7 @@
               (term ["i" "int"]))
   (test-equal (term (xd-of-m (method "f" () dynamic (local () (begin)))))
               (term ["f" (function-def () dynamic)])))
+#;
 (define-metafunction SP-core
   xd-of-m : m -> [x d]
   [(xd-of-m (field x t))

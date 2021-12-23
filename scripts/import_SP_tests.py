@@ -70,6 +70,8 @@ ban_in_test_name = [
     # This test uses string literal to write Optional type...
     'test_incompat_override_method_arg_name',
     # We don't support this.
+    'test_compile_nested_class_in_fn',
+    # nested class
 ]
 skip_anywhere_in_test = [
     # Skip for now

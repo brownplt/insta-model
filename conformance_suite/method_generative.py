@@ -2,8 +2,11 @@
 # This should pass.
 # This should terminate.
 
+from typing import Any, ClassVar
+
+
 class C:
-    m1 = lambda self: 2
+    m1: ClassVar[Any] = lambda self: 2
     def m2(self):
         return 3
 

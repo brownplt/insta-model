@@ -125,16 +125,12 @@ Procedure check return types.
 
 - [init_checks_type.py](conformance_suite/init_checks_type.py)
 
-### Class Variables (class-level members)
+### Class Variables (class-level fields)
 
 Class variables might or might not be initialized at declaration.
 
 - [class_variables_declare_only.py](conformance_suite/class_variables_declare_only.py)
 - [class_variables_declare_and_init.py](conformance_suite/class_variables_declare_and_init.py)
-
-Class variables must not be redeclared in the same class.
-
-- [class_variables_redeclare.py](conformance_suite/class_variables_redeclare.py)
 
 Class variables can be redeclared in subclasses. But the new class variable must be of the same type.
 
@@ -144,55 +140,12 @@ Class variables can be redeclared in subclasses. But the new class variable must
 - [class_variables_redeclare_in_subclass_less_precise_type.py](conformance_suite/class_variables_redeclare_in_subclass_less_precise_type.py)
 - [class_variables_redeclare_in_subclass_more_precise_type.py](conformance_suite/class_variables_redeclare_in_subclass_more_precise_type.py)
 
-Class variables must not be shadowed by instance variables.
-
-- [class_variables_shadow_by_instance_variables_same_class.py](conformance_suite/class_variables_shadow_by_instance_variables_same_class.py)
-- [class_variables_shadow_by_instance_variables_sub_class.py](conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py)
-
 Class variables are read-only at instance level.
 
 - [class_variables_readable_at_instance_level.py](conformance_suite/class_variables_readable_at_instance_level.py)
 - [class_variables_nonwritable_at_instance_level.py](conformance_suite/class_variables_nonwritable_at_instance_level.py)
 
-Initialized and unannotated members are considered class variables.
-
-- [unannotated_class_variables_redeclare.py](conformance_suite/unannotated_class_variables_redeclare.py)
-- [unannotated_class_variables_redeclare_in_subclass_same_type.py](conformance_suite/unannotated_class_variables_redeclare_in_subclass_same_type.py)
-- [unannotated_class_variables_redeclare_in_subclass_more_precise_type.py](conformance_suite/unannotated_class_variables_redeclare_in_subclass_more_precise_type.py)
-- [unannotated_class_variables_shadowed_by_instance_same_class.py](conformance_suite/unannotated_class_variables_shadowed_by_instance_same_class.py)
-- [unannotated_class_variables_shadowed_by_instance_sub_class.py](conformance_suite/unannotated_class_variables_shadowed_by_instance_sub_class.py)
-- [unannotated_class_variables_readable.py](conformance_suite/unannotated_class_variables_readable.py)
-- [unannotated_class_variables_nonwritable.py](conformance_suite/unannotated_class_variables_nonwritable.py)
-
-Methods can be declared as class variables.
-
-- [methods_can_be_declared_as_class_variables.py](conformance_suite/methods_can_be_declared_as_class_variables.py)
-
-### Attributes (instance-level members)
-
-Attributes can not be initialized at class levels.
-
-- [instance_variables_initialize_at_class.py](conformance_suite/instance_variables_initialize_at_class.py)
-
-
-### Inheritance/subclassing
-
-Inheriting builtin classes is allowed.
-
-- [subclass_builtin_atomic.py](conformance_suite/subclass_builtin_atomic.py)
-- [subclass_builtin_generic.py](conformance_suite/subclass_builtin_generic.py)
-
-Overriding a method with a field is a static error.
-
-- [override_instance_method_with_field.py](conformance_suite/override_instance_method_with_field.py)
-
-Overriding a field with a method is a static error.
-
-- [override_instance_field_with_method.py](conformance_suite/override_instance_field_with_method.py)
-
-Overriding a field is a static error.
-
-- [override_instance_field.py](conformance_suite/override_instance_field.py) TODO: Waiting for a reply to https://github.com/facebookincubator/cinder/issues/39
+### Methods
 
 Overriding a method requires that the new output type is a subtype of the old one.
 
@@ -213,6 +166,44 @@ Overriding a method permits a possibly more precise codomain.
 
 - [override_instance_method_codomain_gain_precision.py](conformance_suite/override_instance_method_codomain_gain_precision.py)
 - [override_instance_method_codomain_lose_precision.py](conformance_suite/override_instance_method_codomain_lose_precision.py)
+
+### Fields (instance-level fields)
+
+Attributes can not be initialized at class levels.
+
+- [instance_variables_initialize_at_class.py](conformance_suite/instance_variables_initialize_at_class.py)
+
+Overriding a field is a static error.
+
+CANCELED TODO: redeclare sub-type, sup-type, less-precise type, more-precise type.
+TODO: I am going to assume override is always impossible, unless we found anything weird in SP tests.
+
+- [override_instance_field.py](conformance_suite/override_instance_field.py)
+
+### Interaction between ClassVar, methods, and fields
+
+Overriding a method with a field is a static error.
+
+- [override_instance_method_with_field.py](conformance_suite/override_instance_method_with_field.py)
+
+Overriding a field with a method is a static error.
+
+- [override_instance_field_with_method.py](conformance_suite/override_instance_field_with_method.py)
+
+Class variables must not be shadowed by instance variables.
+
+- [class_variables_shadow_by_instance_variables_same_class.py](conformance_suite/class_variables_shadow_by_instance_variables_same_class.py)
+- [class_variables_shadow_by_instance_variables_sub_class.py](conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py)
+
+TODO: I am going to assume all of them are disjoint, unless we found anything weird in SP tests.
+
+### Inheritance/subclassing
+
+Inheriting builtin classes is allowed.
+
+- [subclass_builtin_atomic.py](conformance_suite/subclass_builtin_atomic.py)
+- [subclass_builtin_generic.py](conformance_suite/subclass_builtin_generic.py)
+
 
 ### Classes as types
 

@@ -166,7 +166,6 @@ TODO: cast PyDict to CheckedDict and the other way
 
 ## Attributes / fields
 
-
 - [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)
 
 Programmers can't introduce new members.
@@ -174,9 +173,9 @@ Programmers can't introduce new members.
 - [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
 - [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)
 
-Members are mutable.
+Methods can be declared as class variables.
 
-- [methods_mutable.py](conformance_suite/methods_mutable.py)
+- [methods_can_be_declared_as_class_variables.py](conformance_suite/methods_can_be_declared_as_class_variables.py)
 
 Methods are just function-typed members.
 
