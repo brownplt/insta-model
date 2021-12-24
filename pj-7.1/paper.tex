@@ -437,6 +437,23 @@ notable aspects of the type system:
 %% - anything to say about Any being a "meta" type in Python typing module?
 %% - 3 classes of code ... how does dynamic differ from untyped?
 
+%% 2021-12-23: TODO
+%% Carl: The behavior of dynamic type in static code should be:
+%%   a) any type can flow to dynamic
+%%   b) dynamic can flow to any type, but it requires the insertion of a runtime cast for soundness
+%%   c) dynamic type should emit the same bytecode for any given operation that non static code would emit
+%%      ... I think differing behavior around (c) is also unlikely — the structure of our
+%%      code generation is that we call methods on type objects to emit byte code for
+%%      various operations on a value of that type, and our dynamic type simply
+%%      forwards all those calls to the default Python compiler, which should always
+%%      result in dynamic type emitting the same byte code that nonstatci code would.
+%%      This isn’t universal, though (i.e. for some operations, e.g. binary ops, we
+%%      might explicitly handle various cases for operand type pairings, not always by
+%%      calling a polymorphic method on each operand type), which could open the door
+%%      to differing behavior here. But I can’t think of or find any such intentional
+%%      cases, and I suspect if any did crop up we’d consider it a bug.
+
+
 Like most gradual languages, \SP{} includes a dynamic type
 that allows untyped expressions within a statically-typed context.
 Whenever an expression or variable lacks a type annotation, \SP{} uses the
@@ -479,6 +496,23 @@ for a standard type precision relation.
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
     The subclass definition raises a compile-time error because it attempts to override
     the typed \code{m1} method with another method that returns the dynamic type.
+
+    %% 2021-12-13: TODO NOTE SWALLOW MORE
+    %% I think the fundamental unusual thing we do here is our per-module
+    %% incremental adoption strategy for our compiler. We don’t apply our compiler
+    %% to the entire codebase, using presence or absence of type annotations as
+    %% the sole indicator of whether to compile code with static or dynamic
+    %% behavior. We apply our compiler only to selected opted-in modules, and the
+    %% rest of the codebase is compiled with Python’s default compiler and no
+    %% type-checking (it may of course be checked by Pyre but that’s unrelated to
+    %% compilation.) So this clearly opens the door to differing behavior between
+    %% code that is compiled by our compiler and code that isn’t, even when the
+    %% former has some or many values/expressions typed as dynamic. It also makes
+    %% such differences somewhat more acceptable in practice — since adoption of
+    %% an individual module into our compiler is opt-in, we can swallow more
+    %% behavior difference implied solely by that change.
+
+
   \item
     \Cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
     uses the type \code{ChkDict} for concrete-typed dictionaries (\cref{s:checked-type}).
@@ -1239,10 +1273,13 @@ The following nine points describe common patterns:
 
 \subsection{Developer Experience}
 
-%% - pushback one time about removing MI
+%% - pushback one time about removing MI multiple inheritance
 %% - otherwise, people happy with low-cost improvements
 
 %% - pyre challenges?
+
+FILL
+
 
 
 \subsection{Microbenchmarks}
