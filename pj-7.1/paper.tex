@@ -27,6 +27,7 @@
 \newcommand{\langmid}{\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 
+  \newcommand{\bmname}[1]{\textbf{#1}}
 \newcommand{\typefont}[1]{\mathsf{#1}}
 \newcommand{\paramtype}[2]{#1[#2]}
 \newcommand{\sptype}{\typefont{T}}
@@ -176,13 +177,14 @@
   the \SP{} regression suite.
   This paper includes a small core of the model to convey the main ideas
   of the \SP{} approach and its soundness.
-  Our performance claims are supported by data from both
-  a public suite a microbenchmarks and the proprietary Instagram codebase.
+  Our performance claims are based on production experience in the Instagram
+  web server.
+  Thanks to \SP{}, global CPU usage has improved by almost 4\% within a year.
 
   \paragraph{Importance}
   % Why does this work matter?
-  \SP{} is the first language that improves performance across the board through
-  the addition of sound types to an untyped language.
+  \SP{} is the first sound gradual language whose piece-meal application
+  to a realistic codebase has consistently improved performance.
   %% Prior work on Nom and Dart 2 showed that concrete types are promising.
   Other language designers may wish to replicate its approach,
   especially those who maintain unsound type checkers for untyped languages
@@ -411,8 +413,9 @@ notable aspects of the type system:
     %% 2021-12-14: too extreme? and what about soundness?
   \item
     %% Q. why is the python so nominal? style guide? java background?
-    The codebase makes heavy use of first-order classes and objects.
-    First-class classes, objects, and even functions are rare.
+    The codebase depends heavily on first-order functions and objects in
+    performance-critical code.
+    Higher-order code is fairly common, but rarely appears on a critical path.
   \item
     Prior to investing in \SP{}, Instagram used Cython to compile
     performance-critical code to C extension modules.
@@ -433,6 +436,23 @@ notable aspects of the type system:
 %% 2021-12-14:
 %% - anything to say about Any being a "meta" type in Python typing module?
 %% - 3 classes of code ... how does dynamic differ from untyped?
+
+%% 2021-12-23: TODO
+%% Carl: The behavior of dynamic type in static code should be:
+%%   a) any type can flow to dynamic
+%%   b) dynamic can flow to any type, but it requires the insertion of a runtime cast for soundness
+%%   c) dynamic type should emit the same bytecode for any given operation that non static code would emit
+%%      ... I think differing behavior around (c) is also unlikely — the structure of our
+%%      code generation is that we call methods on type objects to emit byte code for
+%%      various operations on a value of that type, and our dynamic type simply
+%%      forwards all those calls to the default Python compiler, which should always
+%%      result in dynamic type emitting the same byte code that nonstatci code would.
+%%      This isn’t universal, though (i.e. for some operations, e.g. binary ops, we
+%%      might explicitly handle various cases for operand type pairings, not always by
+%%      calling a polymorphic method on each operand type), which could open the door
+%%      to differing behavior here. But I can’t think of or find any such intentional
+%%      cases, and I suspect if any did crop up we’d consider it a bug.
+
 
 Like most gradual languages, \SP{} includes a dynamic type
 that allows untyped expressions within a statically-typed context.
@@ -476,6 +496,23 @@ for a standard type precision relation.
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
     The subclass definition raises a compile-time error because it attempts to override
     the typed \code{m1} method with another method that returns the dynamic type.
+
+    %% 2021-12-13: TODO NOTE SWALLOW MORE
+    %% I think the fundamental unusual thing we do here is our per-module
+    %% incremental adoption strategy for our compiler. We don’t apply our compiler
+    %% to the entire codebase, using presence or absence of type annotations as
+    %% the sole indicator of whether to compile code with static or dynamic
+    %% behavior. We apply our compiler only to selected opted-in modules, and the
+    %% rest of the codebase is compiled with Python’s default compiler and no
+    %% type-checking (it may of course be checked by Pyre but that’s unrelated to
+    %% compilation.) So this clearly opens the door to differing behavior between
+    %% code that is compiled by our compiler and code that isn’t, even when the
+    %% former has some or many values/expressions typed as dynamic. It also makes
+    %% such differences somewhat more acceptable in practice — since adoption of
+    %% an individual module into our compiler is opt-in, we can swallow more
+    %% behavior difference implied solely by that change.
+
+
   \item
     \Cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
     uses the type \code{ChkDict} for concrete-typed dictionaries (\cref{s:checked-type}).
@@ -680,8 +717,8 @@ Only binary unions of a type and false get enforced with a run-time check
 
 Three unsupported types bear special mention.
 There are no first-class class or object types, as noted in \cref{s:inheritance}.
-There are also no types for first-class functions (callables);
-functions are common at Instagram, but first-class functions are rare.
+There are also no types for first-class functions (callables).
+Pyre can check these types instead, to point out clear logical flaws.
 Finally, \SP{} does not support recursive types due to low demand.
 Neither Pyre nor mypy have recursive types either.
 %% demand seems low ... baffling
@@ -1007,10 +1044,9 @@ accurate static types would be difficult to maintain.
 
 \paragraph{First-Class Classes}
 
-\SP{} does not attempt to type first-class classes:
-partly because they see little use at Instagram (FILL how much?)
-and partly because it is unclear how to incorporate them into the
-nominal type system.
+\SP{} does not attempt to type first-class classes: partly because they have
+yet to appear in performance-critical code at Instagram and partly because it
+is unclear how to incorporate them into the nominal type system.
 The straightforward but restrictive approach is to force code that uses a
 first-class class to expect subtypes of a particular named static class.
 Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifically for mixins)
@@ -1085,88 +1121,148 @@ and it will force developers to rewrite untyped code in order to fix any errors 
 %% Because of the latter concern, type dynamic is a very reasonable default.
 
 
-\section{Evaluation}
+\section{Production Experience}
 \label{s:eval}
+%% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
 
-\subsection{Microbenchmarks}
+% "The workload for those rough percentage numbers is “Instagram web server
+%  production.” We have pretty extensive production profiling that lets us
+%  identify CPU savings with good granularity when a change lands in prod, and the
+%  observed CPU savings for a variety of staticification changes we’ve landed over
+%  the last half sum up to 2% of total IG prod CPU usage." --Carl
 
-richards etc.
+\begin{table}
+  \caption{Overview: \SP{} in production}
+  \label{t:prod-stat}
+  \begin{tabular}{l@{~~}ll@{~~}l}
+    8     & months in production & 3.7\% & global CPU improvement \\
+    530   & modules converted  &  0 & performance regressions
+    %% TODO 530 / ???? how much of codebase?
+  \end{tabular}
+\end{table}
 
-%% https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks
-%%
-%% deltablue
-%% fannkuch
-%% nbody
-%% nqueens
-%% pystone
-%% richards
-%% richards_static
-%%
-%% UHOH except for richards_static, none of these have types!!!
-%% Need to ask if C&D have other typed benchmarks around
-%% ... if not, ask them to port these and measure and tune if needed.
+The Instagram web server has been running \SP{} in production since April 2021.
+Overall, the results are very encouraging.
+Instagram's internal profiling tools, which continuously monitor
+performance, attribute a 3.7\% improvement in global CPU to \SP{} conversions.
+\cref{t:prod-stat} reports a few other production statistics.
+Over 500 modules have been converted thus far.
+None of the converted modules have gotten slower because of \SP{}
 
 
-\subsection{Production Experience}
+\subsection{The Migration Path}
 
-%% 2021-12-15: C&D may have an SP off/on switch soon
-%% - accumulated CPU savings since July 1 = ~2% total IG production CPU
-%%   ... how does that number work?
-%% - in the beginning (?) H1 got 1% from first conversions + 0.7% from all Cython (higher bar)
-%%   - no Cython regressions, SP + JIT is good enough
-%%   - some Cython still exists, imported as library code from another codebase
+\SP{} first entered the Instagram web server as a replacement for Cython,
+which Instagram had been using to speed up critical modules.
+Cython performed well, but its partial adoption led to an awkward workflow
+because unlike standard Python, Cython is a compiled language.
+Replacing these modules with \SP{} let developers return to a conventional
+Python workflow.
+\SP{} (combined with Cinder) did not slow down any of these
+performance-critical modules, and even sped a few up.
+The net improvement was a 0.7\% reduction in global CPU usage.
+
+Later \SP{} migrations have been led by profiling to find frequently-executed code.
+The goal of these opportunistic migrations was to test whether \SP{} could
+improve typical modules without slowing down their neighbors.
+As a point of comparison, Typed Racket can improve individual Racket
+modules but the type checks that it requires on module boundaries
+can lead to huge slowdowns~\cite{tfgnvf-popl-2016,gtnffvf-jfp-2019}.
+\SP{} does not appear to suffer in the same way.
+
+During the first half of 2021, the \SP{} team identified critical
+modules and proposed types to the maintainers of these modules.
+Often, the types came with small code changes.
+The accepted types and changes resulted in a 1\% improvement
+in global CPU usage.
+During the second half of 2021, the \SP{} team applied the same
+process at a larger scale by incorporating a tool that drafts
+initial type annotations.
+These changes resulted in a 2\% global CPU improvement.
+
+As of December 2021, the \SP{} team has converted 530 modules.
+Most of these came from the annotation tool (400); the rest
+are from hand conversions.
+In a typical week, the team adds types to four additional modules.
+These modules have seen speedups ranging from 0\% to 25\% depending
+on their nature.
+Regressions have not been an issue.
+The only cause for alarm is when a module gets only a small improvement
+without code changes.
 %% - rough measure: 0 to 25% per module
 %%   ... but depends on nature of module
 %%   ... doesn't measure the cooperative effect of static-to-static cross-module calls
 
-%% - 530 SP modules
-%%   - 400 from a codegen tool
-%%   - 130 by hand
-%%   - currently +~3/4 per week by hand
 
-%% - pushback one time about removing MI
-%% - otherwise, people happy with low-cost improvements
+\subsection{Analyzing Code Changes}
 
-%% - review of 30 winning diffs "provided the bulk of our wins this half"
-%%   most common changes, not in careful order, are:
-%%   1) adjustments to tests to pass correct types instead of mock objects, as as
-%%      not to fail type checks in SP code. This is an inherent and desired
-%%      incompatibility; next half we plan to work on improving the Python mock
-%%      framework to automatically create mocks of the correct types.
-%%      - bg: lookup the dino email about mocks
-%%   2) adjustments to mock assertions in tests about calls to adjust for the
-%%      fact that SP currently converts all call arguments to be positional (we plan
-%%      to fix this incompatibility by falling back to the original call arguments
-%%      when we detect the target function has been patched.)
-%%      - bg: ??? bit fuzzy about positional and others
-%%   3) adjustments around class attributes vs instance attributes (Python allows
-%%      this to be a bit fuzzy, where a class attribute can be a fallback default
-%%      for an instance attribute if not set, but SP currently requires an attribute
-%%      to be clearly one or the other, and we have more efficient access for
-%%      instance attributes via LOAD_FIELD that we don’t have for class attributes.)
-%%      - related to github #37 ?
-%%   4) convert @classmethod that don’t actually need the class to @staticmethod,
-%%      allowing for emitting direct INVOKE_FUNCTION instead of INVOKE_METHOD
-%%   5) extract special types that our compiler doesn’t yet support/understand
-%%      (classes decorated with @dataclass or inheriting from `enum.Enum`) out of
-%%      the module we are converting to static. We have work in progress on
-%%      supporting some Enum types, and plan to add a @dataclass intrinsic soon.
-%%   6) Removing the use of super-dynamic Python features like `__setattr__` that
-%%      we don’t support. So far in the cases where we’ve done this it hasn’t
-%%      required a major rewrite.
-%%      - bg: more details pls ,,, sketch the rewrite
-%%   7) Removing the use of keyword-only arguments (bare `*`) in function
-%%      signatures, since we don’t yet support calling such functions. We plan to
-%%      support this next half.
-%%   8) Convert Python integers and bools used in very hot code paths into SP
-%%      machine primitives.
-%%      - bg: focus on block, convert, no problem?
-%%   9) Occasionally converting a regular Python list or dict to a CheckedList or
-%%      CheckedDict.
-%%      - bg: how occasional? worried about power of the "gradual soundness" claim
-%%
-%% common theme: gotta change more tests than code
-%%
+The fact that the \SP{} team has been changing code as well as types
+during its migrations is potentially troubling.
+It could be that the \SP{} approach to gradual typing only pays off
+after significant modifications, or only for a restrictive style of programming.
+
+To understand the code changes, an author affiliated with Instagram reviewed
+approximately 30 patches that significantly improved performance.
+In general, the patches contain relatively minor code changes.
+The biggest changes are to testing code rather than production code.
+Both these points are encouranging.
+The following nine points describe common patterns:
+
+\begin{enumerate}
+  \item
+   adjustments to tests to pass correct types instead of mock objects, as as
+   not to fail type checks in SP code. This is an inherent and desired
+   incompatibility; next half we plan to work on improving the Python mock
+   framework to automatically create mocks of the correct types.
+   %% - bg: lookup the dino email about mocks
+
+ \item
+   adjustments to mock assertions in tests about calls to adjust for the
+   fact that SP currently converts all call arguments to be positional (we plan
+   to fix this incompatibility by falling back to the original call arguments
+   when we detect the target function has been patched.)
+   %% - bg: ??? bit fuzzy about positional and others
+
+ \item
+   adjustments around class attributes vs instance attributes (Python allows
+   this to be a bit fuzzy, where a class attribute can be a fallback default
+   for an instance attribute if not set, but SP currently requires an attribute
+   to be clearly one or the other, and we have more efficient access for
+    instance attributes via \code{LOAD\_FIELD} that we don’t have for class attributes.)
+   %% - related to github #37 ?
+
+ \item
+   convert @classmethod that don’t actually need the class to @staticmethod,
+    allowing for emitting direct \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
+
+ \item
+   extract special types that our compiler doesn’t yet support/understand
+   (classes decorated with @dataclass or inheriting from `enum.Enum`) out of
+   the module we are converting to static. We have work in progress on
+   supporting some Enum types, and plan to add a @dataclass intrinsic soon.
+
+ \item
+   Removing the use of super-dynamic Python features like \code{\_\_setattr\_\_} that
+   we don’t support. So far in the cases where we’ve done this it hasn’t
+   required a major rewrite.
+   %% - bg: more details pls ,,, sketch the rewrite
+
+ \item
+   Removing the use of keyword-only arguments (bare `*`) in function
+   signatures, since we don’t yet support calling such functions. We plan to
+   support this next half.
+
+ \item
+   Convert Python integers and bools used in very hot code paths into SP
+   machine primitives.
+   %% - bg: focus on block, convert, no problem?
+
+ \item
+   Occasionally converting a regular Python list or dict to a CheckedList or
+   CheckedDict.
+   %% - bg: how occasional? worried about power of the "gradual soundness" claim
+\end{enumerate}
+
 %% significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
 %%  removes an extra call layer
 %%  helps with (timing [ context managers / decorators ])
@@ -1174,6 +1270,57 @@ richards etc.
 %% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
 %%  because the pay / payoff isn't yet attractive
 
+
+\subsection{Developer Experience}
+
+%% - pushback one time about removing MI multiple inheritance
+%% - otherwise, people happy with low-cost improvements
+
+%% - pyre challenges?
+
+FILL
+
+
+
+\subsection{Microbenchmarks}
+%% https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks
+
+%% TODO jit vs nojit
+
+%% 2021-12-23: TODO decide whether to ask for typed benchmarks to report ratios
+%%  Carl: we could commit to typed 2--3 more, but pystone etc (?!) are notoriously bad
+
+%% Somehow though, we ought to have public code available.
+
+Prior to deploying \SP{} in production, the team used microbenchmarks to study performance.
+These microbenchmarks are admittedly small and quite different than typical application code.
+That said, their use gave the team a coarse idea of whether \SP{} was on track during development.
+We include these microbenchmarks to offer reproducible performance numbers;
+unlike the Instagram web server, the benchmark code is public.
+
+\Cref{t:microbenchmark} reports current microbenchmark results.
+Each row gives the ratio of two running times: fully-typed \SP{} code versus
+unannotated \SP{} code.
+A ratio between 0 and 1 means that performance improved thanks to the types.
+[FILL] numbers.
+
+\begin{table}[t]
+  \caption{Microbenchmark Performance Ratios}
+  \label{t:microbenchmark}
+  %% show untyped Python time?
+  \begin{tabular}{ll}
+    Name               & Typed / Dynamic \\\midrule
+    \bmname{deltablue} &             0\% \\
+    \bmname{fannkuch}  &             0\% \\
+    \bmname{nbody}     &             0\% \\
+    \bmname{nqueens}   &             0\% \\
+    \bmname{pystone}   &             0\% \\
+    \bmname{richards}  &         0.125\% \\
+  \end{tabular}
+\end{table}
+
+
+%% TODO conclusions? threats?
 
 
 
@@ -1183,6 +1330,8 @@ richards etc.
 Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021} are foundational.
 
 Full Monty~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational for us.
+
+Grace nominal transient aint bad at all
 
 Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
 
