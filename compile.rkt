@@ -53,7 +53,7 @@
         ;; instance-level members and corresponding checks
         ([x s-] ...))
       ;; new construct
-      (raise-error)
+      (raise-error any)
       (new l (e- ...)))
 
   ;; statements
@@ -201,38 +201,42 @@
   ;; lookup user-defined classes
   [(lookup-Ψ Ψ (user-defined-class x))
    (lookup Ψ (user-defined-class x))]
+  [(lookup-Ψ Ψ l)
+   (lookup-builtin-class l)])
+(define-metafunction SP-compiled
+  lookup-builtin-class : class-l -> (class l*+dynamic Γ ρ Γ)
   ;; primitive/builtin classes are handled here
-  [(lookup-Ψ Ψ "CheckedDict[_,_]")
+  [(lookup-builtin-class "CheckedDict[_,_]")
    (class ("object")
      (["__getitem__" "CheckedDict[_,_]"])
      (["__getitem__" (method "CheckedDict[_,_]" "__getitem__")])
      ())]
-  [(lookup-Ψ Ψ "Optional[_]")
+  [(lookup-builtin-class "Optional[_]")
    (class ("object")
      (["__getitem__" "Optional[_]"])
      (["__getitem__" (method "Optional[_]" "__getitem__")])
      ())]
-  [(lookup-Ψ Ψ "ClassVar[_]")
+  [(lookup-builtin-class "ClassVar[_]")
    (class ("object")
      (["__getitem__" "ClassVar[_]"])
      (["__getitem__" (method "ClassVar[_]" "__getitem__")])
      ())]
-  [(lookup-Ψ Ψ "object")
+  [(lookup-builtin-class "object")
    (class ()
      (["__init__" (-> () dynamic)])
      (["__init__" (method "object" "__init__")])
      ())]
-  [(lookup-Ψ Ψ "type")
+  [(lookup-builtin-class "type")
    (class ("object")
      ()
      ()
      ())]
-  [(lookup-Ψ Ψ "Exception")
+  [(lookup-builtin-class "Exception")
    (class ("object")
      ()
      ()
      ())]
-  [(lookup-Ψ Ψ "int")
+  [(lookup-builtin-class "int")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
       ["__gt__" (-> ((subof "int")) (subof "bool"))]
@@ -259,12 +263,12 @@
       ["__div__" (method "int" "__div__")]
       ["bit_length" (method "int" "bit_length")])
      ())]
-  [(lookup-Ψ Ψ "bool")
+  [(lookup-builtin-class "bool")
    (class ("int")
      ()
      ()
      ())]
-  [(lookup-Ψ Ψ "str")
+  [(lookup-builtin-class "str")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
       ["__eq__" (-> ((subof "str")) (exact "bool"))]
@@ -274,7 +278,7 @@
       ["__eq__" (method "str" "__eq__")]
       ["split" (method "str" "split")])
      ())]
-  [(lookup-Ψ Ψ "dict")
+  [(lookup-builtin-class "dict")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
       ["__getitem__" (-> (dynamic) dynamic)]
@@ -287,27 +291,27 @@
       ["__delitem__" (method "dict" "__delitem__")]
       ["get" (method "dict" "get")])
      ())]
-  [(lookup-Ψ Ψ "set")
+  [(lookup-builtin-class "set")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
       ["__contains__" (-> (dynamic) (subof "bool"))])
      (["__init__" (method "set" "__init__")]
       ["__contains__" (method "set" "__contains__")])
      ())]
-  [(lookup-Ψ Ψ "list")
+  [(lookup-builtin-class "list")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)])
      (["__init__" (method "list" "__init__")])
      ())]
-  [(lookup-Ψ Ψ "NoneType")
+  [(lookup-builtin-class "NoneType")
    (class ("object")
      ()
      ()
      ())]
-  [(lookup-Ψ Ψ (chkdict T_key T_val))
+  [(lookup-builtin-class (chkdict T_key T_val))
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
-      ["get" (-> (T_key) (union Ψ (subof "NoneType") T_val))]
+      ["get" (-> (T_key) (union (base-Ψ) (subof "NoneType") T_val))]
       ["keys" (-> () (subof "list"))]
       ["__getitem__" (-> (T_key) T_val)]
       ["__setitem__" (-> (T_key T_val) (subof "NoneType"))]
@@ -1013,7 +1017,7 @@
 (define-metafunction SP-compiled
   compile-check : e- T -> s-
   [(compile-check e- dynamic) (begin)]
-  [(compile-check e- (-> (T_arg ...) T_ret)) (expr (raise-error))]
+  [(compile-check e- (-> (T_arg ...) T_ret)) (expr (raise-error "internal error"))]
   [(compile-check e- (exactness l))
    (make-assert
     (check-exactness (invoke-function "type" (e-)) exactness l))]
@@ -1040,7 +1044,7 @@
   ;; assert
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (assert (con #t))))
-              (term (if (ref (con #t)) (begin) (expr (raise-error)))))
+              (term (if (ref (con #t)) (begin) (expr (raise-error "cast error")))))
   ;; begin
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (begin (expr "int") (expr "bool"))))
@@ -1079,7 +1083,7 @@
                                                          ((invoke-function "type" ("i"))
                                                           (ref "int")))
                                         (begin)
-                                        (expr (raise-error))))
+                                        (expr (raise-error "cast error"))))
                                   (local ("i")
                                     (return "i"))))))
   )
@@ -1202,7 +1206,7 @@
 (define-metafunction SP-compiled
   make-assert : e- -> s-
   [(make-assert e-)
-   (if e- (begin) (expr (raise-error)))])
+   (if e- (begin) (expr (raise-error "cast error")))])
 (define-metafunction SP-compiled
   compile-m : Ψ Γ x m -> [boolean x T s-]
   ;; declare-only member can be either a ClassVar
