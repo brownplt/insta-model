@@ -50,7 +50,7 @@
       (leave l s-))
   ;; runtime representation of programs
   (p [Σ l s-]
-     (error)
+     (error any)
      (terminate))
   ;; in expression reduce expression
   (ee hole
@@ -281,24 +281,8 @@
 
 (module+ test
   (test-equal (term (load (local ("i") (assign "i" (con 42)))))
-              (term [([1 (env (["i" ☠]) 0)]
-                      [0
-                       (env
-                        (["object" (ref "object")]
-                         ["int" (ref "int")]
-                         ["bool" (ref "bool")]
-                         ["str" (ref "str")]
-                         ["dict" (ref "dict")]
-                         ["set" (ref "set")]
-                         ["type" (ref "type")]
-                         ["isinstance" (ref "isinstance")]
-                         ["len" (ref "len")]
-                         ["Exception" (ref "Exception")]
-                         ["max" (ref "max")]
-                         ["min" (ref "min")]
-                         ["issubclass" (ref "issubclass")])
-                        ☠)])
-                     1
+              (term [([0 (env (["i" ☠]) "builtin-env")])
+                     0
                      (assign "i" (con 42))])))
 (define-metafunction SP-dynamics
   load : program- -> [Σ l s-]
@@ -394,7 +378,7 @@
    (where (obj l_typ (dict (vv_1 ... [v_key v_val] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))
    (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict (vv_1 ... vv_2 ...)) ρ)]))]
   [(delta-dict-delitem Σ v ...)
-   [Σ (raise-error)]])
+   [Σ (raise-error ("delitem"))]])
 (define-metafunction SP-dynamics
   delta-issubclass : Σ v ... -> [Σ e-]
   ;; same class refl
@@ -414,19 +398,63 @@
           (lookup-Σ Σ l_1))]
   ;; arity error
   [(delta-issubclass Σ v)
-   [Σ (raise-error)]]
+   [Σ (raise-error "issubclass: arity error")]]
   [(delta-issubclass Σ v_1 v_2 v_3 v_4 ...)
-   [Σ (raise-error)]])
+   [Σ (raise-error "issubclass: arity error")]])
 
 ;; TODO: We should perform some checks here. do-invoke-function shouldn't raise errors.
 (define-metafunction SP-dynamics
   do-call-function : Σ l h (v ...) -> [Σ l e-]
-  [(do-call-function Σ l_env h (v ...))
-   (do-invoke-function Σ l_env h (v ...))])
+  ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`
+  [(do-call-function Σ l (obj "method" g ρ) (v ...))
+   (do-call-function-good-rator Σ l (obj "method" g ρ) (v ...))]
+  [(do-call-function Σ l (obj "function" g ρ) (v ...))
+   (do-call-function-good-rator Σ l (obj "function" g ρ) (v ...))]
+  [(do-call-function Σ l h (v ...))
+   [Σ l (raise-error ("CALL_FUNCTION: not a callable" h))]])
+(define-metafunction SP-dynamics
+  do-call-function-good-rator : Σ l h (v ...) -> [Σ l e-]
+  ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`
+  [(do-call-function-good-rator Σ l (obj "method" (method l_fun l_obj) ρ) (v ...))
+   [Σ l (call-function (ref l_fun) ((ref l_obj) v ...))]]
+  [(do-call-function-good-rator Σ l (obj "function" g ρ) (v ...))
+   (do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))])
+(define-metafunction SP-dynamics
+  do-call-function-check-arity : Σ l (obj "function" g ρ) (v ...) -> [Σ l e-]
+  [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
+   (do-invoke-function Σ l (obj "function" g ρ) (v ...))
+   (where #t ,(= (term (arity g)) (length (term (v ...)))))]
+  [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
+   [Σ l (raise-error ("arity-mismatch" (arity g) ,(length (term (v ...)))))]])
+(define-metafunction SP-dynamics
+  arity : g -> number
+  [(arity (prim-op l))
+   (arity-prim-op l)]
+  [(arity (lambda l_cls (x_arg ...) s-_chk (local (x_var ...) s-_bdy)))
+   ,(length (term (x_arg ...)))])
+(define-metafunction SP-dynamics
+  arity-prim-op : prim-op-l -> number
+  [(arity-prim-op "isinstance") 2]
+  [(arity-prim-op "issubclass") 2]
+  [(arity-prim-op (method "object" "__init__")) 1]
+  [(arity-prim-op (method "int" "__add__")) 2]
+  [(arity-prim-op (method "int" "__sub__")) 2]
+  [(arity-prim-op (method "int" "__mul__")) 2]
+  [(arity-prim-op (method "int" "__div__")) 2]
+  [(arity-prim-op (method "dict" "__init__")) 2]
+  [(arity-prim-op (method "dict" "__getitem__")) 2]
+  [(arity-prim-op (method "dict" "__setitem__")) 3]
+  [(arity-prim-op (method "dict" "__delitem__")) 2]
+  [(arity-prim-op (method (chkdict T_key T_val) "__init__")) 2]
+  [(arity-prim-op (method (chkdict T_key T_val) "__getitem__")) 2]
+  [(arity-prim-op (method (chkdict T_key T_val) "__setitem__")) 3]
+  [(arity-prim-op (method (chkdict T_key T_val) "__delitem__")) 2])
 
 ;; TODO: This is not quite right. The exact type is not necessarily l_cls
 (define-metafunction SP-dynamics
-  do-invoke-method : Σ l l x v (v ...) -> [Σ l e-]
+  do-invoke-method : Σ l x v (v ...) -> [Σ l e-]
+  ;; This function assumes that `v` is an instance of (a subclass of) `l`,
+  ;;   and arguments `(v ...)` are well-typed.
   ;; invoke the method `x` declared in class `l`.
   [(do-invoke-method Σ l_cls x v_obj (v_arg ...))
    (do-invoke-function Σ l_env h_mth (v_obj v_arg ...))
@@ -437,7 +465,9 @@
 (define-metafunction SP-dynamics
   do-invoke-function : Σ l h (v ...) -> [Σ l e-]
   ;; invoke the function `h` under the environment `l`.
-  ;; method
+  ;; This function assumes that `h` is an instance of `function`
+  ;;   and arguments `(v ...)` are well-typed.
+  #; ;;TODO: delete this ;; method
   [(do-invoke-function Σ l_env (obj "method" (method l_fun l_obj) ρ) (v ...))
    [Σ l_env (invoke-function l_fun ((ref l_obj) v ...))]]
   ;; primitive function
@@ -471,9 +501,7 @@
              s-_bdy))]
    (where #t ,(= (length (term (x_arg ...)))
                  (length (term (v_arg ...)))))
-   (where (Σ_1 l_bdy) (alloc Σ_0 (env ([x_var ☠] ...) l_cls)))]
-  [(do-invoke-function-function Σ l l_cls (x_arg ...) s-_chk (x_var ...) s-_bdy ρ (v_arg ...))
-   [Σ l (raise-error)]])
+   (where (Σ_1 l_bdy) (alloc Σ_0 (env ([x_var ☠] ...) l_cls)))])
 
 (define-metafunction SP-dynamics
   do-attribute : Σ mode l x -> [Σ v]
@@ -554,10 +582,25 @@
 
 
 (define-metafunction SP-dynamics
-  do-assign-attribute : Σ mode l x v -> Σ
-  [(do-assign-attribute Σ mode l_obj x_mem (ref l_new))
-   (update Σ [l_obj (obj l_cls g (extend ρ [x_mem l_new]))])
+  do-assign-attribute : Σ mode l x v -> [Σ s-]
+  [(do-assign-attribute Σ fast l_obj x_mem (ref l_new))
+   (do-assign-attribute-fast Σ l_obj x_mem (ref l_new))]
+  [(do-assign-attribute Σ safe l_obj x_mem (ref l_new))
+   (do-assign-attribute-safe Σ l_obj x_mem (ref l_new))])
+(define-metafunction SP-dynamics
+  do-assign-attribute-fast : Σ l x v -> [Σ s-]
+  [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
+   [(update Σ [l_obj (obj l_cls g (update ρ [x_mem l_new]))])
+    (begin)]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))])
+(define-metafunction SP-dynamics
+  do-assign-attribute-safe : Σ l x v -> [Σ s-]
+  [(do-assign-attribute-safe Σ l_obj x_mem (ref l_new))
+   (do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
+   (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
+   (where (yes any) (lookup? ρ x_mem))]
+  [(do-assign-attribute-safe Σ l_obj x_mem (ref l_new))
+   [Σ (expr (raise-error ("assign-attribute: undeclared field" x_mem)))]])
 (define-metafunction SP-dynamics
   do-delete-attribute : Σ mode l x -> Σ
   [(do-delete-attribute Σ mode l_obj x_mem)
@@ -648,8 +691,8 @@
         (where Σ_2 (update-env Σ_1 l x_var v_new))
         "assign"]
    [--> (in-hole [Σ_1 l ss] (assign (attribute mode (ref l_obj) x_mem) v_new))
-        (in-hole [Σ_2 l ss] (begin))
-        (where Σ_2 (do-assign-attribute Σ_1 mode l_obj x_mem v_new))
+        (in-hole [Σ_2 l ss] s-)
+        (where [Σ_2 s-] (do-assign-attribute Σ_1 mode l_obj x_mem v_new))
         "assign attribute"]
    [--> (in-hole [Σ_1 l_env ss] (import-from x_mod x_var))
         (in-hole [Σ_2 l_env ss] (begin))
@@ -659,8 +702,8 @@
         (in-hole [Σ l_env ss] (begin s- ...))
         "begin"]
    ;; reduce expression
-   [--> (in-hole [Σ l_env se] (raise-error))
-        (error)
+   [--> (in-hole [Σ l_env se] (raise-error any))
+        (error any)
         "error"]
    [--> (in-hole [Σ l_env se] x)
         (in-hole [Σ l_env se] v)
@@ -704,7 +747,7 @@
                                            (class (v ...)
                                              ([x_cmem s-_cmem] ...)
                                              ([x_imem s-_imem] ...))
-                                           ())]))
+                                           ([x_cmem ☠] ...))]))
         "class"]
    [--> (in-hole [Σ_0 l_env0 se] (invoke-function l (v ...)))
         (in-hole [Σ_1 l_env1 se] e-)
@@ -724,8 +767,18 @@
                                     (expr (call-function (attribute fast (ref l_obj) "__init__")
                                                          (v_arg ...)))
                                     (return (ref l_obj)))))
-        (where [Σ_1 l_obj] (alloc Σ_0 (obj l_cls (nothing) ())))
+        (where (x_mem ...) (instance-mem*-of-class Σ_0 l_cls))
+        (where [Σ_1 l_obj] (alloc Σ_0 (obj l_cls (nothing) ([x_mem ☠] ...))))
         "new"]))
+(define-metafunction SP-dynamics
+  instance-mem*-of-class : Σ l -> (x ...)
+  [(instance-mem*-of-class Σ "object")
+   ()]
+  [(instance-mem*-of-class Σ l)
+   (append (x_imem ...) (x_prn ...))
+   (where (obj "type" (class ((ref l_prn)) ([x_cmem s-_cmem] ...) ([x_imem s-_imem] ...)) ρ)
+          (lookup-Σ Σ l))
+   (where (x_prn ...) (instance-mem*-of-class Σ l_prn))])
 (define-metafunction SP-dynamics
   do-import : Σ l x x -> Σ
   [(do-import Σ_1 l_env x_mod x_var)

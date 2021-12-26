@@ -95,7 +95,7 @@
   (Γ ([x T+☠] ...))
 
   ;; a local environment that maps names to labels
-  (ρ ([x l] ...))
+  (ρ ([x l+☠] ...))
 
   ;; types
   (T dynamic
@@ -110,6 +110,7 @@
 
   ;; maybe type
   (T+☠ T ☠)
+  (l+☠ l ☠)
 
   ;; type-op
   (type-op "CheckedDict[_,_]"
@@ -626,7 +627,7 @@
    (lookup-writable-member-T Ψ l_sup x)
    (where (class (l_sup) Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))]
   [(lookup-writable-member-T Ψ l x)
-   dynamic])
+   ☠])
 (define-metafunction SP-compiled
   lookup-class-var-T : Ψ l x -> T+☠
   ;; Given a class environment Ψ, a class name l, a member name x, what is the type of
@@ -954,6 +955,10 @@
    (where [e- (exactness l)] (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T (lookup-writable-member-T Ψ l x))]
   [(resolve-writable-attribute Ψ Γ_dcl Γ_lcl e x)
+   [safe e- dynamic]
+   (where [e- (exactness l)] (compile-e Ψ Γ_dcl Γ_lcl e))
+   (where ☠ (lookup-writable-member-T Ψ l x))]
+  [(resolve-writable-attribute Ψ Γ_dcl Γ_lcl e x)
    [fast e- T]
    (where [e- (Type (exactness l))] (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T (lookup-class-var-T Ψ l x))]
@@ -1269,7 +1274,7 @@
 (define-metafunction SP-compiled
   compile-method : Ψ Γ x T ([x t] ...) t level -> [e- (-> (T ...) T)]
   [(compile-method Ψ Γ x_slf T_cls ([x_arg t_arg] ...) t_out level)
-   [(lambda (x_arg ...)
+   [(lambda (x_slf x_arg ...)
       (make-begin
        (compile-check x_arg T_arg)
        ...)

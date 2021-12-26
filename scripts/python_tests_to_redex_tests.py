@@ -416,6 +416,7 @@ def python_file_to_redex_dynamic_test(spec, prog):
     else:
         check = [
             symbol('error'),
+            symbol('any'),
         ]
     return [
         symbol('test-match'),
