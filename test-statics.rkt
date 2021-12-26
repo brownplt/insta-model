@@ -566,6 +566,9 @@
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "A" () ((function-def "m" (("self" dynamic)) "str" ((return (con "hello")))))) (class "B" ("A") ((function-def "m" (("self" dynamic)) "int" ((return (con 0))))))))))
 
+;; conformance_suite/test_inline_final.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (import-from "typing" ("Final")) (ann-assign "Y" (subscript "Final" "int") (con 42)) (function-def "f" (("x" dynamic)) dynamic ((return (bin-op + "x" "Y")))) (function-def "g" () dynamic ((return (call "f" ((con 1))))))))))
+
 ;; conformance_suite/test_inline_nested.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2))))))))))
 
@@ -622,6 +625,9 @@
 
 ;; conformance_suite/test_mixed_chain_assign.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "C" () (pass)) (class "D" () (pass)) (function-def "f" () dynamic ((ann-assign "x" "C" (call "C" ())) (ann-assign "y" "D" (call "D" ())) (assign ("x" "y") (call "D" ()))))))))
+
+;; conformance_suite/test_module_level_final_decl.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Final")) (ann-assign "x" "Final")))))
 
 ;; conformance_suite/test_module_subclass.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None))))))))))
@@ -718,6 +724,9 @@
 
 ;; conformance_suite/test_type_of_or.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" "int") ("y" "str")) (bin-op bit-or "int" "str") ((return (bool-op or ("x" "y")))))))))
+
+;; conformance_suite/test_type_type_final.py
+(check-judgment-holds* (⊢p (desugar-program ((class "A" ("type") (pass))))))
 
 ;; conformance_suite/test_unannotated_assign_no_later_declare.py
 (check-not-judgment-holds* (⊢p (desugar-program ((function-def "f" (("flag" dynamic)) dynamic ((assign ("x") (con None)) (if "flag" ((ann-assign "x" "str" (con "foo"))) ())))))))

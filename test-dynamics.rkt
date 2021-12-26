@@ -129,7 +129,6 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (assign ("o") (call "C" ()))))))))
 
 ;; conformance_suite/defs_and_lambdas_are_of_the_function_class.py
-#;
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 2)))) (assert (compare (call "type" ("f")) ((is (call "type" ((lambda () (con 3))))))))))))))
 
 ;; conformance_suite/downcast_int_to_bool_neg.py
@@ -145,14 +144,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "int" (con 42))))))))
 
 ;; conformance_suite/method_from_def.py
-(test-match SP-dynamics (terminate)
-            (term
-             (calc
-              (compile-program
-               (desugar-program
-                ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2))))))
-                 (assign ("obj") (call "C" ()))
-                 (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (assign ("obj") (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))))
 
 ;; conformance_suite/method_from_lambda.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((ann-assign "m" (subscript "ClassVar" "Any") (lambda (("self" dynamic)) (con 2))))) (assign ("obj") (call "C" ())) (assert (compare (call (attribute "obj" "m") ()) ((is (con 2)))))))))))
@@ -258,6 +250,9 @@
 
 ;; conformance_suite/test_incompat_override_init_okay.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "A" () ((function-def "__init__" (("self" dynamic)) (con None) (pass)))) (class "B" ("A") ((function-def "__init__" (("self" dynamic) ("x" "int")) (con None) (pass)))) (function-def "f" (("x" "A")) dynamic ((expr (call (attribute "x" "__init__") ()))))))))))
+
+;; conformance_suite/test_inline_final.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("inline")) (import-from "typing" ("Final")) (ann-assign "Y" (subscript "Final" "int") (con 42)) (function-def "f" (("x" dynamic)) dynamic ((return (bin-op + "x" "Y")))) (function-def "g" () dynamic ((return (call "f" ((con 1))))))))))))
 
 ;; conformance_suite/test_inline_nested.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2))))))))))))

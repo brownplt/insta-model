@@ -48,6 +48,8 @@ ban_anywhere_in_test = [
     "@skipIf(True,",
     # Some weird module
     'xxclassloader',
+    # more powerful features.
+    'NamedTuple',
 ]
 ban_in_test_name = [
     'test_if_else_optional_return_two_branches',
@@ -79,12 +81,9 @@ skip_anywhere_in_test = [
     'for ',
     'raise',
     '@staticmethod',
-    'final',
     '@final',
-    'Final[',
     # To confirm
     'Protocol',
-    'NamedTuple',
     'prod_assert',
     '@property',
     '__static__.compiler_flags',
