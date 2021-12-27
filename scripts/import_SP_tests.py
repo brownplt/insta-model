@@ -99,8 +99,6 @@ skip_in_code = [
     '@final',
     'Final[',
     'Final',
-    # Don't worry
-    'with ',
 ]
 
 
