@@ -81,8 +81,6 @@ ban_in_test_name = [
 ]
 skip_anywhere_in_test = [
     # Skip for now
-    '@final',
-    'Final[',
     '@staticmethod',
     'while',
     'for ',
@@ -98,6 +96,9 @@ skip_anywhere_in_test = [
     'reveal_type',
 ]
 skip_in_code = [
+    '@final',
+    'Final[',
+    'Final',
     # Don't worry
     'with ',
 ]

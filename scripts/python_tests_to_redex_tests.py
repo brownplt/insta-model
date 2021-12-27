@@ -287,9 +287,16 @@ def ast_to_sexp(node):
             [ast_to_sexp(s) for s in node.orelse],
             [ast_to_sexp(s) for s in node.finalbody]
         ]
+    elif isinstance(node, ast.Raise):
+        assert node.cause is None
+        assert node.exc is not None
+        return [
+            symbol('raise'),
+            ast_to_sexp(node.exc)
+        ]
     elif isinstance(node, ast.ExceptHandler):
         if node.name is None:
-            name = None
+            name = symbol('None')
         else:
             name = string(node.name)
         return [

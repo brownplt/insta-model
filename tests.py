@@ -6062,6 +6062,7 @@ class StaticCompilationTests(StaticTestBase):
 
     def test_if_optional_reassign(self):
         codestr = """
+        from typing import Optional
         class C: pass
 
         def testfunc(abc: Optional[C]):

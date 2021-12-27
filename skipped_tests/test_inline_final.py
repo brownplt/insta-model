@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Code hitted some skipped words
 def test_inline_final(self):
     codestr = """
         from __static__ import inline

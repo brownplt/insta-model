@@ -312,8 +312,10 @@
      ())]
   [(lookup-builtin-class "list")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)])
-     (["__init__" (method "list" "__init__")])
+     (["__init__" (-> (dynamic) dynamic)]
+      ["append" (-> (dynamic) (subof "list"))])
+     (["__init__" (method "list" "__init__")]
+      ["append" (method "list" "append")])
      ())]
   [(lookup-builtin-class "NoneType")
    (class ("object")
@@ -1537,6 +1539,8 @@
    (Type (subof "Final[_]"))]
   [(T-of-import (import-from "typing" "ClassVar"))
    (Type (subof "ClassVar[_]"))]
+  [(T-of-import (import-from "typing" "List"))
+   (Type (subof "list"))]
   [(T-of-import (import-from "__future__" "annotations"))
    dynamic]
   ;; fallback to dynamic

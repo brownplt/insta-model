@@ -60,7 +60,8 @@
       (function-def x ([x t+] ...) t+ (s+ ...))
       (import-from x (x ...))
       (import-from x (*))
-      (try-except-else-finally (s+ ...) (h+ ...) (s+ ...) (s+ ...)))
+      (try-except-else-finally (s+ ...) (h+ ...) (s+ ...) (s+ ...))
+      (raise e+))
 
   ;; except-handlers
   (h+ (except-handler e+ x+None (s+ ...)))

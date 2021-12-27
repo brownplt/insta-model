@@ -41,7 +41,8 @@
      (class x (e ...) (m ...))
      ;; import should only appear at the global scope
      (import-from x x)
-     (try s ([e x s] ...) s s))
+     (try s ([e x s] ...) s s)
+     (raise e))
 
   ;; class members
   (m (field x t)
@@ -347,7 +348,9 @@
    (try (make-begin (desugar-s s+_body) ...)
         ((desugar-h h+) ...)
         (make-begin (desugar-s s+_orelse) ...)
-        (make-begin (desugar-s s+_final) ...))])
+        (make-begin (desugar-s s+_final) ...))]
+  [(desugar-s (raise e+))
+   (raise (desugar-e e+))])
 (define-metafunction SP-core
   desugar-h : h+ -> [e x s]
   [(desugar-h (except-handler e+ x+None (s+ ...)))

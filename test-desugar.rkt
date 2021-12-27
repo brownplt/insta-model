@@ -182,9 +182,6 @@
 ;; conformance_suite/classes_work.py
 (test-match SP-core program (term (desugar-program ((class "C" () (pass)) (assign ("o") (call "C" ()))))))
 
-;; conformance_suite/defs_and_lambdas_are_of_the_function_class.py
-(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((return (con 2)))) (assert (compare (call "type" ("f")) ((is (call "type" ((lambda () (con 3))))))))))))
-
 ;; conformance_suite/delete_declared_field.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "str"))) (function-def "f" (("c" "C")) dynamic ((delete (attribute "c" "x"))))))))
 
@@ -558,7 +555,7 @@
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" "C") (con None)))))) (function-def "f" (("x" (subscript "Optional" "C"))) "C" ((if (bool-op and ((compare "x" ((is-not (con None)))) (compare (attribute "x" "field") ((is-not (con None)))))) ((return "x")) ()) (if (compare "x" ((is (con None)))) ((return (call "C" ()))) ()) (return "x")))))))
 
 ;; conformance_suite/test_if_optional_reassign.py
-(test-match SP-core program (term (desugar-program ((class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ())))))))
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ())))))))
 
 ;; conformance_suite/test_incompat_override.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((function-def "x" (("self" dynamic)) dynamic (pass))))))))
@@ -634,9 +631,6 @@
 
 ;; conformance_suite/test_mixed_chain_assign.py
 (test-match SP-core program (term (desugar-program ((class "C" () (pass)) (class "D" () (pass)) (function-def "f" () dynamic ((ann-assign "x" "C" (call "C" ())) (ann-assign "y" "D" (call "D" ())) (assign ("x" "y") (call "D" ()))))))))
-
-;; conformance_suite/test_module_level_final_decl.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Final")) (ann-assign "x" "Final")))))
 
 ;; conformance_suite/test_module_subclass.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None))))))))))
@@ -778,6 +772,27 @@
 
 ;; conformance_suite/test_visit_if_else.py
 (test-match SP-core program (term (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42))))))))))
+
+;; conformance_suite/try_except_basic.py
+(test-match SP-core program (term (desugar-program ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42)))))))))
+
+;; conformance_suite/try_except_catch_else_no_exn.py
+(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((try-except-else-finally (pass) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ()))) (assert (compare (call "f" ()) ((is (con 3)))))))))
+
+;; conformance_suite/try_except_catch_else_some_exn.py
+(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((try-except-else-finally ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ()))) (assert (compare (call "f" ()) ((is (con 2)))))))))
+
+;; conformance_suite/try_except_catch_final_no_exn.py
+(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((try-except-else-finally (pass) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ((return (con 42)))))) (assert (compare (call "f" ()) ((is (con 42)))))))))
+
+;; conformance_suite/try_except_catch_final_some_exn.py
+(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((try-except-else-finally ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ((return (con 42)))))) (assert (compare (call "f" ()) ((is (con 42)))))))))
+
+;; conformance_suite/try_except_catch_same_class.py
+(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((try-except-else-finally ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42)))))))))
+
+;; conformance_suite/try_except_catch_sub_class.py
+(test-match SP-core program (term (desugar-program ((class "C" ("Exception") (pass)) (function-def "f" () dynamic ((try-except-else-finally ((raise (call "C" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42)))))))))
 
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP-core program (term (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x")))))

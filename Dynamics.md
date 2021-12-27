@@ -133,10 +133,6 @@ Procedures check return types.
 
 - [procedure_check_return_type_dynamically.py](conformance_suite/procedure_check_return_type_dynamically.py)
 
-There is only one function type. It is shared by `def`s and `lambda`s
-
-- [defs_and_lambdas_are_of_the_function_class.py](conformance_suite/defs_and_lambdas_are_of_the_function_class.py)
-
 ## Optional types
 
 TODO
@@ -185,3 +181,24 @@ Methods are just function-typed members.
 Methods are generative.
 
 - [method_generative.py](conformance_suite/method_generative.py)
+
+## Try-except
+
+Body runs.
+
+- [try_except_basic.py](conformance_suite/try_except_basic.py)
+
+Exceptions are caught properly.
+
+- [try_except_catch_same_class.py](conformance_suite/try_except_catch_same_class.py)
+- [try_except_catch_sub_class.py](conformance_suite/try_except_catch_sub_class.py)
+
+The else case runs when no exception is raised.
+
+- [try_except_catch_else_no_exn.py](conformance_suite/try_except_catch_else_no_exn.py)
+- [try_except_catch_else_some_exn.py](conformance_suite/try_except_catch_else_some_exn.py)
+
+The final block is executed with and without exception.
+
+- [try_except_catch_final_no_exn.py](conformance_suite/try_except_catch_final_no_exn.py)
+- [try_except_catch_final_some_exn.py](conformance_suite/try_except_catch_final_some_exn.py)
