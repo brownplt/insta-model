@@ -66,7 +66,8 @@
       ;; annotations are removed!
       (assign x e-)
       (assign (attribute mode e- x) e-)
-      (import-from x x))
+      (import-from x x)
+      (try s- ([e- x s-] ...) s- s-))
 
   ;; maybe statement
   (s-+☠ s- ☠)
@@ -102,6 +103,7 @@
      (exactness class-l)
      (Optional nonnonable-T)
      (ClassVar classvarable-T)
+     (Final T)
      (-> (T ...) T)
      ;; The remaining are not really types.
      ;;   Each of them only has one inhabitant
@@ -111,6 +113,10 @@
   ;; maybe type
   (T+☠ T ☠)
   (l+☠ l ☠)
+  ;; maybe type
+  (T? (yes T) (no ☠))
+  ;; maybe maybe type
+  (T?? (yes T?) (no ☠))
 
   ;; type-op
   (type-op "CheckedDict[_,_]"
@@ -216,6 +222,11 @@
    (class ("object")
      (["__getitem__" "Optional[_]"])
      (["__getitem__" (method "Optional[_]" "__getitem__")])
+     ())]
+  [(lookup-builtin-class "Final[_]")
+   (class ("object")
+     (["__getitem__" "Final[_]"])
+     (["__getitem__" (method "Final[_]" "__getitem__")])
      ())]
   [(lookup-builtin-class "ClassVar[_]")
    (class ("object")
@@ -571,7 +582,14 @@
    T_2
    (judgment-holds (Ψ⊢T<:T Ψ T_2 T_1))]
   [(intersection Ψ (Optional T_1) (Optional T_2))
-   (subof "NoneType")]
+   (Optional T)
+   (where T (intersection Ψ T_1 T_2))]
+  [(intersection Ψ (Optional T_1) (Optional T_2))
+   (subof "NoneType")
+   (where ☠ (intersection Ψ T_1 T_2))]
+  [(intersection Ψ (Final T_1) T_2)
+   (Final T)
+   (where T (intersection Ψ T_2 T_1))]
   [(intersection Ψ T_1 T_2) ☠])
 
 (define-metafunction SP-compiled
@@ -608,26 +626,28 @@
   [(lookup-member-T Ψ l x)
    ☠])
 (define-metafunction SP-compiled
-  lookup-writable-member-T : Ψ l x -> T+☠
-  ;; Given a class environment Ψ, a class name l, a member name x, what is the type of
-  ;;   that member when accessed from an instance of the class?
+  lookup-writable-member-T : Ψ l x -> T??
+  ;; Given a class environment Ψ, a class name l, a member name x,
+  ;;   is the member possibly writable? If yes, is the field declared?
   
   ;; if in the Γ_ins of the current class, return the type
   [(lookup-writable-member-T Ψ l_cls x)
-   T
+   (yes (yes T))
    (where (class (l_sup ...) Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))
    (where (yes T) (lookup? Γ_ins x))]
-  ;; if in the current class, return the type
+  ;; if in the Γ_cls of the current class, the member is not writable
+  ;;   at the instance level
   [(lookup-writable-member-T Ψ l_cls x)
-   ☠
+   (no ☠)
    (where (class (l_sup ...) Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))
    (where (yes T) (lookup? Γ_cls x))]
   ;; if there is only one parent, go to that parent
   [(lookup-writable-member-T Ψ l_cls x)
    (lookup-writable-member-T Ψ l_sup x)
    (where (class (l_sup) Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))]
+  ;; In all other cases, the member is potentially writable but undeclared
   [(lookup-writable-member-T Ψ l x)
-   ☠])
+   (yes (no ☠))])
 (define-metafunction SP-compiled
   lookup-class-var-T : Ψ l x -> T+☠
   ;; Given a class environment Ψ, a class name l, a member name x, what is the type of
@@ -820,7 +840,9 @@
   [(type-call Ψ "Optional[_]" T)
    (Type (Optional (T-of-T T)))]
   [(type-call Ψ "ClassVar[_]" T)
-   (Type (ClassVar (T-of-T T)))])
+   (Type (ClassVar (T-of-T T)))]
+  [(type-call Ψ "Final[_]" T)
+   (Type (Final (T-of-T T)))])
 (module+ test
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute (con 2) "__add__") ((con 3))))
@@ -950,18 +972,22 @@
 (define-metafunction SP-compiled
   resolve-writable-attribute : Ψ Γ Γ e x -> [mode e- T]
   ;; similar to resolve-attribute, but with a writable test
+  ;; Given an instance, the member is writable and declared
   [(resolve-writable-attribute Ψ Γ_dcl Γ_lcl e x)
    [fast e- T]
    (where [e- (exactness l)] (compile-e Ψ Γ_dcl Γ_lcl e))
-   (where T (lookup-writable-member-T Ψ l x))]
+   (where (yes (yes T)) (lookup-writable-member-T Ψ l x))]
+  ;; Given an instance, the member is possibly writable (undeclared)
   [(resolve-writable-attribute Ψ Γ_dcl Γ_lcl e x)
    [safe e- dynamic]
    (where [e- (exactness l)] (compile-e Ψ Γ_dcl Γ_lcl e))
-   (where ☠ (lookup-writable-member-T Ψ l x))]
+   (where (yes (no ☠)) (lookup-writable-member-T Ψ l x))]
+  ;; Given a class
   [(resolve-writable-attribute Ψ Γ_dcl Γ_lcl e x)
    [fast e- T]
    (where [e- (Type (exactness l))] (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T (lookup-class-var-T Ψ l x))]
+  ;; Given a dynamic
   [(resolve-writable-attribute Ψ Γ_dcl Γ_lcl e x)
    [safe e- dynamic]
    (where [e- dynamic] (compile-e Ψ Γ_dcl Γ_lcl e))])
@@ -1149,7 +1175,15 @@
           (compile-m* Ψ Γ_dcl x m ...))]
   ;; import-from
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (import-from x_mod x_var))
-   (import-from x_mod x_var)])
+   (import-from x_mod x_var)]
+  ;; try
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (try s_bdy ([e_exn x_exn s_exn] ...) s_els s_fnl))
+   (try (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_bdy)
+        ([(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_exn))
+          x_exn
+          (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_exn)] ...)
+        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_els)
+        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_fnl))])
 (define-metafunction SP-compiled
   compile-m* : Ψ Γ x m ... -> [([x_cmem T_cmem s-_cinit] ...)
                                ([x_imem T_imem] ...)]

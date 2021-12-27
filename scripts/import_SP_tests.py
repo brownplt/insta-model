@@ -74,6 +74,10 @@ ban_in_test_name = [
     # We don't support this.
     'test_compile_nested_class_in_fn',
     # nested class
+    'test_assign_try_except_redeclare_unknown_type',
+    # Unbound identifier
+    'test_assign_try_except_typing_redeclared_after',
+    # The scope is funny
 ]
 skip_anywhere_in_test = [
     # Skip for now
@@ -185,6 +189,11 @@ def translate_simple_compile_test(test):
         '    self.compile(codestr, modname="foo")',
         ''
     ])
+    pass_spec3 = '\n'.join([
+        '',
+        '    code = self.compile(codestr, modname="foo")',
+        ''
+    ])
     fail_spec = '\n'.join([
         '',
         '    with self.assertRaises(TypedSyntaxError):',
@@ -198,7 +207,7 @@ def translate_simple_compile_test(test):
             '',
             ''
         ]) + code
-    elif test.endswith(pass_spec1) or test.endswith(pass_spec2):
+    elif test.endswith(pass_spec1) or test.endswith(pass_spec2) or test.endswith(pass_spec3):
         content = '\n'.join([
             '# {}.py'.format(name),
             '# This should pass.',

@@ -403,6 +403,18 @@
 ;; conformance_suite/test_assign_test_var.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((if (compare "x" ((is (con None)))) ((assign ("x") (con 1))) ()) (return "x"))))))))
 
+;; conformance_suite/test_assign_try_except_redeclare.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "testfunc" () dynamic ((ann-assign "e" "int") (try-except-else-finally (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))))
+
+;; conformance_suite/test_assign_try_except_typing.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "testfunc" () dynamic ((try-except-else-finally (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))))
+
+;; conformance_suite/test_assign_try_except_typing_narrowed.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "E" ("Exception") (pass)) (function-def "testfunc" () dynamic ((ann-assign "e" "Exception") (try-except-else-finally (pass) ((except-handler "E" "e" (pass))) () ()) (return (con 42)))))))))
+
+;; conformance_suite/test_assign_try_except_typing_predeclared.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "testfunc" () dynamic ((ann-assign "e" "Exception") (try-except-else-finally (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))))
+
 ;; conformance_suite/test_assign_type_propagation.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" () "int" ((assign ("x") (con 5)) (return "x"))))))))
 
@@ -547,6 +559,9 @@
 ;; conformance_suite/test_if_optional_dependent_conditions.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" "C") (con None)))))) (function-def "f" (("x" (subscript "Optional" "C"))) "C" ((if (bool-op and ((compare "x" ((is-not (con None)))) (compare (attribute "x" "field") ((is-not (con None)))))) ((return "x")) ()) (if (compare "x" ((is (con None)))) ((return (call "C" ()))) ()) (return "x"))))))))
 
+;; conformance_suite/test_if_optional_reassign.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ()))))))))
+
 ;; conformance_suite/test_incompat_override.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((function-def "x" (("self" dynamic)) dynamic (pass))))))))))
 
@@ -564,9 +579,6 @@
 
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "A" () ((function-def "m" (("self" dynamic)) "str" ((return (con "hello")))))) (class "B" ("A") ((function-def "m" (("self" dynamic)) "int" ((return (con 0))))))))))))
-
-;; conformance_suite/test_inline_final.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (import-from "typing" ("Final")) (ann-assign "Y" (subscript "Final" "int") (con 42)) (function-def "f" (("x" dynamic)) dynamic ((return (bin-op + "x" "Y")))) (function-def "g" () dynamic ((return (call "f" ((con 1)))))))))))
 
 ;; conformance_suite/test_inline_nested.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2)))))))))))
@@ -721,6 +733,9 @@
 ;; conformance_suite/test_str_split.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign ((tuple ("a" "b"))) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b"))))))))
 
+;; conformance_suite/test_try_return_finally.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f1" (("x" "List")) dynamic ((try-except-else-finally ((return (con None))) () () ((expr (call (attribute "x" "append") ((con "hi")))))))))))))
+
 ;; conformance_suite/test_type_of_or.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" "int") ("y" "str")) (bin-op bit-or "int" "str") ((return (bool-op or ("x" "y"))))))))))
 
@@ -729,6 +744,9 @@
 
 ;; conformance_suite/test_unannotated_assign_no_later_declare.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" (("flag" dynamic)) dynamic ((assign ("x") (con None)) (if "flag" ((ann-assign "x" "str" (con "foo"))) ())))))))))
+
+;; conformance_suite/test_unknown_imported_annotation.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "unknown_mod" ("foo")) (function-def "testfunc" () dynamic ((ann-assign "x" "foo" (con 42)) (return "x"))))))))
 
 ;; conformance_suite/test_unknown_isinstance_bool_ret.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "__eq__" (("self" dynamic) ("other" "Any")) "bool" ((return (call "isinstance" ("other" "C"))))))))))))

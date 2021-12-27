@@ -59,7 +59,12 @@
       (class x (e+ ...) (s+ ...))
       (function-def x ([x t+] ...) t+ (s+ ...))
       (import-from x (x ...))
-      (import-from x (*)))
+      (import-from x (*))
+      (try-except-else-finally (s+ ...) (h+ ...) (s+ ...) (s+ ...)))
+
+  ;; except-handlers
+  (h+ (except-handler e+ x+None (s+ ...)))
+  (x+None x None)
 
   ;; targets of assignment,
   ;;   which is a subset of e+

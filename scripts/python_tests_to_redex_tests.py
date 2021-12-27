@@ -282,10 +282,21 @@ def ast_to_sexp(node):
     elif isinstance(node, ast.Try):
         return [
             symbol('try-except-else-finally'),
-            [symbol('begin')] + [ast_to_sexp(s) for s in node.body],
-            [symbol('begin')] + [ast_to_sexp(h) for h in node.handlers],
-            [symbol('begin')] + [ast_to_sexp(s) for s in node.orelse],
-            [symbol('begin')] + [ast_to_sexp(s) for s in node.finalbody]
+            [ast_to_sexp(s) for s in node.body],
+            [ast_to_sexp(h) for h in node.handlers],
+            [ast_to_sexp(s) for s in node.orelse],
+            [ast_to_sexp(s) for s in node.finalbody]
+        ]
+    elif isinstance(node, ast.ExceptHandler):
+        if node.name is None:
+            name = None
+        else:
+            name = string(node.name)
+        return [
+            symbol('except-handler'),
+            ast_to_sexp(node.type),
+            name,
+            [ast_to_sexp(s) for s in node.body],
         ]
     assert False, str(node)
 

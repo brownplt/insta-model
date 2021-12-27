@@ -40,7 +40,8 @@
      (function-def x ([x t] ...) t level)
      (class x (e ...) (m ...))
      ;; import should only appear at the global scope
-     (import-from x x))
+     (import-from x x)
+     (try s ([e x s] ...) s s))
 
   ;; class members
   (m (field x t)
@@ -87,6 +88,11 @@
   append : (any ...) (any ...) -> (any ...)
   [(append (any_1 ...) (any_2 ...))
    (any_1 ... any_2 ...)])
+(define-metafunction SP-core
+  append* : (any ...) ... -> (any ...)
+  [(append*) ()]
+  [(append* any_1 any_2 ...)
+   (append any_1 (append* any_2 ...))])
 
 
 (module+ test
@@ -251,14 +257,14 @@
               (term (ann "i" "int")))
   (test-equal (term (desugar-s (ann-assign "i" "int" "b")))
               (term (ann-assign "i" "int" "b")))
-  (test-equal (term (desugar-s (assign "i" "b")))
+  (test-equal (term (desugar-s (assign ("i") "b")))
               (term (ann-assign "i" dynamic "b")))
   (test-equal (term (desugar-s (aug-assign "i" + "b")))
               (term (ann-assign "i" dynamic (call (attribute "i" "__add__") ("b")))))
   (test-equal (term (desugar-s (class "C" ()
                                  ((function-def "foo" (["self" dynamic] ["i" "int"])
                                                 dynamic
-                                                ((assign "j" "i")
+                                                ((assign ("j") "i")
                                                  (return "i")))))))
               (term (class "C" ()
                       ((method "foo" (["self" dynamic] ["i" "int"])
@@ -312,14 +318,19 @@
                        (desugar-t (subscript "CheckedDict" (tuple (e+_1 e+_2))))
                        (desugar-e (call (subscript "CheckedDict" (tuple (e+_1 e+_2)))
                                         ((dict ([e+_k e+_v] ...))))))]
+  ;; ann-assign
   [(desugar-s (ann-assign e+_dst t+_ann e+_src))
    (desugar-ann-assign e+_dst (desugar-t t+_ann) (desugar-e e+_src))]
+  ;; assign
   [(desugar-s (assign (e+_dst ...) e+_src))
    (desugar-s-assign (e+_dst ...) e+_src)]
+  ;; aug-assign
   [(desugar-s (aug-assign e+_dst o2 e+_src))
    (desugar-s (assign (e+_dst) (bin-op o2 e+_dst e+_src)))]
+  ;; class
   [(desugar-s (class x (t+ ...) (s+ ...)))
    (class x ((desugar-t t+) ...) (m*-of-begin (make-begin (desugar-s s+) ...)))]
+  ;; function-def
   [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret (s+ ...)))
    (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret)
                  (level-of-s
@@ -327,10 +338,26 @@
                   (make-begin
                    (desugar-s s+)
                    ...)))]
+  ;; import-from
   [(desugar-s (import-from x_mod (x_dst ...)))
    (make-begin (import-from x_mod x_dst) ...)]
   [(desugar-s (import-from x_mod (*)))
-   (desugar-import-from-* x_mod)])
+   (desugar-import-from-* x_mod)]
+  [(desugar-s (try-except-else-finally (s+_body ...) (h+ ...) (s+_orelse ...) (s+_final ...)))
+   (try (make-begin (desugar-s s+_body) ...)
+        ((desugar-h h+) ...)
+        (make-begin (desugar-s s+_orelse) ...)
+        (make-begin (desugar-s s+_final) ...))])
+(define-metafunction SP-core
+  desugar-h : h+ -> [e x s]
+  [(desugar-h (except-handler e+ x+None (s+ ...)))
+   [(desugar-e e+)
+    (desugar-x+None x+None)
+    (make-begin (desugar-s s+) ...)]])
+(define-metafunction SP-core
+  desugar-x+None : x+None -> x
+  [(desugar-x+None x) x]
+  [(desugar-x+None None) "-tmp-"])
 (define-metafunction SP-core
   desugar-s-assign : (a-target ...) e+ -> s
   [(desugar-s-assign (e+_dst) e+_src)
@@ -462,10 +489,15 @@
                                  (method "greet" (["self" dynamic]) "str"
                                          (local ()
                                            (begin)))))))
-              (term (["C" (class ("object")
-                            (["i" "int"]
-                             ["s" "str"]
-                             ["greet" (function-def (dynamic) "str")]))])))
+              (term (["C"
+                      (class ("object")
+                        ((field "i" "int")
+                         (field "s" "str" "hello")
+                         (method
+                          "greet"
+                          (("self" dynamic))
+                          "str"
+                          (local () (begin)))))])))
   (test-equal (term (xd*-of-s (import-from "__static__" "CheckedDict")))
               (term (["CheckedDict" (import-from "__static__" "CheckedDict")]))))
 (define-metafunction SP-core
@@ -502,7 +534,12 @@
    ([x (class (e ...) (m ...))])]
   ;; interesting case!
   [(xd*-of-s (import-from x_mod x_var))
-   ([x_var (import-from x_mod x_var)])])
+   ([x_var (import-from x_mod x_var)])]
+  [(xd*-of-s (try s_bdy ([e_exn x_exn s_exn] ...) s_els s_fnl))
+   (append (xd*-of-s s_bdy)
+           (append (append* (append ([x_exn dynamic]) (xd*-of-s s_exn)) ...)
+                   (append (xd*-of-s s_els)
+                           (xd*-of-s s_fnl))))])
 (module+ test
   (test-equal (term (xd*-of-s-begin))
               (term ()))

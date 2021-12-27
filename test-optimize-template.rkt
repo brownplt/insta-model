@@ -224,37 +224,6 @@ def f(x: str) -> Optional[str]:
 |#
 
 
-;; conformance_suite/test_inline_final.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (import-from "typing" ("Final")) (ann-assign "Y" (subscript "Final" "int") (con 42)) (function-def "f" (("x" dynamic)) dynamic ((return (bin-op + "x" "Y")))) (function-def "g" () dynamic ((return (call "f" ((con 1)))))))))))
-#|
-
-from __static__ import inline
-from typing import Final
-Y: Final[int] = 42
-@inline
-def f(x):
-    return x + Y
-def g():
-    return f(1)
-# def test_inline_final(self):
-#     codestr = """
-#         from __static__ import inline
-#         from typing import Final
-#         Y: Final[int] = 42
-#         @inline
-#         def f(x):
-#             return x + Y
-#         def g():
-#             return f(1)
-#     """
-#     with self.in_module(codestr, optimize=2) as mod:
-#         g = mod.g
-#         # We don't currently inline math with finals
-#         self.assertInBytecode(g, "LOAD_CONST", 42)
-#         self.assertEqual(g(), 43)
-|#
-
-
 ;; conformance_suite/test_inline_nested.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2)))))))))))
 #|
