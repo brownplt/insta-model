@@ -1,4 +1,4 @@
-# Reason: Code hitted some skipped words
+# Reason: Can't be translated by any of the three translator
 def test_assign_try_except_redeclare(self):
     codestr = """
         def testfunc():

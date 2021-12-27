@@ -77,11 +77,11 @@ ban_in_test_name = [
 ]
 skip_anywhere_in_test = [
     # Skip for now
+    '@final',
+    'Final[',
+    '@staticmethod',
     'while',
     'for ',
-    'raise',
-    '@staticmethod',
-    '@final',
     # To confirm
     'Protocol',
     'prod_assert',
@@ -94,11 +94,8 @@ skip_anywhere_in_test = [
     'reveal_type',
 ]
 skip_in_code = [
-    # TODO
-    ' | '
     # Don't worry
     'with ',
-    'try:'
 ]
 
 
@@ -350,6 +347,7 @@ for test in read_tests(input_file):
         # If broken out, we won't reach here.
         try:
             code, spec = parse_simple_test(test)
+            record_skipped_test(name, test, "Can't be translated by any of the three translator")
         except Exception:
-            record_skipped_test(name, test, "Can't parse")
+            record_skipped_test(name, test, "Can't even parse")
             continue

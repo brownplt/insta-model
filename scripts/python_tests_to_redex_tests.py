@@ -279,6 +279,14 @@ def ast_to_sexp(node):
             arguments_to_sexp(node.args),
             ast_to_sexp(node.body)
         ]
+    elif isinstance(node, ast.Try):
+        return [
+            symbol('try-except-else-finally'),
+            [symbol('begin')] + [ast_to_sexp(s) for s in node.body],
+            [symbol('begin')] + [ast_to_sexp(h) for h in node.handlers],
+            [symbol('begin')] + [ast_to_sexp(s) for s in node.orelse],
+            [symbol('begin')] + [ast_to_sexp(s) for s in node.finalbody]
+        ]
     assert False, str(node)
 
 

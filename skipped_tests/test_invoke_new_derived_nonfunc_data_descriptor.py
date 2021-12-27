@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_invoke_new_derived_nonfunc_data_descriptor(self):
     codestr = """
         class C:
