@@ -542,7 +542,9 @@
    (append (xd*-of-s s_bdy)
            (append (append* (append ([x_exn dynamic]) (xd*-of-s s_exn)) ...)
                    (append (xd*-of-s s_els)
-                           (xd*-of-s s_fnl))))])
+                           (xd*-of-s s_fnl))))]
+  [(xd*-of-s (raise e))
+   ()])
 (module+ test
   (test-equal (term (xd*-of-s-begin))
               (term ()))

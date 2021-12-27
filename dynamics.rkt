@@ -95,7 +95,8 @@
       (delete (attribute ee x))
       (assign x ee)
       (assign (attribute mode ee x) e-)
-      (assign (attribute mode v x) ee))
+      (assign (attribute mode v x) ee)
+      (try se ([e- x s-] ...) s- s-))
   ;; in statement reduce statement
   (ss hole
       (expr es)
@@ -105,7 +106,8 @@
       (delete (attribute es x))
       (assign x es)
       (assign (attribute es x) e-)
-      (assign (attribute v x) es))
+      (assign (attribute v x) es)
+      (try ss ([e- x s-] ...) s- s-))
   ;; in return
   (sr hole
       (begin sr s- ...))
@@ -701,6 +703,18 @@
    [--> (in-hole [Σ l_env ss] (begin (begin) s- ...))
         (in-hole [Σ l_env ss] (begin s- ...))
         "begin"]
+   [--> (in-hole [Σ l_env ss] (try (begin) ([e-_exn x_exn s-_exn] ...) s-_els s-_fnl))
+        (in-hole [Σ l_env ss] (begin s-_els s-_fnl))
+        "try-else"]
+   ;; TODO
+   [--> (in-hole [Σ l_env ss] (try (raise v) ([e-_exn x_exn s-_exn] ...) s-_els s-_fnl))
+        (in-hole [Σ l_env ss] (if (call-function (ref "isinstance") (v e-_exn))
+                                  (begin
+                                    (assign x_exn v)
+                                    s-_exn
+                                    s-_fnl)
+                                  ))
+        "try-catch"]
    ;; reduce expression
    [--> (in-hole [Σ l_env se] (raise-error any))
         (error any)

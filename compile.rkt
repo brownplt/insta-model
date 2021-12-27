@@ -67,7 +67,8 @@
       (assign x e-)
       (assign (attribute mode e- x) e-)
       (import-from x x)
-      (try s- ([e- x s-] ...) s- s-))
+      (try s- ([e- x s-] ...) s- s-)
+      (raise e-))
 
   ;; maybe statement
   (s-+☠ s- ☠)
@@ -245,8 +246,8 @@
      ())]
   [(lookup-builtin-class "Exception")
    (class ("object")
-     ()
-     ()
+     (["__init__" (-> (dynamic) dynamic)])
+     (["__init__" (method "Exception" "__init__")])
      ())]
   [(lookup-builtin-class "int")
    (class ("object")
@@ -1185,7 +1186,10 @@
           x_exn
           (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_exn)] ...)
         (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_els)
-        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_fnl))])
+        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_fnl))]
+  ;; raise
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (raise e))
+   (raise (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)))])
 (define-metafunction SP-compiled
   compile-m* : Ψ Γ x m ... -> [([x_cmem T_cmem s-_cinit] ...)
                                ([x_imem T_imem] ...)]
