@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_assign_while_else_2(self):
     codestr = """
         class B:

@@ -415,6 +415,15 @@
 ;; conformance_suite/test_assign_type_propagation.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" () "int" ((assign ("x") (con 5)) (return "x"))))))))
 
+;; conformance_suite/test_assign_while_returns.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (compare "x" ((is (con None)))) ((return (con 1))) ()) (return "x"))))))))
+
+;; conformance_suite/test_assign_while_returns_but_assigns_first.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((ann-assign "y" (subscript "Optional" "int") (con 1)) (while (compare "x" ((is (con None)))) ((assign ("y") (con None)) (return (con 1))) ()) (return "y"))))))))
+
+;; conformance_suite/test_assign_while_test_var.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (compare "x" ((is (con None)))) ((assign ("x") (con 1))) ()) (return "x"))))))))
+
 ;; conformance_suite/test_attr_generic_optional.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" "Optional")) dynamic ((return (attribute "x" "foo"))))))))))
 
@@ -435,6 +444,9 @@
 
 ;; conformance_suite/test_bool_int.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "int" (con #t)) (return "x"))))))))
+
+;; conformance_suite/test_break_condition.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "str"))) "str" ((while (con #t) ((if (compare "x" ((is (con None)))) (break) ()) (return "x")) ()))))))))
 
 ;; conformance_suite/test_cast_unknown_type.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("cast")) (function-def "f" () dynamic ((expr (call "cast" ("abc" (con 42))))))))))))
@@ -510,6 +522,9 @@
 
 ;; conformance_suite/test_compile_nested_dict.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))))))))
+
+;; conformance_suite/test_continue_condition.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "str"))) "str" ((while (con #t) ((if (compare "x" ((is (con None)))) (continue) ()) (return "x")) ()))))))))
 
 ;; conformance_suite/test_decorated_function_ignored.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (function-def "mydecorator" (("x" dynamic)) dynamic ((return "C"))) (function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))))))))
@@ -643,6 +658,18 @@
 ;; conformance_suite/test_narrow_or.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" (con None)))) "int" ((if (bool-op or ((compare "x" ((is (con None)))) (compare "x" ((> (con 1)))))) ((assign ("x") (con 1))) ()) (return "x"))))))))
 
+;; conformance_suite/test_narrow_while_break.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (compare "x" ((is (con None)))) (break) ()) (return "x")))))))))
+
+;; conformance_suite/test_narrow_while_break_if.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (con #t) ((if (compare "x" ((is (con None)))) (break) ()) (return "x")) ()))))))))
+
+;; conformance_suite/test_narrow_while_continue_if.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (con #t) ((if (compare "x" ((is (con None)))) (continue) ()) (return "x")) ()))))))))
+
+;; conformance_suite/test_narrow_while_if_break_else_return.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int")) ("y" "int")) "int" ((while (compare "x" ((is (con None)))) ((if (compare "y" ((> (con 0)))) (break) ((return (con 42))))) ()) (return "x")))))))))
+
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ())))))))))
 
@@ -774,6 +801,12 @@
 
 ;; conformance_suite/test_visit_if_else.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42)))))))))))
+
+;; conformance_suite/test_while_else_reverses_condition.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (compare "x" ((is (con None)))) (pass) ((return "x"))) (return (con 1)))))))))
+
+;; conformance_suite/test_while_optional_cond.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" (con "C")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((while (compare "x" ((is-not (con None)))) ((ann-assign "val" (subscript "Optional" "C") (attribute "x" "field")) (if (compare "val" ((is-not (con None)))) ((assign ("x") "val")) ())) ()))))))))
 
 ;; conformance_suite/try_except_basic.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42))))))))))

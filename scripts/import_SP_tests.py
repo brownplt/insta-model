@@ -82,7 +82,6 @@ ban_in_test_name = [
 skip_anywhere_in_test = [
     # Skip for now
     '@staticmethod',
-    'while',
     'for ',
     # To confirm
     'Protocol',
