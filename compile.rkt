@@ -67,7 +67,8 @@
       (assign x e-)
       (assign (attribute mode e- x) e-)
       (import-from x x)
-      (try s- ([e- x s-] ...) s- s-)
+      (try s- e- x s- s-)
+      (finally s- s-)
       (raise e-))
 
   ;; maybe statement
@@ -1180,13 +1181,15 @@
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (import-from x_mod x_var))
    (import-from x_mod x_var)]
   ;; try
-  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (try s_bdy ([e_exn x_exn s_exn] ...) s_els s_fnl))
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (try s_bdy e_exn x_exn s_exn s_els))
    (try (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_bdy)
-        ([(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_exn))
-          x_exn
-          (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_exn)] ...)
-        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_els)
-        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_fnl))]
+        (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_exn))
+        x_exn
+        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_exn)
+        (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_els))]
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (finally s_bdy s_fnl))
+   (finally (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_bdy)
+            (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_fnl))]
   ;; raise
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (raise e))
    (raise (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)))])
@@ -1251,7 +1254,7 @@
 (define-metafunction SP-compiled
   make-assert : e- -> s-
   [(make-assert e-)
-   (if e- (begin) (expr (raise-error "cast error")))])
+   (if e- (begin) (expr (raise-error "assertion error")))])
 (define-metafunction SP-compiled
   compile-m : Ψ Γ x m -> [boolean x T s-]
   ;; declare-only member can be either a ClassVar
@@ -1376,7 +1379,10 @@
   [(compile-begin Ψ Γ_dcl Γ_lcl ☠)
    (begin)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T)
-   (compile-s Ψ Γ_dcl Γ_lcl T (return (con None)))]
+   (begin)
+   #; ;; TODO
+   (compile-s Ψ Γ_dcl Γ_lcl T (return (con None)))
+   (judgment-holds (Ψ⊢T<:T Ψ (subof "NoneType") T))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s)
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ s)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (return e) s ...)

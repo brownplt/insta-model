@@ -96,7 +96,9 @@
       (assign x ee)
       (assign (attribute mode ee x) e-)
       (assign (attribute mode v x) ee)
-      (try se ([e- x s-] ...) s- s-))
+      (try se e- x s- s-)
+      (finally se s-)
+      (raise ee))
   ;; in statement reduce statement
   (ss hole
       (expr es)
@@ -107,15 +109,14 @@
       (assign x es)
       (assign (attribute es x) e-)
       (assign (attribute v x) es)
-      (try ss ([e- x s-] ...) s- s-))
-  ;; in return
-  (sr hole
-      (begin sr s- ...))
+      (try ss e- x s- s-)
+      (finally ss s-)
+      (raise es))
   ;; builtin-op-l, a subset of l
   (prim-op-l
-   "isinstance"
    "issubclass"
    (method "object" "__init__")
+   (method "Exception" "__init__")
    (method "int" "__add__")
    (method "int" "__sub__")
    (method "int" "__mul__")
@@ -202,6 +203,15 @@
    (where ([x T] ...) (base-Γ))]
   [(lookup-Σ-primitive (con c))
    (obj (l-of-c c) (con c) ())]
+  [(lookup-Σ-primitive "isinstance")
+   (obj "function"
+        (lambda -1 ("ins" "cls")
+          (begin)
+          (local ("ins" "cls")
+            (return (invoke-function "issubclass"
+                                     ((invoke-function "type" ("ins"))
+                                      "cls")))))
+        ())]
   [(lookup-Σ-primitive (method (chkdict T_key T_val) "__delitem__"))
    (obj "function"
         (lambda -1 ("dict" "key")
@@ -298,6 +308,8 @@
   delta : Σ prim-op-l (v ...) -> [Σ e-]
   [(delta Σ (method "object" "__init__") (v))
    [Σ v]]
+  [(delta Σ (method "Exception" "__init__") (v ...))
+   (delta-exception-init Σ v ...)]
   [(delta Σ (method "int" "__add__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(+ (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "__sub__") ((ref (con number_1)) (ref (con number_2))))
@@ -320,6 +332,15 @@
   ;; fall back
   [(delta Σ l (v ...))
    [Σ (raise-error "delta")]])
+(define-metafunction SP-dynamics
+  delta-exception-init : Σ v ... -> [Σ e-]
+  [(delta-exception-init Σ_0 (ref l_exn) (ref l_msg))
+   [Σ_1 (ref (con None))]
+   (where (obj l_exncls (nothing) ()) (lookup-Σ Σ_0 l_exn))
+   (where (obj l_msgcls (con string) ρ) (lookup-Σ Σ_0 l_msg))
+   (where Σ_1 (update Σ_0 [l_exn (obj l_exncls (con string) ())]))]
+  [(delta-exception-init Σ_0 (ref l_exn) (ref l_msg))
+   [Σ_0 (raise-error ("Exception: must be initialized with a string" (lookup-Σ Σ_0 l_exn) (lookup-Σ Σ_0 l_msg)))]])
 (define-metafunction SP-dynamics
   delta-checkeddict-init : Σ T_key T_val l_obj l_dct -> [Σ e-]
   [(delta-checkeddict-init Σ_0 T_key T_val l_obj l_dct)
@@ -439,6 +460,7 @@
   [(arity-prim-op "isinstance") 2]
   [(arity-prim-op "issubclass") 2]
   [(arity-prim-op (method "object" "__init__")) 1]
+  [(arity-prim-op (method "Exception" "__init__")) 2]
   [(arity-prim-op (method "int" "__add__")) 2]
   [(arity-prim-op (method "int" "__sub__")) 2]
   [(arity-prim-op (method "int" "__mul__")) 2]
@@ -670,9 +692,15 @@
         (in-hole [Σ l_1 se] (leave l_0 s-))
         "enter"]
    ;; return
-   [--> (in-hole [Σ l_0 se] (in-hole (leave l_1 sr) (return v)))
+   [--> (in-hole [Σ l_0 se] (leave l_1 (return v)))
         (in-hole [Σ l_1 se] v)
         "leave"]
+   [--> (in-hole [Σ l ss] (begin (return v) s- ...))
+        (in-hole [Σ l ss] (return v))
+        "return"]
+   [--> (in-hole [Σ l ss] (begin (raise v) s- ...))
+        (in-hole [Σ l ss] (raise v))
+        "raise"]
    ;; reduce statements
    [--> (in-hole [Σ l ss] (expr v))
         (in-hole [Σ l ss] (begin))
@@ -703,18 +731,28 @@
    [--> (in-hole [Σ l_env ss] (begin (begin) s- ...))
         (in-hole [Σ l_env ss] (begin s- ...))
         "begin"]
-   [--> (in-hole [Σ l_env ss] (try (begin) ([e-_exn x_exn s-_exn] ...) s-_els s-_fnl))
-        (in-hole [Σ l_env ss] (begin s-_els s-_fnl))
+   [--> (in-hole [Σ l_env ss] (try (return v) e-_exn x_exn s-_exn s-_els))
+        (in-hole [Σ l_env ss] (return v))
+        "try-return"]
+   [--> (in-hole [Σ l_env ss] (try (begin) e-_exn x_exn s-_exn s-_els))
+        (in-hole [Σ l_env ss] s-_els)
         "try-else"]
-   ;; TODO
-   [--> (in-hole [Σ l_env ss] (try (raise v) ([e-_exn x_exn s-_exn] ...) s-_els s-_fnl))
+   [--> (in-hole [Σ l_env ss] (try (raise v) e-_exn x_exn s-_exn s-_els))
         (in-hole [Σ l_env ss] (if (call-function (ref "isinstance") (v e-_exn))
                                   (begin
                                     (assign x_exn v)
-                                    s-_exn
-                                    s-_fnl)
-                                  ))
+                                    s-_exn)
+                                  (raise v)))
         "try-catch"]
+   [--> (in-hole [Σ l_env ss] (finally (return v) s-))
+        (in-hole [Σ l_env ss] (begin s- (return v)))
+        "finally-return"]
+   [--> (in-hole [Σ l_env ss] (finally (raise v) s-))
+        (in-hole [Σ l_env ss] (begin s- (raise v)))
+        "finally-raise"]
+   [--> (in-hole [Σ l_env ss] (finally (begin) s-))
+        (in-hole [Σ l_env ss] s-)
+        "finally-done"]
    ;; reduce expression
    [--> (in-hole [Σ l_env se] (raise-error any))
         (error any)
@@ -776,14 +814,19 @@
         (where [Σ_1 l_env1 e-] (do-call-function Σ_0 l_env0 (lookup-Σ Σ_0 l_fun) (v_arg ...)))
         "call-function"]
    [--> (in-hole [Σ_0 l_env se] (new l_cls (v_arg ...)))
-        (in-hole [Σ_1 l_env se] (leave l_env
-                                  (begin
-                                    (expr (call-function (attribute fast (ref l_obj) "__init__")
-                                                         (v_arg ...)))
-                                    (return (ref l_obj)))))
-        (where (x_mem ...) (instance-mem*-of-class Σ_0 l_cls))
-        (where [Σ_1 l_obj] (alloc Σ_0 (obj l_cls (nothing) ([x_mem ☠] ...))))
+        (in-hole [Σ_1 l_env se] e-)
+        (where [Σ_1 e-] (do-new Σ_0 l_cls v_arg ...))
         "new"]))
+(define-metafunction SP-dynamics
+  do-new : Σ l v ... -> [Σ e-]
+  [(do-new Σ_0 l_cls v_arg ...)
+   [Σ_1 (enter -1
+               (begin
+                 (expr (call-function (attribute fast (ref l_obj) "__init__")
+                                      (v_arg ...)))
+                 (return (ref l_obj))))]
+   (where (x_mem ...) (instance-mem*-of-class Σ_0 l_cls))
+   (where [Σ_1 l_obj] (alloc Σ_0 (obj l_cls (nothing) ([x_mem ☠] ...))))])
 (define-metafunction SP-dynamics
   instance-mem*-of-class : Σ l -> (x ...)
   [(instance-mem*-of-class Σ "object")

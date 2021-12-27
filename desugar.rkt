@@ -41,7 +41,13 @@
      (class x (e ...) (m ...))
      ;; import should only appear at the global scope
      (import-from x x)
-     (try s ([e x s] ...) s s)
+     (try s ;; body
+          e ;; exn class to catch
+          x ;; binder
+          s ;; when caught
+          s ;; else
+          )
+     (finally s s)
      (raise e))
 
   ;; class members
@@ -345,12 +351,20 @@
   [(desugar-s (import-from x_mod (*)))
    (desugar-import-from-* x_mod)]
   [(desugar-s (try-except-else-finally (s+_body ...) (h+ ...) (s+_orelse ...) (s+_final ...)))
-   (try (make-begin (desugar-s s+_body) ...)
-        ((desugar-h h+) ...)
-        (make-begin (desugar-s s+_orelse) ...)
-        (make-begin (desugar-s s+_final) ...))]
+   (finally
+    (make-try (make-begin (desugar-s s+_body) ...)
+              ((desugar-h h+) ...)
+              (make-begin (desugar-s s+_orelse) ...))
+    (make-begin (desugar-s s+_final) ...))]
   [(desugar-s (raise e+))
    (raise (desugar-e e+))])
+(define-metafunction SP-core
+  make-try : s ([e x s] ...) s -> s
+  [(make-try s_bdy () s_els) (make-begin s_bdy s_els)]
+  [(make-try s_bdy ([e_exn1 x_exn1 s_exn1] [e_exn2 x_exn2 s_exn2] ...) s_els)
+   (make-try (try s_bdy e_exn1 x_exn1 s_exn1 (begin))
+             ([e_exn2 x_exn2 s_exn2] ...)
+             s_els)])
 (define-metafunction SP-core
   desugar-h : h+ -> [e x s]
   [(desugar-h (except-handler e+ x+None (s+ ...)))
@@ -538,11 +552,12 @@
   ;; interesting case!
   [(xd*-of-s (import-from x_mod x_var))
    ([x_var (import-from x_mod x_var)])]
-  [(xd*-of-s (try s_bdy ([e_exn x_exn s_exn] ...) s_els s_fnl))
+  [(xd*-of-s (try s_bdy e_exn x_exn s_exn s_els))
    (append (xd*-of-s s_bdy)
-           (append (append* (append ([x_exn dynamic]) (xd*-of-s s_exn)) ...)
-                   (append (xd*-of-s s_els)
-                           (xd*-of-s s_fnl))))]
+           (append (append ([x_exn dynamic]) (xd*-of-s s_exn))
+                   (xd*-of-s s_els)))]
+  [(xd*-of-s (finally s_bdy s_fnl))
+   (append (xd*-of-s s_bdy) (xd*-of-s s_fnl))]
   [(xd*-of-s (raise e))
    ()])
 (module+ test
