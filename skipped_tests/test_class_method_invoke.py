@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_class_method_invoke(self):
     codestr = """
         class B:

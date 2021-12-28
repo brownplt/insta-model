@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Code hitted some skipped words
 def test_fast_len_conditional_set_funcarg(self):
     codestr = """
         def z(b: object) -> bool:

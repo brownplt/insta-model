@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_seq_repeat_inexact_list(self):
     codestr = """
         from typing import List

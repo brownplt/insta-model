@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_compile_dict_get(self):
     codestr = """
         from __static__ import CheckedDict

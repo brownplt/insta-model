@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_compare_subclass(self):
     codestr = """
     class C: pass

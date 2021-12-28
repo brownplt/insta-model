@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_invoke_new_derived_nonfunc_data_descriptor(self):
     codestr = """
         class C:

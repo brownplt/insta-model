@@ -374,6 +374,9 @@
 ;; conformance_suite/test_assert_narrowing_optimized.py
 (test-match SP program+ (term ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x"))))))
 
+;; conformance_suite/test_assert_narrowing_type_error.py
+(test-match SP program+ (term ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (call "isinstance" ("x" "int"))) (return "x"))))))
+
 ;; conformance_suite/test_assign_chained.py
 (test-match SP program+ (term ((function-def "test" () "str" ((ann-assign "x" "str" (con "hi")) (assign ("y" "x") (con "hello")) (return "y"))))))
 
@@ -523,6 +526,9 @@
 
 ;; conformance_suite/test_compile_generic_dict_setitem_bad_type_2.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "abc") (con 42))))))) (assign ((subscript "x" (con "foo"))) (con "abc")))))))
+
+;; conformance_suite/test_compile_nested_class.py
+(test-match SP program+ (term ((import-from "typing" ("ClassVar")) (class "Outer" () ((class "Inner" () ((ann-assign "c" (subscript "ClassVar" "int") (con 1)))))))))
 
 ;; conformance_suite/test_compile_nested_dict.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))))))
@@ -736,6 +742,9 @@
 
 ;; conformance_suite/test_optional_unary_error.py
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (function-def "f" (("a" (subscript "Optional" "int"))) dynamic ((expr (unary-op - "a")))))))
+
+;; conformance_suite/test_or_expression_with_multiple_optionals_type_error.py
+(test-match SP program+ (term ((import-from "typing" ("Optional")) (function-def "f" (("s1" (subscript "Optional" "str")) ("s2" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s1" "s2"))))))))
 
 ;; conformance_suite/test_override_bad_ret.py
 (test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))))))

@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_fast_len_dict_subclass(self):
     codestr = """
     from typing import Dict

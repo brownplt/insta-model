@@ -1,4 +1,4 @@
-# Reason: Format too complicated
+# Reason: Can't be translated by any of the three translator
 def test_typed_field_deleted_attr(self):
     codestr = """
         class C:

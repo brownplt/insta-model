@@ -1,0 +1,14 @@
+# Reason: Test hitted a banned word _kw
+def test_nested_fn_type_error_kwarg(self):
+    codestr = """
+    def f(i: int, j: str = "yo") -> bool:
+        def g(k: int) -> bool:
+            return k > 0 if j == "gt" else k <= 0
+        return g(i)
+    """
+    with self.in_module(codestr) as mod:
+        f = mod.f
+        with self.assertRaisesRegex(
+            TypeError, r"f expected 'str' for argument j, got 'int'"
+        ):
+            f(1, j=2)

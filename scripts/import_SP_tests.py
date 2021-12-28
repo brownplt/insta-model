@@ -10,6 +10,7 @@ skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
 output_path_prefix = "./conformance_suite/"
 skipped_tests_path_prefix = "./skipped_tests/"
+cannot_parse_path_prefix  = "./cannot_parse/"
 # Ignore a test if it contains one of the following word
 ban_anywhere_in_test = [
     # float are fairly broken
@@ -51,9 +52,8 @@ ban_anywhere_in_test = [
     # more powerful features.
     'NamedTuple',
     # We don't spend too much time on occurrence typing
-    'break', 'continue'
-]
-ban_in_test_name = [
+    'break', 'continue',
+
     'test_if_else_optional_return_two_branches',
     # ⬆️ This test uses an unbound identifier
     'test_compile_checked_dict_from_dict_call',
@@ -84,7 +84,10 @@ ban_in_test_name = [
     # This test is bad
     'test_method_prologue_posonly',
     # fancy argment spec
+    'test_default_type_error',
+    # default arg
 ]
+
 skip_anywhere_in_test = [
     # Skip for now
     '@staticmethod',
@@ -151,39 +154,45 @@ def parse_simple_test(test):
     #         codestr = """
     #         code goes here
     #         """
-    #         one_statement_that_specify_what_to_check
+    #         statements that specify what to check
+
+    lines = test.split('\n')
+    if lines[0].startswith('@skip'):
+        lines = lines[1:]
+    first_line = lines[0]
+    name = first_line[4:first_line.index("(self)")]
+
     parsed_test = ast.parse(test, type_comments=True)
 
-    assert isinstance(parsed_test, ast.Module)
-    assert len(parsed_test.body) == 1
+    assert isinstance(parsed_test, ast.Module), "parse_simple_test"
+    assert len(parsed_test.body) == 1, "parse_simple_test"
     deffun = parsed_test.body[0]
-    assert isinstance(deffun, ast.FunctionDef)
-    assert len(deffun.body) == 2
-    [defcode, spec] = deffun.body
-    assert isinstance(defcode, ast.Assign)
+    assert isinstance(deffun, ast.FunctionDef), "parse_simple_test"
+    assert len(deffun.body) > 1, "parse_simple_test"
+    defcode = deffun.body[0]
+    spec = deffun.body[1:]
+    assert isinstance(defcode, ast.Assign), "parse_simple_test"
 
     # process code
-    assert len(defcode.targets) == 1
-    assert isinstance(defcode.targets[0], ast.Name)
-    assert str(defcode.targets[0].id) == "codestr"
-    assert isinstance(defcode.value, ast.Constant)
+    assert len(defcode.targets) == 1, "parse_simple_test"
+    assert isinstance(defcode.targets[0], ast.Name), "parse_simple_test"
+    assert str(defcode.targets[0].id) == "codestr", "parse_simple_test"
+    assert isinstance(defcode.value, ast.Constant), "parse_simple_test"
     code = defcode.value.value
     code = code.split('\n')
     # skip the first and last empty line
-    assert code[0].strip() == ""
-    assert code[-1].strip() == ""
+    assert code[0].strip() == "", "parse_simple_test"
+    assert code[-1].strip() == "", "parse_simple_test"
     code = code[1:-1]
     # remove the extra indentation
     while all([line.startswith('    ') for line in code]):
         code = [line[4:] for line in code]
     code = '\n'.join(code)
 
-    return code, spec
+    return name, code, spec
 
 
-def translate_simple_compile_test(test):
-    code, spec = parse_simple_test(test)
-
+def translate_simple_compile_test(name, code, spec, test):
     # process spec
     pass_spec1 = '\n'.join([
         '',
@@ -225,10 +234,45 @@ def translate_simple_compile_test(test):
 
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
-    return (name, content)
+    return content
 
 
-def translate_less_simple_compile_test(test: str):
+def translate_self_type_error_test(name, code, spec, test):
+    # Capture tests that look like
+    #     def test_name(self) -> None:
+    #         codestr = """
+    #             some code
+    #         """
+    #         self.type_error(...)
+    assert len(spec) == 1
+    spec = spec[0]
+
+    if 'test_assert_narrowing_type_error' in name:
+        print("Hello!")
+        # exit(-1)
+
+    assert isinstance(spec, ast.Expr)
+    spec = spec.value
+    assert isinstance(spec, ast.Call)
+    func = spec.func
+    assert isinstance(func, ast.Attribute)
+    func_value = func.value
+    func_attr = func.attr
+    assert isinstance(func_value, ast.Name)
+    assert str(func_value.id) is "self"
+    assert func_attr is "type_error"
+
+    content = '\n'.join([
+        '# {}.py'.format(name),
+        '# This should fail.',
+        '',
+        ''
+    ]) + code
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
+    return content
+
+def translate_with_compile_test(name, code, spec, test):
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -236,7 +280,8 @@ def translate_less_simple_compile_test(test: str):
     #         """
     #         with ....:
     #             self.compile(codestr)
-    code, spec = parse_simple_test(test)
+    assert len(spec) == 1
+    spec = spec[0]
 
     assert isinstance(spec, ast.With)
     assert len(spec.body) == 1
@@ -261,10 +306,10 @@ def translate_less_simple_compile_test(test: str):
     ]) + code
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
-    return (name, content)
+    return content
 
 
-def translate_optimization_test(test: str):
+def translate_optimization_test(name, code, spec, test):
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -272,7 +317,8 @@ def translate_optimization_test(test: str):
     #         """
     #         with ....:
     #             ....
-    code, spec = parse_simple_test(test)
+    assert len(spec) == 1
+    spec = spec[0]
 
     # assert 'assertInBytecode' in test
     # assert 'INVOKE_FUNCTION' in test
@@ -289,7 +335,7 @@ def translate_optimization_test(test: str):
     ]) + code
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
-    return (name, content)
+    return content
 
 
 def record_skipped_test(name, test, reason):
@@ -303,66 +349,57 @@ def record_skipped_test(name, test, reason):
     skipped_tests_file.write(test)
     return
 
-
-for test in read_tests(input_file):
-    if any(word in test for word in ban_anywhere_in_test):      
-        continue
-
-    for word in ban_anywhere_in_test:
-        assert not (word in test)
-
-    lines = test.split('\n')
-    if lines[0].startswith('@skip'):
-        lines = lines[1:]
-    first_line = lines[0]
-    name = first_line[4:first_line.index("(self)")]
-
-    if any(word in name for word in ban_in_test_name):
-        continue
-
-    for word in ban_in_test_name:
-        assert not (word in name)
-
-    if any(word in test for word in skip_anywhere_in_test):
-        record_skipped_test(name, test, "Test hitted some skipped words")
-        continue
-
-    for word in skip_anywhere_in_test:
-        assert not (word in test)
-    
-    print("word", word)
-    print("test", test)
-    print("skip_anywhere_in_test", skip_anywhere_in_test)
-    assert not name == "test_exact_float_type"
-    try:
-        code, spec = parse_simple_test(test)
-    except Exception:
-        record_skipped_test(name, test, "Format too complicated")
-        continue
-    
-    if any(word in code for word in skip_in_code):
-        record_skipped_test(name, test, "Code hitted some skipped words")
-        continue
-
-    parsers = [
-        translate_simple_compile_test,
-        translate_less_simple_compile_test,
-        translate_optimization_test
-    ]
-    for parser in parsers:
-        try:
-            (name, content) = parser(test)
-            output_path = output_path_prefix + name + ".py"
-            output_file = open(output_path, 'w')
-            output_file.write(content)
-            break
-        except Exception:
+def main():
+    banned_counter = 0
+    imparsable_counter = 0
+    for test in read_tests(input_file):
+        banned = None
+        for word in ban_anywhere_in_test:
+            if word in test:
+                banned = word
+                break
+        if banned is not None:
+            record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
+            banned_counter += 1
             continue
-    else:
-        # If broken out, we won't reach here.
+
         try:
-            code, spec = parse_simple_test(test)
+            name, code, spec = parse_simple_test(test)
+        except Exception as e:
+            print("<SKIPPED begin")
+            print(test)
+            print("<SKIPPED end")
+            record_skipped_test("imparsable_test_{}".format(imparsable_counter), test, "Format too complicated")
+            imparsable_counter += 1
+            continue
+
+        if any(word in test for word in skip_anywhere_in_test):
+            record_skipped_test(name, test, "Test hitted some skipped words")
+            continue
+        
+        if any(word in code for word in skip_in_code):
+            record_skipped_test(name, test, "Code hitted some skipped words")
+            continue
+        
+        translators = [
+            translate_simple_compile_test,
+            translate_self_type_error_test,
+            translate_with_compile_test,
+            translate_optimization_test
+        ]
+        translated = False
+        for tr in translators:
+            try:
+                content = tr(name, code, spec, test)
+                output_path = output_path_prefix + name + ".py"
+                output_file = open(output_path, 'w')
+                output_file.write(content)
+                translated = True
+                break
+            except Exception as e:
+                print("WHAT?", repr(e))
+                continue
+        if not translated:
             record_skipped_test(name, test, "Can't be translated by any of the three translator")
-        except Exception:
-            record_skipped_test(name, test, "Can't even parse")
-            continue
+
+main()
