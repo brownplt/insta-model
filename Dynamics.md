@@ -202,3 +202,13 @@ The final block is executed with and without exception.
 
 - [try_except_catch_final_no_exn.py](conformance_suite/try_except_catch_final_no_exn.py)
 - [try_except_catch_final_some_exn.py](conformance_suite/try_except_catch_final_some_exn.py)
+
+## While loop
+
+Typical use.
+
+- [while-loop_basic.py](conformance_suite/while-loop_basic.py)
+
+While-else.
+
+- [while-loop_else.py](conformance_suite/while-loop_else.py)

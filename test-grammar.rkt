@@ -811,3 +811,9 @@
 
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP program+ (term ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x"))))
+
+;; conformance_suite/while-loop_basic.py
+(test-match SP program+ (term ((function-def "fact" (("i" "int")) "int" ((ann-assign "o" "int" (con 1)) (while (compare "i" ((> (con 0)))) ((aug-assign "o" * "i") (aug-assign "i" - (con 1))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120))))))))
+
+;; conformance_suite/while-loop_else.py
+(test-match SP program+ (term ((function-def "f" () dynamic ((while (compare (con "orange") ((is (con "apple")))) ((return (con 2))) ((return (con 3)))) (assert (con #f)))) (assert (compare (call "f" ()) ((is (con 3))))))))
