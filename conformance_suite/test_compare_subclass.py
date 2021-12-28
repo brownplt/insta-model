@@ -1,5 +1,5 @@
 # test_compare_subclass.py
-# This should fail.
+# This should pass.
 
 class C: pass
 class D(C): pass

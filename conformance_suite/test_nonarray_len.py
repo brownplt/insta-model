@@ -1,5 +1,5 @@
 # test_nonarray_len.py
-# This should fail.
+# This should pass.
 
 class Lol:
     def __len__(self):

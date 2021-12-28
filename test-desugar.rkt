@@ -386,9 +386,6 @@
 ;; conformance_suite/test_assign_constant_to_object.py
 (test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (bin-op + (con 42) (con 1)))))))))
 
-;; conformance_suite/test_assign_dynamic_to_dynamic.py
-(test-match SP-core program (term (desugar-program ((function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "unknown" (call "C" ()))))))))
-
 ;; conformance_suite/test_assign_dynamic_to_object.py
 (test-match SP-core program (term (desugar-program ((function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "object" (call "C" ()))))))))
 
@@ -400,9 +397,6 @@
 
 ;; conformance_suite/test_assign_generic_optional_2.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "f" () dynamic ((ann-assign "x" "Optional" (bin-op + (con 42) (con 1)))))))))
-
-;; conformance_suite/test_assign_num_to_dynamic.py
-(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "foo" (con 42))))))))
 
 ;; conformance_suite/test_assign_num_to_object.py
 (test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (con 42))))))))
@@ -880,9 +874,6 @@
 
 ;; conformance_suite/test_unknown_type_unary.py
 (test-match SP-core program (term (desugar-program ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y"))))))))
-
-;; conformance_suite/test_untyped_attr.py
-(test-match SP-core program (term (desugar-program ((assign ("y") (attribute "x" "load")) (assign ((attribute "x" "store")) (con 42)) (delete (attribute "x" "delete"))))))
 
 ;; conformance_suite/test_verify_arg_unknown_type.py
 (test-match SP-core program (term (desugar-program ((function-def "x" (("x" "foo")) dynamic ((return "b"))) (expr (call "x" ((con "abc"))))))))

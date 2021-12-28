@@ -1,5 +1,5 @@
 # test_typed_swap_nested_2.py
-# This should fail.
+# This should pass.
 
 def test(a):
     x: int

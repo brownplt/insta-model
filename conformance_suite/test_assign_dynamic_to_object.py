@@ -1,5 +1,5 @@
 # test_assign_dynamic_to_object.py
-# This should fail.
+# This should pass.
 
 def f(C):
     x: object = C()

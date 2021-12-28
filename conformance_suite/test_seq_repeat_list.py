@@ -1,5 +1,5 @@
 # test_seq_repeat_list.py
-# This should fail.
+# This should pass.
 
 def f():
     l = [1, 2]

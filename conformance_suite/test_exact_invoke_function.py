@@ -1,5 +1,5 @@
 # test_exact_invoke_function.py
-# This should fail.
+# This should pass.
 
 def f() -> str:
     return ", ".join(['1','2','3'])

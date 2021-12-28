@@ -1,5 +1,5 @@
 # test_assign_constant_to_object.py
-# This should fail.
+# This should pass.
 
 def f():
     x: object = 42 + 1

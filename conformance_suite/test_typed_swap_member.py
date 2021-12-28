@@ -1,5 +1,5 @@
 # test_typed_swap_member.py
-# This should fail.
+# This should pass.
 
 class C:
     def __init__(self):

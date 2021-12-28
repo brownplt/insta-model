@@ -1,5 +1,5 @@
 # test_with_traceback.py
-# This should fail.
+# This should pass.
 
 def f():
     x = Exception()

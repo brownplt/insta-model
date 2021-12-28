@@ -32,6 +32,7 @@
       x
       (con c)
       (tuple (e- ...))
+      (list (e- ...))
       (set (e- ...))
       (dict ([e- e-] ...))
       (is e- e-)
@@ -193,6 +194,7 @@
    "Final[_]"
    "ClassVar[_]"
    "CheckedDict[_,_]"
+   "tuple"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T))
 
@@ -262,10 +264,10 @@
       ["__le__" (-> ((subof "int")) (subof "bool"))]
       ["__ge__" (-> ((subof "int")) (subof "bool"))]
       ["__neg__" (-> (dynamic) (subof "bool"))]
-      ["__add__" (-> ((subof "int")) (subof "int"))]
-      ["__sub__" (-> ((subof "int")) (subof "int"))]
-      ["__mul__" (-> ((subof "int")) (subof "int"))]
-      ["__div__" (-> ((subof "int")) (subof "int"))]
+      ["__add__" (-> (dynamic) dynamic)]
+      ["__sub__" (-> (dynamic) dynamic)]
+      ["__mul__" (-> (dynamic) dynamic)]
+      ["__div__" (-> (dynamic) dynamic)]
       ["bit_length" (-> () (subof "int"))])
      (["__init__" (method "int" "__init__")]
       ["__gt__" (method "int" "__gt__")]
@@ -322,6 +324,10 @@
      (["__init__" (method "list" "__init__")]
       ["append" (method "list" "append")])
      ())]
+  [(lookup-builtin-class "tuple")
+   (tuple-class)]
+  [(lookup-builtin-class (tuple (T ...)))
+   (tuple-class)]
   [(lookup-builtin-class "NoneType")
    (class ("object")
      ()
@@ -343,6 +349,13 @@
       ["__setitem__" (method (chkdict T_key T_val) "__setitem__")]
       ["__delitem__" (method (chkdict T_key T_val) "__delitem__")]
       ["setdefault" (method (chkdict T_key T_val) "setdefault")])
+     ())])
+(define-metafunction SP-compiled
+  tuple-class : -> (class l*+dynamic Γ ρ Γ)
+  [(tuple-class)
+   (class ("object")
+     (["__init__" (-> (dynamic) dynamic)])
+     (["__init__" (method "tuple" "__init__")])
      ())])
 
 (define-metafunction SP-compiled
@@ -719,7 +732,9 @@
 ;;   what is the type that the expression is referring to?
 (define-metafunction SP-compiled
   T-of-T : T -> T
-  [(T-of-T (Type T)) T]
+  [(T-of-T (Type T))
+   T
+   (where #f ,(redex-match? SP-compiled (subof "Optional[_]") (term T)))]
   [(T-of-T (exact "NoneType")) (subof "NoneType")]
   [(T-of-T dynamic) dynamic])
 
@@ -739,12 +754,16 @@
               (term [(if-exp (ref (con None)) (ref (con #f)) (ref (con #t)))
                      (exact "bool")]))
   (test-match SP-compiled
-              [(call-function (lambda (x_tmp) (begin) (local (x_tmp) (return (if-exp x_tmp (ref (con 2)) x_tmp)))) ((ref (con 1))))
-               dynamic]
+              [(if-exp (ref (con 1))
+                       (ref (con 2))
+                       (ref (con #f)))
+               (subof "int")]
               (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (and (con 1) (con 2)))))
   (test-match SP-compiled
-              [(call-function (lambda (x_tmp) (begin) (local (x_tmp) (return (if-exp x_tmp x_tmp (ref (con 2)))))) ((ref (con 1))))
-               dynamic]
+              [(if-exp (ref (con 1))
+                       (ref (con #t))
+                       (ref (con 2)))
+               (subof "int")]
               (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (or (con 1) (con 2)))))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (is "int" "bool")))
               (term [(is "int" "bool")
@@ -775,6 +794,11 @@
   [(compile-e Ψ Γ_dcl Γ_lcl (tuple (e ...)))
    [(tuple (e- ...))
     (exact (tuple (T ...)))]
+   (where ([e- T] ...) ((compile-e Ψ Γ_dcl Γ_lcl e) ...))]
+  ;; list literal
+  [(compile-e Ψ Γ_dcl Γ_lcl (list (e ...)))
+   [(list (e- ...))
+    (exact "list")]
    (where ([e- T] ...) ((compile-e Ψ Γ_dcl Γ_lcl e) ...))]
   ;; set literal
   [(compile-e Ψ Γ_dcl Γ_lcl (set (e ...)))
@@ -945,7 +969,11 @@
   [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ...)
    [(call-function (attribute safe e-_obj x_mth) ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
     dynamic]
-   (where dynamic (lookup-member-T Ψ l_cls x_mth))])
+   (where dynamic (lookup-member-T Ψ l_cls x_mth))]
+  [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ...)
+   [(call-function (attribute safe e-_obj x_mth) ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
+    dynamic]
+   (where ☠ (lookup-member-T Ψ l_cls x_mth))])
 (define-metafunction SP-compiled
   compile-subof-method-calls : Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ... -> [e- T]
   [(compile-subof-method-calls Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ...)
@@ -1574,6 +1602,8 @@
    (Type (subof "ClassVar[_]"))]
   [(T-of-import (import-from "typing" "List"))
    (Type (subof "list"))]
+  [(T-of-import (import-from "typing" "Tuple"))
+   (Type (subof "tuple"))]
   [(T-of-import (import-from "__future__" "annotations"))
    dynamic]
   ;; fallback to dynamic

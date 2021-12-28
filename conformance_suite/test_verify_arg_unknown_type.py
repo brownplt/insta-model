@@ -1,5 +1,5 @@
 # test_verify_arg_unknown_type.py
-# This should fail.
+# This should pass.
 
 def x(x:foo):
     return b

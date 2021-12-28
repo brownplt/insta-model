@@ -386,13 +386,10 @@
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" () "str" ((ann-assign "x" "int" (con 1)) (assign ("y" "x") (con "hello")) (return "y")))))))))
 
 ;; conformance_suite/test_assign_constant_to_object.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (bin-op + (con 42) (con 1)))))))))))
-
-;; conformance_suite/test_assign_dynamic_to_dynamic.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "unknown" (call "C" ()))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (bin-op + (con 42) (con 1))))))))))
 
 ;; conformance_suite/test_assign_dynamic_to_object.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "object" (call "C" ()))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "object" (call "C" ())))))))))
 
 ;; conformance_suite/test_assign_from_generic_optional.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () (pass)) (function-def "f" (("x" "Optional")) dynamic ((ann-assign "y" (subscript "Optional" "C") "x")))))))))
@@ -403,11 +400,8 @@
 ;; conformance_suite/test_assign_generic_optional_2.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" () dynamic ((ann-assign "x" "Optional" (bin-op + (con 42) (con 1)))))))))))
 
-;; conformance_suite/test_assign_num_to_dynamic.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "foo" (con 42))))))))))
-
 ;; conformance_suite/test_assign_num_to_object.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (con 42))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (con 42)))))))))
 
 ;; conformance_suite/test_assign_subtype_handling.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "B" () (pass)) (class "D" ("B") (pass)) (function-def "f" () dynamic ((ann-assign "b" "B" (call "B" ())) (assign ("b") (call "D" ())) (assign ("b") (call "B" ())))))))))
@@ -482,7 +476,7 @@
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("clen")) (function-def "f" (("l" dynamic)) dynamic ((expr (call "clen" ("l")))))))))))
 
 ;; conformance_suite/test_compare_subclass.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () (pass)) (class "D" ("C") (pass)) (assign ("x") (compare (call "C" ()) ((> (call "D" ())))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (class "D" ("C") (pass)) (assign ("x") (compare (call "C" ()) ((> (call "D" ()))))))))))
 
 ;; conformance_suite/test_compile_checked_dict_ann_differs.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "int"))) (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "abc") (con "abc"))))))) (return "x")))))))))
@@ -560,7 +554,7 @@
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("int16")) (function-def "testfunc" (("y" dynamic)) dynamic ((ann-assign "x" "int16") (assign ("y" "x") (con 42))))))))))
 
 ;; conformance_suite/test_exact_invoke_function.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () "str" ((return (call (attribute (con ", ") "join") ((list ((con "1") (con "2") (con "3"))))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () "str" ((return (call (attribute (con ", ") "join") ((list ((con "1") (con "2") (con "3")))))))))))))
 
 ;; conformance_suite/test_generic_method_ret_type.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))))
@@ -686,10 +680,10 @@
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "something" ("A" "B")) (class "C" ("A" "B") ((function-def "__init__" (("self" dynamic)) dynamic (pass)))))))))
 
 ;; conformance_suite/test_multiply_list_exact_by_int.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (list ((con 1) (con 2) (con 3))) (con 2))) (return (call "len" ("l")))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (list ((con 1) (con 2) (con 3))) (con 2))) (return (call "len" ("l"))))))))))
 
 ;; conformance_suite/test_multiply_list_exact_by_int_reverse.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (con 2) (list ((con 1) (con 2) (con 3))))) (return (call "len" ("l")))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (con 2) (list ((con 1) (con 2) (con 3))))) (return (call "len" ("l"))))))))))
 
 ;; conformance_suite/test_narrow_or.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" (con None)))) "int" ((if (bool-op or ((compare "x" ((is (con None)))) (compare "x" ((> (con 1)))))) ((assign ("x") (con 1))) ()) (return "x"))))))))
@@ -704,7 +698,7 @@
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ())))))))))
 
 ;; conformance_suite/test_nonarray_len.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "Lol" () ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 421)))))) (function-def "y" () dynamic ((return (call "len" ((call "Lol" ()))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "Lol" () ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 421)))))) (function-def "y" () dynamic ((return (call "len" ((call "Lol" ())))))))))))
 
 ;; conformance_suite/test_none_annotation.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) (con None) ((return "x")))))))))
@@ -785,25 +779,25 @@
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((return (con 42))))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_list.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2)))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_num.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2)))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_tuple.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2)))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))))))))
 
 ;; conformance_suite/test_seq_repeat_list.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * "l" (con 2)))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * "l" (con 2))))))))))
 
 ;; conformance_suite/test_seq_repeat_list_reversed.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * (con 2) "l"))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * (con 2) "l")))))))))
 
 ;; conformance_suite/test_seq_repeat_tuple.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("t") (tuple ((con 1) (con 2)))) (return (bin-op * "t" (con 2)))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("t") (tuple ((con 1) (con 2)))) (return (bin-op * "t" (con 2))))))))))
 
 ;; conformance_suite/test_seq_repeat_tuple_reversed.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("t") (tuple ((con 1) (con 2)))) (return (bin-op * (con 2) "t"))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("t") (tuple ((con 1) (con 2)))) (return (bin-op * (con 2) "t")))))))))
 
 ;; conformance_suite/test_slotification_decorated.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "_Inner" () (pass)) (function-def "something" (("klass" dynamic)) dynamic ((return "_Inner"))) (class "C" () ((function-def "f" (("self" dynamic)) dynamic (pass)))) (function-def "f" () dynamic ((return (call (attribute (call "C" ()) "f") ())))))))))
@@ -827,25 +821,25 @@
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "A" ("type") (pass)))))))
 
 ;; conformance_suite/test_typed_swap.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ((con 1) "a")))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ((con 1) "a"))))))))))
 
 ;; conformance_suite/test_typed_swap_2.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ("a" (con "abc"))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ("a" (con "abc")))))))))))
 
 ;; conformance_suite/test_typed_swap_list.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((list ("x" "y"))) (tuple ("a" (con "abc"))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((list ("x" "y"))) (tuple ("a" (con "abc")))))))))))
 
 ;; conformance_suite/test_typed_swap_member.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") "int" (con 42)))))) (function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ((attribute (call "C" ()) "x") "y"))) (tuple ("a" (con "abc"))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") "int" (con 42)))))) (function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ((attribute (call "C" ()) "x") "y"))) (tuple ("a" (con "abc")))))))))))
 
 ;; conformance_suite/test_typed_swap_nested.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ("a" (con "abc"))) (con "foo"))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ("a" (con "abc"))) (con "foo")))))))))))
 
 ;; conformance_suite/test_typed_swap_nested_2.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ((con 1) "a")) (con "foo"))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ((con 1) "a")) (con "foo")))))))))))
 
 ;; conformance_suite/test_typed_swap_nested_3.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "int") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ((con 1) (con 2))) "a")))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "int") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ((con 1) (con 2))) "a"))))))))))
 
 ;; conformance_suite/test_unannotated_assign_no_later_declare.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" (("flag" dynamic)) dynamic ((assign ("x") (con None)) (if "flag" ((ann-assign "x" "str" (con "foo"))) ())))))))))
@@ -875,19 +869,16 @@
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))) (function-def "__eq__" (("self" dynamic) ("other" "Any")) "bool" ((return (con #f)))))))))))
 
 ;; conformance_suite/test_unknown_type_binary.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "x" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("z") (bin-op + "a" "b"))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "x" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("z") (bin-op + "a" "b")))))))))
 
 ;; conformance_suite/test_unknown_type_compare.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "x" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("z") (compare "a" ((> "b"))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "x" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("z") (compare "a" ((> "b")))))))))))
 
 ;; conformance_suite/test_unknown_type_unary.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y"))))))))))
-
-;; conformance_suite/test_untyped_attr.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((assign ("y") (attribute "x" "load")) (assign ((attribute "x" "store")) (con 42)) (delete (attribute "x" "delete"))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y")))))))))
 
 ;; conformance_suite/test_verify_arg_unknown_type.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "x" (("x" "foo")) dynamic ((return "b"))) (expr (call "x" ((con "abc"))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "x" (("x" "foo")) dynamic ((return "b"))) (expr (call "x" ((con "abc")))))))))
 
 ;; conformance_suite/test_verify_lambda.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi")))))))))
@@ -917,7 +908,7 @@
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" (con "C")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((while (compare "x" ((is-not (con None)))) ((ann-assign "val" (subscript "Optional" "C") (attribute "x" "field")) (if (compare "val" ((is-not (con None)))) ((assign ("x") "val")) ())) ()))))))))
 
 ;; conformance_suite/test_with_traceback.py
-(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None))))))))))))
+(test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None)))))))))))
 
 ;; conformance_suite/try_except_basic.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42))))))))))

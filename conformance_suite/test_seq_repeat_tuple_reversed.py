@@ -1,5 +1,5 @@
 # test_seq_repeat_tuple_reversed.py
-# This should fail.
+# This should pass.
 
 def f():
     t = (1, 2)

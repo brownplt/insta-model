@@ -1,5 +1,5 @@
 # test_seq_repeat_inexact_list.py
-# This should fail.
+# This should pass.
 
 from typing import List
 def f(l: List[int]):

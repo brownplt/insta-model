@@ -1,5 +1,5 @@
 # test_unknown_type_compare.py
-# This should fail.
+# This should pass.
 
 def x(a, b):
     z = a > b

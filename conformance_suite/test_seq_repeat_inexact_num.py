@@ -1,5 +1,5 @@
 # test_seq_repeat_inexact_num.py
-# This should fail.
+# This should pass.
 
 def f(num: int):
     return num * [1, 2]

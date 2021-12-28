@@ -142,6 +142,8 @@
   [(desugar-e (con c)) (con c)]
   [(desugar-e (tuple (e+ ...)))
    (tuple ((desugar-e e+) ...))]
+  [(desugar-e (list (e+ ...)))
+   (list ((desugar-e e+) ...))]
   [(desugar-e (set (e+ ...)))
    (set ((desugar-e e+) ...))]
   [(desugar-e (dict ([e+_key e+_val] ...)))
@@ -453,6 +455,11 @@
   [(desugar-ann-assign (subscript e+_map e_key) dynamic e_src)
    (expr (call (attribute (desugar-e e+_map) "__setitem__") (e_key e_src)))]
   [(desugar-ann-assign (tuple (e+_dst ...)) dynamic e_src)
+   (make-begin
+    (desugar-ann-assign e+_dst dynamic (desugar-subscript e_src (con number_src)))
+    ...)
+   (where (number_src ...) ,(range (length (term (e+_dst ...)))))]
+  [(desugar-ann-assign (list (e+_dst ...)) dynamic e_src)
    (make-begin
     (desugar-ann-assign e+_dst dynamic (desugar-subscript e_src (con number_src)))
     ...)

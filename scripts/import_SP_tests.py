@@ -56,12 +56,16 @@ ban_anywhere_in_test = [
     'NamedTuple',
     # ban nested classes
     'nested_class',
-    
+
     # We don't spend too much time on occurrence typing
     'break', 'continue',
 
     'test_if_else_optional_return_two_branches',
-    # ⬆️ This test uses an unbound identifier
+    'test_assign_try_except_redeclare_unknown_type',
+    'test_untyped_attr',
+    'test_assign_num_to_dynamic',
+    'test_assign_dynamic_to_dynamic',
+    # ⬆️ These test uses an unbound identifier
     'test_compile_checked_dict_from_dict_call',
     # This test uses keyword argument
     'test_inline_bare_return',
@@ -82,8 +86,6 @@ ban_anywhere_in_test = [
     # We don't support this.
     'test_compile_nested_class_in_fn',
     # nested class
-    'test_assign_try_except_redeclare_unknown_type',
-    # Unbound identifier
     'test_assign_try_except_typing_redeclared_after',
     # The scope is funny
     'test_break_condition',
@@ -329,7 +331,7 @@ def translate_assertInByteCode_test(name, code, spec, test):
 
     content = '\n'.join([
         '# {}.py'.format(name),
-        '# This should fail.',
+        '# This should pass.',
         '',
         ''
     ]) + code

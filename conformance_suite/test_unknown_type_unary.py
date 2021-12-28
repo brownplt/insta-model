@@ -1,5 +1,5 @@
 # test_unknown_type_unary.py
-# This should fail.
+# This should pass.
 
 def x(y):
     z = -y

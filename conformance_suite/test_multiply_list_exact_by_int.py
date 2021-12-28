@@ -1,5 +1,5 @@
 # test_multiply_list_exact_by_int.py
-# This should fail.
+# This should pass.
 
 def f() -> int:
     l = [1, 2, 3] * 2
