@@ -1,13 +1,11 @@
-# Reason: Test hitted a banned word int8
-def test_list_append(self):
+# Reason: Test hitted a banned word _kw
+def test_verify_kwargs_failure(self):
     codestr = """
-        from __static__ import int8
-        def f():
-            l = [1, 2, 3]
-            l.append(4)
-            return l
+        def x(a: int=1, b: str="hunter2") -> None:
+            return
+        x(a="hi", b="lol")
     """
-    f = self.find_code(self.compile(codestr))
-    self.assertInBytecode(f, "LIST_APPEND", 1)
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.f(), [1, 2, 3, 4])
+    with self.assertRaisesRegex(
+        TypedSyntaxError, r"Exact\[str\] received for keyword arg 'a', expected int"
+    ):
+        self.compile(codestr)

@@ -1,67 +1,21 @@
 # Reason: Test hitted a banned word ...
-def test_type_binder(self) -> None:
-    self.assertEqual(repr(self.bind_expr("42")), "<Literal[42]>")
-    self.assertEqual(self.bind_expr("42.0"), FLOAT_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("'abc'"), STR_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("b'abc'"), BYTES_TYPE.instance)
-    self.assertEqual(self.bind_expr("3j"), COMPLEX_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("None"), NONE_TYPE.instance)
-    self.assertEqual(self.bind_expr("True"), BOOL_TYPE.instance)
-    self.assertEqual(self.bind_expr("False"), BOOL_TYPE.instance)
-    self.assertEqual(self.bind_expr("..."), ELLIPSIS_TYPE.instance)
-    self.assertEqual(self.bind_expr("f''"), STR_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("f'{x}'"), STR_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("a"), DYNAMIC)
-    self.assertEqual(self.bind_expr("a.b"), DYNAMIC)
-    self.assertEqual(self.bind_expr("a + b"), DYNAMIC)
-    self.assertEqual(repr(self.bind_expr("1 + 2")), "<Literal[3]>")
-    self.assertEqual(repr(self.bind_expr("1 - 2")), "<Literal[-1]>")
-    self.assertEqual(repr(self.bind_expr("1 // 2")), "<Literal[0]>")
-    self.assertEqual(repr(self.bind_expr("1 * 2")), "<Literal[2]>")
-    self.assertEqual(self.bind_expr("1 / 2"), FLOAT_EXACT_TYPE.instance)
-    self.assertEqual(repr(self.bind_expr("1 % 2")), "<Literal[1]>")
-    self.assertEqual(repr(self.bind_expr("1 & 2")), "<Literal[0]>")
-    self.assertEqual(repr(self.bind_expr("1 | 2")), "<Literal[3]>")
-    self.assertEqual(repr(self.bind_expr("1 ^ 2")), "<Literal[3]>")
-    self.assertEqual(repr(self.bind_expr("1 << 2")), "<Literal[4]>")
-    self.assertEqual(repr(self.bind_expr("100 >> 2")), "<Literal[25]>")
-    self.assertEqual(repr(self.bind_stmt("x = 1")), "<Literal[1]>")
-    # self.assertEqual(self.bind_stmt("x: foo = 1").target.comp_type, DYNAMIC)
-    self.assertEqual(self.bind_stmt("x += 1"), DYNAMIC)
-    self.assertEqual(self.bind_expr("a or b"), DYNAMIC)
-    self.assertEqual(self.bind_expr("+a"), DYNAMIC)
-    self.assertEqual(self.bind_expr("not a"), BOOL_TYPE.instance)
-    self.assertEqual(self.bind_expr("lambda: 42"), DYNAMIC)
-    self.assertEqual(self.bind_expr("a if b else c"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x > y"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x()"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x(y)"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x[y]"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x[1:2]"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x[1:2:3]"), DYNAMIC)
-    self.assertEqual(self.bind_expr("x[:]"), DYNAMIC)
-    self.assertEqual(self.bind_expr("{}"), DICT_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("{2:3}"), DICT_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("{1,2}"), SET_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("[]"), LIST_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("[1,2]"), LIST_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("(1,2)"), TUPLE_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("[x for x in y]"), LIST_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("{x for x in y}"), SET_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("{x:y for x in y}"), DICT_EXACT_TYPE.instance)
-    self.assertEqual(self.bind_expr("(x for x in y)"), DYNAMIC)
-    def body_get(stmt):
-        return stmt.body[0].value
-    self.assertEqual(
-        repr(self.bind_stmt("def f(): return 42", getter=body_get)),
-        "<Literal[42]>",
-    )
-    self.assertEqual(self.bind_stmt("def f(): yield 42", getter=body_get), DYNAMIC)
-    self.assertEqual(
-        self.bind_stmt("def f(): yield from x", getter=body_get), DYNAMIC
-    )
-    self.assertEqual(
-        self.bind_stmt("async def f(): await x", getter=body_get), DYNAMIC
-    )
-    self.assertEqual(self.bind_expr("object"), OBJECT_TYPE)
-    self.assertEqual(repr(self.bind_expr("1 + 2", optimize=True)), "<Literal[3]>")
+def test_assign_to_object(self):
+    codestr = """
+    def f():
+        x: object
+        x = None
+        x = 1
+        x = 'abc'
+        x = []
+        x = {}
+        x = {1, 2}
+        x = ()
+        x = 1.0
+        x = 1j
+        x = b'foo'
+        x = int
+        x = True
+        x = NotImplemented
+        x = ...
+    """
+    self.compile(codestr)

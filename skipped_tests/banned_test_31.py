@@ -1,10 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_int_large_int_constant(self):
+# Reason: Test hitted a banned word float
+def test_int_assign_float(self):
     codestr = """
-        from __static__ import int64
+        from __static__ import int8
         def testfunc(tst):
-            x: int64 = 0x7FFFFFFF + 1
+            x: int8 = 1.0
     """
-    code = self.compile(codestr)
-    f = self.find_code(code)
-    self.assertInBytecode(f, "PRIMITIVE_LOAD_CONST", (0x80000000, TYPED_INT64))
+    with self.assertRaisesRegex(
+        TypedSyntaxError, type_mismatch("Exact[float]", "int")
+    ):
+        self.compile(codestr)

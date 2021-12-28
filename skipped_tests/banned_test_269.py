@@ -1,15 +1,9 @@
 # Reason: Test hitted a banned word int64
-def test_compile_checked_dict_create_with_dictcomp(self):
+def test_chained_assign_type_propagation(self):
     codestr = """
-        from __static__ import CheckedDict, clen, int64
-        def testfunc() -> None:
-            x = CheckedDict[int, str]({int(i): int(i) for i in
-                           range(1, 5)})
+        from __static__ import int64, char, Array
+        def test2() -> Array[char]:
+            x = y = Array[char]([48])
+            return y
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        type_mismatch(
-            "Exact[chkdict[Exact[int], Exact[int]]]", "Exact[chkdict[int, str]]"
-        ),
-    ):
-        self.compile(codestr)
+    self.compile(codestr, modname="foo")

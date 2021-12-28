@@ -1,18 +1,23 @@
 # Reason: Test hitted a banned word global
-def test_global_uses_decl_type(self):
+def test_starargs_invoked_in_order(self):
     codestr = """
-        # even though we can locally infer G must be None,
-        # it's not Final so nested scopes can't assume it
-        # remains None
-        G: int | None = None
-        def f() -> int:
-            global G
-            # if we use the local_type for G's type,
-            # x would have a local type of None
-            x: int | None = G
-            if x is None:
-                x = G = 1
-            return x
+        X = 1
+        def f():
+            global X
+            X += 1
+            return {"a": 1, "b": "foo"}
+        def make_c():
+            global X
+            X *= 2
+            return 42
+        class C:
+            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
+                return
+        def test():
+            C().x(12, c=make_c(), **f())
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertEqual(mod.f(), 1)
+    with self.in_module(codestr) as mod:
+        test = mod.test
+        test()
+        x = mod.X
+        self.assertEqual(x, 3)

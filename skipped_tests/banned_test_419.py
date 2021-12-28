@@ -1,13 +1,12 @@
-# Reason: Test hitted a banned word stararg
-def test_extremum_non_specialization_dstararg(self):
+# Reason: Test hitted a banned word await
+def test_awaited_invoke_function(self):
     codestr = """
-        def f() -> None:
-            k = {
-                "default": 5
-            }
-            min(3, 4, **k)
+        async def f() -> int:
+            return 1
+        async def g() -> int:
+            return await f()
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertNotInBytecode(f, "COMPARE_OP")
-        self.assertNotInBytecode(f, "POP_JUMP_IF_FALSE")
+    with self.in_strict_module(codestr) as mod:
+        self.assertInBytecode(mod.g, "INVOKE_FUNCTION", ((mod.__name__, "f"), 0))
+        self.assertNotInBytecode(mod.g, "CAST")
+        self.assertEqual(asyncio.run(mod.g()), 1)

@@ -1,16 +1,11 @@
-# Reason: Test hitted a banned word int8
-def test_widening_assign_reassign_error(self):
+# Reason: Test hitted a banned word vararg
+def test_varargs_count(self):
     codestr = """
-        from __static__ import int8, int16, box
-        def testfunc():
-            x: int16
-            y: int8
-            x = y = 42
-            y = 128
-            return box(x), box(y)
+        def test(*foo):
+            print(foo.count('bar'))
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        "type mismatch: Literal\\[128\\] cannot be assigned to int8",
-    ):
-        self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        test = mod.test
+        self.assertInBytecode(
+            test, "INVOKE_FUNCTION", (("builtins", "tuple", "count"), 2)
+        )

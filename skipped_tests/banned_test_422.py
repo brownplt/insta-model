@@ -1,15 +1,19 @@
-# Reason: Test hitted a banned word cbool
-def test_cbool_cast(self):
+# Reason: Test hitted a banned word await
+def test_awaited_invoke_function_indirect_with_args(self):
     codestr = """
-    from __static__ import cbool
-    def f(y: bool) -> int:
-        x: cbool = y
-        if x:
-            return 1
-        else:
-            return 2
+        async def f(a: int, b: int) -> int:
+            return a + b
+        async def g() -> int:
+            return await f(1, 2)
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, type_mismatch("Exact[bool]", "cbool")
-    ):
-        self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        g = mod.g
+        self.assertInBytecode(
+            g,
+            "INVOKE_FUNCTION",
+            ((mod.__name__, "f"), 2),
+        )
+        self.assertEqual(asyncio.run(g()), 3)
+        # exercise shadowcode, INVOKE_FUNCTION_INDIRECT_CACHED
+        self.make_async_func_hot(g)
+        self.assertEqual(asyncio.run(g()), 3)

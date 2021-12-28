@@ -1,6 +1,4 @@
 # Reason: Format too complicated
-def test_checked_dict___module__(self):
-    class Lol:
-        pass
-    x = chkdict[int, Lol]()
-    self.assertEqual(type(x).__module__, "__static__")
+def test_checked_dict_sizeof(self):
+    x = chkdict[str, int](x=2).__sizeof__()
+    self.assertEqual(type(x), int)

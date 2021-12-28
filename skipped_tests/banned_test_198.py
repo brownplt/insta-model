@@ -1,13 +1,13 @@
-# Reason: Test hitted a banned word int8
-def test_widening_assign(self):
+# Reason: Test hitted a banned word vararg
+def test_generic_varargs_method_unsupported(self):
+    # definition is allowed, we just don't do an optimal invoke
     codestr = """
-        from __static__ import int8, int16, box
-        def testfunc():
-            x: int16
-            y: int8
-            x = y = 42
-            return box(x), box(y)
+    class C:
+        def f(self, a: int, b: str, *my_stuff) -> None:
+            pass
+    def g():
+        return C().f(1, 'abc', "foo")
     """
     with self.in_module(codestr) as mod:
-        test = mod.testfunc
-        self.assertEqual(test(), (42, 42))
+        g = mod.g
+        self.assertInBytecode(g, "CALL_METHOD", 3)

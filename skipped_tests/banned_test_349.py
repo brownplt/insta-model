@@ -1,12 +1,15 @@
 # Reason: Test hitted a banned word int8
-def test_generic_uint_funcs_overflow(self):
-    from xxclassloader import spamobj
-    o = spamobj[str]()
-    o.setuint64(42)
-    for f in [o.setuint8, o.setuint16, o.setuint32, o.setuint64]:
-        with self.assertRaises(OverflowError):
-            f(-1)
-    for i, f in enumerate([o.setuint8, o.setuint16, o.setuint32, o.setuint64]):
-        with self.assertRaises(OverflowError):
-            x = (1 << (8 << i)) + 1
-            f(x)
+def test_primitive_args_funccall(self):
+    codestr = """
+        from __static__ import int8
+        def f(foo):
+            pass
+        def n() -> int:
+            x: int8 = 3
+            return f(x)
+    """
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"int8 received for positional arg 'foo', expected dynamic",
+    ):
+        self.compile(codestr, modname="foo.py")

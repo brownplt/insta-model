@@ -9,3 +9,5 @@
 *.rkt~
 
 **/compiled
+
+skipped_tests/banned_test_*

@@ -1,9 +1,11 @@
 # Reason: Test hitted a banned word int64
-def test_vector_generics(self):
-    T = TypeVar("T")
-    VT = Vector[T]
-    VT2 = VT[int64]
-    a = VT2()
-    a.append(42)
-    with self.assertRaisesRegex(TypeError, "Cannot create plain Vector"):
-        VT()
+def test_int_compare_to_cbool(self):
+    codestr = """
+        from __static__ import int64, cbool
+        def foo(i: int64) -> cbool:
+            return i  == 0
+    """
+    with self.in_module(codestr) as mod:
+        foo = mod.foo
+        self.assertEqual(foo(0), True)
+        self.assertEqual(foo(1), False)

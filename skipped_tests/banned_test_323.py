@@ -1,14 +1,20 @@
-# Reason: Test hitted a banned word test_inline_func_default
-def test_inline_func_default(self):
+# Reason: Test hitted a banned word async
+def test_async_method_override_narrowing(self):
     codestr = """
-        from __static__ import inline
-        @inline
-        def f(x, y = 2):
-            return x + y
-        def g():
-            return f(1)
+        class Num(int):
+            pass
+        class C:
+            async def f(self) -> int:
+                return 0
+        class D(C):
+            async def f(self) -> Num:
+                return Num(0)
     """
-    with self.in_module(codestr, optimize=2) as mod:
-        g = mod.g
-        self.assertInBytecode(g, "LOAD_CONST", 3)
-        self.assertEqual(g(), 3)
+    with self.in_strict_module(codestr) as mod:
+        d = mod.D()
+        try:
+            d.f().send(None)
+        except StopIteration as e:
+            res = e.args[0]
+            self.assertIsInstance(res, mod.Num)
+            self.assertEqual(res, 0)

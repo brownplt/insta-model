@@ -1,11 +1,12 @@
-# Reason: Test hitted a banned word int64
-def test_uninit_value(self):
+# Reason: Test hitted a banned word box
+def test_box_cbool_to_bool(self):
     codestr = """
-    from __static__ import box, int64
-    def f():
-        x:int64
-        return box(x)
-        x = 0
+        from typing import final
+        from __static__ import cbool
+        def foo() -> bool:
+            b: cbool = True
+            return bool(b)
     """
-    f = self.run_code(codestr)["f"]
-    self.assertEqual(f(), 0)
+    with self.in_module(codestr) as mod:
+        self.assertInBytecode(mod.foo, "PRIMITIVE_BOX")
+        self.assertTrue(mod.foo())

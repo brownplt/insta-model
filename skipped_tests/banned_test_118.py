@@ -1,15 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_error_nested_prim_decorator(self):
+# Reason: Test hitted a banned word cbool
+def test_yield_primitive(self):
     code = """
-        from __static__ import int64
-        def f():
-            x: int64 = 0
-            @x
-            def g():
-                pass
-            return g
+        from __static__ import cbool
+        from typing import Final
+        COND: Final[bool] = True
+        def f(abc):
+            yield cbool(COND)
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "decorator cannot be a primitive"
-    ):
+    with self.assertRaisesRegex(TypedSyntaxError, "cannot yield a primitive value"):
         self.compile(code)

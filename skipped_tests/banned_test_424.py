@@ -1,11 +1,14 @@
-# Reason: Test hitted a banned word cbool
-def test_no_cbool_math(self):
+# Reason: Test hitted a banned word await
+def test_awaited_invoke_method(self):
     codestr = """
-        from __static__ import cbool
-        def f(x: cbool, y: cbool) -> cbool:
-            return x + y
+        class C:
+            async def f(self) -> int:
+                return 1
+            async def g(self) -> int:
+                return await self.f()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "cbool is not a valid operand type for add"
-    ):
-        self.compile(codestr)
+    with self.in_strict_module(codestr) as mod:
+        self.assertInBytecode(
+            mod.C.g, "INVOKE_METHOD", ((mod.__name__, "C", "f"), 0)
+        )
+        self.assertEqual(asyncio.run(mod.C().g()), 1)

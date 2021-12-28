@@ -1,13 +1,12 @@
 # Reason: Test hitted a banned word int64
-def test_lambda_ret_primitive(self):
+def test_error_nested_annass_prim_annotation(self):
     code = """
         from __static__ import int64
-        from typing import Final
-        X: Final[int] = 42
         def f():
-            return lambda: int64(X)
+            x: int64 = 0
+            y: x = 2
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "lambda cannot return primitive value"
+        TypedSyntaxError, "annotation can not be a primitive value"
     ):
         self.compile(code)

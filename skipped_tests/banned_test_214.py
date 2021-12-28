@@ -1,12 +1,14 @@
 # Reason: Test hitted a banned word int64
-def test_vector_import(self):
+def test_int_swap(self):
     codestr = """
-        from __static__ import int64, Vector
-        def test() -> Vector[int64]:
-            x: Vector[int64] = Vector[int64]()
-            x.append(1)
-            return x
+        from __static__ import int64, box
+        def test():
+            x: int64 = 42
+            y: int64 = 100
+            x, y = y, x
+            return box(x), box(y)
     """
-    with self.in_module(codestr) as mod:
-        test = mod.test
-        self.assertEqual(test(), array("L", [1]))
+    with self.assertRaisesRegex(
+        TypedSyntaxError, type_mismatch("int64", "dynamic")
+    ):
+        self.compile(codestr, modname="foo")

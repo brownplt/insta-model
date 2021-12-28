@@ -1,15 +1,23 @@
-# Reason: Test hitted a banned word _kw
-def test_incompat_override_method_kwonly_mismatch(self):
+# Reason: Test hitted a banned word f"
+def test_invoke_new_derived(self):
     codestr = """
-        class A:
-            def m(self, x: str) -> int:
-                return 42
-        class B(A):
-            def m(self, *, x: str) -> int:
-                return 0
+        class C:
+            def f(self):
+                return 1
+        def x(c: C):
+            x = c.f()
+            x += c.f()
+            return x
+        a = x(C())
+        class D(C):
+            def f(self):
+                return 2
+        b = x(D())
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        "<module>.B.m overrides <module>.A.m inconsistently. `x` differs by keyword only vs positional",
-    ):
-        self.compile(codestr)
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "x")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("foo", "C", "f"), 0))
+    with self.in_module(codestr) as mod:
+        a, b = mod.a, mod.b
+        self.assertEqual(a, 2)
+        self.assertEqual(b, 4)

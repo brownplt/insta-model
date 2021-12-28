@@ -1,21 +1,17 @@
-# Reason: Test hitted a banned word async
-def test_async_method_override(self):
+# Reason: Test hitted a banned word int64
+def test_chained_assign_type_propagation_failure_redefine(self):
     codestr = """
-        class C:
-            async def f(self) -> int:
-                return 1
-        def f(x: C):
-            return x.f()
+        from __static__ import int64, char, Array
+        def test2() -> Array[char]:
+            x: Array[int64] = Array[int64]([54])
+            x = y = Array[char]([48])
+            return y
     """
-    with self.in_strict_module(codestr) as mod:
-        class D(mod.C):
-            async def f(self):
-                return "not an int"
-        self.assertInBytecode(
-            mod.f,
-            "INVOKE_METHOD",
-            ((mod.__name__, "C", "f"), 0),
-        )
-        d = D()
-        with self.assertRaises(TypeError):
-            asyncio.run(mod.f(d))
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        type_mismatch(
+            "Exact[Array[char]]",
+            "Exact[Array[int64]]",
+        ),
+    ):
+        self.compile(codestr, modname="foo")

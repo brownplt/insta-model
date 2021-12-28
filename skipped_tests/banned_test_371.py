@@ -1,6 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_vector_deepcopy(self):
-    v = Vector[int64]([1, 2, 3, 4])
-    self.assertEqual(v, deepcopy(v))
-    self.assertIsNot(v, deepcopy(v))
-    self.assertEqual(type(v), type(deepcopy(v)))
+# Reason: Test hitted a banned word b"
+def test_frozenset_constant(self):
+    codestr = """
+    from __static__ import inline
+    @inline
+    def i(s: str) -> bool:
+        return i in {"a", "b"}
+    def t() -> bool:
+        return i("p")
+    """
+    self.compile(codestr, modname="foo")

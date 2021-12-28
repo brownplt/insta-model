@@ -1,12 +1,12 @@
 # Reason: Test hitted a banned word int64
-def test_primitive_defaults_nested_func(self):
+def test_error_primitive_issubclass(self):
     code = """
-        from __static__ import int64, box
-        def g():
-            def f(a: int64 = 42) -> int64:
-                return a
-            return f
+        from __static__ import int64
+        def f(a):
+            x: int64 = 0
+            return issubclass(x, int)
     """
-    with self.in_module(code) as mod:
-        g = mod.g
-        self.assertEqual(g()(), 42)
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "Call argument cannot be a primitive"
+    ):
+        self.compile(code)

@@ -1,11 +1,8 @@
 # Reason: Test hitted a banned word vararg
-def test_varargs_count(self):
+def test_verify_lambda_vararg(self):
     codestr = """
-        def test(*foo):
-            print(foo.count('bar'))
+        x = lambda *x: x[1]
+        a = x(1, "hi")
     """
     with self.in_module(codestr) as mod:
-        test = mod.test
-        self.assertInBytecode(
-            test, "INVOKE_FUNCTION", (("builtins", "tuple", "count"), 2)
-        )
+        self.assertEqual(mod.a, "hi")

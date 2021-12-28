@@ -1,10 +1,10 @@
 # Reason: Format too complicated
-def test_bind_func_def(self) -> None:
-    mod, comp = self.bind_module(
-        """
-        def f(x: object = None, y: object = None):
-            pass
+def test_strict_module_isinstance(self):
+    code = """
+        from typing import Optional
+        def foo(tval: Optional[object]) -> str:
+            if isinstance(tval, str):
+                return tval
+            return "hi"
     """
-    )
-    modtable = comp.modules["foo"]
-    self.assertTrue(isinstance(modtable.children["f"], Function))
+    self.compile_strict(code)

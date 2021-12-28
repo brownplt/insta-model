@@ -1,13 +1,11 @@
-# Reason: Test hitted a banned word mixed_args
-def test_verify_mixed_args_positional_failure_method(self):
+# Reason: Test hitted a banned word xxclassloader
+def test_multi_generic(self):
     codestr = """
-        class C:
-            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
-                return
-        C().x("hi", b="lol")
+    from xxclassloader import XXGeneric
+    def func():
+        a = XXGeneric[int, str]()
+        return a.foo(42, 'abc')
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"Exact\[str\] received for positional arg 'a', expected int",
-    ):
-        self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        f = mod.func
+        self.assertEqual(f(), "42abc")

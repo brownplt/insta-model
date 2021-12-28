@@ -1,8 +1,10 @@
 # Reason: Format too complicated
-def test_checked_dict_fromkeys_bad_types(self):
-    with self.assertRaises(TypeError):
-        chkdict[str, int].fromkeys([2], 42)
-    with self.assertRaises(TypeError):
-        chkdict[str, int].fromkeys("abc", object())
-    with self.assertRaises(TypeError):
-        chkdict[str, int].fromkeys("abc")
+def test_checked_dict_free_list(self):
+    t1 = chkdict[str, int]
+    t2 = chkdict[str, str]
+    x = t1()
+    x_id1 = id(x)
+    del x
+    x = t2()
+    x_id2 = id(x)
+    self.assertEqual(x_id1, x_id2)

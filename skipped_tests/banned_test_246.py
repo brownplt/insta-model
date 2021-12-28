@@ -1,12 +1,10 @@
-# Reason: Test hitted a banned word int64
-def test_generic_type_box_box(self):
+# Reason: Test hitted a banned word global
+def test_module_primitive(self):
     codestr = """
-        from xxclassloader import spamobj
-        def testfunc():
-            x = spamobj[str]()
-            return (x.getint(), )
+        from __static__ import int8
+        x: int8
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, type_mismatch("int64", "dynamic")
+        TypedSyntaxError, "cannot use primitives in global or closure scope"
     ):
-        code = self.compile(codestr, modname="foo")
+        self.compile(codestr, modname="foo")

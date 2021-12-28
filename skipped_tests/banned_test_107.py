@@ -1,12 +1,13 @@
 # Reason: Test hitted a banned word int64
-def test_set_primitive(self):
+def test_lambda_ret_primitive(self):
     code = """
         from __static__ import int64
+        from typing import Final
+        X: Final[int] = 42
         def f():
-            x: int64 = 1
-            return {x}
+            return lambda: int64(X)
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "set members cannot be primitives"
+        TypedSyntaxError, "lambda cannot return primitive value"
     ):
         self.compile(code)

@@ -1,16 +1,13 @@
-# Reason: Test hitted a banned word *args
-def test_incompat_override_method_starkwargs(self):
+# Reason: Test hitted a banned word int64
+def test_vector_nogc(self):
     codestr = """
-        class A:
-            def m(self) -> int:
-                return 42
-        class B(A):
-            def m(self, **args) -> int:
-                return 0
+        from __static__ import Vector, int64
+        class C:
+            foo: Vector[int64]
+            def __init__(self):
+                self.foo = Vector[int64]()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        "<module>.B.m overrides <module>.A.m inconsistently. "
-        "Functions differ by including \\*\\*kwargs",
-    ):
-        self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        C = mod.C
+        x = C()
+        self.assertFalse(gc.is_tracked(x))

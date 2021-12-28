@@ -1,15 +1,12 @@
 # Reason: Test hitted a banned word int64
-def test_primitive_defaults(self):
+def test_error_primitive_isinstance(self):
     code = """
-        from __static__ import int64, box
-        def f(a: int64 = 42) -> int64:
-            return a
-        def g():
-            return box(f())
+        from __static__ import int64
+        def f(a):
+            x: int64 = 0
+            return isinstance(x, int)
     """
-    with self.in_module(code) as mod:
-        g = mod.g
-        f = mod.f
-        self.assertEqual(g(), 42)
-        self.assertEqual(f(), 42)
-        self.assertEqual(f(0), 0)
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "Call argument cannot be a primitive"
+    ):
+        self.compile(code)

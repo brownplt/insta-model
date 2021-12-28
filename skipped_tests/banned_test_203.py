@@ -1,10 +1,10 @@
-# Reason: Test hitted a banned word global
-def test_module_primitive(self):
+# Reason: Test hitted a banned word int32
+def test_index_by_int(self):
     codestr = """
-        from __static__ import int8
-        x: int8
+        from __static__ import int32
+        def f(x):
+            i: int32 = 0
+            return x[i]
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "cannot use primitives in global or closure scope"
-    ):
-        self.compile(codestr, modname="foo")
+    with self.assertRaises(TypedSyntaxError):
+        self.compile(codestr)

@@ -1,26 +1,19 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_invoke_meth_o(self):
+# Reason: Test hitted a banned word f"
+def test_invoke_type_modified(self):
     codestr = """
-    from xxclassloader import spamobj
-    def func():
-        a = spamobj[int]()
-        a.setstate_untyped(42)
-        return a.getstate()
+        class C:
+            def f(self):
+                return 1
+        def x(c: C):
+            x = c.f()
+            x += c.f()
+            return x
     """
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "x")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("foo", "C", "f"), 0))
     with self.in_module(codestr) as mod:
-        f = mod.func
-        self.assertInBytecode(
-            f,
-            "INVOKE_METHOD",
-            (
-                (
-                    "xxclassloader",
-                    "spamobj",
-                    (("builtins", "int"),),
-                    "setstate_untyped",
-                ),
-                1,
-            ),
-        )
-        self.assertEqual(f(), 42)
-        self.assert_jitted(f)
+        x, C = mod.x, mod.C
+        self.assertEqual(x(C()), 2)
+        C.f = lambda self: 42
+        self.assertEqual(x(C()), 84)

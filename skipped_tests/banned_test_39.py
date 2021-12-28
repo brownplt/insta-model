@@ -1,15 +1,13 @@
-# Reason: Test hitted a banned word box
-def test_int_compare_unboxed(self):
+# Reason: Test hitted a banned word double
+def test_double_unary_unsupported(self):
     codestr = f"""
-    from __static__ import ssize_t, unbox
-    def testfunc(x, y):
-        x1: ssize_t = unbox(x)
-        y1: ssize_t = unbox(y)
-        if x1 > y1:
-            return True
-        return False
+    from __static__ import double, box
+    def testfunc(tst):
+        x: double = 1.0
+        if tst:
+            x = x + 1
+        x = ~x
+        return box(x)
     """
-    code = self.compile(codestr)
-    f = self.run_code(codestr)["testfunc"]
-    self.assertInBytecode(f, "POP_JUMP_IF_ZERO")
-    self.assertEqual(f(1, 2), False)
+    with self.assertRaisesRegex(TypedSyntaxError, "Cannot invert/not a double"):
+        self.compile(codestr)

@@ -1,12 +1,13 @@
-# Reason: Test hitted a banned word await
-def test_awaited_invoke_function(self):
+# Reason: Test hitted a banned word double
+def test_double_return_static(self):
     codestr = """
-        async def f() -> int:
-            return 1
-        async def g() -> int:
-            return await f()
+    from __static__ import double, box
+    def fn() -> double:
+        return double(3.14159)
+    def lol():
+        return box(fn()) + 1.0
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertInBytecode(mod.g, "INVOKE_FUNCTION", ((mod.__name__, "f"), 0))
-        self.assertNotInBytecode(mod.g, "CAST")
-        self.assertEqual(asyncio.run(mod.g()), 1)
+    with self.in_module(codestr) as mod:
+        lol = mod.lol
+        r = lol()
+        self.assertEqual(r, 4.14159)

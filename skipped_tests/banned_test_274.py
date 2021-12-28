@@ -1,20 +1,12 @@
-# Reason: Test hitted a banned word async
-def test_async_method_override_future_incorrect_type(self):
+# Reason: Test hitted a banned word int8
+def test_array_inplace_assign(self):
     codestr = """
-        class C:
-            async def f(self) -> int:
-                return 42
-            def g(self):
-                return self.f()
+        from __static__ import Array, int8
+        def m() -> Array[int8]:
+            a = Array[int8]([1, 3, -5, -1, 7, 22])
+            a[0] += 1
+            return a
     """
     with self.in_module(codestr) as mod:
-        loop = asyncio.new_event_loop()
-        class D(mod.C):
-            def f(self):
-                fut = loop.create_future()
-                fut.set_result("not an int")
-                return fut
-        d = D()
-        with self.assertRaises(TypeError):
-            d.g().send(None)
-        loop.close()
+        m = mod.m
+        self.assertEqual(m()[0], 2)

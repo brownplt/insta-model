@@ -1,15 +1,21 @@
-# Reason: Test hitted a banned word int64
-def test_array_assign_wrong_type(self):
+# Reason: Test hitted a banned word f"
+def test_assign_while(self):
     codestr = """
-        from __static__ import int64, char, Array
-        def test() -> None:
-            x: Array[int64] = Array[char]([48])
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc(abc):
+            x = B()
+            while abc:
+                x = D()
+            return x.f()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        type_mismatch(
-            "Exact[Array[char]]",
-            "Exact[Array[int64]]",
-        ),
-    ):
-        self.compile(codestr, modname="foo")
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "B", "f"), 0))
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(False), 42)

@@ -1,12 +1,18 @@
-# Reason: Test hitted a banned word int8
-def test_vector_presized(self):
-    codestr = f"""
-        from __static__ import int8, Vector
-        def test() -> Vector[int8]:
-            x: Vector[int8] = Vector[int8](4)
-            x[1] = 1
+# Reason: Test hitted a banned word global
+def test_global_uses_decl_type(self):
+    codestr = """
+        # even though we can locally infer G must be None,
+        # it's not Final so nested scopes can't assume it
+        # remains None
+        G: int | None = None
+        def f() -> int:
+            global G
+            # if we use the local_type for G's type,
+            # x would have a local type of None
+            x: int | None = G
+            if x is None:
+                x = G = 1
             return x
     """
-    with self.in_module(codestr) as mod:
-        f = mod.test
-        self.assertEqual(f(), array("b", [0, 1, 0, 0]))
+    with self.in_strict_module(codestr) as mod:
+        self.assertEqual(mod.f(), 1)

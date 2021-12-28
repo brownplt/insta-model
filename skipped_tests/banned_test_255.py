@@ -1,12 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_inexact_list_large_unsigned(self):
+# Reason: Test hitted a banned word box
+def test_tuple_assign_tuple(self):
     codestr = """
-        from __static__ import uint64
-        def f(x: list):
-            i: uint64 = 0xffffffffffffffff
-            return x[i]
+        from __static__ import int16, box
+        def testfunc(a: int, b: int):
+            x: int
+            y: str
+            x, y = a, b
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "type mismatch: uint64 cannot be assigned to dynamic"
-    ):
-        self.compile(codestr)
+    with self.assertRaisesRegex(TypedSyntaxError, "int cannot be assigned to str"):
+        self.compile(codestr, modname="foo")

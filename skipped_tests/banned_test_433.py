@@ -1,14 +1,6 @@
-# Reason: Test hitted a banned word _kw
-def test_nested_fn_type_error_kwarg(self):
-    codestr = """
-    def f(i: int, j: str = "yo") -> bool:
-        def g(k: int) -> bool:
-            return k > 0 if j == "gt" else k <= 0
-        return g(i)
-    """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        with self.assertRaisesRegex(
-            TypeError, r"f expected 'str' for argument j, got 'int'"
-        ):
-            f(1, j=2)
+# Reason: Test hitted a banned word int64
+def test_vector_deepcopy(self):
+    v = Vector[int64]([1, 2, 3, 4])
+    self.assertEqual(v, deepcopy(v))
+    self.assertIsNot(v, deepcopy(v))
+    self.assertEqual(type(v), type(deepcopy(v)))

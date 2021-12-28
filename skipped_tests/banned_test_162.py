@@ -1,10 +1,13 @@
 # Reason: Test hitted a banned word _kw
-def test_kwarg_cast(self):
+def test_invoke_kws(self):
     codestr = """
-        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
-            return
-        def g(a):
-            x(b=a)
+    class C:
+        def f(self, a):
+            return a
+    def func():
+        a = C()
+        return a.f(a=2)
     """
-    code = self.find_code(self.compile(codestr), "g")
-    self.assertInBytecode(code, "CAST", ("builtins", "str"))
+    with self.in_module(codestr) as mod:
+        f = mod.func
+        self.assertEqual(f(), 2)

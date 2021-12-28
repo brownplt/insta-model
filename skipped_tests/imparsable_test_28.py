@@ -1,6 +1,8 @@
 # Reason: Format too complicated
-def test_typed_slots_bad_slot_dict(self):
+def test_checked_dict_fromkeys_bad_types(self):
     with self.assertRaises(TypeError):
-        class C:
-            __slots__ = ("__dict__",)
-            __slot_types__ = {"__dict__": "object"}
+        chkdict[str, int].fromkeys([2], 42)
+    with self.assertRaises(TypeError):
+        chkdict[str, int].fromkeys("abc", object())
+    with self.assertRaises(TypeError):
+        chkdict[str, int].fromkeys("abc")

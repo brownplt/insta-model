@@ -1,10 +1,10 @@
 # Reason: Test hitted a banned word int64
-def test_error_nested_kwonly_ann(self):
+def test_error_nested_ann(self):
     code = """
         from __static__ import int64
         def f():
             x: int64 = 0
-            def g(*, foo: x = 42):
+            def g(foo: x):
                 pass
             return g
     """

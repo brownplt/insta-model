@@ -1,11 +1,12 @@
-# Reason: Test hitted a banned word continue
-def test_continue_condition(self):
+# Reason: Test hitted a banned word _kw
+def test_verify_mixed_args_kw_failure_method(self):
     codestr = """
-        from typing import Optional
-        def f(x: Optional[str]) -> str:
-            while True:
-                if x is None:
-                    continue
-                return x
+        class C:
+            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
+                return
+        C().x(12, c=b'lol', b="lol")
     """
-    self.compile(codestr, modname="foo")
+    with self.assertRaisesRegex(
+        TypedSyntaxError, r"bytes received for keyword arg 'c', expected int"
+    ):
+        self.compile(codestr)

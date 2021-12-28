@@ -1,10 +1,9 @@
-# Reason: Test hitted a banned word int64
-def test_unbox_incompat_type(self):
+# Reason: Test hitted a banned word box
+def test_unbox_cbool_typed_unsupported(self):
     codestr = """
-    from __static__ import int64, box
-    def f(i: str):
-        x:int64 = int64(i)
+    from __static__ import cbool, box
+    def f(i: int):
+        x = cbool(i)
         return box(x)
     """
-    with self.assertRaisesRegex(TypedSyntaxError, type_mismatch("str", "int64")):
-        self.compile(codestr)
+    self.type_error(codestr, "type mismatch: int cannot be assigned to cbool")

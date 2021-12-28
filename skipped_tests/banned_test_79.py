@@ -1,10 +1,10 @@
 # Reason: Test hitted a banned word box
-def test_bad_box_2(self):
+def test_bad_box(self):
     codestr = """
     from __static__ import box
-    box('abc', 'foo')
+    box('abc')
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "box only accepts a single argument"
+        TypedSyntaxError, "can't box non-primitive: Exact\\[str\\]"
     ):
         self.compile(codestr)

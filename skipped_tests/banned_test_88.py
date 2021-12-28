@@ -1,12 +1,10 @@
-# Reason: Test hitted a banned word int64
-def test_error_primitive_builtin_method_desc(self):
-    code = """
-        from __static__ import int64
-        def f(a):
-            x: int64 = 0
-            return tuple.index((1,2,3), x)
+# Reason: Test hitted a banned word f"
+def test_bind_func_def(self) -> None:
+    mod, comp = self.bind_module(
+        """
+        def f(x: object = None, y: object = None):
+            pass
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Call argument cannot be a primitive"
-    ):
-        self.compile(code)
+    )
+    modtable = comp.modules["foo"]
+    self.assertTrue(isinstance(modtable.children["f"], Function))

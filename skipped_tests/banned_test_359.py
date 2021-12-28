@@ -1,18 +1,13 @@
-# Reason: Test hitted a banned word await
-def test_awaited_invoke_function_with_args(self):
+# Reason: Test hitted a banned word float
+def test_double_return_with_default_args(self):
     codestr = """
-        async def f(a: int, b: int) -> int:
-            return a + b
-        async def g() -> int:
-            return await f(1, 2)
+    from __static__ import double
+    def fn(x: float, y: float = 3.2) -> double:
+        i = double(x)
+        j = double(y)
+        return i + j
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertInBytecode(
-            mod.g,
-            "INVOKE_FUNCTION",
-            ((mod.__name__, "f"), 2),
-        )
-        self.assertEqual(asyncio.run(mod.g()), 3)
-        # exercise shadowcode, INVOKE_FUNCTION_CACHED
-        self.make_async_func_hot(mod.g)
-        self.assertEqual(asyncio.run(mod.g()), 3)
+    with self.in_module(codestr) as mod:
+        fn = mod.fn
+        r = fn(1.2)
+        self.assertEqual(r, 4.4)

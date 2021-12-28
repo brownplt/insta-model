@@ -1,11 +1,13 @@
-# Reason: Test hitted a banned word break
-def test_break_condition(self):
+# Reason: Test hitted a banned word mixed_args
+def test_verify_mixed_args_positional_failure_method(self):
     codestr = """
-        from typing import Optional
-        def f(x: Optional[str]) -> str:
-            while True:
-                if x is None:
-                    break
-                return x
+        class C:
+            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
+                return
+        C().x("hi", b="lol")
     """
-    self.compile(codestr, modname="foo")
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"Exact\[str\] received for positional arg 'a', expected int",
+    ):
+        self.compile(codestr)

@@ -1,12 +1,20 @@
-# Reason: Test hitted a banned word test_call_function_unknown_ret_type
-def test_call_function_unknown_ret_type(self):
-    codestr = """
-        from __future__ import annotations
-        def g() -> foo:
-            return 42
-        def testfunc():
-            return g()
-    """
-    with self.in_module(codestr) as mod:
-        f = mod.testfunc
-        self.assertEqual(f(), 42)
+# Reason: Test hitted a banned word f"
+def test_cast(self):
+    for code_gen in (StaticCodeGenerator, PythonCodeGenerator):
+        codestr = """
+            from __static__ import cast
+            class C:
+                pass
+            a = C()
+            def f() -> C:
+                return cast(C, a)
+        """
+        code = self.compile(codestr, code_gen)
+        f = self.find_code(code, "f")
+        if code_gen is StaticCodeGenerator:
+            self.assertInBytecode(f, "CAST", ("<module>", "C"))
+        with self.in_module(codestr, code_gen=code_gen) as mod:
+            C = mod.C
+            f = mod.f
+            self.assertTrue(isinstance(f(), C))
+            self.assert_jitted(f)

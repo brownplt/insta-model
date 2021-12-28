@@ -1,13 +1,14 @@
-# Reason: Test hitted a banned word mixed_args
-def test_verify_mixed_args_positional_failure(self):
+# Reason: Test hitted a banned word int64
+def test_invoke_builtin_func(self):
     codestr = """
-        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
-            return
-        x("hi", b="lol")
+    from xxclassloader import foo
+    from __static__ import int64, box
+    def func():
+        a: int64 = foo()
+        return box(a)
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"Exact\[str\] received for positional arg 'a', expected int",
-    ):
-        self.compile(codestr)
-# Same tests as above, but for methods.
+    with self.in_module(codestr) as mod:
+        f = mod.func
+        self.assertInBytecode(f, "INVOKE_FUNCTION", (((mod.__name__, "foo"), 0)))
+        self.assertEqual(f(), 42)
+        self.assert_jitted(f)

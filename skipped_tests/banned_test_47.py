@@ -1,13 +1,14 @@
-# Reason: Test hitted a banned word double
-def test_double_mixed_compare(self):
-    codestr = """
-    from __static__ import double, box, unbox
-    def f(a):
-        x: double = 0
-        while x != a:
-            pass
+# Reason: Test hitted a banned word float
+def test_double_compare_with_literal(self):
+    codestr = f"""
+    from __static__ import double
+    def testfunc(x: float) -> bool:
+        y = double(x)
+        if y > 3.14:
+            return True
+        return False
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "can't compare double to dynamic"
-    ):
-        self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        f = mod.testfunc
+        self.assertTrue(f(4.1))
+        self.assertFalse(f(1.1))

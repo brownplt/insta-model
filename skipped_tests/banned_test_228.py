@@ -1,13 +1,23 @@
-# Reason: Test hitted a banned word int64
-def test_chained_assign_type_inference(self):
+# Reason: Test hitted a banned word f"
+def test_assign_while_else(self):
     codestr = """
-        from __static__ import int64, char, Array
-        def test2():
-            y = x = 4
-            reveal_type(x)
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc(abc):
+            x = B()
+            while abc:
+                pass
+            else:
+                x = D()
+            return x.f()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"'x' has declared type 'dynamic' and local type 'Literal\[4\]'",
-    ):
-        self.compile(codestr, modname="foo")
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "B", "f"), 0))
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(False), "abc")

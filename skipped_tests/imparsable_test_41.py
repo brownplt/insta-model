@@ -1,9 +1,4 @@
 # Reason: Format too complicated
-def test_checked_dict_setdefault_bad_values(self):
-    x = chkdict[str, int]()
-    with self.assertRaises(TypeError):
-        x.setdefault("abc", "abc")
-    self.assertEqual(x, {})
-    with self.assertRaises(TypeError):
-        x.setdefault(42, 42)
-    self.assertEqual(x, {})
+def test_checked_dict_getitem(self):
+    x = chkdict[str, int](x=2)
+    self.assertEqual(x.__getitem__("x"), 2)

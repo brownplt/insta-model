@@ -1,9 +1,12 @@
-# Reason: Test hitted a banned word global
-def test_global_int(self):
+# Reason: Test hitted a banned word _kw
+def test_generic_kwargs_unsupported(self):
+    # definition is allowed, we just don't do an optimal invoke
     codestr = """
-        X: int =  60 * 60 * 24
+    def f(a: int, b: str, **my_stuff) -> None:
+        pass
+    def g():
+        return f(1, 'abc', x="y")
     """
-    code = self.compile(codestr, modname="foo")
     with self.in_module(codestr) as mod:
-        X = mod.X
-        self.assertEqual(X, 60 * 60 * 24)
+        g = mod.g
+        self.assertInBytecode(g, "CALL_FUNCTION_KW", 3)

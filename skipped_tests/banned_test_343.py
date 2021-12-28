@@ -1,7 +1,22 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_generic_type_inst_optional_okay_func(self):
-    from xxclassloader import spamobj
-    o = spamobj[Optional[str]]()
-    f = o.setstate
-    f("abc")
-    f(None)
+# Reason: Test hitted a banned word int8
+def test_primitive_args_funcdef_unjitable(self):
+    codestr = """
+        from __static__ import int8, box
+        def n(val: int8):
+            class C: pass
+            return box(val)
+        def x():
+            y: int8 = 42
+            return n(y)
+    """
+    with self.in_strict_module(codestr) as mod:
+        n = mod.n
+        x = mod.x
+        self.assertEqual(x(), 42)
+        self.assertEqual(mod.n(-128), -128)
+        self.assertEqual(mod.n(127), 127)
+        with self.assertRaises(OverflowError):
+            print(mod.n(-129))
+        with self.assertRaises(OverflowError):
+            print(mod.n(128))
+        self.assert_not_jitted(n)

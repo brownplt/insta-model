@@ -1,17 +1,20 @@
-# Reason: Test hitted a banned word int32
-def test_primitive_compare_immediate_no_branch_on_result(self):
-    for rev in [True, False]:
-        compare = "0 == xp" if rev else "xp == 0"
-        codestr = f"""
-            from __static__ import box, int64, int32
-            def f(x: int) -> bool:
-                xp = int64(x)
-                y = {compare}
-                return box(y)
-        """
-        with self.subTest(rev=rev):
-            with self.in_module(codestr) as mod:
-                f = mod.f
-                self.assertEqual(f(3), 0)
-                self.assertEqual(f(0), 1)
-                self.assertIs(f(0), True)
+# Reason: Test hitted a banned word async
+def test_async_method_override_future_incorrect_type(self):
+    codestr = """
+        class C:
+            async def f(self) -> int:
+                return 42
+            def g(self):
+                return self.f()
+    """
+    with self.in_module(codestr) as mod:
+        loop = asyncio.new_event_loop()
+        class D(mod.C):
+            def f(self):
+                fut = loop.create_future()
+                fut.set_result("not an int")
+                return fut
+        d = D()
+        with self.assertRaises(TypeError):
+            d.g().send(None)
+        loop.close()

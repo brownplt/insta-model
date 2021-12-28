@@ -1,14 +1,17 @@
-# Reason: Test hitted a banned word int64
-def test_inlined_nodes_have_line_info(self):
-    self.type_error(
-        """
-        from __static__ import int64, cbool, inline
-        @inline
-        def x(i: int64) -> cbool:
-            return i == "foo"
-        def foo(i: int64) -> cbool:
-            return x(i)
-        """,
-        "",
-        at="i ==",
-    )
+# Reason: Test hitted a banned word await
+def test_async_method_immediate_await(self):
+    codestr = """
+        class C:
+            async def f(self) -> bool:
+                return True
+        async def f(x: C):
+            if await x.f():
+                return 0
+            return 1
+    """
+    with self.in_strict_module(codestr) as mod:
+        class D(mod.C):
+            async def f(self):
+                return False
+        d = D()
+        self.assertEqual(asyncio.run(mod.f(d)), 1)

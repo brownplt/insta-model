@@ -1,11 +1,11 @@
 # Reason: Test hitted a banned word _kw
-def test_kwargs_call(self):
+def test_verify_kwarg_unknown_type(self):
     codestr = """
-        def g(**foo):
-            return foo
-        def testfunc():
-            return g(x=2)
+        def x(x:foo):
+            return b
+        x(x='abc')
     """
-    with self.in_module(codestr) as mod:
-        test = mod.testfunc
-        self.assertEqual(test(), {"x": 2})
+    module = self.compile(codestr)
+    self.assertInBytecode(module, "INVOKE_FUNCTION")
+    x = self.find_code(module)
+    self.assertInBytecode(x, "CHECK_ARGS", ())

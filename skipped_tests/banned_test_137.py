@@ -1,11 +1,19 @@
-# Reason: Test hitted a banned word int64
-def test_error_return_int(self):
-    with self.assertRaisesRegex(TypedSyntaxError, bad_ret_type("int64", "dynamic")):
-        code = self.compile(
-            """
-            from __static__ import ssize_t
-            def f():
-                y: ssize_t = 1
-                return y
-            """
-        )
+# Reason: Test hitted a banned word f"
+def test_invoke_explicit_slots(self):
+    codestr = """
+        class C:
+            __slots__ = ()
+            def f(self):
+                return 1
+        def x(c: C):
+            x = c.f()
+            x += c.f()
+            return x
+        a = x(C())
+    """
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "x")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("foo", "C", "f"), 0))
+    with self.in_module(codestr) as mod:
+        a = mod.a
+        self.assertEqual(a, 2)

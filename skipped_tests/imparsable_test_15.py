@@ -1,19 +1,6 @@
 # Reason: Format too complicated
-def test_cast_fail(self):
-    for code_gen in (StaticCodeGenerator, PythonCodeGenerator):
-        codestr = """
-            from __static__ import cast
-            class C:
-                pass
-            def f() -> C:
-                return cast(C, 42)
-        """
-        code = self.compile(codestr, code_gen)
-        f = self.find_code(code, "f")
-        if code_gen is StaticCodeGenerator:
-            self.assertInBytecode(f, "CAST", ("<module>", "C"))
-        with self.in_module(codestr) as mod:
-            with self.assertRaises(TypeError):
-                f = mod.f
-                f()
-                self.assert_jitted(f)
+def test_typed_slots_bad_slot_dict(self):
+    with self.assertRaises(TypeError):
+        class C:
+            __slots__ = ("__dict__",)
+            __slot_types__ = {"__dict__": "object"}

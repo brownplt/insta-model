@@ -1,11 +1,8 @@
-# Reason: Test hitted a banned word vararg
-def test_varargs_call(self):
+# Reason: Test hitted a banned word _kw
+def test_verify_lambda_kwarg(self):
     codestr = """
-        def g(*foo):
-            return foo
-        def testfunc():
-            return g(2)
+        x = lambda **kwargs: kwargs["key"]
+        a = x(key="hi")
     """
     with self.in_module(codestr) as mod:
-        test = mod.testfunc
-        self.assertEqual(test(), (2,))
+        self.assertEqual(mod.a, "hi")

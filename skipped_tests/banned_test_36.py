@@ -1,20 +1,47 @@
-# Reason: Test hitted a banned word double
-def test_double_unary(self):
+# Reason: Test hitted a banned word int8
+def test_int_overflow_add(self):
     tests = [
-        ("-", 1.0, -1.0),
-        ("+", 1.0, 1.0),
-        ("-", -1.0, 1.0),
+        ("int8", 100, 100, -56),
+        ("int16", 200, 200, 400),
+        ("int32", 200, 200, 400),
+        ("int64", 200, 200, 400),
+        ("int16", 20000, 20000, -25536),
+        ("int32", 40000, 40000, 80000),
+        ("int64", 40000, 40000, 80000),
+        ("int32", 2000000000, 2000000000, -294967296),
+        ("int64", 2000000000, 2000000000, 4000000000),
+        ("int8", 127, 127, -2),
+        ("int16", 32767, 32767, -2),
+        ("int32", 2147483647, 2147483647, -2),
+        ("int64", 9223372036854775807, 9223372036854775807, -2),
+        ("uint8", 200, 200, 144),
+        ("uint16", 200, 200, 400),
+        ("uint32", 200, 200, 400),
+        ("uint64", 200, 200, 400),
+        ("uint16", 40000, 40000, 14464),
+        ("uint32", 40000, 40000, 80000),
+        ("uint64", 40000, 40000, 80000),
+        ("uint32", 2000000000, 2000000000, 4000000000),
+        ("uint64", 2000000000, 2000000000, 4000000000),
+        ("uint8", 1 << 7, 1 << 7, 0),
+        ("uint16", 1 << 15, 1 << 15, 0),
+        ("uint32", 1 << 31, 1 << 31, 0),
+        ("uint64", 1 << 63, 1 << 63, 0),
+        ("uint8", 1 << 6, 1 << 6, 128),
+        ("uint16", 1 << 14, 1 << 14, 32768),
+        ("uint32", 1 << 30, 1 << 30, 2147483648),
+        ("uint64", 1 << 62, 1 << 62, 9223372036854775808),
     ]
-    for op, x, res in tests:
+    for type, x, y, res in tests:
         codestr = f"""
-        from __static__ import double, box
-        def testfunc(tst):
-            x: double = {x}
-            if tst:
-                x = x + 1
-            x = {op}x
-            return box(x)
+        from __static__ import {type}, box
+        def f():
+            x: {type} = {x}
+            y: {type} = {y}
+            z: {type} = x + y
+            return box(z)
         """
-        with self.subTest(type=type, op=op, x=x, res=res):
-            f = self.run_code(codestr)["testfunc"]
-            self.assertEqual(f(False), res, f"{type} {op} {x} {res}")
+        with self.subTest(type=type, x=x, y=y, res=res):
+            code = self.compile(codestr)
+            f = self.run_code(codestr)["f"]
+            self.assertEqual(f(), res, f"{type} {x} {y} {res}")

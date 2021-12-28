@@ -1,23 +1,22 @@
-# Reason: Test hitted a banned word global
-def test_starargs_invoked_in_order(self):
+# Reason: Test hitted a banned word int64
+def test_invoke_func_unexistent_module(self):
     codestr = """
-        X = 1
-        def f():
-            global X
-            X += 1
-            return {"a": 1, "b": "foo"}
-        def make_c():
-            global X
-            X *= 2
-            return 42
-        class C:
-            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
-                return
-        def test():
-            C().x(12, c=make_c(), **f())
+    from xxclassloader import bar
+    from __static__ import int64, box
+    def func():
+        a: int64 = bar(42)
+        return box(a)
     """
     with self.in_module(codestr) as mod:
-        test = mod.test
-        test()
-        x = mod.X
-        self.assertEqual(x, 3)
+        # remove xxclassloader from sys.modules during this test
+        xxclassloader = sys.modules["xxclassloader"]
+        del sys.modules["xxclassloader"]
+        try:
+            func = mod.func
+            self.assertInBytecode(
+                func, "INVOKE_FUNCTION", (((mod.__name__, "bar"), 1))
+            )
+            self.assertEqual(func(), 42)
+            self.assert_jitted(func)
+        finally:
+            sys.modules["xxclassloader"] = xxclassloader

@@ -1,15 +1,16 @@
-# Reason: Test hitted a banned word int64
-def test_error_primitive_after_starred(self):
-    code = """
-        from __static__ import int64
-        def g(*args):
-            pass
-        def f(a):
-            x: int64 = 0
-            y = []
-            return g(*y, x)
+# Reason: Test hitted a banned word int32
+def test_cmpop(self):
+    codestr = """
+        from __static__ import int32
+        def f():
+            i: int32 = 0
+            j: int = 0
+            if i == 0:
+                return 0
+            if j == 0:
+                return 1
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Call argument cannot be a primitive"
-    ):
-        self.compile(code)
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "f")
+    self.assertInBytecode(x, "PRIMITIVE_COMPARE_OP", 0)
+    self.assertInBytecode(x, "COMPARE_OP", "==")

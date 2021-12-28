@@ -1,18 +1,13 @@
 # Reason: Format too complicated
-def test_vector_sizes(self):
-    for signed in ["int", "uint"]:
-        for size in ["8", "16", "32", "64"]:
-            with self.subTest(size=size, signed=signed):
-                int_type = f"{signed}{size}"
-                codestr = f"""
-                    from __static__ import {int_type}, Vector
-                    def test() -> Vector[{int_type}]:
-                        x: Vector[{int_type}] = Vector[{int_type}]()
-                        y: {int_type} = 1
-                        x.append(y)
-                        return x
-                """
-                with self.in_module(codestr) as mod:
-                    test = mod.test
-                    res = test()
-                    self.assertEqual(list(res), [1])
+def test_nested_generic(self):
+    S = TypeVar("S")
+    T = TypeVar("T")
+    U = TypeVar("U")
+    class F(StaticGeneric[U]):
+        pass
+    class C(StaticGeneric[T]):
+        pass
+    A = F[S]
+    self.assertEqual(A.__parameters__, (S,))
+    X = C[F[T]]
+    self.assertEqual(X.__parameters__, (T,))

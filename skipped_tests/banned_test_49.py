@@ -1,14 +1,13 @@
-# Reason: Test hitted a banned word int32
-def test_disallow_prim_nonprim_union(self):
+# Reason: Test hitted a banned word double
+def test_double_mixed_compare(self):
     codestr = """
-        from __static__ import int32
-        def f(y: int):
-            x: int32 = 2
-            z = x or y
-            return z
+    from __static__ import double, box, unbox
+    def f(a):
+        x: double = 0
+        while x != a:
+            pass
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"invalid union type Union\[int32, int\]; unions cannot include primitive types",
+        TypedSyntaxError, "can't compare double to dynamic"
     ):
         self.compile(codestr)

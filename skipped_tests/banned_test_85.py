@@ -1,16 +1,8 @@
-# Reason: Test hitted a banned word int32
-def test_cmpop(self):
+# Reason: Test hitted a banned word global
+def test_global_call_add(self) -> None:
     codestr = """
-        from __static__ import int32
+        X = ord(42)
         def f():
-            i: int32 = 0
-            j: int = 0
-            if i == 0:
-                return 0
-            if j == 0:
-                return 1
+            y = X + 1
     """
     code = self.compile(codestr, modname="foo")
-    x = self.find_code(code, "f")
-    self.assertInBytecode(x, "PRIMITIVE_COMPARE_OP", 0)
-    self.assertInBytecode(x, "COMPARE_OP", "==")

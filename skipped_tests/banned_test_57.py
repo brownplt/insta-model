@@ -1,13 +1,11 @@
-# Reason: Test hitted a banned word double
-def test_double_unbox(self):
-    codestr = f"""
-    from __static__ import double, box, unbox
-    def fn(x, y):
-        a: double = unbox(x)
-        b: double = unbox(y)
-        return box(a + b)
+# Reason: Test hitted a banned word int64
+def test_mixed_compare(self):
+    codestr = """
+    from __static__ import ssize_t, box, unbox
+    def f(a):
+        x: ssize_t = 0
+        while x != a:
+            pass
     """
-    f = self.run_code(codestr)["fn"]
-    x = 3.14
-    y = 1.732
-    self.assertEqual(f(x, y), x + y)
+    with self.assertRaisesRegex(TypedSyntaxError, "can't compare int64 to dynamic"):
+        self.compile(codestr)

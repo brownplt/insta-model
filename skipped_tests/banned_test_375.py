@@ -1,8 +1,9 @@
-# Reason: Test hitted a banned word int64
-def test_array_not_subclassable(self):
-    with self.assertRaises(TypeError):
-        class C(Array[int64]):
-            pass
-    with self.assertRaises(TypeError):
-        class C(Array):
-            pass
+# Reason: Test hitted a banned word test_default_type_error
+def test_default_type_error_with_non_defaults(self):
+    codestr = """
+    def foo(non_default: int, x: int = "") -> int:
+        return non_default + x
+    """
+    self.type_error(
+        codestr, r"type mismatch: Exact\[str\] cannot be assigned to int"
+    )

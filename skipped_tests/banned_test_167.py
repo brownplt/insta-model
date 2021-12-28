@@ -1,18 +1,14 @@
-# Reason: Test hitted a banned word global
-def test_starargs_invoked_once(self):
+# Reason: Test hitted a banned word int64
+def test_invoke_builtin_func_arg(self):
     codestr = """
-        X = 0
-        def f():
-            global X
-            X += 1
-            return {"a": 1, "b": "foo", "c": 42}
-        class C:
-            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
-                return
-        C().x(12, **f())
+    from xxclassloader import bar
+    from __static__ import int64, box
+    def func():
+        a: int64 = bar(42)
+        return box(a)
     """
     with self.in_module(codestr) as mod:
-        x = mod.X
-        self.assertEqual(x, 1)
-    compiled = self.compile(codestr)
-    self.assertEqual(compiled.co_nlocals, 1)
+        f = mod.func
+        self.assertInBytecode(f, "INVOKE_FUNCTION", (((mod.__name__, "bar"), 1)))
+        self.assertEqual(f(), 42)
+        self.assert_jitted(f)

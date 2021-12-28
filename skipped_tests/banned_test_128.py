@@ -1,23 +1,10 @@
-# Reason: Test hitted a banned word b"
-def test_cross_module_inheritance(self) -> None:
-    acode = """
-        class C:
-            def f(self):
-                return 42
+# Reason: Test hitted a banned word int8
+def test_primitive_call(self) -> None:
+    codestr = """
+        from __static__ import int8
+        def f():
+            x: int8 = 42
+            print(x())
     """
-    bcode = """
-        from a import C
-        class D(C):
-            def f(self):
-                return 'abc'
-        def f(y):
-            x: C
-            if y:
-                x = D()
-            else:
-                x = C()
-            return x.f()
-    """
-    bcomp = self.compiler(a=acode, b=bcode).compile_module("b")
-    x = self.find_code(bcomp, "f")
-    self.assertInBytecode(x, "INVOKE_METHOD", (("a", "C", "f"), 0))
+    with self.assertRaisesRegex(TypedSyntaxError, "cannot call int8"):
+        self.compile(codestr)

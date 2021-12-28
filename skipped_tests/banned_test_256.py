@@ -1,12 +1,14 @@
-# Reason: Test hitted a banned word global
-def test_assign_module_global(self):
+# Reason: Test hitted a banned word box
+def test_tuple_assign_constant(self):
     codestr = """
-        x: int = 1
-        def f():
-            global x
-            x = "foo"
+        from __static__ import int16, box
+        def testfunc():
+            x: int
+            y: str
+            x, y = 1, 1
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, type_mismatch("Exact[str]", "int")
+        TypedSyntaxError,
+        r"type mismatch: Exact\[int\] cannot be assigned to str",
     ):
-        self.compile(codestr)
+        self.compile(codestr, modname="foo")

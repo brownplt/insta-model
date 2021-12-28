@@ -1,8 +1,8 @@
-# Reason: Test hitted a banned word async
-def test_async_func_ret_type(self):
+# Reason: Test hitted a banned word mixed_args
+def test_verify_mixed_args(self):
     codestr = """
-        async def x(a) -> int:
-            return a
+        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
+            return
+        x(12, c=56, b="lol")
     """
-    f = self.find_code(self.compile(codestr, modname="foo"))
-    self.assertInBytecode(f, "CAST")
+    self.compile(codestr)

@@ -1,6 +1,11 @@
 # Reason: Format too complicated
-def test_checked_dict_optional(self):
-    x = chkdict[str, Optional[str]]()
-    x["abc"] = None
-    x = chkdict[Optional[str], str]()
-    x[None] = "abc"
+def test_checked_dict_items(self):
+    x = chkdict[str, int](x=2)
+    self.assertEqual(
+        list(x.items()),
+        [
+            ("x", 2),
+        ],
+    )
+    x = chkdict[str, int](x=2, y=3)
+    self.assertEqual(list(x.items()), [("x", 2), ("y", 3)])

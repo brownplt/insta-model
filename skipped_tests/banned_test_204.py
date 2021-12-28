@@ -1,10 +1,13 @@
-# Reason: Test hitted a banned word global
-def test_implicit_module_primitive(self):
+# Reason: Test hitted a banned word int8
+def test_list_get_primitive_int(self):
     codestr = """
         from __static__ import int8
-        x = y = int8(0)
+        def f():
+            l = [1, 2, 3]
+            x: int8 = 1
+            return l[x]
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "cannot use primitives in global or closure scope"
-    ):
-        self.compile(codestr, modname="foo")
+    f = self.find_code(self.compile(codestr))
+    self.assertInBytecode(f, "SEQUENCE_GET", SEQ_LIST)
+    with self.in_module(codestr) as mod:
+        self.assertEqual(mod.f(), 2)

@@ -1,20 +1,17 @@
-# Reason: Test hitted a banned word async
-def test_async_method_override_narrowing(self):
+# Reason: Test hitted a banned word int64
+def test_chained_assign_type_propagation_failure_redefine_2(self):
     codestr = """
-        class Num(int):
-            pass
-        class C:
-            async def f(self) -> int:
-                return 0
-        class D(C):
-            async def f(self) -> Num:
-                return Num(0)
+        from __static__ import int64, char, Array
+        def test2() -> Array[char]:
+            x: Array[int64] = Array[int64]([54])
+            y = x = Array[char]([48])
+            return y
     """
-    with self.in_strict_module(codestr) as mod:
-        d = mod.D()
-        try:
-            d.f().send(None)
-        except StopIteration as e:
-            res = e.args[0]
-            self.assertIsInstance(res, mod.Num)
-            self.assertEqual(res, 0)
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        type_mismatch(
+            "Exact[Array[char]]",
+            "Exact[Array[int64]]",
+        ),
+    ):
+        self.compile(codestr, modname="foo")

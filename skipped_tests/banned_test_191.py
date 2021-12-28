@@ -1,16 +1,18 @@
-# Reason: Test hitted a banned word test_if_else_optional_return_two_branches
-def test_if_else_optional_return_two_branches(self):
+# Reason: Test hitted a banned word global
+def test_starargs_invoked_once(self):
     codestr = """
-        from typing import Optional
+        X = 0
+        def f():
+            global X
+            X += 1
+            return {"a": 1, "b": "foo", "c": 42}
         class C:
-            def __init__(self):
-                self.field = self
-        def f(x: Optional[C]):
-            if x is None:
-                if a:
-                    return 0
-                else:
-                    return 2
-            return x.field
+            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
+                return
+        C().x(12, **f())
     """
-    self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        x = mod.X
+        self.assertEqual(x, 1)
+    compiled = self.compile(codestr)
+    self.assertEqual(compiled.co_nlocals, 1)

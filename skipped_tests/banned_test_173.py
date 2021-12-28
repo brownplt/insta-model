@@ -1,12 +1,12 @@
-# Reason: Test hitted a banned word vararg
-def test_generic_varargs_unsupported(self):
-    # definition is allowed, we just don't do an optimal invoke
+# Reason: Test hitted a banned word _kw
+def test_verify_kwdefaults_no_value(self):
     codestr = """
-    def f(a: int, b: str, *my_stuff) -> None:
-        pass
-    def g():
-        return f(1, 'abc', "foo")
+        def x(*, b: str="hunter2"):
+            return b
+        a = x()
     """
+    module = self.compile(codestr)
+    # we don't yet support optimized dispatch to kw-only functions
+    self.assertInBytecode(module, "CALL_FUNCTION")
     with self.in_module(codestr) as mod:
-        g = mod.g
-        self.assertInBytecode(g, "CALL_FUNCTION", 3)
+        self.assertEqual(mod.a, "hunter2")

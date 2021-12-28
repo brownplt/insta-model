@@ -1,11 +1,14 @@
 # Reason: Test hitted a banned word int64
-def test_assert_primitive(self):
+def test_error_nested_kwargs_ann(self):
     code = """
         from __static__ import int64
         def f():
-            x: int64 = 1
-            assert x
+            x: int64 = 0
+            def g(**kwargs: x):
+                pass
+            return g
     """
-    with self.in_module(code) as mod:
-        f = mod.f
-        self.assertInBytecode(f, "POP_JUMP_IF_NONZERO")
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "argument annotation cannot be a primitive"
+    ):
+        self.compile(code)

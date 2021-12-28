@@ -1,12 +1,22 @@
-# Reason: Test hitted a banned word Array
-def test_array_call_unbound(self):
+# Reason: Test hitted a banned word f"
+def test_assign_else_only(self):
     codestr = """
-        from __static__ import Array
-        def f() -> Array:
-            return Array([1, 2, 3])
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc(abc):
+            if abc:
+                pass
+            else:
+                x = B()
+            return x.f()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"create instances of a generic Type\[Exact\[Array\[T\]\]\]",
-    ):
-        self.compile(codestr, modname="foo")
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "B", "f"), 0))
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(False), 42)

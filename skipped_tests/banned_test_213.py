@@ -1,14 +1,10 @@
-# Reason: Test hitted a banned word box
-def test_tuple_assign_constant(self):
+# Reason: Test hitted a banned word f"
+def test_list_of_dynamic(self):
     codestr = """
-        from __static__ import int16, box
-        def testfunc():
-            x: int
-            y: str
-            x, y = 1, 1
+        from threading import Thread
+        from typing import List
+        def f(threads: List[Thread]) -> int:
+            return len(threads)
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"type mismatch: Exact\[int\] cannot be assigned to str",
-    ):
-        self.compile(codestr, modname="foo")
+    f = self.find_code(self.compile(codestr), "f")
+    self.assertInBytecode(f, "FAST_LEN")

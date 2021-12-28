@@ -1,15 +1,12 @@
-# Reason: Test hitted a banned word test_method_prologue_posonly
-def test_method_prologue_posonly(self):
+# Reason: Test hitted a banned word test_assign_try_except_redeclare_unknown_type
+def test_assign_try_except_redeclare_unknown_type(self):
     codestr = """
-    def f(x: int, /, y: str):
-        return 42
+        def testfunc():
+            e: int
+            try:
+                pass
+            except UnknownException as e:
+                pass
+            return 42
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertInBytecode(
-            f, "CHECK_ARGS", (0, ("builtins", "int"), 1, ("builtins", "str"))
-        )
-        with self.assertRaisesRegex(
-            TypeError, ".*expected 'str' for argument y, got 'int'"
-        ):
-            f(42, 42)
+    code = self.compile(codestr, modname="foo")

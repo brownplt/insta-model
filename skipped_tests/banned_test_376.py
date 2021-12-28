@@ -1,18 +1,9 @@
-# Reason: Test hitted a banned word int64
-def test_array_enum(self):
+# Reason: Test hitted a banned word test_default_type_error
+def test_default_type_error_with_positional_only_arguments(self):
     codestr = """
-        from __static__ import Array, clen, int64, box
-        def f(x: Array[int64]):
-            i: int64 = 0
-            j: int64 = 0
-            while i < clen(x):
-                j += x[i]
-                i+=1
-            return box(j)
+    def foo(x: int = "", /) -> int:
+        return x
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        a = Array[int64]([1, 2, 3, 4])
-        self.assertEqual(f(a), 10)
-        with self.assertRaises(TypeError):
-            f(None)
+    self.type_error(
+        codestr, r"type mismatch: Exact\[str\] cannot be assigned to int"
+    )

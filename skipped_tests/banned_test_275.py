@@ -1,17 +1,9 @@
-# Reason: Test hitted a banned word await
-def test_async_method_immediate_await(self):
+# Reason: Test hitted a banned word int8
+def test_array_subscripting_slice(self):
     codestr = """
-        class C:
-            async def f(self) -> bool:
-                return True
-        async def f(x: C):
-            if await x.f():
-                return 0
-            return 1
+        from __static__ import Array, int8
+        def m() -> Array[int8]:
+            a = Array[int8]([1, 3, -5, -1, 7, 22])
+            return a[1:3]
     """
-    with self.in_strict_module(codestr) as mod:
-        class D(mod.C):
-            async def f(self):
-                return False
-        d = D()
-        self.assertEqual(asyncio.run(mod.f(d)), 1)
+    self.compile(codestr, modname="foo")

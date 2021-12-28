@@ -1,9 +1,15 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_generic_optional_type_param_2(self):
-    codestr = """
-        from xxclassloader import spamobj
-        def testfunc():
-            x = spamobj[str]()
-            x.setstateoptional('abc')
+# Reason: Test hitted a banned word int8
+def test_vector_wrong_size(self):
+    codestr = f"""
+        from __static__ import int8, int16, Vector
+        def test() -> Vector[int8]:
+            y: int16 = 1
+            x: Vector[int8] = Vector[int8]()
+            x.append(y)
+            return x
     """
-    code = self.compile(codestr, modname="foo")
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"int16 received for positional arg 'v', expected int8",
+    ):
+        self.compile(codestr)

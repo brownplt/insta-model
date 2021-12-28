@@ -1,18 +1,26 @@
-# Reason: Test hitted a banned word int32
-def test_inline_primitive_multiple(self):
+# Reason: Test hitted a banned word f"
+def test_compile_dict_setitem(self):
     codestr = """
-        from __static__ import cbool, inline, int64, int32
-        @inline
-        def f(x: int64) -> cbool:
-            return x == 1
-        @inline
-        def g(x: int32) -> cbool:
-            return x == 2
-        def h(a: int64, b: int32) -> cbool:
-            return f(a) and g(b)
+        from __static__ import CheckedDict
+        def testfunc():
+            x = CheckedDict[int, str]({1:'abc'})
+            x.__setitem__(2, 'def')
+            return x
     """
-    with self.in_module(codestr, optimize=2) as mod:
-        h = mod.h
-        self.assertNotInBytecode(h, "INVOKE_FUNCTION")
-        self.assertNotInBytecode(h, "CALL_FUNCTION")
-        self.assertEqual(h(1, 2), True)
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        x = test()
+        self.assertInBytecode(
+            test,
+            "INVOKE_FUNCTION",
+            (
+                (
+                    "__static__",
+                    "chkdict",
+                    (("builtins", "int"), ("builtins", "str")),
+                    "__setitem__",
+                ),
+                3,
+            ),
+        )
+        self.assertEqual(x, {1: "abc", 2: "def"})

@@ -1,21 +1,17 @@
-# Reason: Test hitted a banned word cbool
-def test_cbool(self):
-    for b in ("True", "False"):
-        codestr = f"""
-        from __static__ import cbool
-        def f() -> int:
-            x: cbool = {b}
-            if x:
-                return 1
-            else:
-                return 2
-        """
-        with self.subTest(b=b):
-            with self.in_module(codestr) as mod:
-                f = mod.f
-                self.assertInBytecode(f, "PRIMITIVE_LOAD_CONST")
-                self.assertInBytecode(
-                    f, "STORE_LOCAL", (0, ("__static__", "cbool"))
-                )
-                self.assertInBytecode(f, "POP_JUMP_IF_ZERO")
-                self.assertEqual(f(), 1 if b == "True" else 2)
+# Reason: Test hitted a banned word await
+def test_awaited_invoke_function_unjitable(self):
+    codestr = """
+        async def f() -> int:
+            class C: pass
+            return 1
+        async def g() -> int:
+            return await f()
+    """
+    with self.in_strict_module(codestr) as mod:
+        self.assertInBytecode(
+            mod.g,
+            "INVOKE_FUNCTION",
+            ((mod.__name__, "f"), 0),
+        )
+        self.assertEqual(asyncio.run(mod.g()), 1)
+        self.assert_not_jitted(mod.f)

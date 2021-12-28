@@ -1,11 +1,13 @@
-# Reason: Test hitted a banned word int64
-def test_int_compare_to_cbool(self):
+# Reason: Test hitted a banned word NamedTuple
+def test_named_tuple(self):
     codestr = """
-        from __static__ import int64, cbool
-        def foo(i: int64) -> cbool:
-            return i  == 0
+        from typing import NamedTuple
+        class C(NamedTuple):
+            x: int
+            y: str
+        def myfunc(x: C):
+            return x.x
     """
     with self.in_module(codestr) as mod:
-        foo = mod.foo
-        self.assertEqual(foo(0), True)
-        self.assertEqual(foo(1), False)
+        f = mod.myfunc
+        self.assertNotInBytecode(f, "LOAD_FIELD")

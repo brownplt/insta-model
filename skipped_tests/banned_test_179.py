@@ -1,10 +1,9 @@
-# Reason: Test hitted a banned word int32
-def test_index_by_int(self):
+# Reason: Test hitted a banned word _kw
+def test_verify_kwdefaults_too_many(self):
     codestr = """
-        from __static__ import int32
-        def f(x):
-            i: int32 = 0
-            return x[i]
+        def x(*, b: str="hunter2") -> None:
+            return
+        x('abc')
     """
-    with self.assertRaises(TypedSyntaxError):
-        self.compile(codestr)
+    # We do not verify types for calls that we can't do direct invokes.
+    self.compile(codestr)

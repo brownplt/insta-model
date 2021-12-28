@@ -1,12 +1,11 @@
-# Reason: Test hitted a banned word int8
-def test_inexact_list_negative_small_int(self):
+# Reason: Test hitted a banned word box
+def test_tuple_assign_list(self):
     codestr = """
-        from __static__ import int64, box, clen
-        def f(x: list):
-            i: int8 = 1
-            return x[-i]
+        from __static__ import int16, box
+        def testfunc(a: int, b: int):
+            x: int
+            y: str
+            x, y = [a, b]
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        res = f([1, 2, 3])
-        self.assertEqual(res, 3)
+    with self.assertRaisesRegex(TypedSyntaxError, "int cannot be assigned to str"):
+        self.compile(codestr, modname="foo")

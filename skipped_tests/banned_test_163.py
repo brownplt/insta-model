@@ -1,10 +1,13 @@
-# Reason: Test hitted a banned word _kw
-def test_kwarg_nocast(self):
+# Reason: Test hitted a banned word b"
+def test_invoke_str_method(self):
     codestr = """
-        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
-            return
-        def g():
-            x(b='abc')
+    def func():
+        a = 'a b c'
+        return a.split()
     """
-    code = self.find_code(self.compile(codestr), "g")
-    self.assertNotInBytecode(code, "CAST", ("builtins", "str"))
+    with self.in_module(codestr) as mod:
+        f = mod.func
+        self.assertInBytecode(
+            f, "INVOKE_FUNCTION", (("builtins", "str", "split"), 1)
+        )
+        self.assertEqual(f(), ["a", "b", "c"])

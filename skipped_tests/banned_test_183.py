@@ -1,14 +1,12 @@
-# Reason: Test hitted a banned word int8
-def test_list_del_primitive_int(self):
+# Reason: Test hitted a banned word test_call_function_unknown_ret_type
+def test_call_function_unknown_ret_type(self):
     codestr = """
-        from __static__ import int8
-        def f():
-            l = [1, 2, 3]
-            x: int8 = 1
-            del l[x]
-            return l
+        from __future__ import annotations
+        def g() -> foo:
+            return 42
+        def testfunc():
+            return g()
     """
-    f = self.find_code(self.compile(codestr))
-    self.assertInBytecode(f, "LIST_DEL")
     with self.in_module(codestr) as mod:
-        self.assertEqual(mod.f(), [1, 3])
+        f = mod.testfunc
+        self.assertEqual(f(), 42)

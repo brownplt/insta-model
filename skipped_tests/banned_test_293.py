@@ -1,15 +1,12 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_args_funccall_int(self):
+# Reason: Test hitted a banned word xxclassloader
+def test_spamobj_no_params(self):
     codestr = """
-        from __static__ import int8
-        def f(foo: int):
-            pass
-        def n() -> int:
-            x: int8 = 3
-            return f(x)
+        from xxclassloader import spamobj
+        def f():
+            x = spamobj()
     """
     with self.assertRaisesRegex(
         TypedSyntaxError,
-        r"int8 received for positional arg 'foo', expected int",
+        r"cannot create instances of a generic Type\[xxclassloader.spamobj\[T\]\]",
     ):
-        self.compile(codestr, modname="foo.py")
+        self.compile(codestr, modname="foo")

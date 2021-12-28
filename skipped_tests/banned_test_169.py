@@ -1,12 +1,26 @@
-# Reason: Test hitted a banned word _kw
-def test_verify_mixed_args_kw_failure_method(self):
+# Reason: Test hitted a banned word xxclassloader
+def test_invoke_meth_o(self):
     codestr = """
-        class C:
-            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
-                return
-        C().x(12, c=b'lol', b="lol")
+    from xxclassloader import spamobj
+    def func():
+        a = spamobj[int]()
+        a.setstate_untyped(42)
+        return a.getstate()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, r"bytes received for keyword arg 'c', expected int"
-    ):
-        self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        f = mod.func
+        self.assertInBytecode(
+            f,
+            "INVOKE_METHOD",
+            (
+                (
+                    "xxclassloader",
+                    "spamobj",
+                    (("builtins", "int"),),
+                    "setstate_untyped",
+                ),
+                1,
+            ),
+        )
+        self.assertEqual(f(), 42)
+        self.assert_jitted(f)

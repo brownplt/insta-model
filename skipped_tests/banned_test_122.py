@@ -1,11 +1,13 @@
 # Reason: Test hitted a banned word int64
-def test_unbox_kw_args(self):
+def test_error_nested_class_prim_decorator(self):
     code = """
         from __static__ import int64, unbox
-        def f(a):
-            x: int64 = unbox(42, x=2)
+        from typing import Final
+        X: Final[int] = 42
+        @int64(X)
+        class C: pass
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "unbox\\(\\) takes no keyword arguments"
+        TypedSyntaxError, "decorator cannot be a primitive"
     ):
         self.compile(code)

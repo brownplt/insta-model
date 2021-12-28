@@ -1,12 +1,22 @@
-# Reason: Test hitted a banned word int8
-def test_array_inplace_assign(self):
+# Reason: Test hitted a banned word f"
+def test_assign_try_except_no_initial(self):
     codestr = """
-        from __static__ import Array, int8
-        def m() -> Array[int8]:
-            a = Array[int8]([1, 3, -5, -1, 7, 22])
-            a[0] += 1
-            return a
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc():
+            try:
+                x: B = D()
+            except:
+                x = B()
+            return x.f()
     """
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "B", "f"), 0))
     with self.in_module(codestr) as mod:
-        m = mod.m
-        self.assertEqual(m()[0], 2)
+        test = mod.testfunc
+        self.assertEqual(test(), "abc")

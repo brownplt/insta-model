@@ -1,23 +1,12 @@
-# Reason: Test hitted a banned word nonlocal
-def test_deep_attr_chain(self):
-    """this shouldn't explode exponentially"""
+# Reason: Test hitted a banned word box
+def test_inferred_primitive_type(self):
     codestr = """
-    def f(x):
-        return x.x.x.x.x.x.x
+    from __static__ import ssize_t, box
+    def f():
+        x: ssize_t = 1
+        y = x
+        return box(y)
     """
-    class C:
-        def __init__(self):
-            self.x = self
-    orig_bind_attr = Object.bind_attr
-    call_count = 0
-    def bind_attr(*args):
-        nonlocal call_count
-        call_count += 1
-        return orig_bind_attr(*args)
-    with patch("compiler.static.types.Object.bind_attr", bind_attr):
-        with self.in_module(codestr) as mod:
-            f = mod.f
-            x = C()
-            self.assertEqual(f(x), x)
-            # Initially this would be 63 when we were double visiting
-            self.assertLess(call_count, 10)
+    with self.in_module(codestr) as mod:
+        f = mod.f
+        self.assertEqual(f(), 1)

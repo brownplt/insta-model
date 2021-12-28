@@ -1,11 +1,12 @@
-# Reason: Test hitted a banned word b"
-def test_checked_dict_ctor(self):
-    self.assertEqual(chkdict[str, str](x="abc"), {"x": "abc"})
-    self.assertEqual(chkdict[str, int](x=42), {"x": 42})
-    self.assertEqual(chkdict[str, str]({"x": "abc"}), {"x": "abc"})
-    self.assertEqual(chkdict[str, str]([("a", "b")]), {"a": "b"})
-    self.assertEqual(chkdict[str, str]([("a", "b")]), {"a": "b"})
-    self.assertEqual(chkdict[str, str](chkdict[str, str](x="abc")), {"x": "abc"})
-    self.assertEqual(chkdict[str, str](chkdict[str, object](x="abc")), {"x": "abc"})
-    self.assertEqual(chkdict[str, str](UserDict(x="abc")), {"x": "abc"})
-    self.assertEqual(chkdict[str, str](UserDict(x="abc"), x="foo"), {"x": "foo"})
+# Reason: Test hitted a banned word int8
+def test_generic_int_funcs_overflow(self):
+    from xxclassloader import spamobj
+    o = spamobj[str]()
+    o.setuint64(42)
+    for i, f in enumerate([o.setint8, o.setint16, o.setint32, o.setint]):
+        with self.assertRaises(OverflowError):
+            x = -(1 << ((8 << i) - 1)) - 1
+            f(x)
+        with self.assertRaises(OverflowError):
+            x = 1 << ((8 << i) - 1)
+            f(x)

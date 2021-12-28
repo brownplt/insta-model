@@ -1,9 +1,12 @@
-# Reason: Test hitted a banned word _kw
-def test_verify_kwonly_failure(self):
+# Reason: Test hitted a banned word f"
+def test_nonoptional_load(self):
     codestr = """
-        def x(*, a: int=1, b: str="hunter2") -> None:
-            return
-        x(a="hi", b="lol")
+        class C:
+            def __init__(self, y: int):
+                self.y = y
+        def f(c: C) -> int:
+            return c.y
     """
-    # We do not verify types for calls that we can't do direct invokes.
-    self.compile(codestr)
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "f")
+    self.assertInBytecode(f, "LOAD_FIELD", ("foo", "C", "y"))

@@ -1,6 +1,8 @@
-# Reason: Test hitted a banned word b"
-def test_checked_dict_fromkeys_optional(self):
-    x = chkdict[Optional[str], int].fromkeys(["a", "b", "c", None], 42)
-    self.assertEqual(x, {"a": 42, "b": 42, "c": 42, None: 42})
-    x = chkdict[str, Optional[int]].fromkeys("abc", None)
-    self.assertEqual(x, {"a": None, "b": None, "c": None})
+# Reason: Test hitted a banned word xxclassloader
+def test_generic_type_int_func(self):
+    from xxclassloader import spamobj
+    o = spamobj[str]()
+    o.setint(42)
+    self.assertEqual(o.getint(), 42)
+    with self.assertRaises(TypeError):
+        o.setint("abc")

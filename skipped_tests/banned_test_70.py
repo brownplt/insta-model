@@ -1,16 +1,14 @@
-# Reason: Test hitted a banned word box
-def test_unbox_cbool(self):
+# Reason: Test hitted a banned word int64
+def test_unbox_typed(self):
     codestr = """
-    from __static__ import cbool, box
+    from __static__ import int64, box
     def f(i: object):
-        x = cbool(i)
+        x = int64(i)
         return box(x)
     """
     with self.in_module(codestr) as mod:
         f = mod.f
+        self.assertEqual(f(42), 42)
         self.assertInBytecode(f, "PRIMITIVE_UNBOX")
-        self.assertInBytecode(f, "CAST", ("builtins", "bool"))
-        self.assertEqual(f(True), True)
-        self.assertEqual(f(False), False)
-        with self.assertRaises(TypeError):
-            self.assertEqual(f(42), True)
+        with self.assertRaisesRegex(TypeError, "expected 'int', got 'str'"):
+            self.assertEqual(f("abc"), 42)

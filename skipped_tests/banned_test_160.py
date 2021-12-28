@@ -1,11 +1,19 @@
-# Reason: Test hitted a banned word _kw
-def test_verify_kwargs_failure(self):
-    codestr = """
-        def x(a: int=1, b: str="hunter2") -> None:
-            return
-        x(a="hi", b="lol")
-    """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, r"Exact\[str\] received for keyword arg 'a', expected int"
-    ):
-        self.compile(codestr)
+# Reason: Test hitted a banned word f"
+def test_cast_fail(self):
+    for code_gen in (StaticCodeGenerator, PythonCodeGenerator):
+        codestr = """
+            from __static__ import cast
+            class C:
+                pass
+            def f() -> C:
+                return cast(C, 42)
+        """
+        code = self.compile(codestr, code_gen)
+        f = self.find_code(code, "f")
+        if code_gen is StaticCodeGenerator:
+            self.assertInBytecode(f, "CAST", ("<module>", "C"))
+        with self.in_module(codestr) as mod:
+            with self.assertRaises(TypeError):
+                f = mod.f
+                f()
+                self.assert_jitted(f)

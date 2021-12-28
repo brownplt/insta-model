@@ -1,12 +1,11 @@
 # Reason: Test hitted a banned word int8
-def test_conversion_narrow_primitive(self):
-    codestr = f"""
-        from __static__ import int64, Vector, uint8, unbox
-        def f(i: int64):
-            v = Vector[uint8]([0])
-            v[0] = uint8(i if i != -1 else unbox(255))
-            return v
+def test_primitive_iter(self) -> None:
+    codestr = """
+        from __static__ import int8
+        def f():
+            x: int8 = 42
+            for a in x:
+                pass
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertEqual(list(f(42)), [42])
+    with self.assertRaisesRegex(TypedSyntaxError, "cannot iterate over int8"):
+        self.compile(codestr)

@@ -1,22 +1,22 @@
-# Reason: Test hitted a banned word int64
-def test_invoke_func_unexistent_module(self):
+# Reason: Test hitted a banned word f"
+def test_invoke_dict_override(self):
     codestr = """
-    from xxclassloader import bar
-    from __static__ import int64, box
-    def func():
-        a: int64 = bar(42)
-        return box(a)
+        class C:
+            def f(self):
+                return 1
+        def x(c: C):
+            x = c.f()
+            x += c.f()
+            return x
     """
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "x")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("foo", "C", "f"), 0))
     with self.in_module(codestr) as mod:
-        # remove xxclassloader from sys.modules during this test
-        xxclassloader = sys.modules["xxclassloader"]
-        del sys.modules["xxclassloader"]
-        try:
-            func = mod.func
-            self.assertInBytecode(
-                func, "INVOKE_FUNCTION", (((mod.__name__, "bar"), 1))
-            )
-            self.assertEqual(func(), 42)
-            self.assert_jitted(func)
-        finally:
-            sys.modules["xxclassloader"] = xxclassloader
+        x, C = mod.x, mod.C
+        self.assertEqual(x(C()), 2)
+        class D(C):
+            def __init__(self):
+                self.f = lambda: 42
+        d = D()
+        self.assertEqual(x(d), 84)

@@ -1,11 +1,12 @@
 # Reason: Test hitted a banned word _kw
-def test_verify_mixed_args_kw_failure(self):
+def test_invoke_str_method_kwarg(self):
     codestr = """
-        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
-            return
-        x(12, c="hi", b="lol")
+    def func():
+        a = 'a b c'
+        return a.split(sep='a')
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, r"Exact\[str\] received for keyword arg 'c', expected int"
-    ):
-        self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        f = mod.func
+        self.assertNotInBytecode(f, "INVOKE_FUNCTION")
+        self.assertNotInBytecode(f, "INVOKE_METHOD")
+        self.assertEqual(f(), ["", " b c"])

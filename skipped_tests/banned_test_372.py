@@ -1,13 +1,12 @@
-# Reason: Test hitted a banned word double
-def test_array_len(self):
+# Reason: Test hitted a banned word float
+def test_exact_float_type(self):
     codestr = """
-        from __static__ import int64, char, double, Array
-        from array import array
-        def y():
-            return len(Array[int64]([1, 3, 5]))
+    def foo():
+        f = float("1.0")
+        reveal_type(f)
     """
-    y = self.find_code(self.compile(codestr, modname="foo"), name="y")
-    self.assertInBytecode(y, "FAST_LEN", FAST_LEN_ARRAY)
-    with self.in_module(codestr) as mod:
-        y = mod.y
-        self.assertEqual(y(), 3)
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"reveal_type\(f\): 'Exact\[float\]'",
+    ):
+        self.compile(codestr)

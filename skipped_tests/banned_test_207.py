@@ -1,14 +1,14 @@
-# Reason: Test hitted a banned word nonlocal
-def test_nonlocal_primitive(self):
+# Reason: Test hitted a banned word int8
+def test_list_del_primitive_int(self):
     codestr = """
         from __static__ import int8
         def f():
-            x: int8 = 0
-            def g():
-                nonlocal x
-                x = 1
+            l = [1, 2, 3]
+            x: int8 = 1
+            del l[x]
+            return l
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "cannot use primitives in global or closure scope"
-    ):
-        self.compile(codestr, modname="foo")
+    f = self.find_code(self.compile(codestr))
+    self.assertInBytecode(f, "LIST_DEL")
+    with self.in_module(codestr) as mod:
+        self.assertEqual(mod.f(), [1, 3])

@@ -1,19 +1,17 @@
-# Reason: Test hitted a banned word await
-def test_awaited_invoke_function_indirect_with_args(self):
+# Reason: Test hitted a banned word int32
+def test_primitive_return_recursive(self):
     codestr = """
-        async def f(a: int, b: int) -> int:
-            return a + b
-        async def g() -> int:
-            return await f(1, 2)
+        from __static__ import int32
+        def fib(n: int32) -> int32:
+            if n <= 1:
+                return n
+            return fib(n-1) + fib(n-2)
     """
-    with self.in_module(codestr) as mod:
-        g = mod.g
+    with self.in_strict_module(codestr) as mod:
         self.assertInBytecode(
-            g,
+            mod.fib,
             "INVOKE_FUNCTION",
-            ((mod.__name__, "f"), 2),
+            ((mod.__name__, "fib"), 1),
         )
-        self.assertEqual(asyncio.run(g()), 3)
-        # exercise shadowcode, INVOKE_FUNCTION_INDIRECT_CACHED
-        self.make_async_func_hot(g)
-        self.assertEqual(asyncio.run(g()), 3)
+        self.assertEqual(mod.fib(2), 1)
+        self.assert_jitted(mod.fib)

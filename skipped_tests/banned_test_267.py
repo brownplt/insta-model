@@ -1,14 +1,15 @@
-# Reason: Test hitted a banned word test_compile_checked_dict_from_dict_call
-def test_compile_checked_dict_from_dict_call_3(self):
-    # we emit the chkdict import first before future annotations, but that
-    # should be fine as we're the compiler.
+# Reason: Test hitted a banned word int64
+def test_array_assign_wrong_type(self):
     codestr = """
-        from __future__ import annotations
-        from __static__.compiler_flags import checked_dicts
-        def testfunc():
-            x = dict[str, int](x=42)
-            return x
+        from __static__ import int64, char, Array
+        def test() -> None:
+            x: Array[int64] = Array[char]([48])
     """
-    with self.in_module(codestr) as mod:
-        test = mod.testfunc
-        self.assertEqual(type(test()), chkdict[str, int])
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        type_mismatch(
+            "Exact[Array[char]]",
+            "Exact[Array[int64]]",
+        ),
+    ):
+        self.compile(codestr, modname="foo")

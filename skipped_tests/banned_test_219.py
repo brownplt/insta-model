@@ -1,12 +1,22 @@
-# Reason: Test hitted a banned word int64
-def test_array_import(self):
+# Reason: Test hitted a banned word f"
+def test_narrow_conditional_widened(self):
     codestr = """
-        from __static__ import int64, Array
-        def test() -> Array[int64]:
-            x: Array[int64] = Array[int64](1)
-            x[0] = 1
-            return x
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc(abc):
+            x = B()
+            if abc:
+                x = D()
+            return x.f()
     """
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "B", "f"), 0))
     with self.in_module(codestr) as mod:
-        test = mod.test
-        self.assertEqual(test(), array("L", [1]))
+        test = mod.testfunc
+        self.assertEqual(test(True), "abc")
+        self.assertEqual(test(False), 42)

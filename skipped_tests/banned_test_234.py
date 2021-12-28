@@ -1,13 +1,23 @@
-# Reason: Test hitted a banned word _kw
-def test_method_prologue_kwonly(self):
+# Reason: Test hitted a banned word f"
+def test_assign_try_assign_in_except(self):
     codestr = """
-    def f(*, x: str):
-        return 42
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc():
+            x: B = D()
+            try:
+                pass
+            except:
+                x = B()
+            return x.f()
     """
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "B", "f"), 0))
     with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertInBytecode(f, "CHECK_ARGS", (0, ("builtins", "str")))
-        with self.assertRaisesRegex(
-            TypeError, "f expected 'str' for argument x, got 'int'"
-        ):
-            f(x=42)
+        test = mod.testfunc
+        self.assertEqual(test(), "abc")

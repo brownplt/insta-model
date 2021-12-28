@@ -1,12 +1,11 @@
-# Reason: Test hitted a banned word float
-def test_exact_float_type(self):
+# Reason: Test hitted a banned word test_compile_checked_dict_bad_annotation
+def test_compile_checked_dict_bad_annotation(self):
     codestr = """
-    def foo():
-        f = float("1.0")
-        reveal_type(f)
+        from __static__ import CheckedDict
+        def testfunc():
+            x: 42 = CheckedDict[str, str]({'abc':'abc'})
+            return x
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"reveal_type\(f\): 'Exact\[float\]'",
-    ):
-        self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(type(test()), chkdict[str, str])

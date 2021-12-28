@@ -1,9 +1,12 @@
-# Reason: Test hitted a banned word _kw
-def test_verify_kwdefaults(self):
+# Reason: Test hitted a banned word f"
+def test_unknown_annotation(self):
     codestr = """
-        def x(*, b: str="hunter2"):
-            return b
-        z = x(b="lol")
+        def f(a):
+            x: foo = a
+            return x.bar
     """
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.z, "lol")
+    code = self.compile(codestr, modname="foo")
+    class C:
+        bar = 42
+    f = self.run_code(codestr)["f"]
+    self.assertEqual(f(C()), 42)

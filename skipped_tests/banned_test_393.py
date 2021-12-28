@@ -1,15 +1,9 @@
-# Reason: Test hitted a banned word int8
-def test_array_get_dynamic_idx(self):
-    codestr = """
-        from __static__ import Array, int8, box
-        def x():
-            return 33
-        def m() -> int:
-            content = list(range(121))
-            a = Array[int8](content)
-            return box(a[x()])
-    """
-    with self.in_module(codestr) as mod:
-        m = mod.m
-        actual = m()
-        self.assertEqual(actual, 33)
+# Reason: Test hitted a banned word int32
+def test_typed_slots_bad_inst(self):
+    class C:
+        __slots__ = ("a",)
+        __slot_types__ = {"a": ("__static__", "int32")}
+    class D:
+        pass
+    with self.assertRaises(TypeError):
+        C.a.__get__(D(), D)

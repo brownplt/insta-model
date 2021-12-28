@@ -1,11 +1,14 @@
-# Reason: Test hitted a banned word continue
-def test_narrow_while_continue_if(self):
+# Reason: Test hitted a banned word int8
+def test_widening_assign_reassign(self):
     codestr = """
-        from typing import Optional
-        def f(x: Optional[int]) -> int:
-            while True:
-                if x is None:
-                    continue
-                return x
+        from __static__ import int8, int16, box
+        def testfunc():
+            x: int16
+            y: int8
+            x = y = 42
+            x = 257
+            return box(x), box(y)
     """
-    self.compile(codestr)
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(), (257, 42))

@@ -1,13 +1,11 @@
-# Reason: Test hitted a banned word test_compile_checked_dict_wrong_unknown_type
-def test_compile_checked_dict_wrong_unknown_type(self):
+# Reason: Test hitted a banned word int64
+def test_array_create(self):
     codestr = """
-        def f(x: int):
+        from __static__ import int64, Array
+        def test() -> Array[int64]:
+            x: Array[int64] = Array[int64]([1, 3, 5])
             return x
-        def testfunc(iter):
-            return f({x:42 for x in iter})
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"Exact\[dict\] received for positional arg 'x', expected int",
-    ):
-        self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        test = mod.test
+        self.assertEqual(test(), array("l", [1, 3, 5]))

@@ -1,9 +1,9 @@
-# Reason: Test hitted a banned word int8
-def test_array_subscripting_slice(self):
+# Reason: Test hitted a banned word global
+def test_global_int(self):
     codestr = """
-        from __static__ import Array, int8
-        def m() -> Array[int8]:
-            a = Array[int8]([1, 3, -5, -1, 7, 22])
-            return a[1:3]
+        X: int =  60 * 60 * 24
     """
-    self.compile(codestr, modname="foo")
+    code = self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        X = mod.X
+        self.assertEqual(X, 60 * 60 * 24)

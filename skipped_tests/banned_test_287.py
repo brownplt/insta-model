@@ -1,13 +1,14 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_args_funcdef_too_many_args(self):
+# Reason: Test hitted a banned word break
+def test_narrow_while_break(self):
     codestr = """
-        from __static__ import int8, box
-        def n(x: int8):
-            return box(x)
+        from typing import Optional
+        def f(x: Optional[int]) -> int:
+            while x is None:
+                break
+            return x
     """
-    with self.in_strict_module(codestr) as mod:
-        n = mod.n
-        with self.assertRaises(TypeError):
-            print(mod.n(-128, x=2))
-        with self.assertRaises(TypeError):
-            print(mod.n(-128, 2))
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        bad_ret_type("Optional[int]", "int"),
+    ):
+        self.compile(codestr)

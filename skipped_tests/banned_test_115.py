@@ -1,11 +1,12 @@
-# Reason: Test hitted a banned word cbool
-def test_yield_primitive(self):
+# Reason: Test hitted a banned word int64
+def test_subscr_primitive(self):
     code = """
-        from __static__ import cbool
-        from typing import Final
-        COND: Final[bool] = True
-        def f(abc):
-            yield cbool(COND)
+        from __static__ import int64
+        def f():
+            x: int64 = 0
+            return [*x]
     """
-    with self.assertRaisesRegex(TypedSyntaxError, "cannot yield a primitive value"):
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "cannot use primitive in starred expression"
+    ):
         self.compile(code)

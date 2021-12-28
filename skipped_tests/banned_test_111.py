@@ -1,12 +1,13 @@
-# Reason: Test hitted a banned word int64
-def test_format_primitive(self):
+# Reason: Test hitted a banned word cbool
+def test_generator_primitive_condition(self):
     code = """
-        from __static__ import int64
-        def f():
-            x: int64 = 0
-            return f"{x}"
+        from __static__ import cbool
+        from typing import Final
+        COND: Final[bool] = False
+        def f(abc):
+            return [x for x in abc if cbool(COND)]
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "cannot use primitive in formatted value"
-    ):
-        self.compile(code)
+    with self.in_module(code) as mod:
+        f = mod.f
+        self.assertInBytecode(f.__code__, "POP_JUMP_IF_ZERO")
+        self.assertEqual(f([1, 2, 3]), [])

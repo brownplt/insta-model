@@ -1,15 +1,23 @@
-# Reason: Test hitted a banned word b"
-def test_chkdict_del(self):
+# Reason: Test hitted a banned word await
+def test_awaited_invoke_method_with_args(self):
     codestr = """
-    def f():
-        x = {}
-        x[1] = "a"
-        x[2] = "b"
-        del x[1]
-        return x
+        class C:
+            async def f(self, a: int, b: int) -> int:
+                return a + b
+            async def g(self) -> int:
+                return await self.f(1, 2)
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        ret = f()
-        self.assertNotIn(1, ret)
-        self.assertIn(2, ret)
+    with self.in_strict_module(codestr) as mod:
+        self.assertInBytecode(
+            mod.C.g,
+            "INVOKE_METHOD",
+            ((mod.__name__, "C", "f"), 2),
+        )
+        self.assertEqual(asyncio.run(mod.C().g()), 3)
+        # exercise shadowcode, INVOKE_METHOD_CACHED
+        async def make_hot():
+            c = mod.C()
+            for i in range(50):
+                await c.g()
+        asyncio.run(make_hot())
+        self.assertEqual(asyncio.run(mod.C().g()), 3)

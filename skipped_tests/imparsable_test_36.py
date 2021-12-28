@@ -1,8 +1,7 @@
 # Reason: Format too complicated
-def test_checked_dict_nonoptional(self):
-    x = chkdict[str, Optional[str]]()
-    with self.assertRaises(TypeError):
-        x[None] = "abc"
-    x = chkdict[Optional[str], str]()
-    with self.assertRaises(TypeError):
-        x["abc"] = None
+def test_checked_dict_pop(self):
+    x = chkdict[str, int](x=2)
+    y = x.pop("x")
+    self.assertEqual(y, 2)
+    with self.assertRaises(KeyError):
+        x.pop("z")

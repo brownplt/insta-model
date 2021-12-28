@@ -1,5 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_array_slice(self):
-    v = Array[int64]([1, 2, 3, 4])
-    self.assertEqual(v[1:3], Array[int64]([2, 3]))
-    self.assertEqual(type(v[1:2]), Array[int64])
+# Reason: Test hitted a banned word int8
+def test_assign_bool_to_primitive_int(self):
+    codestr = f"""
+    from __static__ import int8
+    def f() -> int:
+        a: int8 = True
+    """
+    with self.assertRaisesRegex(
+        TypedSyntaxError, type_mismatch("Exact[bool]", "int8")
+    ):
+        self.compile(codestr)

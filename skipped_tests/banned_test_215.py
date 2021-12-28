@@ -1,13 +1,29 @@
-# Reason: Test hitted a banned word int64
-def test_vector_assign_non_primitive(self):
+# Reason: Test hitted a banned word double
+def test_double_decl(self):
     codestr = """
-        from __static__ import int64, Vector
-        def test(abc) -> Vector[int64]:
-            x: Vector[int64] = Vector[int64](2)
-            i: int64 = 0
-            x[i] = abc
+        def f():
+            x: int
+            x: str
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, type_mismatch("dynamic", "int64")
+        TypedSyntaxError, "Cannot redefine local variable x"
     ):
-        self.compile(codestr)
+        self.compile(codestr, modname="foo")
+    codestr = """
+        def f():
+            x = 42
+            x: str
+    """
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "Cannot redefine local variable x"
+    ):
+        self.compile(codestr, modname="foo")
+    codestr = """
+        def f():
+            x = 42
+            x: int
+    """
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "Cannot redefine local variable x"
+    ):
+        self.compile(codestr, modname="foo")

@@ -1,11 +1,23 @@
-# Reason: Test hitted a banned word int64
-def test_array_create(self):
+# Reason: Test hitted a banned word f"
+def test_assign_conditional_both_sides(self):
     codestr = """
-        from __static__ import int64, Array
-        def test() -> Array[int64]:
-            x: Array[int64] = Array[int64]([1, 3, 5])
-            return x
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc(abc):
+            x = B()
+            if abc:
+                x = D()
+            else:
+                x = D()
+            return x.f()
     """
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "D", "f"), 0))
     with self.in_module(codestr) as mod:
-        test = mod.test
-        self.assertEqual(test(), array("l", [1, 3, 5]))
+        test = mod.testfunc
+        self.assertEqual(test(True), "abc")

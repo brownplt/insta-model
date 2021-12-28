@@ -1,13 +1,12 @@
-# Reason: Test hitted a banned word cbool
-def test_generator_primitive_element(self):
+# Reason: Test hitted a banned word int64
+def test_set_primitive(self):
     code = """
-        from __static__ import cbool
-        from typing import Final
-        COND: Final[bool] = True
-        def f(abc):
-            return [cbool(COND) for x in abc]
+        from __static__ import int64
+        def f():
+            x: int64 = 1
+            return {x}
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "generator element cannot be a primitive"
+        TypedSyntaxError, "set members cannot be primitives"
     ):
         self.compile(code)

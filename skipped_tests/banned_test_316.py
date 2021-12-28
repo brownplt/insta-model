@@ -1,13 +1,13 @@
-# Reason: Test hitted a banned word float
-def test_chkdict_float_is_dynamic(self):
+# Reason: Test hitted a banned word test_compile_checked_dict_wrong_unknown_type
+def test_compile_checked_dict_wrong_unknown_type(self):
     codestr = """
-    from __static__ import CheckedDict
-    def main():
-        d = CheckedDict[float, str]({2.0: "hello", 2.3: "foobar"})
-        reveal_type(d)
+        def f(x: int):
+            return x
+        def testfunc(iter):
+            return f({x:42 for x in iter})
     """
     with self.assertRaisesRegex(
         TypedSyntaxError,
-        r"reveal_type\(d\): 'Exact\[chkdict\[dynamic, str\]\]'",
+        r"Exact\[dict\] received for positional arg 'x', expected int",
     ):
-        self.compile(codestr)
+        self.compile(codestr, modname="foo")

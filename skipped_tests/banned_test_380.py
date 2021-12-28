@@ -1,17 +1,14 @@
-# Reason: Test hitted a banned word int64
-def test_seq_repeat_primitive_reversed(self):
+# Reason: Test hitted a banned word test_inline_bare_return
+def test_inline_bare_return(self):
     codestr = """
-        from __static__ import int64
-        def f():
-            x: int64 = 2
-            l = [1, 2]
-            return x * l
+        from __static__ import inline
+        @inline
+        def f(x, y):
+            return
+        def g():
+            return f(x=1,y=2)
     """
-    f = self.find_code(self.compile(codestr))
-    self.assertInBytecode(
-        f,
-        "SEQUENCE_REPEAT",
-        SEQ_LIST | SEQ_REPEAT_REVERSED | SEQ_REPEAT_PRIMITIVE_NUM,
-    )
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.f(), [1, 2, 1, 2])
+    with self.in_module(codestr, optimize=2) as mod:
+        g = mod.g
+        self.assertInBytecode(g, "LOAD_CONST", None)
+        self.assertEqual(g(), None)

@@ -1,9 +1,15 @@
 # Reason: Test hitted a banned word _kw
-def test_verify_kwdefaults_too_many(self):
+def test_incompat_override_method_kwonly_mismatch(self):
     codestr = """
-        def x(*, b: str="hunter2") -> None:
-            return
-        x('abc')
+        class A:
+            def m(self, x: str) -> int:
+                return 42
+        class B(A):
+            def m(self, *, x: str) -> int:
+                return 0
     """
-    # We do not verify types for calls that we can't do direct invokes.
-    self.compile(codestr)
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        "<module>.B.m overrides <module>.A.m inconsistently. `x` differs by keyword only vs positional",
+    ):
+        self.compile(codestr)

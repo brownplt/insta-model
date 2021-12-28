@@ -63,80 +63,6 @@ def testfunc():
 |#
 
 
-;; conformance_suite/test_compile_dict_setitem.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (expr (call (attribute "x" "__setitem__") ((con 2) (con "def")))) (return "x"))))))))
-#|
-
-from __static__ import CheckedDict
-def testfunc():
-    x = CheckedDict[int, str]({1:'abc'})
-    x.__setitem__(2, 'def')
-    return x
-# def test_compile_dict_setitem(self):
-#     codestr = """
-#         from __static__ import CheckedDict
-#         def testfunc():
-#             x = CheckedDict[int, str]({1:'abc'})
-#             x.__setitem__(2, 'def')
-#             return x
-#     """
-#     with self.in_module(codestr) as mod:
-#         test = mod.testfunc
-#         x = test()
-#         self.assertInBytecode(
-#             test,
-#             "INVOKE_FUNCTION",
-#             (
-#                 (
-#                     "__static__",
-#                     "chkdict",
-#                     (("builtins", "int"), ("builtins", "str")),
-#                     "__setitem__",
-#                 ),
-#                 3,
-#             ),
-#         )
-#         self.assertEqual(x, {1: "abc", 2: "def"})
-|#
-
-
-;; conformance_suite/test_compile_dict_setitem_subscr.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (assign ((subscript "x" (con 2))) (con "def")) (return "x"))))))))
-#|
-
-from __static__ import CheckedDict
-def testfunc():
-    x = CheckedDict[int, str]({1:'abc'})
-    x[2] = 'def'
-    return x
-# def test_compile_dict_setitem_subscr(self):
-#     codestr = """
-#         from __static__ import CheckedDict
-#         def testfunc():
-#             x = CheckedDict[int, str]({1:'abc'})
-#             x[2] = 'def'
-#             return x
-#     """
-#     with self.in_module(codestr) as mod:
-#         test = mod.testfunc
-#         x = test()
-#         self.assertInBytecode(
-#             test,
-#             "INVOKE_FUNCTION",
-#             (
-#                 (
-#                     "__static__",
-#                     "chkdict",
-#                     (("builtins", "int"), ("builtins", "str")),
-#                     "__setitem__",
-#                 ),
-#                 3,
-#             ),
-#         )
-#         self.assertEqual(x, {1: "abc", 2: "def"})
-|#
-
-
 ;; conformance_suite/test_dict_invoke.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("pydict")) (function-def "f" (("x" dynamic)) dynamic ((ann-assign "y" "pydict" "x") (return (call (attribute "y" "get") ((con "foo")))))))))))
 #|
@@ -289,31 +215,6 @@ def g(a,b):
 |#
 
 
-;; conformance_suite/test_inline_recursive.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "f" ("x" "y"))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2)))))))))))
-#|
-
-from __static__ import inline
-@inline
-def f(x, y):
-    return f(x, y)
-def g():
-    return f(1,2)
-# def test_inline_recursive(self):
-#     codestr = """
-#         from __static__ import inline
-#         @inline
-#         def f(x, y):
-#             return f(x, y)
-#         def g():
-#             return f(1,2)
-#     """
-#     with self.in_module(codestr, optimize=2) as mod:
-#         g = mod.g
-#         self.assertInBytecode(g, "INVOKE_FUNCTION", (((mod.__name__, "f"), 2)))
-|#
-
-
 ;; conformance_suite/test_invoke_all_extra_args.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "target" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic)) dynamic ((return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * "a" (con 2)) (bin-op * "b" (con 3))) (bin-op * "c" (con 4))) (bin-op * "d" (con 5))) (bin-op * "e" (con 6))) (bin-op * "f" (con 7))) "g")))) (function-def "testfunc" () dynamic ((return (call "target" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7)))))))))))
 #|
@@ -449,29 +350,6 @@ def func():
 |#
 
 
-;; conformance_suite/test_invoke_strict_module.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))))))))
-#|
-
-def f():
-    return 42
-def g():
-    return f()
-# def test_invoke_strict_module(self):
-#     codestr = """
-#         def f():
-#             return 42
-#         def g():
-#             return f()
-#     """
-#     with self.in_strict_module(codestr) as mod:
-#         g = mod.g
-#         for i in range(100):
-#             self.assertEqual(g(), 42)
-#         self.assertInBytecode(g, "INVOKE_FUNCTION", ((mod.__name__, "f"), 0))
-|#
-
-
 ;; conformance_suite/test_invoke_strict_module_deep.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" () dynamic ((return (call "f0" ())))) (function-def "f2" () dynamic ((return (call "f1" ())))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ())))))))))
 #|
@@ -512,64 +390,6 @@ def g():
 #         self.assertEqual(g(), 42)
 #         self.assertEqual(g(), 42)
 #         self.assertInBytecode(g, "INVOKE_FUNCTION", ((mod.__name__, "f11"), 0))
-|#
-
-
-;; conformance_suite/test_invoke_strict_module_deep_unjitable.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f12" () dynamic ((return (con 42)))) (function-def "f11" () dynamic ((class "C" () (pass)) (return (call "f12" ())))) (function-def "f10" () dynamic ((return (call "f11" ())))) (function-def "f9" () dynamic ((return (call "f10" ())))) (function-def "f8" () dynamic ((return (call "f9" ())))) (function-def "f7" () dynamic ((return (call "f8" ())))) (function-def "f6" () dynamic ((return (call "f7" ())))) (function-def "f5" () dynamic ((return (call "f6" ())))) (function-def "f4" () dynamic ((return (call "f5" ())))) (function-def "f3" () dynamic ((return (call "f4" ())))) (function-def "f2" () dynamic ((return (call "f3" ())))) (function-def "f1" () dynamic ((return (call "f2" ())))) (function-def "g" (("x" dynamic)) dynamic ((if "x" ((return (con 0))) ()) (return (call "f1" ())))))))))
-#|
-
-def f12(): return 42
-def f11():
-    class C: pass
-    return f12()
-def f10(): return f11()
-def f9(): return f10()
-def f8(): return f9()
-def f7(): return f8()
-def f6(): return f7()
-def f5(): return f6()
-def f4(): return f5()
-def f3(): return f4()
-def f2(): return f3()
-def f1(): return f2()
-def g(x):
-    if x: return 0
-    return f1()
-# def test_invoke_strict_module_deep_unjitable(self):
-#     codestr = """
-#         def f12(): return 42
-#         def f11():
-#             class C: pass
-#             return f12()
-#         def f10(): return f11()
-#         def f9(): return f10()
-#         def f8(): return f9()
-#         def f7(): return f8()
-#         def f6(): return f7()
-#         def f5(): return f6()
-#         def f4(): return f5()
-#         def f3(): return f4()
-#         def f2(): return f3()
-#         def f1(): return f2()
-#         def g(x):
-#             if x: return 0
-#             return f1()
-#     """
-#     with self.in_strict_module(codestr) as mod:
-#         g = mod.g
-#         self.assertEqual(g(True), 0)
-#         # we should have done some level of pre-jitting
-#         self.assert_not_jitted(mod.f10)
-#         self.assert_not_jitted(mod.f11)
-#         self.assert_not_jitted(mod.f12)
-#         [self.assert_jitted(getattr(mod, f"f{i}")) for i in range(1, 10)]
-#         self.assertEqual(g(False), 42)
-#         self.assertInBytecode(
-#             g,
-#             "INVOKE_FUNCTION",
-#             ((mod.__name__, "f1"), 0),
-#         )
 |#
 
 
@@ -623,34 +443,6 @@ def g():
 #             ((mod.__name__, "f11"), 0),
 #         )
 #         self.assert_not_jitted(f1)
-|#
-
-
-;; conformance_suite/test_invoke_strict_module_pre_invoked.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))))))))
-#|
-
-def f():
-    return 42
-def g():
-    return f()
-# def test_invoke_strict_module_pre_invoked(self):
-#     codestr = """
-#         def f():
-#             return 42
-#         def g():
-#             return f()
-#     """
-#     with self.in_strict_module(codestr) as mod:
-#         self.assertEqual(mod.f(), 42)
-#         self.assert_jitted(mod.f)
-#         g = mod.g
-#         self.assertEqual(g(), 42)
-#         self.assertInBytecode(
-#             g,
-#             "INVOKE_FUNCTION",
-#             ((mod.__name__, "f"), 0),
-#         )
 |#
 
 

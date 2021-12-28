@@ -1,12 +1,12 @@
-# Reason: Test hitted a banned word test_assign_try_except_redeclare_unknown_type
-def test_assign_try_except_redeclare_unknown_type(self):
+# Reason: Test hitted a banned word vararg
+def test_generic_varargs_unsupported(self):
+    # definition is allowed, we just don't do an optimal invoke
     codestr = """
-        def testfunc():
-            e: int
-            try:
-                pass
-            except UnknownException as e:
-                pass
-            return 42
+    def f(a: int, b: str, *my_stuff) -> None:
+        pass
+    def g():
+        return f(1, 'abc', "foo")
     """
-    code = self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        g = mod.g
+        self.assertInBytecode(g, "CALL_FUNCTION", 3)

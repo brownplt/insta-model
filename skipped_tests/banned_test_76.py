@@ -1,11 +1,10 @@
 # Reason: Test hitted a banned word int64
-def test_uninit_value_2(self):
+def test_unbox_incompat_type(self):
     codestr = """
-    from __static__ import box, int64
-    def testfunc(x):
-        if x:
-            y:int64 = 42
-        return box(y)
+    from __static__ import int64, box
+    def f(i: str):
+        x:int64 = int64(i)
+        return box(x)
     """
-    f = self.run_code(codestr)["testfunc"]
-    self.assertEqual(f(False), 0)
+    with self.assertRaisesRegex(TypedSyntaxError, type_mismatch("str", "int64")):
+        self.compile(codestr)

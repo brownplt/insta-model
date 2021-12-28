@@ -1,14 +1,17 @@
-# Reason: Test hitted a banned word int32
-def test_inline_arg_type(self):
+# Reason: Test hitted a banned word async
+def test_async_method_override_widening(self):
     codestr = """
-        from __static__ import box, inline, int64, int32
-        @inline
-        def f(x: int64) -> int:
-            return box(x)
-        def g(arg: int) -> int:
-            return f(int64(arg))
+        from typing import Optional
+        class C:
+            async def f(self) -> int:
+                return 0
+        class D(C):
+            async def f(self) -> Optional[int]:
+                return 0
     """
-    with self.in_module(codestr, optimize=2) as mod:
-        g = mod.g
-        self.assertInBytecode(g, "PRIMITIVE_BOX")
-        self.assertEqual(g(3), 3)
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"Returned type `static.InferredAwaitable\[Optional\[int\]\]` is not "
+        r"a subtype of the overridden return `static.InferredAwaitable\[int\]`",
+    ):
+        self.compile(codestr, modname="foo")

@@ -1,9 +1,11 @@
-# Reason: Test hitted a banned word test_default_type_error
-def test_default_type_error_with_non_defaults(self):
+# Reason: Test hitted a banned word test_compile_checked_dict_from_dict_call
+def test_compile_checked_dict_from_dict_call_2(self):
     codestr = """
-    def foo(non_default: int, x: int = "") -> int:
-        return non_default + x
+        from __static__.compiler_flags import checked_dicts
+        def testfunc():
+            x = dict[str, int](x=42)
+            return x
     """
-    self.type_error(
-        codestr, r"type mismatch: Exact\[str\] cannot be assigned to int"
-    )
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(type(test()), chkdict[str, int])

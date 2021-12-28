@@ -1,9 +1,21 @@
-# Reason: Test hitted a banned word int32
-def test_typed_slots_bad_inst(self):
-    class C:
-        __slots__ = ("a",)
-        __slot_types__ = {"a": ("__static__", "int32")}
-    class D:
-        pass
-    with self.assertRaises(TypeError):
-        C.a.__get__(D(), D)
+# Reason: Test hitted a banned word async
+def test_async_method_throw(self):
+    codestr = """
+        class C:
+            async def f(self) -> int:
+                return 42
+            async def g(self):
+                coro = self.f()
+                return coro.throw(StopIteration(100))
+    """
+    with self.in_module(codestr) as mod:
+        loop = asyncio.new_event_loop()
+        class D(mod.C):
+            def f(self):
+                return loop.create_future()
+        coro = D().g()
+        try:
+            coro.send(None)
+        except RuntimeError as e:
+            self.assertEqual(e.__cause__.args[0], 100)
+        loop.close()

@@ -1,7 +1,17 @@
-# Reason: Test hitted a banned word int32
-def test_bad_slots_qualname_conflict(self):
-    with self.assertRaises(ValueError):
+# Reason: Test hitted a banned word async
+def test_async_method_throw_exception(self):
+    codestr = """
         class C:
-            __slots__ = ("x",)
-            __slot_types__ = {"x": ("__static__", "int32")}
-            x = 42
+            async def f(self) -> int:
+                return 42
+            async def g(self):
+                coro = self.f()
+                return coro.throw(IndexError("ERROR"))
+    """
+    with self.in_module(codestr) as mod:
+        class D(mod.C):
+            async def f(self):
+                return 0
+        coro = D().g()
+        with self.assertRaises(IndexError):
+            coro.send(None)

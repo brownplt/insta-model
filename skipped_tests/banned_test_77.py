@@ -1,10 +1,11 @@
-# Reason: Test hitted a banned word box
-def test_bad_box(self):
+# Reason: Test hitted a banned word int64
+def test_uninit_value(self):
     codestr = """
-    from __static__ import box
-    box('abc')
+    from __static__ import box, int64
+    def f():
+        x:int64
+        return box(x)
+        x = 0
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "can't box non-primitive: Exact\\[str\\]"
-    ):
-        self.compile(codestr)
+    f = self.run_code(codestr)["f"]
+    self.assertEqual(f(), 0)

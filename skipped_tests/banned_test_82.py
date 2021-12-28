@@ -1,21 +1,12 @@
-# Reason: Test hitted a banned word ...
-def test_assign_to_object(self):
+# Reason: Test hitted a banned word int64
+def test_bad_unbox_2(self):
     codestr = """
+    from __static__ import unbox, int64
     def f():
-        x: object
-        x = None
-        x = 1
-        x = 'abc'
-        x = []
-        x = {}
-        x = {1, 2}
-        x = ()
-        x = 1.0
-        x = 1j
-        x = b'foo'
-        x = int
-        x = True
-        x = NotImplemented
-        x = ...
+        x:int64 = 42
+        unbox(x, y)
     """
-    self.compile(codestr)
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "unbox only accepts a single argument"
+    ):
+        self.compile(codestr)

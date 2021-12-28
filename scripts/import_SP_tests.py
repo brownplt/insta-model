@@ -45,6 +45,9 @@ ban_anywhere_in_test = [
     # Byte string
     'b"',
     "b'",
+    # format string
+    'f"',
+    "f'",
     # Not even implemented in SP
     "@skipIf(True,",
     # Some weird module
@@ -309,6 +312,28 @@ def translate_with_compile_test(name, code, spec, test):
     return content
 
 
+def translate_assertInByteCode_test(name, code, spec, test):
+    # Capture tests that look like
+    #     def test_name(self) -> None:
+    #         codestr = """
+    #             some code
+    #         """
+    #         ...
+    #         assertInByteCode
+    #         ...
+    
+    assert ('self.assertInBytecode' in test) or ('self.assertNotInBytecode' in test)
+
+    content = '\n'.join([
+        '# {}.py'.format(name),
+        '# This should fail.',
+        '',
+        ''
+    ]) + code
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
+    return content
+
 def translate_optimization_test(name, code, spec, test):
     # Capture tests that look like
     #     def test_name(self) -> None:
@@ -385,7 +410,8 @@ def main():
             translate_simple_compile_test,
             translate_self_type_error_test,
             translate_with_compile_test,
-            translate_optimization_test
+            translate_optimization_test,
+            translate_assertInByteCode_test
         ]
         translated = False
         for tr in translators:

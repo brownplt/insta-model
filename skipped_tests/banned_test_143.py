@@ -1,14 +1,31 @@
-# Reason: Test hitted a banned word int64
-def test_invoke_builtin_func_arg(self):
+# Reason: Test hitted a banned word f"
+def test_invoke_new_derived_nonfunc_descriptor_modified(self):
     codestr = """
-    from xxclassloader import bar
-    from __static__ import int64, box
-    def func():
-        a: int64 = bar(42)
-        return box(a)
+        class C:
+            def f(self):
+                return 1
+        def x(c: C):
+            x = c.f()
+            x += c.f()
+            return x
     """
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "x")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("foo", "C", "f"), 0))
     with self.in_module(codestr) as mod:
-        f = mod.func
-        self.assertInBytecode(f, "INVOKE_FUNCTION", (((mod.__name__, "bar"), 1)))
-        self.assertEqual(f(), 42)
-        self.assert_jitted(f)
+        x, C = mod.x, mod.C
+        self.assertEqual(x(C()), 2)
+        class Callable:
+            def __call__(self):
+                return 42
+        class Descr:
+            def __get__(self, inst, ctx):
+                return Callable()
+            def __call__(self, arg):
+                return 23
+        class D(C):
+            f = Descr()
+        d = D()
+        self.assertEqual(x(d), 84)
+        del Descr.__get__
+        self.assertEqual(x(d), 46)

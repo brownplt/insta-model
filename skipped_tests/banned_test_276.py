@@ -1,18 +1,23 @@
-# Reason: Test hitted a banned word await
-def test_async_method_immediate_await_incorrect_type(self):
+# Reason: Test hitted a banned word test_override_override_inherited
+def test_override_override_inherited(self):
     codestr = """
-        class C:
-            async def f(self) -> bool:
-                return True
-        async def f(x: C):
-            if await x.f():
-                return 0
-            return 1
+    from typing import Optional
+    class B:
+        def f(self) -> "Optional[B]":
+            return self
+    class D(B):
+        pass
+    def f(x: B):
+        return x.f()
     """
-    with self.in_strict_module(codestr) as mod:
-        class D(mod.C):
-            async def f(self):
-                return "not an int"
+    with self.in_module(codestr) as mod:
+        B = mod.B
+        D = mod.D
+        f = mod.f
+        b = B()
         d = D()
-        with self.assertRaises(TypeError):
-            asyncio.run(mod.f(d))
+        self.assertEqual(f(b), b)
+        self.assertEqual(f(d), d)
+        D.f = lambda self: None
+        self.assertEqual(f(b), b)
+        self.assertEqual(f(d), None)

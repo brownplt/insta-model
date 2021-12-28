@@ -1,18 +1,12 @@
 # Reason: Test hitted a banned word int8
-def test_mixed_assign_larger_2(self):
-    """promote int/uint to int16"""
+def test_store_unsigned_to_signed(self):
+    """promote int/uint to int, can't add to uint64"""
     codestr = """
-        from __static__ import int8, uint8, int16, box
+        from __static__ import int8, uint8, uint64, box
         def testfunc(tst=False):
             x: uint8 = 42
             y: int8 = 2
-            z: int16
-            z = x + y
-            return box(z)
+            y = x
     """
-    code = self.compile(codestr)
-    f = self.find_code(code)
-    self.assertInBytecode(f, "PRIMITIVE_BINARY_OP", PRIM_OP_ADD_INT)
-    with self.in_module(codestr) as mod:
-        f = mod.testfunc
-        self.assertEqual(f(), 44)
+    with self.assertRaisesRegex(TypedSyntaxError, type_mismatch("uint8", "int8")):
+        self.compile(codestr)

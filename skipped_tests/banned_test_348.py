@@ -1,12 +1,9 @@
 # Reason: Test hitted a banned word int8
-def test_generic_int_funcs_overflow(self):
-    from xxclassloader import spamobj
-    o = spamobj[str]()
-    o.setuint64(42)
-    for i, f in enumerate([o.setint8, o.setint16, o.setint32, o.setint]):
-        with self.assertRaises(OverflowError):
-            x = -(1 << ((8 << i) - 1)) - 1
-            f(x)
-        with self.assertRaises(OverflowError):
-            x = 1 << ((8 << i) - 1)
-            f(x)
+def test_primitive_args_funcdef_missing_kw_call(self):
+    codestr = """
+        from __static__ import int8, box
+        def testfunc(x: int8, foo):
+            return box(x), foo
+    """
+    with self.in_strict_module(codestr) as mod:
+        self.assertEqual(mod.testfunc(-128, foo=42), (-128, 42))

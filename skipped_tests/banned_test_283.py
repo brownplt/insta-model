@@ -1,16 +1,10 @@
-# Reason: Test hitted a banned word b"
-def test_invoke_strict_module_recursive(self):
+# Reason: Test hitted a banned word _kw
+def test_method_prologue_kwonly_no_annotation(self):
     codestr = """
-        def fib(number):
-            if number <= 1:
-                return number
-            return(fib(number-1) + fib(number-2))
+    def f(*, x):
+        return 42
     """
-    with self.in_strict_module(codestr) as mod:
-        fib = mod.fib
-        self.assertInBytecode(
-            fib,
-            "INVOKE_FUNCTION",
-            ((mod.__name__, "fib"), 1),
-        )
-        self.assertEqual(fib(4), 3)
+    with self.in_module(codestr) as mod:
+        f = mod.f
+        self.assertInBytecode(f, "CHECK_ARGS", ())
+        f(x=42)

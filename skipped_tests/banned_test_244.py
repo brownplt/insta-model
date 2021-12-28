@@ -1,12 +1,11 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_spamobj_error(self):
+# Reason: Test hitted a banned word int8
+def test_narrowing_assign_literal(self):
     codestr = """
-        from xxclassloader import spamobj
-        def f():
-            x = spamobj[int]()
-            return x.error(1)
+        from __static__ import int8, int16, box
+        def testfunc():
+            x: int8
+            y: int16
+            x = y = 42
+            return box(x), box(y)
     """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        with self.assertRaisesRegex(TypeError, "no way!"):
-            f()
+    self.compile(codestr, modname="foo")

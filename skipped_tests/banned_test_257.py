@@ -1,17 +1,12 @@
-# Reason: Test hitted a banned word global
-def test_inferred_module_global_assign_subclass(self):
+# Reason: Test hitted a banned word int64
+def test_vector_import(self):
     codestr = """
-        class MyList(list):
-            pass
-        x = []
-        def f(new_x: list) -> list:
-            global x
-            x = new_x
+        from __static__ import int64, Vector
+        def test() -> Vector[int64]:
+            x: Vector[int64] = Vector[int64]()
+            x.append(1)
             return x
     """
     with self.in_module(codestr) as mod:
-        f, MyList = mod.f, mod.MyList
-        x = []
-        self.assertIs(f(x), x)
-        y = MyList()
-        self.assertIs(f(y), y)
+        test = mod.test
+        self.assertEqual(test(), array("L", [1]))

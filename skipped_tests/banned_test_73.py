@@ -1,12 +1,14 @@
 # Reason: Test hitted a banned word box
-def test_box_cbool_to_bool(self):
+def test_unbox_cbool_typed(self):
     codestr = """
-        from typing import final
-        from __static__ import cbool
-        def foo() -> bool:
-            b: cbool = True
-            return bool(b)
+    from __static__ import cbool, box
+    def f(i: bool):
+        x = cbool(i)
+        return box(x)
     """
     with self.in_module(codestr) as mod:
-        self.assertInBytecode(mod.foo, "PRIMITIVE_BOX")
-        self.assertTrue(mod.foo())
+        f = mod.f
+        self.assertEqual(f(True), True)
+        self.assertEqual(f(False), False)
+        self.assertInBytecode(f, "PRIMITIVE_UNBOX")
+        self.assertNotInBytecode(f, "CAST", ("builtins", "bool"))

@@ -1,12 +1,13 @@
-# Reason: Test hitted a banned word _kw
-def test_verify_kwdefaults_with_value(self):
+# Reason: Test hitted a banned word f"
+def test_aug_add(self):
     codestr = """
-        def x(*, b: str="hunter2"):
-            return b
-        a = x(b="hunter3")
+    class C:
+        def __init__(self):
+            self.x = 1
+    def f(a: C):
+        a.x += 1
     """
-    module = self.compile(codestr)
-    # TODO(T87420170): Support invokes here.
-    self.assertNotInBytecode(module, "INVOKE_FUNCTION")
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.a, "hunter3")
+    code = self.compile(codestr, modname="foo")
+    code = self.find_code(code, name="f")
+    self.assertInBytecode(code, "LOAD_FIELD", ("foo", "C", "x"))
+    self.assertInBytecode(code, "STORE_FIELD", ("foo", "C", "x"))

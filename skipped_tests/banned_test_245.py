@@ -1,11 +1,15 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_spamobj_no_error(self):
+# Reason: Test hitted a banned word int8
+def test_narrowing_assign_out_of_range(self):
     codestr = """
-        from xxclassloader import spamobj
+        from __static__ import int8, int16, box
         def testfunc():
-            x = spamobj[int]()
-            return x.error(0)
+            x: int8
+            y: int16
+            x = y = 300
+            return box(x), box(y)
     """
-    with self.in_module(codestr) as mod:
-        f = mod.testfunc
-        self.assertEqual(f(), None)
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        "type mismatch: Literal\\[300\\] cannot be assigned to int8",
+    ):
+        self.compile(codestr, modname="foo")

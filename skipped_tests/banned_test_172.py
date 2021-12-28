@@ -1,13 +1,9 @@
 # Reason: Test hitted a banned word _kw
-def test_generic_kwargs_method_unsupported(self):
-    # definition is allowed, we just don't do an optimal invoke
+def test_verify_kwdefaults(self):
     codestr = """
-    class C:
-        def f(self, a: int, b: str, **my_stuff) -> None:
-            pass
-    def g():
-        return C().f(1, 'abc', x="y")
+        def x(*, b: str="hunter2"):
+            return b
+        z = x(b="lol")
     """
     with self.in_module(codestr) as mod:
-        g = mod.g
-        self.assertInBytecode(g, "CALL_FUNCTION_KW", 3)
+        self.assertEqual(mod.z, "lol")

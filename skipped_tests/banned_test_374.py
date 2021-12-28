@@ -1,8 +1,9 @@
-# Reason: Test hitted a banned word int64
-def test_array_weird_type_construction(self):
-    self.assertIs(
-        Array[int64],
-        Array[
-            int64,
-        ],
+# Reason: Test hitted a banned word test_default_type_error
+def test_default_type_error(self):
+    codestr = """
+    def foo(x: int = "") -> int:
+        return x
+    """
+    self.type_error(
+        codestr, r"type mismatch: Exact\[str\] cannot be assigned to int"
     )

@@ -330,6 +330,8 @@ def ast_to_sexp(node):
             [ast_to_sexp(s) for s in node.body],
             [ast_to_sexp(s) for s in node.orelse]
         ]
+    elif node is None:
+        return symbol('None')
     assert False, str(node)
 
 

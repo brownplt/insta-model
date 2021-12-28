@@ -1,13 +1,13 @@
-# Reason: Test hitted a banned word int8
-def test_extremum_primitive(self):
+# Reason: Test hitted a banned word b'
+def test_typed_slots_alignment(self):
+    return
     codestr = """
-        from __static__ import int8
-        def f() -> None:
-            a: int8 = 4
-            b: int8 = 5
-            min(a, b)
+        class C:
+            __slots__ = ('a', 'b')
+            __slot_types__ {'a': ('__static__', 'int16')}
+        inst = C()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Call argument cannot be a primitive"
-    ):
-        self.compile(codestr, modname="foo.py")
+    with self.in_module(codestr, code_gen=PythonCodeGenerator) as mod:
+        inst, C = mod.inst, mod.C
+        inst.a = None
+        self.assertEqual(inst.a, None)

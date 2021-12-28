@@ -1,17 +1,8 @@
-# Reason: Test hitted a banned word break
-def test_for_iter_sequence_break(self):
-    codestr = """
-        from typing import List
-        def f(n: int) -> List:
-            acc = []
-            l = [i for i in range(n)]
-            for i in l:
-                if i == 3:
-                    break
-                acc.append(i + 1)
-            return acc
-    """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertNotInBytecode(f, "FOR_ITER")
-        self.assertEqual(f(5), [1, 2, 3])
+# Reason: Test hitted a banned word xxclassloader
+def test_generic_type_bad_arg_cnt(self):
+    from xxclassloader import spamobj
+    o = spamobj[str]()
+    with self.assertRaises(TypeError):
+        o.setstr()
+    with self.assertRaises(TypeError):
+        o.setstr("abc", "abc")

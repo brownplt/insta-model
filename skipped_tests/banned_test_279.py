@@ -1,17 +1,13 @@
-# Reason: Test hitted a banned word async
-def test_async_method_throw_exception(self):
+# Reason: Test hitted a banned word _kw
+def test_method_prologue_kwonly(self):
     codestr = """
-        class C:
-            async def f(self) -> int:
-                return 42
-            async def g(self):
-                coro = self.f()
-                return coro.throw(IndexError("ERROR"))
+    def f(*, x: str):
+        return 42
     """
     with self.in_module(codestr) as mod:
-        class D(mod.C):
-            async def f(self):
-                return 0
-        coro = D().g()
-        with self.assertRaises(IndexError):
-            coro.send(None)
+        f = mod.f
+        self.assertInBytecode(f, "CHECK_ARGS", (0, ("builtins", "str")))
+        with self.assertRaisesRegex(
+            TypeError, "f expected 'str' for argument x, got 'int'"
+        ):
+            f(x=42)

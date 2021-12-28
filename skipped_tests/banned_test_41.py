@@ -1,12 +1,15 @@
-# Reason: Test hitted a banned word int64
-def test_int_unbox_from_call(self):
+# Reason: Test hitted a banned word box
+def test_int_compare_unboxed(self):
     codestr = f"""
-    from __static__ import int64
-    def foo() -> int:
-        return 1234
-    def testfunc() -> int64:
-        return int64(foo())
+    from __static__ import ssize_t, unbox
+    def testfunc(x, y):
+        x1: ssize_t = unbox(x)
+        y1: ssize_t = unbox(y)
+        if x1 > y1:
+            return True
+        return False
     """
-    with self.in_module(codestr) as mod:
-        f = mod.testfunc
-        self.assertEqual(f(), 1234)
+    code = self.compile(codestr)
+    f = self.run_code(codestr)["testfunc"]
+    self.assertInBytecode(f, "POP_JUMP_IF_ZERO")
+    self.assertEqual(f(1, 2), False)

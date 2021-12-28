@@ -1,15 +1,22 @@
-# Reason: Test hitted a banned word int8
-def test_vector_wrong_size(self):
-    codestr = f"""
-        from __static__ import int8, int16, Vector
-        def test() -> Vector[int8]:
-            y: int16 = 1
-            x: Vector[int8] = Vector[int8]()
-            x.append(y)
-            return x
+# Reason: Test hitted a banned word f"
+def test_narrow_conditional(self):
+    codestr = """
+        class B:
+            def f(self):
+                return 42
+        class D(B):
+            def f(self):
+                return 'abc'
+        def testfunc(abc):
+            x = B()
+            if abc:
+                x = D()
+                return x.f()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"int16 received for positional arg 'v', expected int8",
-    ):
-        self.compile(codestr)
+    code = self.compile(codestr, modname="foo")
+    f = self.find_code(code, "testfunc")
+    self.assertInBytecode(f, "INVOKE_METHOD", (("foo", "D", "f"), 0))
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(True), "abc")
+        self.assertEqual(test(False), None)

@@ -1,23 +1,16 @@
-# Reason: Test hitted a banned word await
-def test_awaited_invoke_method_with_args(self):
+# Reason: Test hitted a banned word float
+def test_primitive_double_return_bad_call(self):
     codestr = """
-        class C:
-            async def f(self, a: int, b: int) -> int:
-                return a + b
-            async def g(self) -> int:
-                return await self.f(1, 2)
+    from __static__ import double
+    def fn(x: float, y: float) -> double:
+        i = double(x)
+        j = double(y)
+        return i + j
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertInBytecode(
-            mod.C.g,
-            "INVOKE_METHOD",
-            ((mod.__name__, "C", "f"), 2),
-        )
-        self.assertEqual(asyncio.run(mod.C().g()), 3)
-        # exercise shadowcode, INVOKE_METHOD_CACHED
-        async def make_hot():
-            c = mod.C()
-            for i in range(50):
-                await c.g()
-        asyncio.run(make_hot())
-        self.assertEqual(asyncio.run(mod.C().g()), 3)
+    with self.in_module(codestr) as mod:
+        fn = mod.fn
+        with self.assertRaisesRegex(
+            TypeError,
+            re.escape("fn() missing 2 required positional arguments: 'x' and 'y'"),
+        ):
+            fn()  # bad call

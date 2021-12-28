@@ -1,13 +1,7 @@
-# Reason: Test hitted a banned word b"
-def test_fast_len_tuple(self):
-    codestr = """
-    def f(a, b):
-        l = (a, b)
-        return len(l)
-    """
-    c = self.compile(codestr, modname="foo.py")
-    f = self.find_code(c, "f")
-    self.assertInBytecode(f, "FAST_LEN", FAST_LEN_TUPLE)
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertEqual(f("a", "b"), 2)
+# Reason: Test hitted a banned word xxclassloader
+def test_generic_type_inst_non_optional_error_func(self):
+    from xxclassloader import spamobj
+    o = spamobj[str]()
+    f = o.setstate
+    with self.assertRaises(TypeError):
+        f(None)

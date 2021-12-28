@@ -1,17 +1,13 @@
-# Reason: Test hitted a banned word await
-def test_awaited_invoke_function_unjitable(self):
+# Reason: Test hitted a banned word float
+def test_double_return_2(self):
     codestr = """
-        async def f() -> int:
-            class C: pass
-            return 1
-        async def g() -> int:
-            return await f()
+    from __static__ import double
+    def fn(x: float, y: float) -> double:
+        i = double(x)
+        j = double(y)
+        return i + j
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertInBytecode(
-            mod.g,
-            "INVOKE_FUNCTION",
-            ((mod.__name__, "f"), 0),
-        )
-        self.assertEqual(asyncio.run(mod.g()), 1)
-        self.assert_not_jitted(mod.f)
+    with self.in_module(codestr) as mod:
+        fn = mod.fn
+        r = fn(1.2, 2.3)
+        self.assertEqual(r, 3.5)

@@ -1,13 +1,10 @@
-# Reason: Test hitted a banned word int64
-def test_vector_nogc(self):
+# Reason: Test hitted a banned word int8
+def test_primitive_subscr(self) -> None:
     codestr = """
-        from __static__ import Vector, int64
-        class C:
-            foo: Vector[int64]
-            def __init__(self):
-                self.foo = Vector[int64]()
+        from __static__ import int8
+        def f():
+            x: int8 = 42
+            print(x[42])
     """
-    with self.in_module(codestr) as mod:
-        C = mod.C
-        x = C()
-        self.assertFalse(gc.is_tracked(x))
+    with self.assertRaisesRegex(TypedSyntaxError, "cannot index int8"):
+        self.compile(codestr)

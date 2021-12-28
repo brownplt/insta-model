@@ -1,8 +1,15 @@
 # Reason: Test hitted a banned word _kw
-def test_verify_lambda_kwarg(self):
+def test_incompat_override_method_num_kwonly_args(self):
     codestr = """
-        x = lambda **kwargs: kwargs["key"]
-        a = x(key="hi")
+        class A:
+            def m(self) -> int:
+                return 42
+        class B(A):
+            def m(self, *, x: int) -> int:
+                return 0
     """
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.a, "hi")
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        "<module>.B.m overrides <module>.A.m inconsistently. Number of arguments differ",
+    ):
+        self.compile(codestr)

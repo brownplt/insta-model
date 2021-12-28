@@ -1,4 +1,18 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_generic_type_inst_name_optional(self):
-    from xxclassloader import spamobj
-    self.assertEqual(spamobj[Optional[str]].__name__, "spamobj[Optional[str]]")
+# Reason: Test hitted a banned word f"
+def test_invoke_strict_module_pre_invoked(self):
+    codestr = """
+        def f():
+            return 42
+        def g():
+            return f()
+    """
+    with self.in_strict_module(codestr) as mod:
+        self.assertEqual(mod.f(), 42)
+        self.assert_jitted(mod.f)
+        g = mod.g
+        self.assertEqual(g(), 42)
+        self.assertInBytecode(
+            g,
+            "INVOKE_FUNCTION",
+            ((mod.__name__, "f"), 0),
+        )

@@ -1,14 +1,13 @@
-# Reason: Test hitted a banned word float
-def test_double_compare_with_literal(self):
-    codestr = f"""
-    from __static__ import double
-    def testfunc(x: float) -> bool:
-        y = double(x)
-        if y > 3.14:
-            return True
-        return False
+# Reason: Test hitted a banned word box
+def test_int_compare_and(self):
+    codestr = """
+    from __static__ import box, ssize_t
+    def testfunc():
+        i: ssize_t = 0
+        j = i > 2 and i > 3
+        return box(j)
     """
     with self.in_module(codestr) as mod:
         f = mod.testfunc
-        self.assertTrue(f(4.1))
-        self.assertFalse(f(1.1))
+        self.assertInBytecode(f, "JUMP_IF_ZERO_OR_POP")
+        self.assertIs(f(), False)

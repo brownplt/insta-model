@@ -1,26 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_mixed_binop(self):
+# Reason: Test hitted a banned word f'
+def test_duplicate_function_replaces_function(self) -> None:
+    codestr = """
+        def f(): pass
+        def f(): pass
+    """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "cannot add int64 and Literal\\[1\\]"
+        TypedSyntaxError,
+        "function 'function <module>.f' conflicts with other member",
     ):
-        self.bind_module(
-            """
-            from __static__ import ssize_t
-            def f():
-                x: ssize_t = 1
-                y = 1
-                x + y
-        """
-        )
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "cannot add Literal\\[1\\] and int64"
-    ):
-        self.bind_module(
-            """
-            from __static__ import ssize_t
-            def f():
-                x: ssize_t = 1
-                y = 1
-                y + x
-        """
-        )
+        self.compile(codestr)

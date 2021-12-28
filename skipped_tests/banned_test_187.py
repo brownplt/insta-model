@@ -1,12 +1,10 @@
-# Reason: Test hitted a banned word int64
-def test_assign_prim_to_class(self):
+# Reason: Test hitted a banned word _kw
+def test_kwarg_nocast(self):
     codestr = """
-        from __static__ import int64
-        class C: pass
-        def f():
-            x: C = C()
-            y: int64 = 42
-            x = y
+        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
+            return
+        def g():
+            x(b='abc')
     """
-    with self.assertRaisesRegex(TypedSyntaxError, type_mismatch("int64", "foo.C")):
-        self.compile(codestr, modname="foo")
+    code = self.find_code(self.compile(codestr), "g")
+    self.assertNotInBytecode(code, "CAST", ("builtins", "str"))

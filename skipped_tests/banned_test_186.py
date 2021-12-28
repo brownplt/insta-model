@@ -1,8 +1,10 @@
-# Reason: Test hitted a banned word async
-def test_async_func_arg_types(self):
+# Reason: Test hitted a banned word _kw
+def test_kwarg_cast(self):
     codestr = """
-        async def f(x: int):
-            pass
+        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
+            return
+        def g(a):
+            x(b=a)
     """
-    f = self.find_code(self.compile(codestr))
-    self.assertInBytecode(f, "CHECK_ARGS", (0, ("builtins", "int")))
+    code = self.find_code(self.compile(codestr), "g")
+    self.assertInBytecode(code, "CAST", ("builtins", "str"))

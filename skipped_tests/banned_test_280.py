@@ -1,21 +1,13 @@
-# Reason: Test hitted a banned word async
-def test_async_method_throw(self):
+# Reason: Test hitted a banned word _kw
+def test_method_prologue_kwonly_2(self):
     codestr = """
-        class C:
-            async def f(self) -> int:
-                return 42
-            async def g(self):
-                coro = self.f()
-                return coro.throw(StopIteration(100))
+    def f(x, *, y: str):
+        return 42
     """
     with self.in_module(codestr) as mod:
-        loop = asyncio.new_event_loop()
-        class D(mod.C):
-            def f(self):
-                return loop.create_future()
-        coro = D().g()
-        try:
-            coro.send(None)
-        except RuntimeError as e:
-            self.assertEqual(e.__cause__.args[0], 100)
-        loop.close()
+        f = mod.f
+        self.assertInBytecode(f, "CHECK_ARGS", (1, ("builtins", "str")))
+        with self.assertRaisesRegex(
+            TypeError, "f expected 'str' for argument y, got 'object'"
+        ):
+            f(1, y=object())

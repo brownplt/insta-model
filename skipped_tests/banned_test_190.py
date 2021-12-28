@@ -1,29 +1,9 @@
-# Reason: Test hitted a banned word double
-def test_double_decl(self):
+# Reason: Test hitted a banned word mixed_args
+def test_verify_mixed_args_method(self):
     codestr = """
-        def f():
-            x: int
-            x: str
+        class C:
+            def x(self, a: int=1, b: str="hunter2", c: int=14) -> None:
+                return
+        C().x(12, c=56, b="lol")
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Cannot redefine local variable x"
-    ):
-        self.compile(codestr, modname="foo")
-    codestr = """
-        def f():
-            x = 42
-            x: str
-    """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Cannot redefine local variable x"
-    ):
-        self.compile(codestr, modname="foo")
-    codestr = """
-        def f():
-            x = 42
-            x: int
-    """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Cannot redefine local variable x"
-    ):
-        self.compile(codestr, modname="foo")
+    self.compile(codestr)

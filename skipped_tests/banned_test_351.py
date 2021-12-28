@@ -1,8 +1,12 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_generic_type_str_func(self):
-    from xxclassloader import spamobj
-    o = spamobj[str]()
-    o.setstr("abc")
-    self.assertEqual(o.getstr(), "abc")
-    with self.assertRaises(TypeError):
-        o.setstr(42)
+# Reason: Test hitted a banned word int8
+def test_primitive_args_typecall(self):
+    codestr = """
+        from __static__ import int8
+        def n() -> int:
+            x: int8 = 3
+            return int(x)
+    """
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "Call argument cannot be a primitive"
+    ):
+        self.compile(codestr, modname="foo.py")

@@ -1,14 +1,13 @@
-# Reason: Test hitted a banned word test_compile_checked_dict_from_dict_call
-def test_compile_checked_dict_from_dict_call(self):
+# Reason: Test hitted a banned word int64
+def test_array_create_failure(self):
+    # todo - in the future we're going to support this, but for now fail it.
     codestr = """
-        from __static__.compiler_flags import checked_dicts
-        def testfunc():
-            x = dict(x=42)
-            return x
+        from __static__ import int64, Array
+        class C: pass
+        def test() -> Array[C]:
+            return Array[C]([1, 3, 5])
     """
     with self.assertRaisesRegex(
-        TypeError, "cannot create '__static__.chkdict\\[K, V\\]' instances"
+        TypedSyntaxError, "Invalid Array element type: foo.C"
     ):
-        with self.in_module(codestr) as mod:
-            test = mod.testfunc
-            test()
+        self.compile(codestr, modname="foo")

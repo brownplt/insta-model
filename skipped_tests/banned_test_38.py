@@ -1,118 +1,20 @@
-# Reason: Test hitted a banned word int8
-def test_int_compare(self):
+# Reason: Test hitted a banned word double
+def test_double_unary(self):
     tests = [
-        ("int8", 1, 2, "==", False),
-        ("int8", 1, 2, "!=", True),
-        ("int8", 1, 2, "<", True),
-        ("int8", 1, 2, "<=", True),
-        ("int8", 2, 1, "<", False),
-        ("int8", 2, 1, "<=", False),
-        ("int8", -1, 2, "==", False),
-        ("int8", -1, 2, "!=", True),
-        ("int8", -1, 2, "<", True),
-        ("int8", -1, 2, "<=", True),
-        ("int8", 2, -1, "<", False),
-        ("int8", 2, -1, "<=", False),
-        ("uint8", 1, 2, "==", False),
-        ("uint8", 1, 2, "!=", True),
-        ("uint8", 1, 2, "<", True),
-        ("uint8", 1, 2, "<=", True),
-        ("uint8", 2, 1, "<", False),
-        ("uint8", 2, 1, "<=", False),
-        ("uint8", 255, 2, "==", False),
-        ("uint8", 255, 2, "!=", True),
-        ("uint8", 255, 2, "<", False),
-        ("uint8", 255, 2, "<=", False),
-        ("uint8", 2, 255, "<", True),
-        ("uint8", 2, 255, "<=", True),
-        ("int16", 1, 2, "==", False),
-        ("int16", 1, 2, "!=", True),
-        ("int16", 1, 2, "<", True),
-        ("int16", 1, 2, "<=", True),
-        ("int16", 2, 1, "<", False),
-        ("int16", 2, 1, "<=", False),
-        ("int16", -1, 2, "==", False),
-        ("int16", -1, 2, "!=", True),
-        ("int16", -1, 2, "<", True),
-        ("int16", -1, 2, "<=", True),
-        ("int16", 2, -1, "<", False),
-        ("int16", 2, -1, "<=", False),
-        ("uint16", 1, 2, "==", False),
-        ("uint16", 1, 2, "!=", True),
-        ("uint16", 1, 2, "<", True),
-        ("uint16", 1, 2, "<=", True),
-        ("uint16", 2, 1, "<", False),
-        ("uint16", 2, 1, "<=", False),
-        ("uint16", 65535, 2, "==", False),
-        ("uint16", 65535, 2, "!=", True),
-        ("uint16", 65535, 2, "<", False),
-        ("uint16", 65535, 2, "<=", False),
-        ("uint16", 2, 65535, "<", True),
-        ("uint16", 2, 65535, "<=", True),
-        ("int32", 1, 2, "==", False),
-        ("int32", 1, 2, "!=", True),
-        ("int32", 1, 2, "<", True),
-        ("int32", 1, 2, "<=", True),
-        ("int32", 2, 1, "<", False),
-        ("int32", 2, 1, "<=", False),
-        ("int32", -1, 2, "==", False),
-        ("int32", -1, 2, "!=", True),
-        ("int32", -1, 2, "<", True),
-        ("int32", -1, 2, "<=", True),
-        ("int32", 2, -1, "<", False),
-        ("int32", 2, -1, "<=", False),
-        ("uint32", 1, 2, "==", False),
-        ("uint32", 1, 2, "!=", True),
-        ("uint32", 1, 2, "<", True),
-        ("uint32", 1, 2, "<=", True),
-        ("uint32", 2, 1, "<", False),
-        ("uint32", 2, 1, "<=", False),
-        ("uint32", 4294967295, 2, "!=", True),
-        ("uint32", 4294967295, 2, "<", False),
-        ("uint32", 4294967295, 2, "<=", False),
-        ("uint32", 2, 4294967295, "<", True),
-        ("uint32", 2, 4294967295, "<=", True),
-        ("int64", 1, 2, "==", False),
-        ("int64", 1, 2, "!=", True),
-        ("int64", 1, 2, "<", True),
-        ("int64", 1, 2, "<=", True),
-        ("int64", 2, 1, "<", False),
-        ("int64", 2, 1, "<=", False),
-        ("int64", -1, 2, "==", False),
-        ("int64", -1, 2, "!=", True),
-        ("int64", -1, 2, "<", True),
-        ("int64", -1, 2, "<=", True),
-        ("int64", 2, -1, "<", False),
-        ("int64", 2, -1, "<=", False),
-        ("uint64", 1, 2, "==", False),
-        ("uint64", 1, 2, "!=", True),
-        ("uint64", 1, 2, "<", True),
-        ("uint64", 1, 2, "<=", True),
-        ("uint64", 2, 1, "<", False),
-        ("uint64", 2, 1, "<=", False),
-        ("int64", 2, -1, ">", True),
-        ("uint64", 2, 18446744073709551615, ">", False),
-        ("int64", 2, -1, "<", False),
-        ("uint64", 2, 18446744073709551615, "<", True),
-        ("int64", 2, -1, ">=", True),
-        ("uint64", 2, 18446744073709551615, ">=", False),
-        ("int64", 2, -1, "<=", False),
-        ("uint64", 2, 18446744073709551615, "<=", True),
+        ("-", 1.0, -1.0),
+        ("+", 1.0, 1.0),
+        ("-", -1.0, 1.0),
     ]
-    for type, x, y, op, res in tests:
+    for op, x, res in tests:
         codestr = f"""
-        from __static__ import {type}, box
+        from __static__ import double, box
         def testfunc(tst):
-            x: {type} = {x}
-            y: {type} = {y}
+            x: double = {x}
             if tst:
                 x = x + 1
-                y = y + 2
-            if x {op} y:
-                return True
-            return False
+            x = {op}x
+            return box(x)
         """
-        with self.subTest(type=type, x=x, y=y, op=op, res=res):
-            code = self.compile(codestr)
+        with self.subTest(type=type, op=op, x=x, res=res):
             f = self.run_code(codestr)["testfunc"]
-            self.assertEqual(f(False), res, f"{type} {x} {op} {y} {res}")
+            self.assertEqual(f(False), res, f"{type} {op} {x} {res}")

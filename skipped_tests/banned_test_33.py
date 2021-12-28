@@ -1,14 +1,10 @@
 # Reason: Test hitted a banned word int64
-def test_int_add_mixed_64(self):
+def test_int_large_int_constant(self):
     codestr = """
-        from __static__ import uint64, int64, box
+        from __static__ import int64
         def testfunc(tst):
-            x: uint64 = 0
-            y: int64 = 1
-            if tst:
-                x = x + 1
-                y = y + 2
-            return box(x + y)
+            x: int64 = 0x7FFFFFFF + 1
     """
-    with self.assertRaisesRegex(TypedSyntaxError, "cannot add uint64 and int64"):
-        self.compile(codestr)
+    code = self.compile(codestr)
+    f = self.find_code(code)
+    self.assertInBytecode(f, "PRIMITIVE_LOAD_CONST", (0x80000000, TYPED_INT64))

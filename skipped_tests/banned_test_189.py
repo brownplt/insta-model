@@ -1,14 +1,13 @@
-# Reason: Test hitted a banned word int64
-def test_int_swap(self):
+# Reason: Test hitted a banned word mixed_args
+def test_verify_mixed_args_positional_failure(self):
     codestr = """
-        from __static__ import int64, box
-        def test():
-            x: int64 = 42
-            y: int64 = 100
-            x, y = y, x
-            return box(x), box(y)
+        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
+            return
+        x("hi", b="lol")
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, type_mismatch("int64", "dynamic")
+        TypedSyntaxError,
+        r"Exact\[str\] received for positional arg 'a', expected int",
     ):
-        self.compile(codestr, modname="foo")
+        self.compile(codestr)
+# Same tests as above, but for methods.

@@ -1,17 +1,13 @@
-# Reason: Test hitted a banned word int32
-def test_primitive_return_recursive(self):
+# Reason: Test hitted a banned word int64
+def test_inexact_list_negative(self):
     codestr = """
-        from __static__ import int32
-        def fib(n: int32) -> int32:
-            if n <= 1:
-                return n
-            return fib(n-1) + fib(n-2)
+        from __static__ import int64, box, clen
+        def f(x: list):
+            i: int64 = 1
+            return x[-i]
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertInBytecode(
-            mod.fib,
-            "INVOKE_FUNCTION",
-            ((mod.__name__, "fib"), 1),
-        )
-        self.assertEqual(mod.fib(2), 1)
-        self.assert_jitted(mod.fib)
+    with self.in_module(codestr) as mod:
+        f = mod.f
+        self.assertInBytecode(f, "SEQUENCE_GET", SEQ_LIST_INEXACT)
+        res = f([1, 2, 3])
+        self.assertEqual(res, 3)

@@ -1,15 +1,11 @@
-# Reason: Test hitted a banned word int8
-def test_narrowing_assign_out_of_range(self):
+# Reason: Test hitted a banned word _kw
+def test_kwargs_call(self):
     codestr = """
-        from __static__ import int8, int16, box
+        def g(**foo):
+            return foo
         def testfunc():
-            x: int8
-            y: int16
-            x = y = 300
-            return box(x), box(y)
+            return g(x=2)
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        "type mismatch: Literal\\[300\\] cannot be assigned to int8",
-    ):
-        self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(), {"x": 2})

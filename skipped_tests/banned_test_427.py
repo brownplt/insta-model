@@ -1,14 +1,9 @@
-# Reason: Test hitted a banned word float
-def test_double_box(self):
-    codestr = """
-    from __static__ import double, box
-    def t() -> float:
-        pi: double = 3.14159
-        return box(pi)
-    """
-    with self.in_module(codestr) as mod:
-        t = mod.t
-        self.assertInBytecode(t, "PRIMITIVE_LOAD_CONST", (3.14159, TYPED_DOUBLE))
-        self.assertNotInBytecode(t, "CAST")
-        self.assertEqual(t(), 3.14159)
-        self.assert_jitted(t)
+# Reason: Test hitted a banned word int64
+def test_vector_generics(self):
+    T = TypeVar("T")
+    VT = Vector[T]
+    VT2 = VT[int64]
+    a = VT2()
+    a.append(42)
+    with self.assertRaisesRegex(TypeError, "Cannot create plain Vector"):
+        VT()

@@ -1,10 +1,11 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_subscr(self) -> None:
-    codestr = """
-        from __static__ import int8
-        def f():
-            x: int8 = 42
-            print(x[42])
+# Reason: Test hitted a banned word int64
+def test_len_kw_args(self):
+    code = """
+        from __static__ import int64
+        def f(a):
+            len([], x=2)
     """
-    with self.assertRaisesRegex(TypedSyntaxError, "cannot index int8"):
-        self.compile(codestr)
+    with self.assertRaisesRegex(
+        TypedSyntaxError, "len\\(\\) takes no keyword arguments"
+    ):
+        self.compile(code)

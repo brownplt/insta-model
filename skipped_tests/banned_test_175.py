@@ -1,11 +1,8 @@
-# Reason: Test hitted a banned word _kw
-def test_kwargs_get(self):
+# Reason: Test hitted a banned word test_verify_lambda_keyword_only
+def test_verify_lambda_keyword_only(self):
     codestr = """
-        def test(**foo):
-            print(foo.get('bar'))
+        x = lambda *, x: x
+        a = x(x="hi")
     """
     with self.in_module(codestr) as mod:
-        test = mod.test
-        self.assertInBytecode(
-            test, "INVOKE_FUNCTION", (("builtins", "dict", "get"), 2)
-        )
+        self.assertEqual(mod.a, "hi")

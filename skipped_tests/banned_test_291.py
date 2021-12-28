@@ -1,9 +1,14 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_args_funcdef_missing_kw_call(self):
+# Reason: Test hitted a banned word f"
+def test_static_function_invoke(self):
     codestr = """
-        from __static__ import int8, box
-        def testfunc(x: int8, foo):
-            return box(x), foo
+        class C:
+            @staticmethod
+            def f():
+                return 42
+        def f():
+            return C.f()
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertEqual(mod.testfunc(-128, foo=42), (-128, 42))
+    with self.in_module(codestr) as mod:
+        f = mod.f
+        self.assertInBytecode(f, "INVOKE_FUNCTION", ((mod.__name__, "C", "f"), 0))
+        self.assertEqual(f(), 42)

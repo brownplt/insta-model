@@ -1,14 +1,16 @@
-# Reason: Test hitted a banned word await
-def test_awaited_invoke_method(self):
+# Reason: Test hitted a banned word int64
+def test_primitive_return_bad_call(self):
     codestr = """
-        class C:
-            async def f(self) -> int:
-                return 1
-            async def g(self) -> int:
-                return await self.f()
+    from __static__ import int64
+    def fn(x: int, y: int) -> int64:
+        i = int64(x)
+        j = int64(y)
+        return i + j
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertInBytecode(
-            mod.C.g, "INVOKE_METHOD", ((mod.__name__, "C", "f"), 0)
-        )
-        self.assertEqual(asyncio.run(mod.C().g()), 1)
+    with self.in_module(codestr) as mod:
+        fn = mod.fn
+        with self.assertRaisesRegex(
+            TypeError,
+            re.escape("fn() missing 2 required positional arguments: 'x' and 'y'"),
+        ):
+            fn()  # bad call

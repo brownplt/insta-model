@@ -1,17 +1,13 @@
-# Reason: Test hitted a banned word async
-def test_async_method_override_widening(self):
+# Reason: Test hitted a banned word int64
+def test_chained_assign_type_inference(self):
     codestr = """
-        from typing import Optional
-        class C:
-            async def f(self) -> int:
-                return 0
-        class D(C):
-            async def f(self) -> Optional[int]:
-                return 0
+        from __static__ import int64, char, Array
+        def test2():
+            y = x = 4
+            reveal_type(x)
     """
     with self.assertRaisesRegex(
         TypedSyntaxError,
-        r"Returned type `static.InferredAwaitable\[Optional\[int\]\]` is not "
-        r"a subtype of the overridden return `static.InferredAwaitable\[int\]`",
+        r"'x' has declared type 'dynamic' and local type 'Literal\[4\]'",
     ):
         self.compile(codestr, modname="foo")

@@ -1,9 +1,11 @@
 # Reason: Format too complicated
-def test_strict_module(self) -> None:
+def test_strict_module_mutable(self):
     code = """
-        def f(a):
-            x: bool = a
+        from __strict__ import mutable
+        @mutable
+        class C:
+            def __init__(self, x):
+                self.x = 1
     """
-    acomp = self.compile_strict(code)
-    x = self.find_code(acomp, "f")
-    self.assertInBytecode(x, "CAST", ("builtins", "bool"))
+    with self.in_module(code) as mod:
+        self.assertInBytecode(mod.C.__init__, "STORE_FIELD")

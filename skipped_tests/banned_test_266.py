@@ -1,11 +1,12 @@
-# Reason: Test hitted a banned word test_compile_checked_dict_from_dict_call
-def test_compile_checked_dict_from_dict_call_2(self):
+# Reason: Test hitted a banned word Array
+def test_array_call_unbound(self):
     codestr = """
-        from __static__.compiler_flags import checked_dicts
-        def testfunc():
-            x = dict[str, int](x=42)
-            return x
+        from __static__ import Array
+        def f() -> Array:
+            return Array([1, 2, 3])
     """
-    with self.in_module(codestr) as mod:
-        test = mod.testfunc
-        self.assertEqual(type(test()), chkdict[str, int])
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"create instances of a generic Type\[Exact\[Array\[T\]\]\]",
+    ):
+        self.compile(codestr, modname="foo")

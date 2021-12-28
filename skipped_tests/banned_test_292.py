@@ -1,15 +1,18 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_args_funccall(self):
+# Reason: Test hitted a banned word f"
+def test_static_function_invoke_on_instance(self):
     codestr = """
-        from __static__ import int8
-        def f(foo):
-            pass
-        def n() -> int:
-            x: int8 = 3
-            return f(x)
+        class C:
+            @staticmethod
+            def f():
+                return 42
+        def f():
+            return C().f()
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"int8 received for positional arg 'foo', expected dynamic",
-    ):
-        self.compile(codestr, modname="foo.py")
+    with self.in_module(codestr) as mod:
+        f = mod.f
+        self.assertNotInBytecode(
+            f,
+            "INVOKE_FUNCTION",
+            ((mod.__name__, "C", "f"), 0),
+        )
+        self.assertEqual(f(), 42)

@@ -1,14 +1,11 @@
-# Reason: Test hitted a banned word _kw
-def test_verify_kwonly_self_loaded_once(self):
-    codestr = """
-        class C:
-            def x(self, *, a: int=1) -> int:
-                return 43
-        def f():
-            return C().x(a=1)
-    """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        io = StringIO()
-        dis.dis(f, file=io)
-        self.assertEqual(1, io.getvalue().count("TP_ALLOC"))
+# Reason: Test hitted a banned word int64
+def test_error_return_int(self):
+    with self.assertRaisesRegex(TypedSyntaxError, bad_ret_type("int64", "dynamic")):
+        code = self.compile(
+            """
+            from __static__ import ssize_t
+            def f():
+                y: ssize_t = 1
+                return y
+            """
+        )

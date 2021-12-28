@@ -1,25 +1,11 @@
-# Reason: Test hitted a banned word nonlocal
-def test_field_refcount(self):
+# Reason: Test hitted a banned word _kw
+def test_verify_mixed_args_kw_failure(self):
     codestr = """
-        class C:
-            def __init__(self):
-                self.x = None
-            def set_x(self, x):
-                self.x = x
+        def x(a: int=1, b: str="hunter2", c: int=14) -> None:
+            return
+        x(12, c="hi", b="lol")
     """
-    count = 0
-    with self.in_module(codestr) as mod:
-        C = mod.C
-        class X:
-            def __init__(self):
-                nonlocal count
-                count += 1
-            def __del__(self):
-                nonlocal count
-                count -= 1
-        c = C()
-        c.set_x(X())
-        c.set_x(X())
-        self.assertEqual(count, 1)
-        del c
-        self.assertEqual(count, 0)
+    with self.assertRaisesRegex(
+        TypedSyntaxError, r"Exact\[str\] received for keyword arg 'c', expected int"
+    ):
+        self.compile(codestr)

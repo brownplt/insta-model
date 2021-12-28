@@ -1,15 +1,23 @@
-# Reason: Test hitted a banned word _kw
-def test_incompat_override_method_num_kwonly_args(self):
-    codestr = """
-        class A:
-            def m(self) -> int:
+# Reason: Test hitted a banned word b"
+def test_cross_module_inheritance(self) -> None:
+    acode = """
+        class C:
+            def f(self):
                 return 42
-        class B(A):
-            def m(self, *, x: int) -> int:
-                return 0
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        "<module>.B.m overrides <module>.A.m inconsistently. Number of arguments differ",
-    ):
-        self.compile(codestr)
+    bcode = """
+        from a import C
+        class D(C):
+            def f(self):
+                return 'abc'
+        def f(y):
+            x: C
+            if y:
+                x = D()
+            else:
+                x = C()
+            return x.f()
+    """
+    bcomp = self.compiler(a=acode, b=bcode).compile_module("b")
+    x = self.find_code(bcomp, "f")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("a", "C", "f"), 0))

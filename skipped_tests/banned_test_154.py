@@ -1,11 +1,15 @@
 # Reason: Test hitted a banned word _kw
-def test_verify_kwarg_unknown_type(self):
+def test_incompat_override_method_kwonly_name(self):
     codestr = """
-        def x(x:foo):
-            return b
-        x(x='abc')
+        class A:
+            def m(self, *, y: int) -> int:
+                return 42
+        class B(A):
+            def m(self, *, x: int) -> int:
+                return 0
     """
-    module = self.compile(codestr)
-    self.assertInBytecode(module, "INVOKE_FUNCTION")
-    x = self.find_code(module)
-    self.assertInBytecode(x, "CHECK_ARGS", ())
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        "<module>.B.m overrides <module>.A.m inconsistently. Keyword only argument `y` is overridden as `x`",
+    ):
+        self.compile(codestr)

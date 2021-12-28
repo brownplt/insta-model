@@ -1,20 +1,18 @@
-# Reason: Test hitted a banned word cbool
-def test_cbool_field(self):
+# Reason: Test hitted a banned word await
+def test_awaited_invoke_function_with_args(self):
     codestr = """
-        from __static__ import cbool
-        class C:
-            def __init__(self, x: cbool) -> None:
-                self.x: cbool = x
-        def f(c: C):
-            if c.x:
-                return True
-            return False
+        async def f(a: int, b: int) -> int:
+            return a + b
+        async def g() -> int:
+            return await f(1, 2)
     """
-    with self.in_module(codestr) as mod:
-        f, C = mod.f, mod.C
-        self.assertInBytecode(f, "LOAD_FIELD", (mod.__name__, "C", "x"))
-        self.assertInBytecode(f, "POP_JUMP_IF_ZERO")
-        self.assertIs(C(True).x, True)
-        self.assertIs(C(False).x, False)
-        self.assertIs(f(C(True)), True)
-        self.assertIs(f(C(False)), False)
+    with self.in_strict_module(codestr) as mod:
+        self.assertInBytecode(
+            mod.g,
+            "INVOKE_FUNCTION",
+            ((mod.__name__, "f"), 2),
+        )
+        self.assertEqual(asyncio.run(mod.g()), 3)
+        # exercise shadowcode, INVOKE_FUNCTION_CACHED
+        self.make_async_func_hot(mod.g)
+        self.assertEqual(asyncio.run(mod.g()), 3)

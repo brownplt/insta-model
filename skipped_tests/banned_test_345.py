@@ -1,7 +1,12 @@
-# Reason: Test hitted a banned word xxclassloader
-def test_generic_type_inst_bad_type_func(self):
-    from xxclassloader import spamobj
-    o = spamobj[str]()
-    f = o.setstate
-    with self.assertRaises(TypeError):
-        f(42)
+# Reason: Test hitted a banned word int8
+def test_primitive_args_funcdef_missing_starargs(self):
+    codestr = """
+        from __static__ import int8, box
+        def x(val: int8, *foo):
+            return box(val), foo
+        def y(val: int8, **foo):
+            return box(val), foo
+    """
+    with self.in_strict_module(codestr) as mod:
+        self.assertEqual(mod.x(-128), (-128, ()))
+        self.assertEqual(mod.y(-128), (-128, {}))

@@ -1,22 +1,12 @@
-# Reason: Test hitted a banned word int8
-def test_field_sign_ext(self):
-    """tests that we do the correct sign extension when loading from a field"""
-    for type, val in [
-        ("int32", 65537),
-        ("int16", 256),
-        ("int8", 0x7F),
-        ("uint32", 65537),
-    ]:
-        codestr = f"""
-            from __static__ import {type}, box
-            class C{type}:
-                def __init__(self):
-                    self.value: {type} = {val}
-            def testfunc(c: C{type}):
-                return box(c.value)
-            """
-        with self.subTest(type=type, val=val):
-            with self.in_module(codestr) as mod:
-                C = getattr(mod, "C" + type)
-                f = mod.testfunc
-                self.assertEqual(f(C()), val)
+# Reason: Test hitted a banned word int64
+def test_sign_extend(self):
+    codestr = f"""
+        from __static__ import int16, int64, box
+        def testfunc():
+            x: int16 = -40
+            y: int64 = x
+            return box(y)
+        """
+    code = self.compile(codestr)
+    f = self.run_code(codestr)["testfunc"]
+    self.assertEqual(f(), -40)

@@ -1,19 +1,29 @@
-# Reason: Test hitted a banned word int64
-def test_invoke_builtin_func_ret_neg(self):
-    # setup xxclassloader as a built-in function for this test, so we can
-    # do a direct invoke
-    xxclassloader = sys.modules["xxclassloader"]
-    try:
-        sys.modules["xxclassloader"] = StrictModule(xxclassloader.__dict__, False)
-        codestr = """
-        from xxclassloader import neg
-        from __static__ import int64, box
-        def test():
-            x: int64 = neg()
-            return box(x)
-        """
-        with self.in_module(codestr) as mod:
-            test = mod.test
-            self.assertEqual(test(), -1)
-    finally:
-        sys.modules["xxclassloader"] = xxclassloader
+# Reason: Test hitted a banned word f"
+def test_invoke_new_derived_nonfunc_descriptor_inst_override(self):
+    codestr = """
+        class C:
+            def f(self):
+                return 1
+        def x(c: C):
+            x = c.f()
+            x += c.f()
+            return x
+    """
+    code = self.compile(codestr, modname="foo")
+    x = self.find_code(code, "x")
+    self.assertInBytecode(x, "INVOKE_METHOD", (("foo", "C", "f"), 0))
+    with self.in_module(codestr) as mod:
+        x, C = mod.x, mod.C
+        self.assertEqual(x(C()), 2)
+        class Callable:
+            def __call__(self):
+                return 42
+        class Descr:
+            def __get__(self, inst, ctx):
+                return Callable()
+        class D(C):
+            f = Descr()
+        d = D()
+        self.assertEqual(x(d), 84)
+        d.__dict__["f"] = lambda x: 100
+        self.assertEqual(x(d), 200)

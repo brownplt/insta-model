@@ -1,11 +1,13 @@
-# Reason: Test hitted a banned word int64
-def test_int_compare_to_cbool_reversed(self):
+# Reason: Test hitted a banned word xxclassloader
+def test_generic_type_error(self):
     codestr = """
-        from __static__ import int64, cbool
-        def foo(i: int64) -> cbool:
-            return 0 == i
+        from xxclassloader import spamobj
+        def testfunc():
+            x = spamobj[str]()
+            x.setstate(42)
     """
-    with self.in_module(codestr) as mod:
-        foo = mod.foo
-        self.assertEqual(foo(0), True)
-        self.assertEqual(foo(1), False)
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"Literal\[42\] received for positional arg 1, expected str",
+    ):
+        code = self.compile(codestr, modname="foo")

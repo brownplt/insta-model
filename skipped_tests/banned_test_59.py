@@ -1,14 +1,13 @@
-# Reason: Test hitted a banned word box
-def test_int_loop_inplace(self):
-    codestr = """
-    from __static__ import ssize_t, box
-    def f():
-        i: ssize_t = 0
-        while i < 100:
-            i += 1
-        return box(i)
+# Reason: Test hitted a banned word double
+def test_double_unbox(self):
+    codestr = f"""
+    from __static__ import double, box, unbox
+    def fn(x, y):
+        a: double = unbox(x)
+        b: double = unbox(y)
+        return box(a + b)
     """
-    code = self.compile(codestr)
-    f = self.find_code(code)
-    f = self.run_code(codestr)["f"]
-    self.assertEqual(f(), 100)
+    f = self.run_code(codestr)["fn"]
+    x = 3.14
+    y = 1.732
+    self.assertEqual(f(x, y), x + y)

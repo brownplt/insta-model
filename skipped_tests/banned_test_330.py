@@ -1,12 +1,18 @@
-# Reason: Test hitted a banned word test_compile_nested_class_in_fn
-def test_compile_nested_class_in_fn(self):
+# Reason: Test hitted a banned word await
+def test_async_method_incorrect_type_suspended(self):
     codestr = """
-    def fn():
+        import asyncio
         class C:
-            c: int = 1
-        return C()
+            async def f(self) -> int:
+                return 1
+        async def f(x: C):
+            return await x.f()
     """
-    with self.in_module(codestr) as mod:
-        f = mod.fn
-        self.assertNotInBytecode(f, "TP_ALLOC")
-        self.assertEqual(f().c, 1)
+    with self.in_strict_module(codestr) as mod:
+        class D(mod.C):
+            async def f(self):
+                await asyncio.sleep(0)
+                return "not an int"
+        d = D()
+        with self.assertRaises(TypeError):
+            asyncio.run(mod.f(d))

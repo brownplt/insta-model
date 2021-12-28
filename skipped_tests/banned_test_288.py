@@ -1,12 +1,17 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_args_funcdef_missing_starargs(self):
+# Reason: Test hitted a banned word break
+def test_narrow_while_if_break_else_return(self):
     codestr = """
-        from __static__ import int8, box
-        def x(val: int8, *foo):
-            return box(val), foo
-        def y(val: int8, **foo):
-            return box(val), foo
+        from typing import Optional
+        def f(x: Optional[int], y: int) -> int:
+            while x is None:
+                if y > 0:
+                    break
+                else:
+                    return 42
+            return x
     """
-    with self.in_strict_module(codestr) as mod:
-        self.assertEqual(mod.x(-128), (-128, ()))
-        self.assertEqual(mod.y(-128), (-128, {}))
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        bad_ret_type("Optional[int]", "int"),
+    ):
+        self.compile(codestr)

@@ -1,10 +1,11 @@
 # Reason: Format too complicated
-def test_strict_module_isinstance(self):
-    code = """
-        from typing import Optional
-        def foo(tval: Optional[object]) -> str:
-            if isinstance(tval, str):
-                return tval
-            return "hi"
-    """
-    self.compile_strict(code)
+def test_error_mixed_math(self):
+    with self.assertRaises(TypedSyntaxError):
+        code = self.compile(
+            """
+            from __static__ import ssize_t
+            def f():
+                y = 1
+                x: ssize_t = 42 + y
+            """
+        )

@@ -1,16 +1,16 @@
 # Reason: Format too complicated
-def test_descriptor_access(self):
-    value = 42
-    expected = value
-    codestr = f"""
-        class Obj:
-            abc: int
-        class C:
-            x: Obj
-        def f():
-            return C.x.abc
-    """
-    with self.in_module(codestr) as mod:
-        f = mod.f
-        self.assertInBytecode(f, "LOAD_ATTR", "abc")
-        self.assertNotInBytecode(f, "LOAD_FIELD")
+def test_checked_dict_types_enforced(self):
+    x = chkdict[str, str]()
+    with self.assertRaises(TypeError):
+        x[42] = "abc"
+    self.assertEqual(x, {})
+    with self.assertRaises(TypeError):
+        x["abc"] = 42
+    self.assertEqual(x, {})
+    x = chkdict[str, int]()
+    with self.assertRaises(TypeError):
+        x[42] = 42
+    self.assertEqual(x, {})
+    with self.assertRaises(TypeError):
+        x["abc"] = "abc"
+    self.assertEqual(x, {})

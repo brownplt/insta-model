@@ -1,14 +1,12 @@
 # Reason: Test hitted a banned word int64
-def test_error_nested_kwargs_ann(self):
+def test_error_primitive_sorted_kw(self):
     code = """
         from __static__ import int64
-        def f():
+        def f(a):
             x: int64 = 0
-            def g(**kwargs: x):
-                pass
-            return g
+            return sorted([], key = x)
     """
     with self.assertRaisesRegex(
-        TypedSyntaxError, "argument annotation cannot be a primitive"
+        TypedSyntaxError, "Call argument cannot be a primitive"
     ):
         self.compile(code)

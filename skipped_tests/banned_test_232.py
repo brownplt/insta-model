@@ -1,23 +1,13 @@
-# Reason: Test hitted a banned word test_override_override_inherited
-def test_override_override_inherited(self):
+# Reason: Test hitted a banned word test_assign_try_except_typing_redeclared_after
+def test_assign_try_except_typing_redeclared_after(self):
     codestr = """
-    from typing import Optional
-    class B:
-        def f(self) -> "Optional[B]":
-            return self
-    class D(B):
-        pass
-    def f(x: B):
-        return x.f()
+        def testfunc():
+            try:
+                pass
+            except Exception as e:
+                pass
+            e: int = 42
+            return 42
     """
-    with self.in_module(codestr) as mod:
-        B = mod.B
-        D = mod.D
-        f = mod.f
-        b = B()
-        d = D()
-        self.assertEqual(f(b), b)
-        self.assertEqual(f(d), d)
-        D.f = lambda self: None
-        self.assertEqual(f(b), b)
-        self.assertEqual(f(d), None)
+    # We don't do anything special w/ Exception type yet, but it should compile
+    code = self.compile(codestr, modname="foo")

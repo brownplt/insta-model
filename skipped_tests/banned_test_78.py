@@ -1,12 +1,11 @@
 # Reason: Test hitted a banned word int64
-def test_bad_unbox(self):
+def test_uninit_value_2(self):
     codestr = """
-    from __static__ import unbox, int64
-    def f():
-        x:int64 = 42
-        unbox(x)
+    from __static__ import box, int64
+    def testfunc(x):
+        if x:
+            y:int64 = 42
+        return box(y)
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError, "Call argument cannot be a primitive"
-    ):
-        self.compile(codestr)
+    f = self.run_code(codestr)["testfunc"]
+    self.assertEqual(f(False), 0)

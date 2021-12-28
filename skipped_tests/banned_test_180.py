@@ -1,13 +1,10 @@
-# Reason: Test hitted a banned word int8
-def test_list_get_primitive_int(self):
+# Reason: Test hitted a banned word _kw
+def test_verify_kwdefaults_too_many_class(self):
     codestr = """
-        from __static__ import int8
-        def f():
-            l = [1, 2, 3]
-            x: int8 = 1
-            return l[x]
+        class C:
+            def x(self, *, b: str="hunter2") -> None:
+                return
+        C().x('abc')
     """
-    f = self.find_code(self.compile(codestr))
-    self.assertInBytecode(f, "SEQUENCE_GET", SEQ_LIST)
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.f(), 2)
+    # We do not verify types for calls that we can't do direct invokes.
+    self.compile(codestr)

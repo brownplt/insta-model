@@ -1,11 +1,11 @@
-# Reason: Test hitted a banned word int8
-def test_narrowing_assign_literal(self):
+# Reason: Test hitted a banned word vararg
+def test_varargs_call(self):
     codestr = """
-        from __static__ import int8, int16, box
+        def g(*foo):
+            return foo
         def testfunc():
-            x: int8
-            y: int16
-            x = y = 42
-            return box(x), box(y)
+            return g(2)
     """
-    self.compile(codestr, modname="foo")
+    with self.in_module(codestr) as mod:
+        test = mod.testfunc
+        self.assertEqual(test(), (2,))

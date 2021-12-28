@@ -1,11 +1,12 @@
-# Reason: Test hitted a banned word int8
-def test_primitive_args_nonstrict(self):
+# Reason: Test hitted a banned word int64
+def test_generic_type_box_box(self):
     codestr = """
-        from __static__ import int8, int16, box
-        def f(x: int8, y: int16) -> int16:
-            return x + y
-        def g() -> int:
-            return box(f(1, 300))
+        from xxclassloader import spamobj
+        def testfunc():
+            x = spamobj[str]()
+            return (x.getint(), )
     """
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.g(), 301)
+    with self.assertRaisesRegex(
+        TypedSyntaxError, type_mismatch("int64", "dynamic")
+    ):
+        code = self.compile(codestr, modname="foo")

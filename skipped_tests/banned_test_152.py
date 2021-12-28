@@ -1,8 +1,16 @@
-# Reason: Test hitted a banned word vararg
-def test_verify_lambda_vararg(self):
+# Reason: Test hitted a banned word *args
+def test_incompat_override_method_starargs(self):
     codestr = """
-        x = lambda *x: x[1]
-        a = x(1, "hi")
+        class A:
+            def m(self) -> int:
+                return 42
+        class B(A):
+            def m(self, *args) -> int:
+                return 0
     """
-    with self.in_module(codestr) as mod:
-        self.assertEqual(mod.a, "hi")
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        "<module>.B.m overrides <module>.A.m inconsistently. "
+        "Functions differ by including \\*args",
+    ):
+        self.compile(codestr)

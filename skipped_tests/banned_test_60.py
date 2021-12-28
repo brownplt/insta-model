@@ -1,19 +1,11 @@
-# Reason: Test hitted a banned word int64
-def test_int_loop(self):
-    codestr = """
-    from __static__ import ssize_t, box
-    def testfunc():
-        i: ssize_t = 0
-        while i < 100:
-            i = i + 1
-        return box(i)
+# Reason: Test hitted a banned word double
+def test_double_unbox_using_double(self):
+    codestr = f"""
+        from __static__ import double, box
+        def f():
+            x = 1.2
+            y = double(x)
+            return box(y + 1.0)
     """
-    code = self.compile(codestr)
-    f = self.find_code(code)
-    f = self.run_code(codestr)["testfunc"]
-    self.assertEqual(f(), 100)
-    self.assertInBytecode(f, "PRIMITIVE_LOAD_CONST", (0, TYPED_INT64))
-    self.assertInBytecode(f, "LOAD_LOCAL", (0, ("__static__", "int64")))
-    self.assertInBytecode(f, "PRIMITIVE_BINARY_OP", PRIM_OP_ADD_INT)
-    self.assertInBytecode(f, "PRIMITIVE_COMPARE_OP", PRIM_OP_LT_INT)
-    self.assertInBytecode(f, "POP_JUMP_IF_ZERO")
+    f = self.run_code(codestr)["f"]
+    self.assertEqual(f(), 2.2)

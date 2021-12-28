@@ -1,23 +1,13 @@
-# Reason: Test hitted a banned word async
-def test_async_method_override_future_correct_type(self):
+# Reason: Test hitted a banned word int64
+def test_chained_assign_type_inference_2(self):
     codestr = """
-        class C:
-            async def f(self) -> int:
-                return 42
-            def g(self):
-                return self.f()
+        from __static__ import int64, char, Array
+        def test2():
+            y = x = 4
+            reveal_type(y)
     """
-    with self.in_strict_module(codestr) as mod:
-        loop = asyncio.new_event_loop()
-        class D(mod.C):
-            def f(self):
-                fut = loop.create_future()
-                fut.set_result(100)
-                return fut
-        d = D()
-        for i in range(100):
-            try:
-                d.g().send(None)
-            except StopIteration as e:
-                self.assertEqual(e.args[0], 100)
-        loop.close()
+    with self.assertRaisesRegex(
+        TypedSyntaxError,
+        r"'y' has declared type 'dynamic' and local type 'Literal\[4\]'",
+    ):
+        self.compile(codestr, modname="foo")

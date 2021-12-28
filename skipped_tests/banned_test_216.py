@@ -1,14 +1,16 @@
-# Reason: Test hitted a banned word int8
-def test_vector_invalid_literal(self):
-    codestr = f"""
-        from __static__ import int8, Vector
-        def test() -> Vector[int8]:
-            x: Vector[int8] = Vector[int8]()
-            x.append(128)
-            return x
+# Reason: Test hitted a banned word test_if_else_optional_return_two_branches
+def test_if_else_optional_return_two_branches(self):
+    codestr = """
+        from typing import Optional
+        class C:
+            def __init__(self):
+                self.field = self
+        def f(x: Optional[C]):
+            if x is None:
+                if a:
+                    return 0
+                else:
+                    return 2
+            return x.field
     """
-    with self.assertRaisesRegex(
-        TypedSyntaxError,
-        r"Literal\[128\] received for positional arg 'v', expected int8",
-    ):
-        self.compile(codestr)
+    self.compile(codestr, modname="foo")
