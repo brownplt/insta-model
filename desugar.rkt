@@ -12,6 +12,7 @@
   (e x
      (con c)
      (tuple (e ...))
+     (list (e ...))
      (set (e ...))
      (dict ([e e] ...))
      (not e)
@@ -20,7 +21,8 @@
      (if-exp e e e)
      (attribute e x)
      (call e (e ...))
-     (lambda ([x t] ...) e))
+     (lambda ([x t] ...) e)
+     (function-exp ([x t] ...) t level))
 
   ;; type expression
   (t dynamic e)
@@ -319,6 +321,9 @@
    (while (desugar-e e+)
           (make-begin (desugar-s s+_thn) ...)
           (make-begin (desugar-s s+_els) ...))]
+  [(desugar-s (for a-target e+ (s+_thn ...) (s+_els ...)))
+   (desugar-s (begin (ann-assign x dynamic (attribute e+ ()))(while e+ (s+_thn ...) (s+_els ...))))
+   (where x ,(symbol->string (gensym '-)))]
   [(desugar-s break) break]
   [(desugar-s continue) continue]
   [(desugar-s (delete e+))

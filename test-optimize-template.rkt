@@ -654,52 +654,6 @@ def g():
 |#
 
 
-;; conformance_suite/test_invoke_with_cell.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("l" "list")) dynamic ((assign ("x") (con 2)) (return (list-comp (bin-op + "x" "y") (("y" "l" ())))))) (function-def "g" () dynamic ((return (call "f" ((list ((con 1) (con 2) (con 3)))))))))))))
-#|
-
-def f(l: list):
-    x = 2
-    return [x + y for y in l]
-def g():
-    return f([1,2,3])
-# def test_invoke_with_cell(self):
-#     codestr = """
-#         def f(l: list):
-#             x = 2
-#             return [x + y for y in l]
-#         def g():
-#             return f([1,2,3])
-#     """
-#     with self.in_strict_module(codestr) as mod:
-#         g = mod.g
-#         self.assertEqual(g(), [3, 4, 5])
-#         self.assertInBytecode(g, "INVOKE_FUNCTION", ((mod.__name__, "f"), 1))
-|#
-
-
-;; conformance_suite/test_invoke_with_cell_arg.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("l" "list") ("x" "int")) dynamic ((return (list-comp (bin-op + "x" "y") (("y" "l" ())))))) (function-def "g" () dynamic ((return (call "f" ((list ((con 1) (con 2) (con 3))) (con 2)))))))))))
-#|
-
-def f(l: list, x: int):
-    return [x + y for y in l]
-def g():
-    return f([1,2,3], 2)
-# def test_invoke_with_cell_arg(self):
-#     codestr = """
-#         def f(l: list, x: int):
-#             return [x + y for y in l]
-#         def g():
-#             return f([1,2,3], 2)
-#     """
-#     with self.in_strict_module(codestr) as mod:
-#         g = mod.g
-#         self.assertEqual(g(), [3, 4, 5])
-#         self.assertInBytecode(g, "INVOKE_FUNCTION", ((mod.__name__, "f"), 2))
-|#
-
-
 ;; conformance_suite/test_max.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))))))))
 #|

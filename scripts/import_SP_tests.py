@@ -105,6 +105,7 @@ skip_in_code = [
     '@final',
     'Final[',
     'Final',
+    'for'
 ]
 
 

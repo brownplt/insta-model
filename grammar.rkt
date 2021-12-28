@@ -30,6 +30,7 @@
   (e+ x
       (con c)
       (tuple (e+ ...))
+      (list (e+ ...))
       (set (e+ ...))
       (dict ([e+ e+] ...))
       (unary-op o1 e+)
@@ -40,7 +41,11 @@
       (attribute e+ x)
       (call e+ (e+ ...))
       (subscript e+ e+)
-      (lambda ([x t+] ...) e+))
+      (lambda ([x t+] ...) e+)
+      (list-comp e+ (g+ ...)))
+
+  ;; generator (comprehension node)
+  (g+ [a-target e+ (e+ ...)])
 
   ;; type expression
   (t+ dynamic e+)
@@ -52,6 +57,7 @@
       (assert e+)
       (if e+ (s+ ...) (s+ ...))
       (while e+ (s+ ...) (s+ ...))
+      (for a-target e+ (s+ ...) (s+ ...))
       break
       continue
       (delete d-target)

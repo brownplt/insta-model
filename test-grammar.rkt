@@ -545,18 +545,6 @@
 ;; conformance_suite/test_dynamic_chained_assign_param_2.py
 (test-match SP program+ (term ((import-from "__static__" ("int16")) (function-def "testfunc" (("y" dynamic)) dynamic ((ann-assign "x" "int16") (assign ("y" "x") (con 42)))))))
 
-;; conformance_suite/test_for_iter_list.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ()) (return "acc"))))))
-
-;; conformance_suite/test_for_iter_sequence_orelse.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ((expr (call (attribute "acc" "append") ((con 999)))))) (return "acc"))))))
-
-;; conformance_suite/test_for_iter_sequence_return.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((if (compare "i" ((== (con 3)))) ((return "acc")) ()) (expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ()) (return "acc"))))))
-
-;; conformance_suite/test_for_iter_tuple.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (call "tuple" ((list-comp "i" (("i" (call "range" ("n")) ())))))) (for "i" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ()) (return "acc"))))))
-
 ;; conformance_suite/test_generic_method_ret_type.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))
 
@@ -653,15 +641,6 @@
 ;; conformance_suite/test_invoke_strict_module_pre_invoked.py
 (test-match SP program+ (term ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))))))
 
-;; conformance_suite/test_invoke_with_cell.py
-(test-match SP program+ (term ((function-def "f" (("l" "list")) dynamic ((assign ("x") (con 2)) (return (list-comp (bin-op + "x" "y") (("y" "l" ())))))) (function-def "g" () dynamic ((return (call "f" ((list ((con 1) (con 2) (con 3)))))))))))
-
-;; conformance_suite/test_invoke_with_cell_arg.py
-(test-match SP program+ (term ((function-def "f" (("l" "list") ("x" "int")) dynamic ((return (list-comp (bin-op + "x" "y") (("y" "l" ())))))) (function-def "g" () dynamic ((return (call "f" ((list ((con 1) (con 2) (con 3))) (con 2)))))))))
-
-;; conformance_suite/test_list_comprehension_with_if.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "foo" () (subscript "List" "int") ((assign ("a") (list ((con 1) (con 2) (con 3) (con 4)))) (return (list-comp "x" (("x" "a" ((compare "x" ((> (con 2))))))))))))))
-
 ;; conformance_suite/test_max.py
 (test-match SP program+ (term ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))))))
 
@@ -709,15 +688,6 @@
 
 ;; conformance_suite/test_nested_fn_type_error_2.py
 (test-match SP program+ (term ((function-def "f" (("i" "int") ("j" "str") ("k" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))))))
-
-;; conformance_suite/test_nested_for_iter_sequence.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((for "j" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" "j"))))) ())) ()) (return "acc"))))))
-
-;; conformance_suite/test_nested_for_iter_sequence_return.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((for "j" "l" ((if (compare "j" ((== (con 1)))) ((return "acc")) ()) (expr (call (attribute "acc" "append") ((bin-op + "i" "j"))))) ())) ()) (return "acc"))))))
-
-;; conformance_suite/test_nested_list_comprehensions_with_if.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "foo" () (subscript "List" "int") ((assign ("a") (list ((con 1) (con 2) (con 3) (con 4)))) (assign ("b") (list ((con 1) (con 2)))) (return (list-comp (bin-op * "x" "y") (("x" "a" ()) ("y" "b" ((compare "x" ((> (con 2))))))))))))))
 
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (test-match SP program+ (term ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ())))))))
