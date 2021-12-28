@@ -51,6 +51,9 @@
       (return e+)
       (assert e+)
       (if e+ (s+ ...) (s+ ...))
+      (while e+ (s+ ...) (s+ ...))
+      break
+      continue
       (delete d-target)
       (ann-assign aa-target t+)
       (ann-assign aa-target t+ e+)

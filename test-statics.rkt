@@ -446,9 +446,6 @@
 ;; conformance_suite/test_bool_int.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "int" (con #t)) (return "x")))))))
 
-;; conformance_suite/test_break_condition.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "str"))) "str" ((while (con #t) ((if (compare "x" ((is (con None)))) (break) ()) (return "x")) ())))))))
-
 ;; conformance_suite/test_cast_unknown_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("cast")) (function-def "f" () dynamic ((expr (call "cast" ("abc" (con 42))))))))))
 
@@ -523,9 +520,6 @@
 
 ;; conformance_suite/test_compile_nested_dict.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y")))))))
-
-;; conformance_suite/test_continue_condition.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "str"))) "str" ((while (con #t) ((if (compare "x" ((is (con None)))) (continue) ()) (return "x")) ())))))))
 
 ;; conformance_suite/test_decorated_function_ignored.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () (pass)) (function-def "mydecorator" (("x" dynamic)) dynamic ((return "C"))) (function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ()))))))))
@@ -658,18 +652,6 @@
 
 ;; conformance_suite/test_narrow_or.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" (con None)))) "int" ((if (bool-op or ((compare "x" ((is (con None)))) (compare "x" ((> (con 1)))))) ((assign ("x") (con 1))) ()) (return "x")))))))
-
-;; conformance_suite/test_narrow_while_break.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (compare "x" ((is (con None)))) (break) ()) (return "x")))))))
-
-;; conformance_suite/test_narrow_while_break_if.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (con #t) ((if (compare "x" ((is (con None)))) (break) ()) (return "x")) ())))))))
-
-;; conformance_suite/test_narrow_while_continue_if.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((while (con #t) ((if (compare "x" ((is (con None)))) (continue) ()) (return "x")) ())))))))
-
-;; conformance_suite/test_narrow_while_if_break_else_return.py
-(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int")) ("y" "int")) "int" ((while (compare "x" ((is (con None)))) ((if (compare "y" ((> (con 0)))) (break) ((return (con 42))))) ()) (return "x")))))))
 
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ()))))))))

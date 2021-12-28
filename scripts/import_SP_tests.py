@@ -78,6 +78,8 @@ ban_in_test_name = [
     # Unbound identifier
     'test_assign_try_except_typing_redeclared_after',
     # The scope is funny
+    'test_break_condition',
+    # This test is bad
 ]
 skip_anywhere_in_test = [
     # Skip for now
@@ -92,12 +94,14 @@ skip_anywhere_in_test = [
     '@_donotcompile',
     '__setattr__',
     '__slots__',
-    'reveal_type',
+    'reveal_type'
 ]
 skip_in_code = [
     '@final',
     'Final[',
     'Final',
+    'break',
+    'continue'
 ]
 
 

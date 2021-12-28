@@ -61,6 +61,9 @@
       (return e-)
       (begin s- ...)
       (if e- s- s-)
+      (while e- s- s-)
+      break
+      continue
       (delete x)
       (delete (attribute mode e- x))
       ;; annotations are removed!
@@ -787,9 +790,15 @@
    (compile-e Ψ Γ_dcl Γ_lcl (if-exp e (con #f) (con #t)))]
   ;; and
   [(compile-e Ψ Γ_dcl Γ_lcl (and e_1 e_2))
+   (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 e_2 (con #f)))]
+  ;; or
+  [(compile-e Ψ Γ_dcl Γ_lcl (or e_1 e_2))
+   (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 (con #t) e_2))]
+  #;
+  [(compile-e Ψ Γ_dcl Γ_lcl (and e_1 e_2))
    (compile-e Ψ Γ_dcl Γ_lcl (call (lambda ([x_tmp dynamic]) (if-exp x_tmp e_2 x_tmp)) (e_1)))
    (where x_tmp ,(symbol->string (gensym 'and)))]
-  ;; or
+  #;
   [(compile-e Ψ Γ_dcl Γ_lcl (or e_1 e_2))
    (compile-e Ψ Γ_dcl Γ_lcl (call (lambda ([x_tmp dynamic]) (if-exp x_tmp x_tmp e_2)) (e_1)))
    (where x_tmp ,(symbol->string (gensym 'or)))]
@@ -1021,29 +1030,12 @@
 (define-metafunction SP-compiled
   compile-e-if-exp : Ψ Γ Γ e e e -> [e- T]
   ;; base case
-  [(compile-e-if-exp Ψ Γ_dcl Γ_lcl (is x (con None)) e_thn e_els)
-   [(if-exp (as-dyn (compile-e Ψ Γ_dcl Γ_lcl (is x (con None)))) e-_thn e-_els)
-    (union Ψ T_thn T_els)]
-   (where T (lookup Γ_lcl x))
-   (where Γ_thn (update Γ_lcl [x (intersection Ψ T (subof "NoneType"))]))
-   (where Γ_els (update Γ_lcl [x (remove-None T)]))
-   (where [e-_thn T_thn] (compile-e Ψ Γ_dcl Γ_thn e_thn))
-   (where [e-_els T_els] (compile-e Ψ Γ_dcl Γ_els e_els))]
-  ;; step case -- not
-  [(compile-e-if-exp Ψ Γ_dcl Γ_lcl (not e) e_thn e_els)
-   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e e_els e_thn)]
-  ;; step case -- and
-  [(compile-e-if-exp Ψ Γ_dcl Γ_lcl (and e_1 e_2) e_thn e_els)
-   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e_1 (if-exp e_2 e_thn e_els) e_els)]
-  ;; step case -- or
-  [(compile-e-if-exp Ψ Γ_dcl Γ_lcl (or e_1 e_2) e_thn e_els)
-   (compile-e-if-exp Ψ Γ_dcl Γ_lcl e_1 e_thn (if-exp e_2 e_thn e_els))]
-  ;; fall through
   [(compile-e-if-exp Ψ Γ_dcl Γ_lcl e e_thn e_els)
    [(if-exp (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) e-_thn e-_els)
     (union Ψ T_thn T_els)]
-   (where [e-_thn T_thn] (compile-e Ψ Γ_dcl Γ_lcl e_thn))
-   (where [e-_els T_els] (compile-e Ψ Γ_dcl Γ_lcl e_els))])
+   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))
+   (where [e-_thn T_thn] (compile-e Ψ Γ_dcl Γ_thn e_thn))
+   (where [e-_els T_els] (compile-e Ψ Γ_dcl Γ_els e_els))])
 
 (define-metafunction SP-compiled
   as-dyn : [e- T] -> e-
@@ -1079,7 +1071,7 @@
   ;; assert
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (assert (con #t))))
-              (term (if (ref (con #t)) (begin) (expr (raise-error "cast error")))))
+              (term (if (ref (con #t)) (begin) (expr (raise-error "assertion error")))))
   ;; begin
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (begin (expr "int") (expr "bool"))))
@@ -1118,7 +1110,7 @@
                                                          ((invoke-function "type" ("i"))
                                                           (ref "int")))
                                         (begin)
-                                        (expr (raise-error "cast error"))))
+                                        (expr (raise-error "assertion error"))))
                                   (local ("i")
                                     (return "i"))))))
   )
@@ -1139,6 +1131,15 @@
   ;; if
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (if e_cnd s_thn s_els))
    (compile-s-if Ψ Γ_dcl Γ_lcl T+☠ e_cnd s_thn s_els)]
+  ;; while
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (while e_cnd s_thn s_els))
+   (compile-s-while Ψ Γ_dcl Γ_lcl T+☠ e_cnd s_thn s_els)]
+  ;; break
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ break)
+   break]
+  ;; continue
+  [(compile-s Ψ Γ_dcl Γ_lcl T+☠ continue)
+   continue]
   ;; delete x
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (delete x))
    (delete x)]
@@ -1379,10 +1380,7 @@
   [(compile-begin Ψ Γ_dcl Γ_lcl ☠)
    (begin)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T)
-   (begin)
-   #; ;; TODO
-   (compile-s Ψ Γ_dcl Γ_lcl T (return (con None)))
-   (judgment-holds (Ψ⊢T<:T Ψ (subof "NoneType") T))]
+   (begin)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s)
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ s)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (return e) s ...)
@@ -1398,33 +1396,66 @@
    (where T_lcl (intersection Ψ T_src T_dst))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (if e s_thn s_els) s ...)
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ (if e (begin s_thn s ...) (begin s_els s ...)))]
+  [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (while e s_thn s_els) s ...)
+   (begin
+     (while e
+            (compile-s Ψ Γ_dcl Γ_thn T+☠ s_thn)
+            (compile-s Ψ Γ_dcl Γ_els T+☠ s_els))
+     (compile-begin Ψ Γ_dcl Γ_els T+☠ s ...))
+   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_1 s_2 ...)
    (make-begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_1)
                (compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_2 ...))])
 (define-metafunction SP-compiled
-  compile-s-if : Ψ Γ Γ T+☠ e s s -> s-
-  ;; base case
-  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (is x (con None)) s_thn s_els)
-   (if (as-dyn (compile-e Ψ Γ_dcl Γ_lcl (is x (con None)))) s-_thn s-_els)
+  condition : Ψ Γ Γ e -> [e- Γ Γ]
+  [(condition Ψ Γ_dcl Γ_lcl (is x (con None)))
+   [(is x (con None))
+    Γ_thn
+    Γ_els]
    (where T (lookup Γ_lcl x))
    (where Γ_thn (update Γ_lcl [x (intersection Ψ T (subof "NoneType"))]))
-   (where Γ_els (update Γ_lcl [x (remove-None T)]))
-   (where s-_thn (compile-s Ψ Γ_dcl Γ_thn T+☠_out s_thn))
-   (where s-_els (compile-s Ψ Γ_dcl Γ_els T+☠_out s_els))]
-  ;; step case -- not
-  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (not e) s_thn s_els)
-   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e s_els s_thn)]
-  ;; step case -- and
-  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (and e_1 e_2) s_thn s_els)
-   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e_1 (if e_2 s_thn s_els) s_els)]
-  ;; step case -- or
-  [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out (or e_1 e_2) s_thn s_els)
-   (compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e_1 s_thn (if e_2 s_thn s_els))]
-  ;; fall through
+   (where Γ_els (update Γ_lcl [x (remove-None T)]))]
+  [(condition Ψ Γ_dcl Γ_lcl (not e))
+   [(if-exp e- (con #f) (con #t))
+    Γ_els
+    Γ_thn]
+   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))]
+  [(condition Ψ Γ_dcl Γ_lcl (and e_1 e_2))
+   [(if-exp e-_1 e-_2 (con #f))
+    Γ_11
+    (union* Ψ Γ_12 Γ_2)]
+   (where [e-_1 Γ_1 Γ_2] (condition Ψ Γ_dcl Γ_lcl e_1))
+   (where [e-_2 Γ_11 Γ_12] (condition Ψ Γ_dcl Γ_1 e_2))]
+  [(condition Ψ Γ_dcl Γ_lcl (or e_1 e_2))
+   [(if-exp e-_1 (con #t) e-_2)
+    (union* Ψ Γ_1 Γ_21)
+    Γ_22]
+   (where [e-_1 Γ_1 Γ_2] (condition Ψ Γ_dcl Γ_lcl e_1))
+   (where [e-_2 Γ_21 Γ_22] (condition Ψ Γ_dcl Γ_2 e_2))]
+  [(condition Ψ Γ_dcl Γ_lcl e)
+   [(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e))
+    Γ_lcl
+    Γ_lcl]])
+(define-metafunction SP-compiled
+  union* : Ψ Γ Γ -> Γ
+  [(union* Ψ ([x T_1] ...) ([x T_2] ...))
+   ([x (union Ψ T_1 T_2)] ...)])
+(define-metafunction SP-compiled
+  compile-s-if : Ψ Γ Γ T+☠ e s s -> s-
+  ;; base case
   [(compile-s-if Ψ Γ_dcl Γ_lcl T+☠_out e s_thn s_els)
    (if (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) s-_thn s-_els)
-   (where s-_thn (compile-s Ψ Γ_dcl Γ_lcl T+☠_out s_thn))
-   (where s-_els (compile-s Ψ Γ_dcl Γ_lcl T+☠_out s_els))])
+   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))
+   (where s-_thn (compile-s Ψ Γ_dcl Γ_thn T+☠_out s_thn))
+   (where s-_els (compile-s Ψ Γ_dcl Γ_els T+☠_out s_els))])
+(define-metafunction SP-compiled
+  compile-s-while : Ψ Γ Γ T+☠ e s s -> s-
+  ;; base case
+  [(compile-s-while Ψ Γ_dcl Γ_lcl T+☠_out e s_thn s_els)
+   (while (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) s-_thn s-_els)
+   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))
+   (where s-_thn (compile-s Ψ Γ_dcl Γ_thn T+☠_out s_thn))
+   (where s-_els (compile-s Ψ Γ_dcl Γ_els T+☠_out s_els))])
 
 (module+ test
   (test-equal (term (compile-program

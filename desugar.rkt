@@ -31,6 +31,9 @@
      (assert e)
      (begin s ...)
      (if e s s)
+     (while e s s)
+     break
+     continue
      (delete x)
      (delete (attribute e x))
      (ann x t)
@@ -312,6 +315,12 @@
    (if (desugar-e e+)
        (make-begin (desugar-s s+_thn) ...)
        (make-begin (desugar-s s+_els) ...))]
+  [(desugar-s (while e+ (s+_thn ...) (s+_els ...)))
+   (while (desugar-e e+)
+          (make-begin (desugar-s s+_thn) ...)
+          (make-begin (desugar-s s+_els) ...))]
+  [(desugar-s break) break]
+  [(desugar-s continue) continue]
   [(desugar-s (delete e+))
    (desugar-delete e+)]
   ;; ann-assign without ann
@@ -530,6 +539,12 @@
    (xd*-of-s-begin (xd*-of-s s) ...)]
   [(xd*-of-s (if e_cnd s_thn s_els))
    (append (xd*-of-s s_thn) (xd*-of-s s_els))]
+  [(xd*-of-s (while e_cnd s_thn s_els))
+   (append (xd*-of-s s_thn) (xd*-of-s s_els))]
+  [(xd*-of-s break)
+   ()]
+  [(xd*-of-s continue)
+   ()]
   [(xd*-of-s (delete x))
    ()]
   [(xd*-of-s (delete (attribute e x)))
