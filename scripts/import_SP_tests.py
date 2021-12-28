@@ -54,6 +54,9 @@ ban_anywhere_in_test = [
     'xxclassloader',
     # more powerful features.
     'NamedTuple',
+    # ban nested classes
+    'nested_class',
+    
     # We don't spend too much time on occurrence typing
     'break', 'continue',
 

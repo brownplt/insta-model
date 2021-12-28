@@ -541,9 +541,6 @@
 ;; conformance_suite/test_compile_generic_dict_setitem_bad_type_2.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "abc") (con 42))))))) (assign ((subscript "x" (con "foo"))) (con "abc"))))))))))
 
-;; conformance_suite/test_compile_nested_class.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar")) (class "Outer" () ((class "Inner" () ((ann-assign "c" (subscript "ClassVar" "int") (con 1)))))))))))
-
 ;; conformance_suite/test_compile_nested_dict.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))))))))
 

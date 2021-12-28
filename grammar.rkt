@@ -82,7 +82,8 @@
    x
    (attribute e+ x)
    (subscript e+ e+)
-   (tuple (a-target ...)))
+   (tuple (a-target ...))
+   (list (a-target ...)))
 
   ;; targets of ann-assign,
   ;;   which is a subset of assign-target
