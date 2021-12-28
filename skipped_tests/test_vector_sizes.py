@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_vector_sizes(self):
     for signed in ["int", "uint"]:
         for size in ["8", "16", "32", "64"]:

@@ -4,7 +4,7 @@
 
 def fact(i: int) -> int:
     o:int = 1
-    while i > 0:
+    while i is not 0:
         o *= i
         i -= 1
     return o

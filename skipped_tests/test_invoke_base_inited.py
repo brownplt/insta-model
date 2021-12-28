@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_invoke_base_inited(self):
     """when the base class v-table is initialized before a derived
     class we still have a properly initialized v-table for the

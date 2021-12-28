@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Can't be translated by any of the three translator
 def test_inline_func(self):
     codestr = """
         from __static__ import inline

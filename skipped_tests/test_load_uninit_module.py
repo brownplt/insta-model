@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_load_uninit_module(self):
     """verify we don't crash if we receive a module w/o a dictionary"""
     codestr = """

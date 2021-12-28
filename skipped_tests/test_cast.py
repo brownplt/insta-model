@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_cast(self):
     for code_gen in (StaticCodeGenerator, PythonCodeGenerator):
         codestr = """

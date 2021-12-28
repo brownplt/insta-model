@@ -305,6 +305,31 @@ def ast_to_sexp(node):
             name,
             [ast_to_sexp(s) for s in node.body],
         ]
+    elif isinstance (node, ast.List):
+        return [
+            symbol('list'),
+            [ ast_to_sexp(e) for e in node.elts ]
+        ]
+    elif isinstance(node, ast.ListComp):
+        return [
+            symbol('list-comp'),
+            ast_to_sexp(node.elt),
+            [ast_to_sexp(g) for g in node.generators]
+        ]
+    elif isinstance(node, ast.comprehension):
+        return [
+            ast_to_sexp(node.target),
+            ast_to_sexp(node.iter),
+            [ ast_to_sexp(cnd) for cnd in node.ifs ]
+        ]
+    elif isinstance(node, ast.For):
+        return [
+            symbol('for'),
+            ast_to_sexp(node.target),
+            ast_to_sexp(node.iter),
+            [ast_to_sexp(s) for s in node.body],
+            [ast_to_sexp(s) for s in node.orelse]
+        ]
     assert False, str(node)
 
 

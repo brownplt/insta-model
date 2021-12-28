@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_fast_len_conditional_list_subclass(self):
     codestr = """
         from typing import List

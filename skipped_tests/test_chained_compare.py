@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_chained_compare(self):
     for jumpif in [False, True]:
         with self.subTest(jumpif=jumpif):

@@ -461,6 +461,9 @@
 ;; conformance_suite/test_class_unknown_decorator.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "dec" (("f" dynamic)) dynamic ((return "f"))) (class "C" () ((function-def "foo" (("self" dynamic)) "int" ((return (con 3)))) (function-def "f" (("self" dynamic)) dynamic ((return (call (attribute "self" "foo") ()))))))))))
 
+;; conformance_suite/test_clen_bad_arg.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("clen")) (function-def "f" (("l" dynamic)) dynamic ((expr (call "clen" ("l")))))))))
+
 ;; conformance_suite/test_compile_checked_dict_ann_differs.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "int"))) (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "abc") (con "abc"))))))) (return "x")))))))
 
@@ -485,6 +488,9 @@
 ;; conformance_suite/test_compile_checked_dict_reversed.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42)) ((call "B" ()) (con 42))))))) (return "x")))))))
 
+;; conformance_suite/test_compile_checked_dict_shadowcode.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x")))))))
+
 ;; conformance_suite/test_compile_checked_dict_type_specified.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42))))))) (return "x")))))))
 
@@ -499,6 +505,9 @@
 
 ;; conformance_suite/test_compile_dict_get_typed.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 42) (con "abc"))))))) (ann-assign "y" (bin-op bit-or "str" (con None)) (call (attribute "x" "get") ((con 42))))))))))
+
+;; conformance_suite/test_compile_dict_setdefault.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 42) (con "abc"))))))) (expr (call (attribute "x" "setdefault") ((con 100) (con 43))))))))))
 
 ;; conformance_suite/test_compile_dict_setdefault_typed.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 42) (con "abc"))))))) (ann-assign "y" (bin-op bit-or "str" (con None)) (call (attribute "x" "setdefault") ((con 100) (con "foo"))))))))))
@@ -538,6 +547,18 @@
 
 ;; conformance_suite/test_dynamic_chained_assign_param_2.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("int16")) (function-def "testfunc" (("y" dynamic)) dynamic ((ann-assign "x" "int16") (assign ("y" "x") (con 42))))))))
+
+;; conformance_suite/test_for_iter_list.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ()) (return "acc")))))))
+
+;; conformance_suite/test_for_iter_sequence_orelse.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ((expr (call (attribute "acc" "append") ((con 999)))))) (return "acc")))))))
+
+;; conformance_suite/test_for_iter_sequence_return.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((if (compare "i" ((== (con 3)))) ((return "acc")) ()) (expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ()) (return "acc")))))))
+
+;; conformance_suite/test_for_iter_tuple.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (call "tuple" ((list-comp "i" (("i" (call "range" ("n")) ())))))) (for "i" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" (con 1)))))) ()) (return "acc")))))))
 
 ;; conformance_suite/test_generic_method_ret_type.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x")))))))))
@@ -587,6 +608,9 @@
 ;; conformance_suite/test_incompat_override_method_ret_type.py
 (check-not-judgment-holds* (⊢p (desugar-program ((class "A" () ((function-def "m" (("self" dynamic)) "str" ((return (con "hello")))))) (class "B" ("A") ((function-def "m" (("self" dynamic)) "int" ((return (con 0))))))))))
 
+;; conformance_suite/test_inline_arg_type_mismatch.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (function-def "f" (("x" "int")) "bool" ((return (compare "x" ((== (con 1))))))) (function-def "g" (("arg" "str")) "bool" ((return (call "f" ("arg")))))))))
+
 ;; conformance_suite/test_inline_nested.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2))))))))))
 
@@ -617,8 +641,14 @@
 ;; conformance_suite/test_invoke_str_method_arg.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "func" () dynamic ((assign ("a") (con "a b c")) (return (call (attribute "a" "split") ((con "a"))))))))))
 
+;; conformance_suite/test_invoke_strict_module.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ()))))))))
+
 ;; conformance_suite/test_invoke_strict_module_deep.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" () dynamic ((return (call "f0" ())))) (function-def "f2" () dynamic ((return (call "f1" ())))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ()))))))))
+
+;; conformance_suite/test_invoke_strict_module_deep_unjitable.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f12" () dynamic ((return (con 42)))) (function-def "f11" () dynamic ((class "C" () (pass)) (return (call "f12" ())))) (function-def "f10" () dynamic ((return (call "f11" ())))) (function-def "f9" () dynamic ((return (call "f10" ())))) (function-def "f8" () dynamic ((return (call "f9" ())))) (function-def "f7" () dynamic ((return (call "f8" ())))) (function-def "f6" () dynamic ((return (call "f7" ())))) (function-def "f5" () dynamic ((return (call "f6" ())))) (function-def "f4" () dynamic ((return (call "f5" ())))) (function-def "f3" () dynamic ((return (call "f4" ())))) (function-def "f2" () dynamic ((return (call "f3" ())))) (function-def "f1" () dynamic ((return (call "f2" ())))) (function-def "g" (("x" dynamic)) dynamic ((if "x" ((return (con 0))) ()) (return (call "f1" ()))))))))
 
 ;; conformance_suite/test_invoke_strict_module_deep_unjitable_many_args.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic) ("h" dynamic)) dynamic ((class "C" () (pass)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (call "f0" ()) "a") "b") "c") "d") "e") "f") "g") "h") (con 4))))) (function-def "f2" () dynamic ((return (call "f1" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7) (con 8)))))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ()))))))))
@@ -626,14 +656,38 @@
 ;; conformance_suite/test_invoke_strict_module_pre_invoked.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ()))))))))
 
+;; conformance_suite/test_invoke_with_cell.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("l" "list")) dynamic ((assign ("x") (con 2)) (return (list-comp (bin-op + "x" "y") (("y" "l" ())))))) (function-def "g" () dynamic ((return (call "f" ((list ((con 1) (con 2) (con 3))))))))))))
+
+;; conformance_suite/test_invoke_with_cell_arg.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("l" "list") ("x" "int")) dynamic ((return (list-comp (bin-op + "x" "y") (("y" "l" ())))))) (function-def "g" () dynamic ((return (call "f" ((list ((con 1) (con 2) (con 3))) (con 2))))))))))
+
+;; conformance_suite/test_list_comprehension_with_if.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "foo" () (subscript "List" "int") ((assign ("a") (list ((con 1) (con 2) (con 3) (con 4)))) (return (list-comp "x" (("x" "a" ((compare "x" ((> (con 2)))))))))))))))
+
 ;; conformance_suite/test_max.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b")))))))))
 
 ;; conformance_suite/test_max_stability.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b")))))))))
 
+;; conformance_suite/test_method_prologue.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42))))))))
+
+;; conformance_suite/test_method_prologue_2.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42))))))))
+
+;; conformance_suite/test_method_prologue_3.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42))))))))
+
 ;; conformance_suite/test_method_prologue_no_annotation.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" dynamic)) dynamic ((return (con 42))))))))
+
+;; conformance_suite/test_method_prologue_shadowcode.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42))))))))
+
+;; conformance_suite/test_method_prologue_shadowcode_2.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42))))))))
 
 ;; conformance_suite/test_min.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b")))))))))
@@ -652,6 +706,21 @@
 
 ;; conformance_suite/test_narrow_or.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("x" (bin-op bit-or "int" (con None)))) "int" ((if (bool-op or ((compare "x" ((is (con None)))) (compare "x" ((> (con 1)))))) ((assign ("x") (con 1))) ()) (return "x")))))))
+
+;; conformance_suite/test_nested_fn_type_error.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("i" "int") ("j" "str") ("l" "int") ("m" "int") ("n" "int") ("o" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i")))))))))
+
+;; conformance_suite/test_nested_fn_type_error_2.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" (("i" "int") ("j" "str") ("k" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i")))))))))
+
+;; conformance_suite/test_nested_for_iter_sequence.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((for "j" "l" ((expr (call (attribute "acc" "append") ((bin-op + "i" "j"))))) ())) ()) (return "acc")))))))
+
+;; conformance_suite/test_nested_for_iter_sequence_return.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f" (("n" "int")) "List" ((assign ("acc") (list ())) (assign ("l") (list-comp "i" (("i" (call "range" ("n")) ())))) (for "i" "l" ((for "j" "l" ((if (compare "j" ((== (con 1)))) ((return "acc")) ()) (expr (call (attribute "acc" "append") ((bin-op + "i" "j"))))) ())) ()) (return "acc")))))))
+
+;; conformance_suite/test_nested_list_comprehensions_with_if.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "foo" () (subscript "List" "int") ((assign ("a") (list ((con 1) (con 2) (con 3) (con 4)))) (assign ("b") (list ((con 1) (con 2)))) (return (list-comp (bin-op * "x" "y") (("x" "a" ()) ("y" "b" ((compare "x" ((> (con 2)))))))))))))))
 
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ()))))))))
@@ -677,6 +746,9 @@
 ;; conformance_suite/test_none_subscript.py
 (check-not-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((assign ("x") (con None)) (return (subscript "x" (con 0)))))))))
 
+;; conformance_suite/test_none_unaryop.py
+(check-not-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((assign ("x") (con None)) (return (unary-op - "x"))))))))
+
 ;; conformance_suite/test_optional_assign.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "f" (("self" dynamic) ("x" (subscript "Optional" (con "C")))) dynamic ((if (compare "x" ((is (con None)))) ((return "self")) ((ann-assign "p" (subscript "Optional" (con "C")) "x")))))))))))
 
@@ -694,6 +766,9 @@
 
 ;; conformance_suite/test_optional_subscript_error.py
 (check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("a" (subscript "Optional" "int"))) dynamic ((expr (subscript "a" (con 1)))))))))
+
+;; conformance_suite/test_optional_unary_error.py
+(check-not-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("a" (subscript "Optional" "int"))) dynamic ((expr (unary-op - "a"))))))))
 
 ;; conformance_suite/test_override_bad_ret.py
 (check-judgment-holds* (⊢p (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ()))))))))
@@ -776,11 +851,20 @@
 ;; conformance_suite/test_verify_lambda.py
 (check-judgment-holds* (⊢p (desugar-program ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi"))))))))
 
+;; conformance_suite/test_verify_positional_args.py
+(check-not-judgment-holds* (⊢p (desugar-program ((function-def "x" (("a" "int") ("b" "str")) (con None) (pass)) (expr (call "x" ((con "a") (con 2))))))))
+
+;; conformance_suite/test_verify_positional_args_failure_method.py
+(check-not-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "x" (("self" dynamic) ("a" "int") ("b" "str")) (con None) (pass)))) (expr (call (attribute (call "C" ()) "x") ((con "a") (con 2))))))))
+
 ;; conformance_suite/test_verify_positional_args_method.py
 (check-judgment-holds* (⊢p (desugar-program ((class "C" () ((function-def "x" (("self" dynamic) ("a" "int") ("b" "str")) (con None) (pass)))) (expr (call (attribute (call "C" ()) "x") ((con 2) (con "hi"))))))))
 
 ;; conformance_suite/test_verify_positional_args_unordered.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "x" (("a" "int") ("b" "str")) (con None) ((return (call "y" ("a" "b"))))) (function-def "y" (("a" "int") ("b" "str")) (con None) (pass))))))
+
+;; conformance_suite/test_verify_too_many_args.py
+(check-not-judgment-holds* (⊢p (desugar-program ((function-def "x" () dynamic ((return (con 42)))) (expr (call "x" ((con 1))))))))
 
 ;; conformance_suite/test_visit_if_else.py
 (check-judgment-holds* (⊢p (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42))))))))))
@@ -816,7 +900,7 @@
 (check-judgment-holds* (⊢p (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x")))))
 
 ;; conformance_suite/while-loop_basic.py
-(check-judgment-holds* (⊢p (desugar-program ((function-def "fact" (("i" "int")) "int" ((ann-assign "o" "int" (con 1)) (while (compare "i" ((> (con 0)))) ((aug-assign "o" * "i") (aug-assign "i" - (con 1))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120)))))))))
+(check-judgment-holds* (⊢p (desugar-program ((function-def "fact" (("i" "int")) "int" ((ann-assign "o" "int" (con 1)) (while (compare "i" ((is-not (con 0)))) ((aug-assign "o" * "i") (aug-assign "i" - (con 1))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120)))))))))
 
 ;; conformance_suite/while-loop_else.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((while (compare (con "orange") ((is (con "apple")))) ((return (con 2))) ((return (con 3)))) (assert (con #f)))) (assert (compare (call "f" ()) ((is (con 3)))))))))

@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_fast_len_conditional_str(self):
     codestr = """
         def f(n: int) -> bool:

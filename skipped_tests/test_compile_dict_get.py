@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_compile_dict_get(self):
     codestr = """
         from __static__ import CheckedDict

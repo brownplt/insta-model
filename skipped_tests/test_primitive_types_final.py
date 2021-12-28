@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Format too complicated
 def test_primitive_types_final(self):
     PRIMITIVE_TYPES = ALL_CINT_TYPES + [CBOOL_TYPE, CHAR_TYPE, DOUBLE_TYPE]
     PRIMITIVE_NAMES = [klass.instance_name for klass in PRIMITIVE_TYPES]

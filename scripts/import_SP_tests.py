@@ -50,6 +50,8 @@ ban_anywhere_in_test = [
     'xxclassloader',
     # more powerful features.
     'NamedTuple',
+    # We don't spend too much time on occurrence typing
+    'break', 'continue'
 ]
 ban_in_test_name = [
     'test_if_else_optional_return_two_branches',
@@ -80,11 +82,12 @@ ban_in_test_name = [
     # The scope is funny
     'test_break_condition',
     # This test is bad
+    'test_method_prologue_posonly',
+    # fancy argment spec
 ]
 skip_anywhere_in_test = [
     # Skip for now
     '@staticmethod',
-    'for ',
     # To confirm
     'Protocol',
     'prod_assert',
@@ -94,14 +97,14 @@ skip_anywhere_in_test = [
     '@_donotcompile',
     '__setattr__',
     '__slots__',
-    'reveal_type'
+    'reveal_type',
+    'test_compile_checked_dict_with_annotation_comprehension', # comprehension
+    'test_for_iter_list_modified', # slice
 ]
 skip_in_code = [
     '@final',
     'Final[',
     'Final',
-    'break',
-    'continue'
 ]
 
 

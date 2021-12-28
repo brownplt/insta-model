@@ -474,17 +474,14 @@
   [(arity-prim-op (method (chkdict T_key T_val) "__setitem__")) 3]
   [(arity-prim-op (method (chkdict T_key T_val) "__delitem__")) 2])
 
-;; TODO: This is not quite right. The exact type is not necessarily l_cls
 (define-metafunction SP-dynamics
-  do-invoke-method : Σ l x v (v ...) -> [Σ l e-]
+  do-invoke-method : Σ l l x v (v ...) -> [Σ l e-]
   ;; This function assumes that `v` is an instance of (a subclass of) `l`,
   ;;   and arguments `(v ...)` are well-typed.
   ;; invoke the method `x` declared in class `l`.
-  [(do-invoke-method Σ l_cls x v_obj (v_arg ...))
-   (do-invoke-function Σ l_env h_mth (v_obj v_arg ...))
-   (where (obj "type" (class (v ...) ([x_mem s-_mem] ...)) ρ) (lookup-Σ Σ l_cls))
-   (where l_mth (lookup ρ x))
-   (where h_mth (lookup-Σ Σ l_mth))])
+  [(do-invoke-method Σ l_env l_cls x v_obj (v_arg ...))
+   ;; TODO: any optimization that we can perform?
+   [Σ l_env (call-function (attribute fast v_obj x) (v_arg ...))]])
 
 (define-metafunction SP-dynamics
   do-invoke-function : Σ l h (v ...) -> [Σ l e-]
@@ -753,6 +750,11 @@
    [--> (in-hole [Σ l_env ss] (finally (begin) s-))
         (in-hole [Σ l_env ss] s-)
         "finally-done"]
+   [--> (in-hole [Σ l_env ss] (while e- s-_thn s-_els))
+        (in-hole [Σ l_env ss] (if e-
+                                  (begin s-_thn (while e- s-_thn s-_els))
+                                  s-_els))
+        "while"]
    ;; reduce expression
    [--> (in-hole [Σ l_env se] (raise-error any))
         (error any)

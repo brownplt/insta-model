@@ -794,14 +794,6 @@
   ;; or
   [(compile-e Ψ Γ_dcl Γ_lcl (or e_1 e_2))
    (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 (con #t) e_2))]
-  #;
-  [(compile-e Ψ Γ_dcl Γ_lcl (and e_1 e_2))
-   (compile-e Ψ Γ_dcl Γ_lcl (call (lambda ([x_tmp dynamic]) (if-exp x_tmp e_2 x_tmp)) (e_1)))
-   (where x_tmp ,(symbol->string (gensym 'and)))]
-  #;
-  [(compile-e Ψ Γ_dcl Γ_lcl (or e_1 e_2))
-   (compile-e Ψ Γ_dcl Γ_lcl (call (lambda ([x_tmp dynamic]) (if-exp x_tmp x_tmp e_2)) (e_1)))
-   (where x_tmp ,(symbol->string (gensym 'or)))]
   ;; is
   [(compile-e Ψ Γ_dcl Γ_lcl (is e_1 e_2))
    [(is (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_1)) (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_2)))
@@ -1397,11 +1389,11 @@
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (if e s_thn s_els) s ...)
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ (if e (begin s_thn s ...) (begin s_els s ...)))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (while e s_thn s_els) s ...)
-   (begin
-     (while e
-            (compile-s Ψ Γ_dcl Γ_thn T+☠ s_thn)
-            (compile-s Ψ Γ_dcl Γ_els T+☠ s_els))
-     (compile-begin Ψ Γ_dcl Γ_els T+☠ s ...))
+   (make-begin
+    (while e-
+           (compile-s Ψ Γ_dcl Γ_thn T+☠ s_thn)
+           (compile-s Ψ Γ_dcl Γ_els T+☠ s_els))
+    (compile-begin Ψ Γ_dcl Γ_els T+☠ s ...))
    (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_1 s_2 ...)
    (make-begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_1)
