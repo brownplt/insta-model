@@ -24,13 +24,24 @@ The empty program should type check.
 
 ## Optional
 
-`Optional[T]` is inhabitable.
+`Optional[T]` is inhabitable by `None` and instances of `T`, but not others.
 
-- [optional_is_inhabitable_1.py](conformance_suite/optional_is_inhabitable_1.py)
-- [optional_is_inhabitable_2.py](conformance_suite/optional_is_inhabitable_2.py)
+- [optional_is_inhabitable_none.py](conformance_suite/optional_is_inhabitable_none.py)
+- [optional_is_inhabitable_nonnone.py](conformance_suite/optional_is_inhabitable_nonnone.py)
+- [optional_is_inhabitable_other.py](conformance_suite/optional_is_inhabitable_other.py)
 
-TODO: more `optional` tests.
+`Optional[T]` can be refined by a variety of language constructs.
 
+- [optional_refine_if.py](conformance_suite/optional_refine_if.py)
+- [optional_refine_is_None.py](conformance_suite/optional_refine_is_None.py)
+- [optional_refine_or.py](conformance_suite/optional_refine_or.py)
+- [optional_refine_and.py](conformance_suite/optional_refine_and.py)
+
+## Union
+
+Only union of `None` and other is supported.
+
+TODO
 ## PyDict
 
 `PyDict` is inhabitable.

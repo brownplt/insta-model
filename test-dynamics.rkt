@@ -152,6 +152,18 @@
 ;; conformance_suite/methods_can_be_declared_as_class_variables.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "Any") (lambda (("self" dynamic) ("n" dynamic)) (bin-op + "n" (con 1)))))) (assign ("o") (call "C" ())) (assert (compare (call (attribute "o" "x") ((con 2))) ((is (con 3)))))))))))
 
+;; conformance_suite/optional_is_inhabitable_nonnone.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con 42))))))))
+
+;; conformance_suite/optional_refine_and.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "expect_int" (("i" "int")) (con None) ((return (con None)))) (function-def "f" (("x" (subscript "Optional" "int"))) (con None) ((return (bool-op and ("x" (call "expect_int" ("x"))))))) (assert (compare (call "f" ((con None))) ((is (con None))))) (assert (compare (call "f" ((con 42))) ((is (con None)))))))))))
+
+;; conformance_suite/optional_refine_if.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((if "x" ((return "x")) ((return (con 42)))))) (assert (compare (call "f" ((con 2))) ((is (con 2))))) (assert (compare (call "f" ((con None))) ((is (con 42)))))))))))
+
+;; conformance_suite/optional_refine_is_None.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((if (compare "x" ((is (con None)))) ((return (con 42))) ((return "x"))))) (assert (compare (call "f" ((con 2))) ((is (con 2))))) (assert (compare (call "f" ((con None))) ((is (con 42)))))))))))
+
 ;; conformance_suite/procedure_check_argument_type_dynamically.py
 (test-match SP-dynamics (error any) (term (calc (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (function-def "f" (("x" "int")) dynamic (pass)) (expr (call "f" ((call "asDyn" ((con "foo"))))))))))))
 

@@ -263,11 +263,26 @@
 ;; conformance_suite/methods_work.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((function-def "m" (("self" dynamic) ("x" "int")) "str" ((return (con "foo")))))) (ann-assign "s" "str" (call (attribute (call "C" ()) "m") ((con 42))))))))
 
-;; conformance_suite/optional_is_inhabitable_1.py
+;; conformance_suite/optional_is_inhabitable_none.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con None))))))
+
+;; conformance_suite/optional_is_inhabitable_nonnone.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con 42))))))
 
-;; conformance_suite/optional_is_inhabitable_2.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con None))))))
+;; conformance_suite/optional_is_inhabitable_other.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con "foo"))))))
+
+;; conformance_suite/optional_refine_and.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "expect_int" (("i" "int")) (con None) ((return (con None)))) (function-def "f" (("x" (subscript "Optional" "int"))) (con None) ((return (bool-op and ("x" (call "expect_int" ("x"))))))) (assert (compare (call "f" ((con None))) ((is (con None))))) (assert (compare (call "f" ((con 42))) ((is (con None)))))))))
+
+;; conformance_suite/optional_refine_if.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((if "x" ((return "x")) ((return (con 42)))))) (assert (compare (call "f" ((con 2))) ((is (con 2))))) (assert (compare (call "f" ((con None))) ((is (con 42)))))))))
+
+;; conformance_suite/optional_refine_is_None.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((if (compare "x" ((is (con None)))) ((return (con 42))) ((return "x"))))) (assert (compare (call "f" ((con 2))) ((is (con 2))))) (assert (compare (call "f" ((con None))) ((is (con 42)))))))))
+
+;; conformance_suite/optional_refine_or.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "expect_int" (("i" "int")) "int" ((return (con 42)))) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((return (bool-op or ("x" (call "expect_int" ("x")))))))))))
 
 ;; conformance_suite/override_instance_field.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((ann-assign "x" "str")))))))
