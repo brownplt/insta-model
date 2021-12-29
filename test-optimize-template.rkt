@@ -785,6 +785,28 @@ def f(l: Iterable[int]):
 |#
 
 
+;; conformance_suite/test_strict_module_mutable.py
+(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__strict__" ("mutable")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" dynamic)) dynamic ((assign ((attribute "self" "x")) (con 1)))))))))))
+#|
+
+from __strict__ import mutable
+@mutable
+class C:
+    def __init__(self, x):
+        self.x = 1
+# def test_strict_module_mutable(self):
+#     code = """
+#         from __strict__ import mutable
+#         @mutable
+#         class C:
+#             def __init__(self, x):
+#                 self.x = 1
+#     """
+#     with self.in_module(code) as mod:
+#         self.assertInBytecode(mod.C.__init__, "STORE_FIELD")
+|#
+
+
 ;; conformance_suite/test_unknown_isinstance_narrows.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "x"))))) (function-def "testfunc" (("x" dynamic)) dynamic ((if (call "isinstance" ("x" "C")) ((return (attribute "x" "x"))) ()))))))))
 #|

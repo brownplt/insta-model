@@ -836,6 +836,9 @@
 ;; conformance_suite/test_str_split.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign ((tuple ("a" "b"))) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b")))))))
 
+;; conformance_suite/test_strict_module_mutable.py
+(check-judgment-holds* (⊢p (desugar-program ((import-from "__strict__" ("mutable")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" dynamic)) dynamic ((assign ((attribute "self" "x")) (con 1))))))))))
+
 ;; conformance_suite/test_try_return_finally.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("List")) (function-def "f1" (("x" "List")) dynamic ((try-except-else-finally ((return (con None))) () () ((expr (call (attribute "x" "append") ((con "hi"))))))))))))
 

@@ -1,4 +1,4 @@
-# Reason: Hitted a skipped word (weakref)
+# Reason: Hitted a skipped word (__slots__)
 def test_typed_slots_bad_slot_weakerf(self):
     with self.assertRaises(TypeError):
         class C:

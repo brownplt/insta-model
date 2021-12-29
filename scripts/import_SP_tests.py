@@ -49,73 +49,75 @@ ban_anywhere_in_test = [
     'f"',
     "f'",
     # Not even implemented in SP
-    "@skipIf(True,",
-    # Some weird module
-    'xxclassloader',
+    "@skipIf(True, \"this isn't implemented yet\")",
     # more powerful features.
     'NamedTuple',
     # ban nested classes
     'nested_class',
 
-    # We don't spend too much time on occurrence typing
-    'break', 'continue',
-
+    # These test uses an unbound identifier
     'test_if_else_optional_return_two_branches',
     'test_assign_try_except_redeclare_unknown_type',
     'test_untyped_attr',
     'test_assign_num_to_dynamic',
     'test_assign_dynamic_to_dynamic',
     'test_verify_arg_unknown_type',
-    # ⬆️ These test uses an unbound identifier
+    'test_override_override_inherited',
+
+    # These test uses keyword argument
     'test_compile_checked_dict_from_dict_call',
-    # This test uses keyword argument
     'test_inline_bare_return',
-    # This test uses keyword argument
     'test_inline_func_default',
+    'test_compile_checked_dict_bad_annotation',
+
     # This test uses default argument
     'test_verify_lambda_keyword_only',
-    # This test uses keyword argument
-    'test_compile_checked_dict_bad_annotation',
-    # The annotation is too bad... it uses 42 as type.
-    'test_compile_checked_dict_wrong_unknown_type',
+    'test_default_type_error',
+    'test_check_args_4',
+    'test_check_args_5',
+
     # This test uses dict comprehension.
-    'test_call_function_unknown_ret_type',
-    # This test uses an unbound identifier in type annotation
-    'test_override_override_inherited',
+    'test_compile_checked_dict_wrong_unknown_type',
+
     # This test uses string literal to write Optional type...
-    'test_incompat_override_method_arg_name',
+    'test_call_function_unknown_ret_type',
+
     # We don't support this.
-    'test_compile_nested_class_in_fn',
-    # nested class
-    'test_assign_try_except_typing_redeclared_after',
+    'test_incompat_override_method_arg_name',
+    
     # The scope is funny
-    'test_break_condition',
+    'test_assign_try_except_typing_redeclared_after',
+    
     # This test is bad
-    'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
+    'test_break_condition',
+    
     # fancy argment spec
-    'test_default_type_error', 'test_check_args_4', 'test_check_args_5',
-    # default arg
+    'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
 ]
 
 skip_anywhere_in_test = [
-    # Skip for now
+    # Really interesting things, we definitly want to keep them
     '@staticmethod',
+    '@final',
+    'Final[',
+    'Final',
+    'break', 'continue',
     # To confirm
     'Protocol',
     'prod_assert',
     '@property',
     '__static__.compiler_flags',
-    'weakref',
-    '@_donotcompile',
     '__setattr__',
     '__slots__',
     'reveal_type',
     'test_compile_checked_dict_with_annotation_comprehension', # comprehension
     'test_for_iter_list_modified', # slice
-    '@final',
-    'Final[',
-    'Final',
-    '_for_'
+    '_for_',
+    # Some weird module
+    'xxclassloader',
+    # fancy features
+    'weakref',
+    '@_donotcompile',
 ]
 
 
@@ -176,13 +178,6 @@ def parse_simple_test(test):
     #         code goes here
     #         """
     #         statements that specify what to check
-
-    lines = test.split('\n')
-    if lines[0].startswith('@skip'):
-        lines = lines[1:]
-    first_line = lines[0]
-    name = first_line[4:first_line.index("(self)")]
-
     parsed_test = ast.parse(test, type_comments=True)
 
     assert isinstance(parsed_test, ast.Module), "parse_simple_test"
@@ -200,7 +195,7 @@ def parse_simple_test(test):
     # process code
     assert len(defcode.targets) == 1, "parse_simple_test"
     assert isinstance(defcode.targets[0], ast.Name), "parse_simple_test"
-    assert str(defcode.targets[0].id) == "codestr", "parse_simple_test"
+    assert str(defcode.targets[0].id) in {"codestr", "code"}, "parse_simple_test"
     assert isinstance(defcode.value, ast.Constant), "parse_simple_test"
     code = defcode.value.value
     code = code.split('\n')
@@ -213,11 +208,11 @@ def parse_simple_test(test):
         code = [line[4:] for line in code]
     code = '\n'.join(code)
 
-    return name, code, spec
+    return code, spec
 
 
 def translate_simple_compile_test(name, test):
-    _, code, spec = parse_simple_test(test)
+    code, spec = parse_simple_test(test)
     # process spec
     pass_spec1 = '\n'.join([
         '',
@@ -263,7 +258,7 @@ def translate_simple_compile_test(name, test):
 
 
 def translate_self_type_error_test(name, test):
-    _, code, spec = parse_simple_test(test)
+    code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -299,7 +294,7 @@ def translate_self_type_error_test(name, test):
     return content
 
 def translate_with_compile_test(name, test):
-    _, code, spec = parse_simple_test(test)
+    code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -337,7 +332,7 @@ def translate_with_compile_test(name, test):
 
 
 def translate_assertInByteCode_test(name, test):
-    _, code, spec = parse_simple_test(test)
+    code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -360,7 +355,7 @@ def translate_assertInByteCode_test(name, test):
     return content
 
 def translate_optimization_test(name, test):
-    _, code, spec = parse_simple_test(test)
+    code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
