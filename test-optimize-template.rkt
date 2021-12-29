@@ -762,29 +762,6 @@ def testfunc(x: str, y: str) -> bool:
 |#
 
 
-;; conformance_suite/test_sorted.py
-(test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Iterable")) (function-def "f" (("l" (subscript "Iterable" "int"))) dynamic ((for "x" (call "sorted" ("l")) (pass) ()))))))))
-#|
-
-from typing import Iterable
-def f(l: Iterable[int]):
-    for x in sorted(l):
-        pass
-# def test_sorted(self):
-#     """sorted() builtin returns an Exact[List]."""
-#     codestr = """
-#         from typing import Iterable
-#         def f(l: Iterable[int]):
-#             for x in sorted(l):
-#                 pass
-#     """
-#     with self.in_module(codestr) as mod:
-#         f = mod.f
-#         self.assertNotInBytecode(f, "FOR_ITER")
-#         self.assertInBytecode(f, "REFINE_TYPE", ("builtins", "list"))
-|#
-
-
 ;; conformance_suite/test_strict_module_mutable.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__strict__" ("mutable")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" dynamic)) dynamic ((assign ((attribute "self" "x")) (con 1)))))))))))
 #|

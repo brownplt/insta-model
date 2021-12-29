@@ -10,17 +10,14 @@
   ;; program
   (program- level-)
 
-  ;; global names (labels) of global things
+  ;; global names (labels) of global thingcs
   ;;   we will extend l when we reach dynamics.rkt
-  (l x
+  (l ....
      (chkdict checkable-T checkable-T)
      (tuple (checkable-T ...))
      (user-defined-class x)
      (method class-l x)
      (con c))
-
-  ;; values are just references to global things
-  (v (ref l))
 
   ;; compiled expressions are similar to expressions,
   ;;   but with annotations and boolean operators removed,
@@ -131,6 +128,7 @@
            "Final[_]"
            "ClassVar[_]"
            "cast"
+           "isinstance"
            (Union class-l))
 
   (exactness exact subof)
@@ -365,7 +363,7 @@
     ["dict" (Type (subof "dict"))]
     ["set" (Type (subof "set"))]
     ["type" (Type (subof "type"))]
-    ["isinstance" (-> (dynamic dynamic) dynamic)]
+    ["isinstance" "isinstance"]
     ["len" (-> (dynamic) dynamic)]
     ["Exception" (Type (subof "Exception"))]
     ["max" dynamic]
@@ -753,21 +751,21 @@
   (test-match SP-compiled
               [(if-exp (ref (con 1))
                        (ref (con 2))
-                       (ref (con #f)))
-               (subof "int")]
+                       (ref (con 1)))
+               (exact "int")]
               (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (and (con 1) (con 2)))))
   (test-match SP-compiled
               [(if-exp (ref (con 1))
-                       (ref (con #t))
+                       (ref (con 1))
                        (ref (con 2)))
-               (subof "int")]
+               (exact "int")]
               (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (or (con 1) (con 2)))))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (is "int" "bool")))
               (term [(is "int" "bool")
                      (exact "bool")]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (if-exp "int" "bool" (con None))))
               (term [(if-exp "int" "bool" (ref (con None)))
-                     (Optional (Type (subof "bool")))]))
+                     dynamic]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (attribute "bool" "__add__")))
               (term [(attribute safe "bool" "__add__") dynamic]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (call "int" ("bool"))))
@@ -779,6 +777,10 @@
 ;; We do need two type environment to handle occurrance typing
 (define-metafunction SP-compiled
   compile-e : Ψ Γ Γ e -> [e- T]
+  ;; builtin things
+  [(compile-e Ψ Γ_dcl Γ_lcl (ref x))
+   [(ref x) T]
+   (where T (lookup (base-Γ) x))]
   ;; variable
   [(compile-e Ψ Γ_dcl Γ_lcl x)
    [x T]
@@ -915,7 +917,12 @@
    [(maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_val) T_dst)
     T_dst]
    (where [e-_fun "cast"] (compile-e Ψ Γ_dcl Γ_lcl e_fun))
-   (where T_dst (eval-t Ψ Γ_dcl e_dst))]
+   (where T_dst (eval-t Ψ Γ_dcl e_dst))];; the cast operator
+  [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_ins e_cls))
+   [(invoke-function "isinstance" ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_ins))
+                                   (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_cls))))
+    (exact "bool")]
+   (where [e-_fun "isinstance"] (compile-e Ψ Γ_dcl Γ_lcl e_fun))]
   ;; dynamic
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
    [(call-function e-_fun ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
@@ -1278,7 +1285,11 @@
 (define-metafunction SP-compiled
   make-assert : e- -> s-
   [(make-assert e-)
-   (if e- (begin) (expr (raise-error "assertion error")))])
+   (make-assert-k e- (begin))])
+(define-metafunction SP-compiled
+  make-assert-k : e- s- -> s-
+  [(make-assert-k e- s-)
+   (if e- s- (expr (raise-error "assertion error")))])
 (define-metafunction SP-compiled
   compile-m : Ψ Γ x m -> [boolean x T s-]
   ;; declare-only member can be either a ClassVar
@@ -1408,6 +1419,8 @@
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ s)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (return e) s ...)
    (compile-s Ψ Γ_dcl Γ_lcl T+☠ (return e))]
+  [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (raise e) s ...)
+   (compile-s Ψ Γ_dcl Γ_lcl T+☠ (raise e))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (begin s_1 ...) s_2 ...)
    (compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_1 ... s_2 ...)]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ (ann-assign x t e) s ...)
@@ -1462,6 +1475,15 @@
    (where [e- T] (compile-e Ψ Γ_dcl Γ_lcl x))
    (where Γ_thn (update Γ_lcl [x (remove-None T)]))
    (where Γ_els (update Γ_lcl [x (intersection Ψ T (subof "NoneType"))]))]
+  [(condition Ψ Γ_dcl Γ_lcl (call "isinstance" (x e)))
+   [(invoke-function "isinstance" (x e-))
+    Γ_thn
+    Γ_els]
+   (where "isinstance" (lookup Γ_lcl "isinstance"))
+   (where T_1 (lookup Γ_lcl x))
+   (where [e- (Type T_2)] (compile-e Ψ Γ_dcl Γ_lcl e))
+   (where Γ_thn (update Γ_lcl [x (intersection Ψ T_1 T_2)]))
+   (where Γ_els Γ_lcl)]
   [(condition Ψ Γ_dcl Γ_lcl e)
    [(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e))
     Γ_lcl

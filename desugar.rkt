@@ -7,9 +7,16 @@
 
   ;; program
   (program level)
+  
+  ;; global names (labels) of global things
+  ;;   we will extend l when we reach dynamics.rkt
+  (l x)
+  ;; values are just references to global things
+  (v (ref l))
 
   ;; expressions
-  (e x
+  (e v
+     x
      (con c)
      (tuple (e ...))
      (list (e ...))
@@ -314,7 +321,7 @@
   [(desugar-s (return e+))
    (return (desugar-e e+))]
   [(desugar-s (assert e+))
-   (assert (desugar-e e+))]
+   (if (desugar-e e+) (begin) (raise (call (ref "Exception") ((con "assertion error")))))]
   [(desugar-s (if e+ (s+_thn ...) (s+_els ...)))
    (if (desugar-e e+)
        (make-begin (desugar-s s+_thn) ...)

@@ -113,11 +113,12 @@ skip_anywhere_in_test = [
     'test_compile_checked_dict_with_annotation_comprehension', # comprehension
     'test_for_iter_list_modified', # slice
     '_for_',
-    # Some weird module
     'xxclassloader',
-    # fancy features
     'weakref',
     '@_donotcompile',
+    '_comprehension_',
+    '_comprehensions_',
+    'test_sorted'
 ]
 
 
