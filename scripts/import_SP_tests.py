@@ -97,10 +97,10 @@ ban_anywhere_in_test = [
 
 skip_anywhere_in_test = [
     '@staticmethod',
+    'break', 'continue',
     '@final',
     'Final',
     'Final[',
-    'break', 'continue',
     'Protocol',
     'prod_assert',
     '@property',
@@ -108,14 +108,14 @@ skip_anywhere_in_test = [
     '__setattr__',
     '__slots__',
     'reveal_type',
-    '_for_',
+    '_for_', # for-loops
+    'test_sorted', # also for-loop
     'xxclassloader',
     'weakref',
     '@_donotcompile',
     '_comprehension',
     '_comprehension_',
     '_comprehensions_',
-    'test_sorted' # also for loop
 ]
 
 
