@@ -1,4 +1,4 @@
-# Reason: Hitted a skipped word (_comprehensions_)
+# Reason: Hitted a skipped word (_comprehension)
 def test_nested_list_comprehensions_with_if(self):
     codestr = """
     from typing import List

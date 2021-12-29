@@ -99,8 +99,8 @@ skip_anywhere_in_test = [
     # Really interesting things, we definitly want to keep them
     '@staticmethod',
     '@final',
-    'Final[',
     'Final',
+    'Final[',
     'break', 'continue',
     # To confirm
     'Protocol',
@@ -110,12 +110,11 @@ skip_anywhere_in_test = [
     '__setattr__',
     '__slots__',
     'reveal_type',
-    'test_compile_checked_dict_with_annotation_comprehension', # comprehension
-    'test_for_iter_list_modified', # slice
     '_for_',
     'xxclassloader',
     'weakref',
     '@_donotcompile',
+    '_comprehension',
     '_comprehension_',
     '_comprehensions_',
     'test_sorted'
