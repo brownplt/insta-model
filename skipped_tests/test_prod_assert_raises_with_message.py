@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (prod_assert)
 def test_prod_assert_raises_with_message(self):
     codestr = """
     from typing import Optional

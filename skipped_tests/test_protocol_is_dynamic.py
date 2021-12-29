@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (Protocol)
 def test_protocol_is_dynamic(self):
     codestr = """
     from typing import Protocol

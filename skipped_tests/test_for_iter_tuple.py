@@ -1,4 +1,4 @@
-# Reason: Code hitted some skipped words
+# Reason: Hitted a skipped word (for)
 def test_for_iter_tuple(self):
     codestr = """
         from typing import List

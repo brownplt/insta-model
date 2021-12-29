@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (prod_assert)
 def test_prod_assert_argcount_type_error(self):
     codestr = """
     from typing import Optional

@@ -404,12 +404,21 @@ def main():
             imparsable_counter += 1
             continue
 
-        if any(word in test for word in skip_anywhere_in_test):
-            record_skipped_test(name, test, "Test hitted some skipped words")
+        skipped = False
+        for word in skip_anywhere_in_test:
+            if word in test:
+                skipped = True
+                record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
+                break
+        if skipped:
             continue
         
-        if any(word in code for word in skip_in_code):
-            record_skipped_test(name, test, "Code hitted some skipped words")
+        for word in skip_in_code:
+            if word in code:
+                skipped = True
+                record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
+                break
+        if skipped:
             continue
         
         translators = [

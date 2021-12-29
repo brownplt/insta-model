@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (@staticmethod)
 def test_invoke_frozen_type(self):
     codestr = """
         class C:

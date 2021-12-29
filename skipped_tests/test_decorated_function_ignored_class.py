@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (@property)
 def test_decorated_function_ignored_class(self):
     codestr = """
         class C:

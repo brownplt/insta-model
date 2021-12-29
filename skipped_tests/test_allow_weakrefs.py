@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (weakref)
 def test_allow_weakrefs(self):
     codestr = """
         from __static__ import allow_weakrefs

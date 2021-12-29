@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (reveal_type)
 def test_unannotated_assign_does_not_declare_type(self) -> None:
     codestr = """
         def f(flag):

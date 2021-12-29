@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (reveal_type)
 def test_module_level_type_narrow(self):
     codestr = """
         def a() -> int | None:

@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (__static__.compiler_flags)
 def test_shadow_frame(self):
     codestr = """
     from __static__.compiler_flags import shadow_frame

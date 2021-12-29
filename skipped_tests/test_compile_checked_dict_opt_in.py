@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (__static__.compiler_flags)
 def test_compile_checked_dict_opt_in(self):
     codestr = """
         from __static__.compiler_flags import checked_dicts

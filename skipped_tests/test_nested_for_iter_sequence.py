@@ -1,4 +1,4 @@
-# Reason: Code hitted some skipped words
+# Reason: Hitted a skipped word (for)
 def test_nested_for_iter_sequence(self):
     codestr = """
         from typing import List

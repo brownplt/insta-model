@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (@staticmethod)
 def test_static_function_final_class(self):
     codestr = """
         from typing import final

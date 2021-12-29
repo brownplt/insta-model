@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (test_compile_checked_dict_with_annotation_comprehension)
 def test_compile_checked_dict_with_annotation_comprehension(self):
     codestr = """
         from __static__ import CheckedDict

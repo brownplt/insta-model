@@ -1,4 +1,4 @@
-# Reason: Code hitted some skipped words
+# Reason: Hitted a skipped word (Final)
 def test_module_level_final_decl(self):
     codestr = """
     from typing import Final

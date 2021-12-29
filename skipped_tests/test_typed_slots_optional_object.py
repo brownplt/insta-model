@@ -1,4 +1,4 @@
-# Reason: Test hitted some skipped words
+# Reason: Hitted a skipped word (__slots__)
 def test_typed_slots_optional_object(self):
     codestr = """
         class C:
