@@ -287,6 +287,9 @@
 ;; conformance_suite/test_invoke_strict_module_deep_unjitable_many_args.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic) ("h" dynamic)) dynamic ((class "C" () (pass)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (call "f0" ()) "a") "b") "c") "d") "e") "f") "g") "h") (con 4))))) (function-def "f2" () dynamic ((return (call "f1" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7) (con 8)))))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ()))))))))))
 
+;; conformance_suite/test_list_comprehension_with_if.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "foo" () (subscript "List" "int") ((assign ("a") (list ((con 1) (con 2) (con 3) (con 4)))) (return (list-comp "x" (("x" "a" ((compare "x" ((> (con 2)))))))))))))))))
+
 ;; conformance_suite/test_load_uninit_module.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None))))))))))))
 
@@ -329,6 +332,9 @@
 ;; conformance_suite/test_nested_fn_type_error_2.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("i" "int") ("j" "str") ("k" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i")))))))))))
 
+;; conformance_suite/test_nested_list_comprehensions_with_if.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "foo" () (subscript "List" "int") ((assign ("a") (list ((con 1) (con 2) (con 3) (con 4)))) (assign ("b") (list ((con 1) (con 2)))) (return (list-comp (bin-op * "x" "y") (("x" "a" ()) ("y" "b" ((compare "x" ((> (con 2)))))))))))))))))
+
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ()))))))))))
 
@@ -358,6 +364,9 @@
 
 ;; conformance_suite/test_slotification_decorated.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "_Inner" () (pass)) (function-def "something" (("klass" dynamic)) dynamic ((return "_Inner"))) (class "C" () ((function-def "f" (("self" dynamic)) dynamic (pass)))) (function-def "f" () dynamic ((return (call (attribute (call "C" ()) "f") ()))))))))))
+
+;; conformance_suite/test_sorted.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Iterable")) (function-def "f" (("l" (subscript "Iterable" "int"))) dynamic ((for "x" (call "sorted" ("l")) (pass) ())))))))))
 
 ;; conformance_suite/test_str_split.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign ((tuple ("a" "b"))) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b")))))))))

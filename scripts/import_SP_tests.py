@@ -112,12 +112,10 @@ skip_anywhere_in_test = [
     'reveal_type',
     'test_compile_checked_dict_with_annotation_comprehension', # comprehension
     'test_for_iter_list_modified', # slice
-]
-skip_in_code = [
     '@final',
     'Final[',
     'Final',
-    'for'
+    '_for_'
 ]
 
 
@@ -156,6 +154,20 @@ def read_tests(file_path):
     if len(acc) > 0:
         yield acc_to_test(acc)
 
+def get_name(test):
+    # A simple test is a test that looks like
+    #     def test_name(self):
+    #         codestr = """
+    #         code goes here
+    #         """
+    #         statements that specify what to check
+
+    lines = test.split('\n')
+    if lines[0].startswith('@skip'):
+        lines = lines[1:]
+    first_line = lines[0]
+    name = first_line[4:first_line.index("(self)")]
+    return name
 
 def parse_simple_test(test):
     # A simple test is a test that looks like
@@ -204,7 +216,8 @@ def parse_simple_test(test):
     return name, code, spec
 
 
-def translate_simple_compile_test(name, code, spec, test):
+def translate_simple_compile_test(name, test):
+    _, code, spec = parse_simple_test(test)
     # process spec
     pass_spec1 = '\n'.join([
         '',
@@ -249,7 +262,8 @@ def translate_simple_compile_test(name, code, spec, test):
     return content
 
 
-def translate_self_type_error_test(name, code, spec, test):
+def translate_self_type_error_test(name, test):
+    _, code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -284,7 +298,8 @@ def translate_self_type_error_test(name, code, spec, test):
     content += commented_src + '\n'
     return content
 
-def translate_with_compile_test(name, code, spec, test):
+def translate_with_compile_test(name, test):
+    _, code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -321,7 +336,8 @@ def translate_with_compile_test(name, code, spec, test):
     return content
 
 
-def translate_assertInByteCode_test(name, code, spec, test):
+def translate_assertInByteCode_test(name, test):
+    _, code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -343,7 +359,8 @@ def translate_assertInByteCode_test(name, code, spec, test):
     content += commented_src + '\n'
     return content
 
-def translate_optimization_test(name, code, spec, test):
+def translate_optimization_test(name, test):
+    _, code, spec = parse_simple_test(test)
     # Capture tests that look like
     #     def test_name(self) -> None:
     #         codestr = """
@@ -398,7 +415,7 @@ def main():
             continue
 
         try:
-            name, code, spec = parse_simple_test(test)
+            name = get_name(test)
         except Exception as e:
             print("<SKIPPED begin")
             print(test)
@@ -416,14 +433,6 @@ def main():
         if skipped:
             continue
         
-        for word in skip_in_code:
-            if word in code:
-                skipped = True
-                record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
-                break
-        if skipped:
-            continue
-        
         translators = [
             translate_simple_compile_test,
             translate_self_type_error_test,
@@ -434,7 +443,7 @@ def main():
         translated = False
         for tr in translators:
             try:
-                content = tr(name, code, spec, test)
+                content = tr(name, test)
                 output_path = output_path_prefix + name + ".py"
                 output_file = open(output_path, 'w')
                 output_file.write(content)
