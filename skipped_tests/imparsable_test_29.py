@@ -1,5 +1,7 @@
 # Reason: Format too complicated
-def test_checked_dict_copy(self):
+def test_checked_dict_update(self):
     x = chkdict[str, str](x="abc")
-    self.assertEqual(type(x), chkdict[str, str])
-    self.assertEqual(x, {"x": "abc"})
+    x.update(y="foo")
+    self.assertEqual(x, {"x": "abc", "y": "foo"})
+    x.update({"z": "bar"})
+    self.assertEqual(x, {"x": "abc", "y": "foo", "z": "bar"})

@@ -1,13 +1,5 @@
 # Reason: Format too complicated
-def test_nested_generic(self):
-    S = TypeVar("S")
-    T = TypeVar("T")
-    U = TypeVar("U")
-    class F(StaticGeneric[U]):
-        pass
-    class C(StaticGeneric[T]):
-        pass
-    A = F[S]
-    self.assertEqual(A.__parameters__, (S,))
-    X = C[F[T]]
-    self.assertEqual(X.__parameters__, (T,))
+def test_checked_dict_type_name(self):
+    self.assertEqual(chkdict.__name__, "chkdict[K, V]")
+    x = chkdict[str, str]
+    self.assertEqual(x.__name__, "chkdict[str, str]")

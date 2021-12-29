@@ -1,4 +1,7 @@
 # Reason: Format too complicated
-def test_checked_dict_values(self):
-    x = chkdict[str, int](x=2, y=3)
-    self.assertEqual(list(x.values()), [2, 3])
+def test_checked_dict_pop(self):
+    x = chkdict[str, int](x=2)
+    y = x.pop("x")
+    self.assertEqual(y, 2)
+    with self.assertRaises(KeyError):
+        x.pop("z")

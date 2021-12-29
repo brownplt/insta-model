@@ -1,8 +1,4 @@
 # Reason: Format too complicated
-def test_checked_dict_nonoptional(self):
-    x = chkdict[str, Optional[str]]()
+def test_checked_dict_bad_ctor(self):
     with self.assertRaises(TypeError):
-        x[None] = "abc"
-    x = chkdict[Optional[str], str]()
-    with self.assertRaises(TypeError):
-        x["abc"] = None
+        chkdict[str, str](None)

@@ -1,11 +1,7 @@
 # Reason: Format too complicated
-def test_checked_dict_items(self):
+def test_checked_dict_popitem(self):
     x = chkdict[str, int](x=2)
-    self.assertEqual(
-        list(x.items()),
-        [
-            ("x", 2),
-        ],
-    )
-    x = chkdict[str, int](x=2, y=3)
-    self.assertEqual(list(x.items()), [("x", 2), ("y", 3)])
+    y = x.popitem()
+    self.assertEqual(y, ("x", 2))
+    with self.assertRaises(KeyError):
+        x.popitem()

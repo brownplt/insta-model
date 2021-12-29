@@ -1,7 +1,6 @@
 # Reason: Format too complicated
-def test_checked_dict_update(self):
-    x = chkdict[str, str](x="abc")
-    x.update(y="foo")
-    self.assertEqual(x, {"x": "abc", "y": "foo"})
-    x.update({"z": "bar"})
-    self.assertEqual(x, {"x": "abc", "y": "foo", "z": "bar"})
+def test_checked_dict_keys(self):
+    x = chkdict[str, int](x=2)
+    self.assertEqual(list(x.keys()), ["x"])
+    x = chkdict[str, int](x=2, y=3)
+    self.assertEqual(list(x.keys()), ["x", "y"])

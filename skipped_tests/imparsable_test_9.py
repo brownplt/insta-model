@@ -1,11 +1,13 @@
 # Reason: Format too complicated
-def test_error_mixed_math(self):
+def test_error_incompat_return(self):
     with self.assertRaises(TypedSyntaxError):
         code = self.compile(
             """
-            from __static__ import ssize_t
-            def f():
-                y = 1
-                x: ssize_t = 42 + y
+            class D: pass
+            class C:
+                def __init__(self):
+                    self.x = None
+                def f(self) -> "C":
+                    return D()
             """
         )

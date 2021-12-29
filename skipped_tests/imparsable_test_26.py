@@ -1,6 +1,8 @@
 # Reason: Format too complicated
-def test_checked_dict___module__(self):
-    class Lol:
-        pass
-    x = chkdict[int, Lol]()
-    self.assertEqual(type(x).__module__, "__static__")
+def test_checked_dict_fromkeys_bad_types(self):
+    with self.assertRaises(TypeError):
+        chkdict[str, int].fromkeys([2], 42)
+    with self.assertRaises(TypeError):
+        chkdict[str, int].fromkeys("abc", object())
+    with self.assertRaises(TypeError):
+        chkdict[str, int].fromkeys("abc")

@@ -1,9 +1,6 @@
 # Reason: Format too complicated
-def test_checked_dict(self):
-    x = chkdict[str, str]()
-    x["abc"] = "foo"
-    self.assertEqual(repr(x), "{'abc': 'foo'}")
-    x = chkdict[str, int]()
-    x["abc"] = 42
-    x = chkdict[int, str]()
-    x[42] = "abc"
+def test_checked_dict_optional(self):
+    x = chkdict[str, Optional[str]]()
+    x["abc"] = None
+    x = chkdict[Optional[str], str]()
+    x[None] = "abc"

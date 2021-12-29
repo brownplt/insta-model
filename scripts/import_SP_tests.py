@@ -91,9 +91,9 @@ ban_anywhere_in_test = [
     # The scope is funny
     'test_break_condition',
     # This test is bad
-    'test_method_prologue_posonly',
+    'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
     # fancy argment spec
-    'test_default_type_error',
+    'test_default_type_error', 'test_check_args_4', 'test_check_args_5',
     # default arg
 ]
 
@@ -177,9 +177,12 @@ def parse_simple_test(test):
     assert len(parsed_test.body) == 1, "parse_simple_test"
     deffun = parsed_test.body[0]
     assert isinstance(deffun, ast.FunctionDef), "parse_simple_test"
-    assert len(deffun.body) > 1, "parse_simple_test"
-    defcode = deffun.body[0]
-    spec = deffun.body[1:]
+    body = deffun.body
+    assert len(body) > 1, "parse_simple_test"
+    if isinstance(body[0], ast.Expr):
+        body = body[1:]
+    defcode = body[0]
+    spec = body[1:]
     assert isinstance(defcode, ast.Assign), "parse_simple_test"
 
     # process code

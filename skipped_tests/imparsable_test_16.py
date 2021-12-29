@@ -1,6 +1,13 @@
 # Reason: Format too complicated
-def test_typed_slots_bad_slot_weakerf(self):
-    with self.assertRaises(TypeError):
-        class C:
-            __slots__ = ("__weakref__",)
-            __slot_types__ = {"__weakref__": "object"}
+def test_nested_generic(self):
+    S = TypeVar("S")
+    T = TypeVar("T")
+    U = TypeVar("U")
+    class F(StaticGeneric[U]):
+        pass
+    class C(StaticGeneric[T]):
+        pass
+    A = F[S]
+    self.assertEqual(A.__parameters__, (S,))
+    X = C[F[T]]
+    self.assertEqual(X.__parameters__, (T,))

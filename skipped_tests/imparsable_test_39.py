@@ -1,7 +1,4 @@
 # Reason: Format too complicated
-def test_checked_dict_errors(self):
+def test_checked_dict_getitem(self):
     x = chkdict[str, int](x=2)
-    with self.assertRaises(TypeError):
-        x.get(100)
-    with self.assertRaises(TypeError):
-        x.get("x", "abc")
+    self.assertEqual(x.__getitem__("x"), 2)
