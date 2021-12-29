@@ -1,6 +1,6 @@
 # Static Semantics
 
-This file describes the static semantics (type system) of the idealized Static Python.
+This file describes the static semantics (type system) of an idealized Static Python.
 
 ## Empty Program
 
@@ -39,9 +39,15 @@ The empty program should type check.
 
 ## Union
 
-Only union of `None` and other is supported.
+`Optional`-liked union types are supported.
 
-TODO
+- [union_optional_is_supported_pos.py](conformance_suite/union_optional_is_supported_pos.py)
+- [union_optional_is_supported_neg.py](conformance_suite/union_optional_is_supported_neg.py)
+
+General union types fall back to `dynamic`.
+
+- [union_other_is_dyn.py](conformance_suite/union_other_is_dyn.py)
+
 ## PyDict
 
 `PyDict` is inhabitable.
@@ -186,9 +192,6 @@ Attributes can not be initialized at class levels.
 
 Overriding a field is a static error.
 
-CANCELED TODO: redeclare sub-type, sup-type, less-precise type, more-precise type.
-TODO: I am going to assume override is always impossible, unless we found anything weird in SP tests.
-
 - [override_instance_field.py](conformance_suite/override_instance_field.py)
 
 ### Interaction between ClassVar, methods, and fields
@@ -205,8 +208,6 @@ Class variables must not be shadowed by instance variables.
 
 - [class_variables_shadow_by_instance_variables_same_class.py](conformance_suite/class_variables_shadow_by_instance_variables_same_class.py)
 - [class_variables_shadow_by_instance_variables_sub_class.py](conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py)
-
-TODO: I am going to assume all of them are disjoint, unless we found anything weird in SP tests.
 
 ### Inheritance/subclassing
 

@@ -959,6 +959,15 @@
 ;; conformance_suite/try_except_catch_sub_class.py
 (test-match SP program+ (term ((class "C" ("Exception") (pass)) (function-def "f" () dynamic ((try-except-else-finally ((raise (call "C" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42))))))))
 
+;; conformance_suite/union_optional_is_supported_neg.py
+(test-match SP program+ (term ((import-from "typing" ("Union")) (function-def "f" (("x" (subscript "Union" (tuple ((con None) "int"))))) dynamic (pass)) (expr (call "f" ((con "foo")))))))
+
+;; conformance_suite/union_optional_is_supported_pos.py
+(test-match SP program+ (term ((import-from "typing" ("Union")) (function-def "f" (("x" (subscript "Union" (tuple ((con None) "int"))))) dynamic (pass)) (expr (call "f" ((con None)))) (expr (call "f" ((con 42)))))))
+
+;; conformance_suite/union_other_is_dyn.py
+(test-match SP program+ (term ((import-from "typing" ("Union")) (function-def "f" (("x" (subscript "Union" (tuple ("str" "int"))))) dynamic (pass)) (class "C" () (pass)) (expr (call "f" ((call "C" ())))))))
+
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP program+ (term ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x"))))
 

@@ -110,9 +110,15 @@
      (Final T)
      (-> (T ...) T)
      ;; The remaining are not really types.
-     ;;   Each of them only has one inhabitant
+     ;;   They actually live at teh type level
      (Type T)
+     (generic G)
      type-op)
+  ;; Generic
+  (G "CheckedDict"
+     "Final"
+     "ClassVar"
+     "Union")
 
   ;; maybe type
   (T+☠ T ☠)
@@ -123,8 +129,7 @@
   (T?? (yes T?) (no ☠))
 
   ;; type-op
-  (type-op "CheckedDict[_,_]"
-           "Optional[_]"
+  (type-op "Optional[_]"
            "Final[_]"
            "ClassVar[_]"
            "cast"
@@ -374,7 +379,7 @@
   prim-Γ : -> Γ
   [(prim-Γ)
    (extend (base-Γ)
-           ["CheckedDict" (Type (subof "CheckedDict[_,_]"))]
+           ["CheckedDict" (generic "CheckedDict")]
            ["PyDict" (Type (subof "dict"))]
            ["Optional" (Type (subof "Optional[_]"))])])
 
@@ -853,18 +858,10 @@
     (-> (T_arg ...) T_out)]
    (where (T_arg ...) ((eval-t Ψ Γ_dcl t_arg) ...))
    (where [e-_out T_out] (compile-e Ψ Γ_dcl (extend Γ_dcl [x_arg T_arg] ...) e_out))])
-(module+ test
-  (test-equal (term (type-call (base-Ψ) "CheckedDict[_,_]" (exact (tuple ((Type (subof "int"))
-                                                                          (Type (subof "str")))))))
-              (term (Type (subof (chkdict (subof "int") (subof "str"))))))
-  (test-equal (term (type-call (base-Ψ) "Optional[_]" (Type (subof "int"))))
-              (term (Type (Optional (subof "int"))))))
 (define-metafunction SP-compiled
   type-call : Ψ type-op T -> T
   [(type-call Ψ (Union l_1) T)
    (Type (union (base-Ψ) (subof l_1) (T-of-T T)))]
-  [(type-call Ψ "CheckedDict[_,_]" (exact (tuple (T_key T_val))))
-   (Type (subof (chkdict (T-of-T T_key) (T-of-T T_val))))]
   [(type-call Ψ "Optional[_]" T)
    (Type (Optional (T-of-T T)))]
   [(type-call Ψ "ClassVar[_]" T)
@@ -879,12 +876,29 @@
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute "CheckedDict" "__getitem__")
                                     ((tuple ("int" "str")))))
-              (term [(invoke-function (method "CheckedDict[_,_]" "__getitem__")
-                                      ("CheckedDict"
-                                       (tuple ("int" "str"))))
+              (term [(call-function
+                      (attribute safe "CheckedDict" "__getitem__")
+                      ((tuple ("int" "str"))))
                      (Type (subof (chkdict (subof "int") (subof "str"))))])))
 (define-metafunction SP-compiled
+  compile-e-call-generic : Ψ Γ_dcl Γ_lcl e-_obj G (e_arg ...) -> [e- T]
+  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "Union" ((tuple (e_lft e_rht))))
+   [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
+    (Type T_uni)]
+   (where [e-_lft T_lft] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
+   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))
+   (where T_uni (union Ψ (T-of-T T_lft) (T-of-T T_rht)))]
+  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "CheckedDict" ((tuple (e_lft e_rht))))
+   [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
+    (Type (subof (chkdict (T-of-T T_lft) (T-of-T T_rht))))]
+   (where [e-_lft T_lft] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
+   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))])
+(define-metafunction SP-compiled
   compile-e-call : Ψ Γ Γ e (e ...) -> [e- T]
+  ;; type-level calls
+  [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj "__getitem__") (e_arg ...))
+   (compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj G (e_arg ...))
+   (where [e-_obj (generic G)] (compile-e Ψ Γ_dcl Γ_lcl e_obj))]
   ;; type-level calls
   [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))
    [(invoke-function l_mth (e-_obj e-_arg ...))
@@ -1391,7 +1405,7 @@
   compile-level : Ψ Γ T level -> level-
   [(compile-level Ψ Γ T (local ([x d] ...) s))
    (local (x ...)
-     (compile-s Ψ Γ_bdy Γ_bdy T s))
+     (compile-s Ψ Γ_bdy Γ_bdy T (begin s (return (con None)))))
    (where #f (some-duplicates x ...))
    (where Γ_0 Γ)
    (where Γ_1 (extend Γ_0 [x dynamic] ...))
@@ -1536,10 +1550,9 @@
                         (import-from "__static__" "CheckedDict")
                         (assign "C"
                                 (class "C"
-                                  ((invoke-function
-                                    (method "CheckedDict[_,_]" "__getitem__")
-                                    ("CheckedDict"
-                                     (tuple ("str" "int")))))
+                                  ((call-function
+                                    (attribute safe "CheckedDict" "__getitem__")
+                                    ((tuple ("str" "int")))))
                                   ()
                                   ()))
                         (assign "D"
@@ -1614,6 +1627,8 @@
 (define-metafunction SP-compiled
   T-of-import : (import-from x x) -> T
   [(T-of-import (import-from "__static__" "CheckedDict"))
+   (generic "CheckedDict")
+   #;
    (Type (subof "CheckedDict[_,_]"))]
   [(T-of-import (import-from "__static__" "PyDict"))
    (Type (subof "dict"))]
@@ -1635,6 +1650,8 @@
    (Type (subof "list"))]
   [(T-of-import (import-from "typing" "Tuple"))
    (Type (subof "tuple"))]
+  [(T-of-import (import-from "typing" "Union"))
+   (generic "Union")]
   [(T-of-import (import-from "__future__" "annotations"))
    dynamic]
   ;; fallback to dynamic
