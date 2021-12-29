@@ -96,13 +96,11 @@ ban_anywhere_in_test = [
 ]
 
 skip_anywhere_in_test = [
-    # Really interesting things, we definitly want to keep them
     '@staticmethod',
     '@final',
     'Final',
     'Final[',
     'break', 'continue',
-    # To confirm
     'Protocol',
     'prod_assert',
     '@property',
@@ -117,7 +115,7 @@ skip_anywhere_in_test = [
     '_comprehension',
     '_comprehension_',
     '_comprehensions_',
-    'test_sorted'
+    'test_sorted' # also for loop
 ]
 
 
