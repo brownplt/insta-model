@@ -878,9 +878,6 @@
 ;; conformance_suite/test_unknown_type_unary.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y"))))))))
 
-;; conformance_suite/test_verify_arg_unknown_type.py
-(check-judgment-holds* (⊢p (desugar-program ((function-def "x" (("x" "foo")) dynamic ((return "b"))) (expr (call "x" ((con "abc"))))))))
-
 ;; conformance_suite/test_verify_lambda.py
 (check-judgment-holds* (⊢p (desugar-program ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi"))))))))
 

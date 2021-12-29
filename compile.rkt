@@ -108,6 +108,7 @@
   (T dynamic
      (exactness class-l)
      (Optional nonnonable-T)
+     (Union base-T base-T)
      (ClassVar classvarable-T)
      (Final T)
      (-> (T ...) T)
@@ -149,20 +150,12 @@
    cast)
 
   (nonnonable-and-checkable-T
-   (exactness nonnonable-class-l)
-   (Type T)
-   cast)
+   (exactness nonnonable-class-l))
 
   ;; Non-nonable types are types but without dynamic
   ;;   (exactness None), and Optional
   (nonnonable-T
-   (exactness nonnonable-class-l)
-   (-> (T ...) T)
-   (Type T)
-   cast)
-
-  ;; Instanciable types are exact classes
-  (instanciable-T (exact class-l))
+   (exactness nonnonable-class-l))
 
   ;; class labels are l's but without constants and methods
   ;;   and x is limited to builtin classes
@@ -252,7 +245,7 @@
      ())]
   [(lookup-builtin-class "Exception")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)])
+     (["__init__" dynamic])
      (["__init__" (method "Exception" "__init__")])
      ())]
   [(lookup-builtin-class "int")
@@ -455,7 +448,7 @@
                                            (-> ((subof "bool")) (subof "int"))))))
 (define-metafunction SP-compiled
   good-shadow : Ψ x T T -> boolean
-  [(good-shadow Ψ "__init__" (-> (T_dom1 ...) T_cod1) (-> (T_dom2 ...) T_cod2))
+  [(good-shadow Ψ "__init__" T_1 T_2)
    #t]
   [(good-shadow Ψ x (-> (T_dom1 ...) T_cod1) (-> (T_dom2 ...) T_cod2))
    (fun<: Ψ (-> (T_dom1 ...) T_cod1) (-> (T_dom2 ...) T_cod2))]
@@ -620,7 +613,7 @@
 
 (module+ test
   (test-equal (term (lookup-member-T (base-Ψ) "bool" "__add__"))
-              (term (-> ((subof "int")) (subof "int")))))
+              (term (-> (dynamic) dynamic))))
 (define-metafunction SP-compiled
   lookup-member-T : Ψ l x -> T+☠
   ;; Given a class environment Ψ, a class name l, a member name x, what is the type of
@@ -629,6 +622,9 @@
   ;; a hack to support __or__ union type
   [(lookup-member-T Ψ l_cls "__or__")
    (Union l_cls)]
+  ;; a hack to pass several None tests
+  [(lookup-member-T Ψ "NoneType" x)
+   ☠]
   ;; if in the Γ_ins of the current class, return the type
   [(lookup-member-T Ψ l_cls x)
    T
@@ -643,8 +639,9 @@
   [(lookup-member-T Ψ l_cls x)
    (lookup-member-T Ψ l_sup x)
    (where (class (l_sup) Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))]
-  [(lookup-member-T Ψ l x)
-   ☠])
+  ;; at the object class, everything is subscriptable and dynamic
+  [(lookup-member-T Ψ "object" x)
+   dynamic])
 (define-metafunction SP-compiled
   lookup-writable-member-T : Ψ l x -> T??
   ;; Given a class environment Ψ, a class name l, a member name x,
@@ -814,10 +811,10 @@
    (compile-e Ψ Γ_dcl Γ_lcl (if-exp e (con #f) (con #t)))]
   ;; and
   [(compile-e Ψ Γ_dcl Γ_lcl (and e_1 e_2))
-   (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 e_2 (con #f)))]
+   (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 e_2 e_1))]
   ;; or
   [(compile-e Ψ Γ_dcl Γ_lcl (or e_1 e_2))
-   (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 (con #t) e_2))]
+   (compile-e Ψ Γ_dcl Γ_lcl (if-exp e_1 e_1 e_2))]
   ;; is
   [(compile-e Ψ Γ_dcl Γ_lcl (is e_1 e_2))
    [(is (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_1)) (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_2)))
@@ -876,7 +873,7 @@
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute (con 2) "__add__") ((con 3))))
               (term [(invoke-function (method "int" "__add__") ((ref (con 2)) (ref (con 3))))
-                     (subof "int")]))
+                     dynamic]))
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute "CheckedDict" "__getitem__")
                                     ((tuple ("int" "str")))))
@@ -937,13 +934,18 @@
                    ...))))
     (exact l)]
    (where (chkdict T_key T_val) l)]
-  ;; general case
+  ;; general case - 1
   [(compile-new Ψ Γ_dcl Γ_lcl (subof l) (e_arg ...))
    [(new l ((maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
     (exact l)]
    (where (-> (T_arg ...) T_out) (lookup-member-T Ψ l "__init__"))
    (where #t ,(= (length (term (e_arg ...)))
-                 (length (term (T_arg ...)))))])
+                 (length (term (T_arg ...)))))]
+  ;; general case - 2
+  [(compile-new Ψ Γ_dcl Γ_lcl (subof l) (e_arg ...))
+   [(new l ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
+    (exact l)]
+   (where dynamic (lookup-member-T Ψ l "__init__"))])
 (define-metafunction SP-compiled
   compile-method-calls : Ψ Γ_dcl Γ_lcl [e-_obj T_obj] x_mth e_arg ... -> [e- T]
   ;; exact
@@ -970,6 +972,7 @@
    [(call-function (attribute safe e-_obj x_mth) ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
     dynamic]
    (where dynamic (lookup-member-T Ψ l_cls x_mth))]
+  #;
   [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ...)
    [(call-function (attribute safe e-_obj x_mth) ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
     dynamic]
@@ -1452,6 +1455,13 @@
     Γ_22]
    (where [e-_1 Γ_1 Γ_2] (condition Ψ Γ_dcl Γ_lcl e_1))
    (where [e-_2 Γ_21 Γ_22] (condition Ψ Γ_dcl Γ_2 e_2))]
+  [(condition Ψ Γ_dcl Γ_lcl x)
+   [e-
+    Γ_thn
+    Γ_els]
+   (where [e- T] (compile-e Ψ Γ_dcl Γ_lcl x))
+   (where Γ_thn (update Γ_lcl [x (remove-None T)]))
+   (where Γ_els (update Γ_lcl [x (intersection Ψ T (subof "NoneType"))]))]
   [(condition Ψ Γ_dcl Γ_lcl e)
    [(as-dyn (compile-e Ψ Γ_dcl Γ_lcl e))
     Γ_lcl

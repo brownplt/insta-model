@@ -65,6 +65,7 @@ ban_anywhere_in_test = [
     'test_untyped_attr',
     'test_assign_num_to_dynamic',
     'test_assign_dynamic_to_dynamic',
+    'test_verify_arg_unknown_type',
     # ⬆️ These test uses an unbound identifier
     'test_compile_checked_dict_from_dict_call',
     # This test uses keyword argument

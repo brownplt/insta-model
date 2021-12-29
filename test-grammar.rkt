@@ -875,9 +875,6 @@
 ;; conformance_suite/test_unknown_type_unary.py
 (test-match SP program+ (term ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y")))))))
 
-;; conformance_suite/test_verify_arg_unknown_type.py
-(test-match SP program+ (term ((function-def "x" (("x" "foo")) dynamic ((return "b"))) (expr (call "x" ((con "abc")))))))
-
 ;; conformance_suite/test_verify_lambda.py
 (test-match SP program+ (term ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi")))))))
 
