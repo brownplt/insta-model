@@ -1053,7 +1053,6 @@
    (attributable (exactness l))])
 (define-metafunction SP-compiled
   bind-method : T -> T
-  ;; TODO: I am not sure if I want to use T_slf to match
   [(bind-method (-> (T_slf T_arg ...) T_ret))
    (-> (T_arg ...) T_ret)]
   [(bind-method T) T])

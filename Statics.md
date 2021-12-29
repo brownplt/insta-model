@@ -204,7 +204,6 @@ Inheriting builtin classes is allowed.
 - [subclass_builtin_atomic.py](conformance_suite/subclass_builtin_atomic.py)
 - [subclass_builtin_generic.py](conformance_suite/subclass_builtin_generic.py)
 
-
 ### Classes as types
 
 Classes aren't first-class. Unresolved types are NOT checked.

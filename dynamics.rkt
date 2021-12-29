@@ -324,7 +324,6 @@
    (delta-dict-getitem Σ v ...)]
   [(delta Σ (method "dict" "__setitem__") (v ...))
    (delta-dict-setitem Σ v ...)]
-  ;; TODO we shouldn't keep any T at runtime
   [(delta Σ (method (chkdict T_key T_val) "__init__") ((ref l_obj) (ref l_dct)))
    (delta-checkeddict-init Σ T_key T_val l_obj l_dct)]
   [(delta Σ "issubclass" (v ...))
@@ -425,7 +424,6 @@
   [(delta-issubclass Σ v_1 v_2 v_3 v_4 ...)
    [Σ (raise-error "issubclass: arity error")]])
 
-;; TODO: We should perform some checks here. do-invoke-function shouldn't raise errors.
 (define-metafunction SP-dynamics
   do-call-function : Σ l h (v ...) -> [Σ l e-]
   ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`
@@ -480,7 +478,6 @@
   ;;   and arguments `(v ...)` are well-typed.
   ;; invoke the method `x` declared in class `l`.
   [(do-invoke-method Σ l_env l_cls x v_obj (v_arg ...))
-   ;; TODO: any optimization that we can perform?
    [Σ l_env (call-function (attribute fast v_obj x) (v_arg ...))]])
 
 (define-metafunction SP-dynamics
@@ -488,9 +485,6 @@
   ;; invoke the function `h` under the environment `l`.
   ;; This function assumes that `h` is an instance of `function`
   ;;   and arguments `(v ...)` are well-typed.
-  #; ;;TODO: delete this ;; method
-  [(do-invoke-function Σ l_env (obj "method" (method l_fun l_obj) ρ) (v ...))
-   [Σ l_env (invoke-function l_fun ((ref l_obj) v ...))]]
   ;; primitive function
   [(do-invoke-function Σ l_env (obj "function" (prim-op l) ()) (v ...))
    [Σ_1 l_env e-]
