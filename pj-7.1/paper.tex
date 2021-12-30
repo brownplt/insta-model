@@ -490,7 +490,7 @@ for a standard type precision relation.
 %% do not break the gradual guarantees for a type precision relation that is tailored to \SP{}.}
 %%   %% tailored = describes exactly the migrations that SP allows
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
-%% \footnote{In addition, C types~(\cref{s:ctypes}) are incompatible with type dynamic.}
+%% \footnote{In addition, C types~(\cref{s:c-types}) are incompatible with type dynamic.}
 \begin{itemize}
   \item
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
@@ -558,6 +558,22 @@ The literature on gradual types has served only as a guide, not a mandate.
   \caption{\SP{} values performance over the gradual guarantees.}
   \label{fig:gg-failure}
 \end{figure}
+
+%% TODO carl 2021-12-24 ... very important to introduce with ChkDict ... GG not necessary only nice-to-have
+%% > One area where we definitely violate the gradual guarantee and always will
+%% > is primitive machine types. Unlike Python object types these do not flow to
+%% > dynamic, and dynamic can never flow to them! Effectively they form a
+%% > fully-typed subset of the type system that does not participate in gradual
+%% > typing and can never occur in non-static code. So this violates GG because
+%% > there are many examples where removing an annotation of a primitive machine
+%% > type can cause static code to no longer type check.
+%% > 
+%% > We are ok with this violation of the gradual guarantee because the form of
+%% > the gradual guarantee we really care about is not “removing an arbitrary
+%% > annotation” but rather “an untyped module compiles without changes when
+%% > adopted into the SP compiler” — and an untyped module cannot have
+%% > pre-existing uses of the primitive machine types, since those types cannot
+%% > exist outside SP.
 
 
 \subsubsection{Concrete Types and Shallow Types}
@@ -708,12 +724,12 @@ The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
 and nominal classes.
 Additional ``C types'' enable aggressive compilation of primitive
-values~(\cref{s:ctypes}).
+values~(\cref{s:c-types}).
 Union types are well-supported statically and narrow down in accordance
 with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
 but hardly supported at run-time.
-Only binary unions of a type and false get enforced with a run-time check
-(\code{Union[T, False]}, or \code{Optional[t0]}).
+Only binary unions of a type and the none value get enforced with a run-time check
+(\code{Union[T, None]}, or \code{Optional[t0]}).
 
 Three unsupported types bear special mention.
 There are no first-class class or object types, as noted in \cref{s:inheritance}.
@@ -840,7 +856,21 @@ a constructor, checked update functions, and a tag.
 
 
 \subsubsection{Unboxed Primitive}
-\label{s:ctypes}
+\label{s:c-types}
+
+%% 2021-12-29: TODO
+%% Using the term “ctypes” for these might be confusing, since the Python stdlib
+%% has a “ctypes” module that isn’t related to our primitive types. We do call the
+%% base type for them CType in our compiler, but when discussing them we usually
+%% call them “primitive types” or “machine types” — “C types” could also work but
+%% I wouldn’t combine it into one word :)
+%%
+%% I just did a very rough grep check and found that we have only 12 modules
+%% currently using primitive types: all int32 and int64 and cbool. So they are
+%% used pretty sparingly, but they are also definitely critical to our ability to
+%% match Cython in a few of the  hottest code paths that used to be Cython.
+
+
 
 For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
 that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
@@ -878,6 +908,12 @@ appropriate conversions.
 %% NOTE
 %% - remark: model gives errors of the same kind in SP, but not always the same
 %%   message, after all its not our goal to reproduce SP exactly
+
+%% TODO 2021-12-28
+%% - model soundness argument = similar to Nom, Redex tests
+%% - while True break another example of modeling helping out
+%%   it's a second implementation, helpful to find bugs
+%%   TODO if SP folks say that "continue" version matters for production, ... umm something to think about for us
 
 \subsection{Goals and Limitations}
 
@@ -956,6 +992,10 @@ see \cref{s:impl} for further discussion.
 
 
 \subsection{Properties}
+
+%% TODO 2021-12-29: Carl
+%% "full soundness" requires strict modules, means you can trust module toplevel
+%% hmph
 
 \begin{theorem}[Type Soundness]
   If\ \(~\vdash \spexpr_0 : \sptype_0\)
@@ -1130,6 +1170,22 @@ and it will force developers to rewrite untyped code in order to fix any errors 
 %  identify CPU savings with good granularity when a change lands in prod, and the
 %  observed CPU savings for a variety of staticification changes we’ve landed over
 %  the last half sum up to 2% of total IG prod CPU usage." --Carl
+
+%% TODO 2021-12-29 Carl
+%% We definitely did find some regressions (especially when converting Cython, but
+%% also one or two in non-Cython conversions.) But we were never satisfied with a
+%% regression, and we were always able to apply the JIT or improve SP
+%% optimizations or adjust the code to turn the regression neutral or positive.
+%% (In fact I think all? the non-Cython regressions I can recall boiled down to
+%% “we forgot to enable the JIT for an important function” and just rectifying
+%% that took care of it.)
+
+%% TODO think about it 2021-12-29 Ben
+%% > + Is there any sense in which the 530 converted modules are a big
+%% > sample? Maybe not, since as you say 530 is tiny for the codebase as a
+%% > whole. But do they exercise all sorts of behavior? Do they form a big
+%% > sample of certain parts of the Instagram codebase?
+
 
 \begin{table}
   \caption{Overview: \SP{} in production}
@@ -1375,7 +1431,7 @@ Build an automatic migration tool for Checked data.
 Build a static analysis that hoists transient annotations to an early, shared point.
 Take care to give quality error messages.
 
-Optimize Python integer operations (in addition to the ctypes).
+Optimize Python integer operations (in addition to the c types).
 Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
 or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
