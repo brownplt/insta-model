@@ -26,8 +26,9 @@
 \newcommand{\mfeq}{=}
 \newcommand{\langmid}{\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
+\newcommand{\ipara}[1]{\emph{#1}\/.}
 
-  \newcommand{\bmname}[1]{\textbf{#1}}
+\newcommand{\bmname}[1]{\textbf{#1}}
 \newcommand{\typefont}[1]{\mathsf{#1}}
 \newcommand{\paramtype}[2]{#1[#2]}
 \newcommand{\sptype}{\typefont{T}}
@@ -1073,6 +1074,7 @@ E.g. what would the TypeScript team need to know before using our model
 to add soundness?
 
 \subsection{Dynamic Python Features}
+\label{s:dynamic-python}
 
 \SP{} does not ascribe types to the following Python features.
 These are not covered in our model because the implementation simply
@@ -1159,6 +1161,13 @@ There are two downsides to this idea:
 it will add some performance overhead,
 and it will force developers to rewrite untyped code in order to fix any errors that arise.
 %% Because of the latter concern, type dynamic is a very reasonable default.
+
+
+\paragraph{Set attribute}
+
+Carl: Removing the use of super-dynamic Python features like
+\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
+we’ve done this it hasn’t required a major rewrite.
 
 
 \section{Production Experience}
@@ -1251,91 +1260,130 @@ without code changes.
 
 
 \subsection{Analyzing Code Changes}
+%% TODO boring unclear writing
 
-The fact that the \SP{} team has been changing code as well as types
-during its migrations is potentially troubling.
+Because the \SP{} team has been changing code as well as types
+during its migrations, the question arises as to whether the code changes
+raise any threats to validity.
 It could be that the \SP{} approach to gradual typing only pays off
 after significant modifications, or only for a restrictive style of programming.
 
-To understand the code changes, an author affiliated with Instagram reviewed
-approximately 30 patches that significantly improved performance.
-In general, the patches contain relatively minor code changes.
-The biggest changes are to testing code rather than production code.
-Both these points are encouranging.
-The following nine points describe common patterns:
+To understand the code changes, we reviewed approximately 30 patches that
+significantly improved performance.
+In general, the patches have minor code changes and most of these changes
+affect tests rather than production code.
+Digging deeper, there are nine common kinds of changes.
+Six of these address type errors; the other three focus on performance.
+
+%% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
+%%  removes an extra call layer
+%%  helps with (timing [ context managers / decorators ])
+
+%% TODO section formatting looks good?
+\subsubsection{Code Changes for the Type Checker}
+
+    %% X bg: lookup the dino email about mocks
+    %% And we do go through great lengths to make monkey patching work.  Because
+    %% we need to enforce return types it ends up being not quite as flexible as
+    %% normal Python.  For example one common pattern is to use Python’s mock
+    %% library and we currently end up throwing lots of TypeError’s when a
+    %% function which returns None is mocked and starts returning a MagicMock
+    %% object instead.  But it’s an easy fix in that you can specify the return
+    %% value to be compatible.  There may be more complex cases where you want to
+    %% return a mock for an actual class.  For example in our code base there’s
+    %% frequent mocking of the HttpRequest object and we have a MockReqeust object
+    %% which is a subclass of HttpRequest so that these can still be mocked
+    %% (luckily this actually pre-dated our static conversion work).
 
 \begin{enumerate}
   \item
-   adjustments to tests to pass correct types instead of mock objects, as as
-   not to fail type checks in SP code. This is an inherent and desired
-   incompatibility; next half we plan to work on improving the Python mock
-   framework to automatically create mocks of the correct types.
-   %% - bg: lookup the dino email about mocks
+    \ipara{Fix type errors due to mock wrappers}
+    When test code introduces a mock wrapper, it may change the return type of
+    a function.
+    For example, the wrapped version of a function that returns \code{None}
+    will return a \code{MagicMock} object unless the programmer explicitly
+    specifies a return value.
+    %% Carl: This is an inherent and desired
+    %% incompatibility; next half we plan to work on improving the Python mock
+    %% framework to automatically create mocks of the correct types.
 
- \item
-   adjustments to mock assertions in tests about calls to adjust for the
-   fact that SP currently converts all call arguments to be positional (we plan
-   to fix this incompatibility by falling back to the original call arguments
-   when we detect the target function has been patched.)
-   %% - bg: ??? bit fuzzy about positional and others
+  \item
+    \ipara{Change mocked function to expect positional arguments}
+    \SP{} currently rewrites all function calls to use positional arguments.
+    Mock-wrapped functions therefore need to positional arguments instead of keywords.
+    %% Carl: we plan to fix this incompatibility by falling back to the original call
+    %% arguments when we detect the target function has been patched.
 
- \item
-   adjustments around class attributes vs instance attributes (Python allows
-   this to be a bit fuzzy, where a class attribute can be a fallback default
-   for an instance attribute if not set, but SP currently requires an attribute
-   to be clearly one or the other, and we have more efficient access for
-    instance attributes via \code{LOAD\_FIELD} that we don’t have for class attributes.)
-   %% - related to github #37 ?
+  \item
+    \ipara{Change functions to accept positional arguments}
+    Functions that expect only keyword arguments cannot yet be called from \SP{} contexts.
+    These functions need to change.
+    %% Carl: We plan to support this next half.
 
- \item
-   convert @classmethod that don’t actually need the class to @staticmethod,
-    allowing for emitting direct \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
+  \item
+    \ipara{Organize class and instance attributes}
+    Whereas Python allows class attributes to serve as default values for instance attributes,
+    \SP{} does not.
+    Programmers have to decide where an attribute belongs so that \SP{} can optimize
+    reads from instance attributes.
+    %% Carl: (efficient via \code{LOAD\_FIELD})
+    %% - related to github #37 ?
 
- \item
-   extract special types that our compiler doesn’t yet support/understand
-   (classes decorated with @dataclass or inheriting from `enum.Enum`) out of
-   the module we are converting to static. We have work in progress on
-   supporting some Enum types, and plan to add a @dataclass intrinsic soon.
+  \item
+    \ipara{Move \code{@dataclass} and \code{Enum} classes}
+    \SP{} does not support classes decorated with \code{@dataclass}
+    and classes that are enums.
+    Programmers have to move these classes to a different module for now.
+    %% Carl: We have work in progress on supporting some Enum types, and plan to add a @dataclass intrinsic soon.
 
- \item
-   Removing the use of super-dynamic Python features like \code{\_\_setattr\_\_} that
-   we don’t support. So far in the cases where we’ve done this it hasn’t
-   required a major rewrite.
-   %% - bg: more details pls ,,, sketch the rewrite
+  \item
+    \ipara{Remove unsupported Python features}
+    Occurrences of the dynamic Python features listed in \cref{s:dynamic-python} must be rewritten or moved.
+    According to the \SP{} team, these changes have not required any major rewrites.
 
- \item
-   Removing the use of keyword-only arguments (bare `*`) in function
-   signatures, since we don’t yet support calling such functions. We plan to
-   support this next half.
-
- \item
-   Convert Python integers and bools used in very hot code paths into SP
-   machine primitives.
-   %% - bg: focus on block, convert, no problem?
-
- \item
-   Occasionally converting a regular Python list or dict to a CheckedList or
-   CheckedDict.
-   %% - bg: how occasional? worried about power of the "gradual soundness" claim
 \end{enumerate}
 
-%% significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
-%%  removes an extra call layer
-%%  helps with (timing [ context managers / decorators ])
-%%
-%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
-%%  because the pay / payoff isn't yet attractive
+
+%% TODO section formatting looks good?
+\subsubsection{Code Changes for Performance}
+
+\begin{enumerate}
+  \item
+    \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
+    Static methods can get invoked directly as functions, bypassing the class.
+    %% Carl: \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
+
+  \item
+    \ipara{Use primitive types}
+    Any Python integers and booleans in hot code paths are better as
+    \SP{} primitive values~(\cref{s:c-types}).
+    %% - bg: focus on block, convert, no problem?
+
+  \item
+    \ipara{Use Checked Types}
+    Occasionally, converting a Python dictionary or Python list to a
+    checked type has a big impact on performance.
+    As noted in \cref{s:checked-type}, these conversions affect all downstream
+    clients of the data structure.
+    %% - bg: how occasional? worried about power of the "gradual soundness" claim
+
+\end{enumerate}
 
 
-\subsection{Developer Experience}
+\subsubsection{Developer Experience}
 
-%% - pushback one time about removing MI multiple inheritance
-%% - otherwise, people happy with low-cost improvements
+For the most part, developers at Instagram have been happy adopting \SP{}.
+The transition from Pyre to \SP{} has thus far delivered performance benefits
+that outweigh the cost of code changes.
 
-%% - pyre challenges?
+One significant pushback dealt with multiple inheritance.
+The \SP{} team proposed a rewrite from multiple inheritance to single inheritance
+to improve performance and static checks.
+But the code maintainers preferred to keep multiple inheritance.
+Because \SP{} defaults to Python behavior, the maintainers were able
+to keep multiple inheritance alongside \SP{} code.
 
-FILL
-
+%% any more?
 
 
 \subsection{Microbenchmarks}
@@ -1364,6 +1412,7 @@ A ratio between 0 and 1 means that performance improved thanks to the types.
   \caption{Microbenchmark Performance Ratios}
   \label{t:microbenchmark}
   %% show untyped Python time?
+  %% transpose?
   \begin{tabular}{ll}
     Name               & Typed / Dynamic \\\midrule
     \bmname{deltablue} &             0\% \\
@@ -1413,6 +1462,15 @@ by compiling source code to C extension modules.
 
 %% Immediate future: fix adoption friction points
 %% 2021-12-15: WHAT ARE THESE?
+%% - mocks need manual return_value ... "next half we plan to work on improving the Python mock framework to automatically create mocks of the correct types."
+%% - mock calls have to rewrite to expect positional args, not keywords "plan to avoid rewrite if fn is patched"
+%% - functions have to expect positionals (can't do keyword only)
+%% - @dataclass enum.Enum
+%%
+%% significant selection bias
+%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
+%%  because the pay / payoff isn't yet attractive
+
 
 %% engineering: JIT profiling, instead of hand-requested JIT list
 %% model: metaclasses
