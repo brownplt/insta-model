@@ -4,4 +4,7 @@
 
 from typing import Optional
 
-x: Optional[int] = None
+def f():
+    return None
+
+x: Optional[int] = f()

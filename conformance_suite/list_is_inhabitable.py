@@ -1,5 +1,5 @@
-# None_is_inhabitable.py
+# list_is_inhabitable.py
 # This should pass.
 # This should terminate.
 
-x: None = None
+x: list = []

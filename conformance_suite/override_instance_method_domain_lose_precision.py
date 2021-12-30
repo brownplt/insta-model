@@ -1,5 +1,6 @@
 # override_instance_method_domain_lose_precision.py
 # This should pass.
+# This should terminate.
 
 from typing import Any
 

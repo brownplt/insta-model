@@ -1,5 +1,6 @@
 # override_instance_method_covariant_output_pos.py
 # This should pass.
+# This should terminate.
 
 class C: pass
 class D(C): pass

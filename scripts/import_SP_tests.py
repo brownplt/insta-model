@@ -382,7 +382,9 @@ def translate_optimization_test(name, test):
     return content
 
 
+reason_count = {}
 def record_skipped_test(name, test, reason):
+    reason_count[reason] = reason_count.get(reason, 0) + 1
     print('/' + '-' * 10 + '\\')
     print("SKIPPED", name)
     print(test)
@@ -403,7 +405,7 @@ def main():
                 banned = word
                 break
         if banned is not None:
-            record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
+            # record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
             banned_counter += 1
             continue
 
@@ -449,3 +451,6 @@ def main():
             record_skipped_test(name, test, "Can't be translated by any of the three translator")
 
 main()
+import json
+reason_count = list(sorted([ (v, k) for k,v in reason_count.items()], reverse=True))
+print(json.dumps(reason_count, indent=2))

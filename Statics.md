@@ -10,6 +10,14 @@ The empty program should type check.
 
 ## Base Types
 
+`object` is inhabitable.
+
+- [object_is_inhabitable.py](conformance_suite/object_is_inhabitable.py)
+
+`None` is inhabitable.
+
+- [None_is_inhabitable.py](conformance_suite/None_is_inhabitable.py)
+
 `bool` is inhabitable.
 
 - [bool_is_inhabitable.py](conformance_suite/bool_is_inhabitable.py)
@@ -21,6 +29,18 @@ The empty program should type check.
 `str` is inhabitable.
 
 - [str_is_inhabitable.py](conformance_suite/str_is_inhabitable.py)
+
+`Exception` is inhabitable.
+
+- [Exception_is_inhabitable.py](conformance_suite/Exception_is_inhabitable.py)
+
+`list` is inhabitable.
+
+- [list_is_inhabitable.py](conformance_suite/list_is_inhabitable.py)
+
+`tuple` is inhabitable.
+
+- [tuple_is_inhabitable.py](conformance_suite/tuple_is_inhabitable.py)
 
 ## Optional
 
@@ -113,8 +133,22 @@ Deleting `CheckedDict[T0, T1]` entries checks the key.
 
 The key type of CheckedDicts can be `Optional[T]`.
 
-- [CheckedDict_val_can_be_Optional.py](conformance_suite/CheckedDict_val_can_be_Optional.py)
 - [CheckedDict_key_can_be_Optional.py](conformance_suite/CheckedDict_key_can_be_Optional.py)
+- [CheckedDict_val_can_be_Optional.py](conformance_suite/CheckedDict_val_can_be_Optional.py)
+
+`CheckedDict`-typed variables can be initialized with `dict` literals, in which case the keys and values will be checked.
+
+- [CheckedDict_from_dict_literal_pos.py](conformance_suite/CheckedDict_from_dict_literal_pos.py)
+- [CheckedDict_from_dict_literal_neg.py](conformance_suite/CheckedDict_from_dict_literal_neg.py)
+
+## The dynamic type
+
+`dynamic` is compatible with any type
+
+- [dynamic_as_int.py](conformance_suite/dynamic_as_int.py)
+- [dynamic_as_callable.py](conformance_suite/dynamic_as_callable.py)
+- [dynamic_as_CheckedDict.py](conformance_suite/dynamic_as_CheckedDict.py)
+- [dynamic_as_user-defined_class.py](conformance_suite/dynamic_as_user-defined_class.py)
 
 ## Procedures
 
@@ -162,8 +196,6 @@ Class variables are read-only at instance level.
 - [class_variables_readable_at_instance_level.py](conformance_suite/class_variables_readable_at_instance_level.py)
 - [class_variables_nonwritable_at_instance_level.py](conformance_suite/class_variables_nonwritable_at_instance_level.py)
 
-### Methods
-
 Overriding a method requires that the new output type is a subtype of the old one.
 
 - [override_instance_method_covariant_output_neg.py](conformance_suite/override_instance_method_covariant_output_neg.py)
@@ -194,7 +226,7 @@ Overriding a field is a static error.
 
 - [override_instance_field.py](conformance_suite/override_instance_field.py)
 
-### Interaction between ClassVar, methods, and fields
+### Interaction between ClassVar (including methods) and fields
 
 Overriding a method with a field is a static error.
 
@@ -208,13 +240,6 @@ Class variables must not be shadowed by instance variables.
 
 - [class_variables_shadow_by_instance_variables_same_class.py](conformance_suite/class_variables_shadow_by_instance_variables_same_class.py)
 - [class_variables_shadow_by_instance_variables_sub_class.py](conformance_suite/class_variables_shadow_by_instance_variables_sub_class.py)
-
-### Inheritance/subclassing
-
-Inheriting builtin classes is allowed.
-
-- [subclass_builtin_atomic.py](conformance_suite/subclass_builtin_atomic.py)
-- [subclass_builtin_generic.py](conformance_suite/subclass_builtin_generic.py)
 
 ### Classes as types
 
@@ -278,19 +303,9 @@ If `C` is a subclass of `D`, then `C` is a subtype of `D`.
 - [subtype_CheckedDict_value_covariant.py](conformance_suite/subtype_CheckedDict_value_covariant.py)
 - [subtype_CheckedDict_value_contravariant.py](conformance_suite/subtype_CheckedDict_value_contravariant.py)
 
-## The dynamic type
-
-`dynamic` is compatible with any type
-
-- [dynamic_as_int.py](conformance_suite/dynamic_as_int.py)
-- [dynamic_as_callable.py](conformance_suite/dynamic_as_callable.py)
-- [dynamic_as_CheckedDict.py](conformance_suite/dynamic_as_CheckedDict.py)
-- [dynamic_as_user-defined_class.py](conformance_suite/dynamic_as_user-defined_class.py)
-
 ## Scope
 
-Can't redelcare ordinary variable. 
-TODO: some tests might fail in the current SP but these behavior will be implemented. See https://github.com/facebookincubator/cinder/issues/53
+Can't redelcare ordinary variables.
 
 - [redeclare_var_with_def.py](conformance_suite/redeclare_var_with_def.py)
 - [redeclare_var_with_class.py](conformance_suite/redeclare_var_with_class.py)

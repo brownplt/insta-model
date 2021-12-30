@@ -27,6 +27,7 @@
   ;; primitive values in the sense of Python's Data model.
   (g (con c)
      (tuple (v ...))
+     (list (v ...))
      (set (v ...))
      (dict ([v v] ...))
      ;; a closure contains an environments (l), an input checks (s-), a body (level-)
@@ -764,6 +765,10 @@
         (in-hole [Σ_2 l_env se] (ref l))
         (where [Σ_2 l] (alloc Σ_1 (obj "tuple" (tuple (v ...)) ())))
         "tuple"]
+   [--> (in-hole [Σ_1 l_env se] (list (v ...)))
+        (in-hole [Σ_2 l_env se] (ref l))
+        (where [Σ_2 l] (alloc Σ_1 (obj "list" (list (v ...)) ())))
+        "list"]
    [--> (in-hole [Σ_1 l_env se] (set (v ...)))
         (in-hole [Σ_2 l_env se] (ref l)) 
         (where [Σ_2 l] (alloc Σ_1 (obj "set" (set (v ...)) ())))

@@ -118,7 +118,8 @@
   (G "CheckedDict"
      "Final"
      "ClassVar"
-     "Union")
+     "Union"
+     "Optional")
 
   ;; maybe type
   (T+☠ T ☠)
@@ -129,16 +130,12 @@
   (T?? (yes T?) (no ☠))
 
   ;; type-op
-  (type-op "Optional[_]"
-           "Final[_]"
-           "ClassVar[_]"
-           "cast"
-           "isinstance"
-           (Union class-l))
+  (type-op "cast"
+           "isinstance")
 
   (exactness exact subof)
 
-  ;; Types that can go into ClassVar[_]
+  ;; Types that can go into ClassVar
   (classvarable-T dynamic
                   (exactness class-l)
                   (Optional nonnonable-T))
@@ -186,11 +183,6 @@
    "dict"
    "type"
    "Exception"
-   "Optional[_]"
-   "Final[_]"
-   "ClassVar[_]"
-   "CheckedDict[_,_]"
-   "tuple"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T))
 
@@ -216,26 +208,6 @@
 (define-metafunction SP-compiled
   lookup-builtin-class : class-l -> (class l*+dynamic Γ ρ Γ)
   ;; primitive/builtin classes are handled here
-  [(lookup-builtin-class "CheckedDict[_,_]")
-   (class ("object")
-     (["__getitem__" "CheckedDict[_,_]"])
-     (["__getitem__" (method "CheckedDict[_,_]" "__getitem__")])
-     ())]
-  [(lookup-builtin-class "Optional[_]")
-   (class ("object")
-     (["__getitem__" "Optional[_]"])
-     (["__getitem__" (method "Optional[_]" "__getitem__")])
-     ())]
-  [(lookup-builtin-class "Final[_]")
-   (class ("object")
-     (["__getitem__" "Final[_]"])
-     (["__getitem__" (method "Final[_]" "__getitem__")])
-     ())]
-  [(lookup-builtin-class "ClassVar[_]")
-   (class ("object")
-     (["__getitem__" "ClassVar[_]"])
-     (["__getitem__" (method "ClassVar[_]" "__getitem__")])
-     ())]
   [(lookup-builtin-class "object")
    (class ()
      (["__init__" (-> () dynamic)])
@@ -308,14 +280,14 @@
      ())]
   [(lookup-builtin-class "set")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
+     (["__init__" dynamic]
       ["__contains__" (-> (dynamic) (subof "bool"))])
      (["__init__" (method "set" "__init__")]
       ["__contains__" (method "set" "__contains__")])
      ())]
   [(lookup-builtin-class "list")
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
+     (["__init__" dynamic]
       ["append" (-> (dynamic) (subof "list"))])
      (["__init__" (method "list" "__init__")]
       ["append" (method "list" "append")])
@@ -365,8 +337,10 @@
     ["int" (Type (subof "int"))]
     ["bool" (Type (subof "bool"))]
     ["str" (Type (subof "str"))]
-    ["dict" (Type (subof "dict"))]
+    ["list" (Type (subof "list"))]
+    ["tuple" (Type (subof "tuple"))]
     ["set" (Type (subof "set"))]
+    ["dict" (Type (subof "dict"))]
     ["type" (Type (subof "type"))]
     ["isinstance" "isinstance"]
     ["len" (-> (dynamic) dynamic)]
@@ -381,7 +355,7 @@
    (extend (base-Γ)
            ["CheckedDict" (generic "CheckedDict")]
            ["PyDict" (Type (subof "dict"))]
-           ["Optional" (Type (subof "Optional[_]"))])])
+           ["Optional" (generic "Optional")])])
 
 (module+ test
   (test-equal (term (T-of-c None))
@@ -622,9 +596,6 @@
   ;; Given a class environment Ψ, a class name l, a member name x, what is the type of
   ;;   that member when accessed from an instance of the class?
   
-  ;; a hack to support __or__ union type
-  [(lookup-member-T Ψ l_cls "__or__")
-   (Union l_cls)]
   ;; a hack to pass several None tests
   [(lookup-member-T Ψ "NoneType" x)
    ☠]
@@ -692,9 +663,6 @@
 
 (define-metafunction SP-compiled
   lookup-member-l : Ψ l x -> l
-  ;; a hack to support __or__ union type
-  [(lookup-member-l Ψ l_cls "__or__")
-   (method l_cls "__or__")]
   ;; if in the current class, return the type
   [(lookup-member-l Ψ l_cls x)
    l
@@ -734,7 +702,7 @@
   T-of-T : T -> T
   [(T-of-T (Type T))
    T
-   (where #f ,(redex-match? SP-compiled (subof "Optional[_]") (term T)))]
+   (where #f ,(redex-match? SP-compiled (subof "Optional") (term T)))]
   [(T-of-T (exact "NoneType")) (subof "NoneType")]
   [(T-of-T dynamic) dynamic])
 
@@ -745,7 +713,7 @@
               (term [(ref (con "foo")) (exact "str")]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (tuple ("int" "str"))))
               (term [(tuple ("int" "str"))
-                     (exact (tuple ((Type (subof "int")) (Type (subof "str")))))]))
+                     (exact "tuple")]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (set ())))
               (term [(set ()) (exact "set")]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (dict ())))
@@ -796,9 +764,8 @@
     (T-of-c c)]]
   ;; tuple literal
   [(compile-e Ψ Γ_dcl Γ_lcl (tuple (e ...)))
-   [(tuple (e- ...))
-    (exact (tuple (T ...)))]
-   (where ([e- T] ...) ((compile-e Ψ Γ_dcl Γ_lcl e) ...))]
+   [(tuple ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)) ...))
+    (exact "tuple")]]
   ;; list literal
   [(compile-e Ψ Γ_dcl Γ_lcl (list (e ...)))
    [(list (e- ...))
@@ -858,16 +825,6 @@
     (-> (T_arg ...) T_out)]
    (where (T_arg ...) ((eval-t Ψ Γ_dcl t_arg) ...))
    (where [e-_out T_out] (compile-e Ψ Γ_dcl (extend Γ_dcl [x_arg T_arg] ...) e_out))])
-(define-metafunction SP-compiled
-  type-call : Ψ type-op T -> T
-  [(type-call Ψ (Union l_1) T)
-   (Type (union (base-Ψ) (subof l_1) (T-of-T T)))]
-  [(type-call Ψ "Optional[_]" T)
-   (Type (Optional (T-of-T T)))]
-  [(type-call Ψ "ClassVar[_]" T)
-   (Type (ClassVar (T-of-T T)))]
-  [(type-call Ψ "Final[_]" T)
-   (Type (Final (T-of-T T)))])
 (module+ test
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute (con 2) "__add__") ((con 3))))
@@ -882,31 +839,40 @@
                      (Type (subof (chkdict (subof "int") (subof "str"))))])))
 (define-metafunction SP-compiled
   compile-e-call-generic : Ψ Γ_dcl Γ_lcl e-_obj G (e_arg ...) -> [e- T]
-  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "Union" ((tuple (e_lft e_rht))))
-   [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
-    (Type T_uni)]
-   (where [e-_lft T_lft] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
-   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))
-   (where T_uni (union Ψ (T-of-T T_lft) (T-of-T T_rht)))]
   [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "CheckedDict" ((tuple (e_lft e_rht))))
    [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
     (Type (subof (chkdict (T-of-T T_lft) (T-of-T T_rht))))]
    (where [e-_lft T_lft] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
-   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))])
+   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))]
+  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "Union" ((tuple (e_lft e_rht))))
+   [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
+    (Type (union Ψ (T-of-T T_lft) (T-of-T T_rht)))]
+   (where [e-_lft T_lft] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
+   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))]
+  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "Optional" (e_inn))
+   [(call-function (attribute safe e-_obj "__getitem__") (e-_inn))
+    (Type (union Ψ (T-of-T T_inn) (subof "NoneType")))]
+   (where [e-_inn T_inn] (compile-e Ψ Γ_dcl Γ_lcl e_inn))]
+  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "Final" (e_inn))
+   [(call-function (attribute safe e-_obj "__getitem__") (e-_inn))
+    (Type (Final (T-of-T T_inn)))]
+   (where [e-_inn T_inn] (compile-e Ψ Γ_dcl Γ_lcl e_inn))]
+  [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "ClassVar" (e_inn))
+   [(call-function (attribute safe e-_obj "__getitem__") (e-_inn))
+    (Type (ClassVar (T-of-T T_inn)))]
+   (where [e-_inn T_inn] (compile-e Ψ Γ_dcl Γ_lcl e_inn))])
 (define-metafunction SP-compiled
   compile-e-call : Ψ Γ Γ e (e ...) -> [e- T]
-  ;; type-level calls
+  ;; generic
   [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj "__getitem__") (e_arg ...))
    (compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj G (e_arg ...))
    (where [e-_obj (generic G)] (compile-e Ψ Γ_dcl Γ_lcl e_obj))]
-  ;; type-level calls
-  [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))
-   [(invoke-function l_mth (e-_obj e-_arg ...))
-    (type-call Ψ type-op T_arg ...)]
-   (where [e-_obj (Type (subof l_cls))] (compile-e Ψ Γ_dcl Γ_lcl e_obj))
-   (where type-op (lookup-member-T Ψ l_cls x_mth))
-   (where l_mth (lookup-member-l Ψ l_cls x_mth))
-   (where ([e-_arg T_arg] ...) ((compile-e Ψ Γ_dcl Γ_lcl e_arg) ...))]
+  ;; union type
+  [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_lft "__or__") (e_rht))
+   [(call-function (attribute safe e-_lft "__or__") (e-_rht))
+    (Type (union Ψ T_lft (T-of-T T_rht)))]
+   (where [e-_lft (Type T_lft)] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
+   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))]
   ;; method call
   [(compile-e-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))
    (compile-method-calls Ψ Γ_dcl Γ_lcl (compile-e Ψ Γ_dcl Γ_lcl e_obj) x_mth e_arg ...)]
@@ -921,6 +887,13 @@
    (where [e-_fun (-> (T_arg ...) T_out)] (compile-e Ψ Γ_dcl Γ_lcl e_fun))
    (where #t ,(= (length (term (e_arg ...)))
                  (length (term (T_arg ...)))))]
+  ;; isinstance
+  [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_ins e_cls))
+   [(invoke-function "isinstance" ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_ins))
+                                   (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_cls))))
+    (exact "bool")]
+   (where [e-_fun "isinstance"] (compile-e Ψ Γ_dcl Γ_lcl e_fun))]
+  #; ;; TODO: delete?
   ;; the type function
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg))
    [(call-function e-_fun ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg))))
@@ -931,12 +904,7 @@
    [(maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_val) T_dst)
     T_dst]
    (where [e-_fun "cast"] (compile-e Ψ Γ_dcl Γ_lcl e_fun))
-   (where T_dst (eval-t Ψ Γ_dcl e_dst))];; the cast operator
-  [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_ins e_cls))
-   [(invoke-function "isinstance" ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_ins))
-                                   (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_cls))))
-    (exact "bool")]
-   (where [e-_fun "isinstance"] (compile-e Ψ Γ_dcl Γ_lcl e_fun))]
+   (where T_dst (eval-t Ψ Γ_dcl e_dst))]
   ;; dynamic
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
    [(call-function e-_fun ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
@@ -1059,10 +1027,10 @@
    (attributable (Type T))]
 
   [(where #f ,(redex-match? SP-compiled "NoneType" (term l)))
-   (where #f ,(redex-match? SP-compiled "CheckedDict[_,_]" (term l)))
-   (where #f ,(redex-match? SP-compiled "Optional[_]" (term l)))
-   (where #f ,(redex-match? SP-compiled "Final[_]" (term l)))
-   (where #f ,(redex-match? SP-compiled "ClassVar[_]" (term l)))
+   (where #f ,(redex-match? SP-compiled "CheckedDict" (term l)))
+   (where #f ,(redex-match? SP-compiled "Optional" (term l)))
+   (where #f ,(redex-match? SP-compiled "Final" (term l)))
+   (where #f ,(redex-match? SP-compiled "ClassVar" (term l)))
    ----------------------
    (attributable (exactness l))])
 (define-metafunction SP-compiled
@@ -1201,6 +1169,7 @@
    (assign x (maybe-cast Ψ [e- T_src] T_dst))
    (where [e- T_src] (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T_dcl (lookup Γ_dcl x))
+   ;(judgment-holds (show (T_src T_dcl)))
    (where T_dst (intersection Ψ T_src T_dcl))]
   ;; ann-assign attribute, the annotation (t) is ignored
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann-assign (attribute e x) t e_src))
@@ -1590,7 +1559,6 @@
                              [(user-defined-class x_cls)
                               (eval-class-d Ψ_global-1 Γ_global-2 x_cls d_cls)]
                              ...))
-   ;(judgment-holds (show (Γ_global-2 Ψ_global-2)))
    (judgment-holds (⊢Ψ Ψ_global-2))
    (where Γ_global Γ_global-2)
    (where Ψ_global Ψ_global-2)])
@@ -1627,9 +1595,7 @@
 (define-metafunction SP-compiled
   T-of-import : (import-from x x) -> T
   [(T-of-import (import-from "__static__" "CheckedDict"))
-   (generic "CheckedDict")
-   #;
-   (Type (subof "CheckedDict[_,_]"))]
+   (generic "CheckedDict")]
   [(T-of-import (import-from "__static__" "PyDict"))
    (Type (subof "dict"))]
   [(T-of-import (import-from "__static__" "pydict"))
@@ -1638,20 +1604,20 @@
    "cast"]
   [(T-of-import (import-from "__static__" "inline"))
    dynamic]
-  [(T-of-import (import-from "typing" "Optional"))
-   (Type (subof "Optional[_]"))]
   [(T-of-import (import-from "typing" "Any"))
    (Type dynamic)]
+  [(T-of-import (import-from "typing" "Optional"))
+   (generic "Optional")]
   [(T-of-import (import-from "typing" "Final"))
-   (Type (subof "Final[_]"))]
+   (generic "Final")]
   [(T-of-import (import-from "typing" "ClassVar"))
-   (Type (subof "ClassVar[_]"))]
+   (generic "ClassVar")]
+  [(T-of-import (import-from "typing" "Union"))
+   (generic "Union")]
   [(T-of-import (import-from "typing" "List"))
    (Type (subof "list"))]
   [(T-of-import (import-from "typing" "Tuple"))
    (Type (subof "tuple"))]
-  [(T-of-import (import-from "typing" "Union"))
-   (generic "Union")]
   [(T-of-import (import-from "__future__" "annotations"))
    dynamic]
   ;; fallback to dynamic

@@ -25,6 +25,12 @@
 ;; conformance_suite/CheckedDict_from_bad_dict.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("d") (dict (((con 2) (con "a")) ((con 3) (con 4))))) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (call (subscript "CheckedDict" (tuple ("int" "str"))) ("d"))))))))
 
+;; conformance_suite/CheckedDict_from_dict_literal_neg.py
+(check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict (((con 2) (con 3)))))))))))
+
+;; conformance_suite/CheckedDict_from_dict_literal_pos.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict (((con 2) (con "a"))))))))))
+
 ;; conformance_suite/CheckedDict_from_good_dict.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("d") (dict (((con 2) (con "a")) ((con 3) (con "b"))))) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (call (subscript "CheckedDict" (tuple ("int" "str"))) ("d"))))))))
 
@@ -85,6 +91,9 @@
 ;; conformance_suite/CheckedDict_val_can_be_Optional.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "x" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "int")))) ((dict (((con "foo") (con 2)) ((con "bar") (con None))))))) (assert (compare (subscript "x" (con "bar")) ((is (con None))))))))))
 
+;; conformance_suite/Exception_is_inhabitable.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "Exception" (call "Exception" ((con "foo")))))))))
+
 ;; conformance_suite/None_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" (con None) (con None)))))))
 
@@ -111,6 +120,12 @@
 
 ;; conformance_suite/PyDict_lookup_good_key.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (expr (subscript "x" (con "bar"))))))))
+
+;; conformance_suite/PyDict_to_CheckedDict_backward.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict" "PyDict")) (function-def "f" () dynamic ((return (call (subscript "CheckedDict" (tuple ("int" "int"))) ((dict ())))))) (ann-assign "x" "PyDict" (call "f" ())))))))
+
+;; conformance_suite/PyDict_to_CheckedDict_forward.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "f" () dynamic ((return (dict ())))) (ann-assign "x" (subscript "CheckedDict" (tuple ("int" "int"))) (call "f" ())))))))
 
 ;; conformance_suite/PyDict_update.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (assign ((subscript "x" (con "bar"))) (con "hello")))))))
@@ -190,6 +205,12 @@
 ;; conformance_suite/delete_undeclared_field.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (function-def "f" (("c" "C")) dynamic ((delete (attribute "c" "x")))))))))
 
+;; conformance_suite/downcast_C2_to_C1_neg.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () (pass)) (class "C2" ("C1") (pass)) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "C1" (call "C1" ())) (ann-assign "y" "C2" (call "asDyn" ("x"))))))))
+
+;; conformance_suite/downcast_C2_to_C1_pos.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () (pass)) (class "C2" ("C1") (pass)) (function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "C1" (call "C2" ())) (ann-assign "y" "C2" (call "asDyn" ("x"))))))))
+
 ;; conformance_suite/downcast_int_to_bool_neg.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "asDyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "int" (con 2)) (ann-assign "y" "bool" (call "asDyn" ("x"))))))))
 
@@ -226,6 +247,9 @@
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "int" (con 42)))))))
 
+;; conformance_suite/list_is_inhabitable.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "list" (list ())))))))
+
 ;; conformance_suite/lookup_declared_field_neg.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () ((ann-assign "x" "str"))) (function-def "expectInt" (("i" "int")) dynamic (pass)) (function-def "f" (("c" "C")) dynamic ((return (call "expectInt" ((attribute "c" "x"))))))))))))
 
@@ -250,6 +274,15 @@
 ;; conformance_suite/method_generative.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Any" "ClassVar")) (class "C" () ((ann-assign "m1" (subscript "ClassVar" "Any") (lambda (("self" dynamic)) (con 2))) (function-def "m2" (("self" dynamic)) dynamic ((return (con 3)))))) (assign ("obj") (call "C" ())) (assert (compare (attribute "obj" "m1") ((is-not (attribute "obj" "m1"))))) (assert (compare (attribute "obj" "m2") ((is-not (attribute "obj" "m2"))))))))))
 
+;; conformance_suite/method_override_dynamic.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic)) dynamic ((return (con 3)))))) (function-def "f" () dynamic ((return (call "C2" ())))) (assign ("o") (call "f" ())) (assert (compare (call (attribute "o" "m") ()) ((is (con 3))))))))))
+
+;; conformance_suite/method_override_exact.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic)) dynamic ((return (con 3)))))) (assign ("o") (call "C2" ())) (assert (compare (call (attribute "o" "m") ()) ((is (con 3))))))))))
+
+;; conformance_suite/method_override_inexact.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () ((function-def "m" (("self" dynamic)) dynamic ((return (con 2)))))) (class "C2" ("C1") ((function-def "m" (("self" dynamic)) dynamic ((return (con 3)))))) (function-def "f" () "C1" ((return (call "C2" ())))) (assign ("o") (call "f" ())) (assert (compare (call (attribute "o" "m") ()) ((is (con 3))))))))))
+
 ;; conformance_suite/methods_can_be_declared_as_class_variables.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("ClassVar" "Any")) (class "C" () ((ann-assign "x" (subscript "ClassVar" "Any") (lambda (("self" dynamic) ("n" dynamic)) (bin-op + "n" (con 1)))))) (assign ("o") (call "C" ())) (assert (compare (call (attribute "o" "x") ((con 2))) ((is (con 3))))))))))
 
@@ -265,14 +298,26 @@
 ;; conformance_suite/methods_work.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () ((function-def "m" (("self" dynamic) ("x" "int")) "str" ((return (con "foo")))))) (ann-assign "s" "str" (call (attribute (call "C" ()) "m") ((con 42)))))))))
 
+;; conformance_suite/object_is_inhabitable.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "object" (call "object" ())))))))
+
 ;; conformance_suite/optional_is_inhabitable_none.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con None)))))))
+
+;; conformance_suite/optional_is_inhabitable_none_rt.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" () dynamic ((return (con None)))) (ann-assign "x" (subscript "Optional" "int") (call "f" ())))))))
 
 ;; conformance_suite/optional_is_inhabitable_nonnone.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con 42)))))))
 
+;; conformance_suite/optional_is_inhabitable_nonnone_rt.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" () dynamic ((return (con 42)))) (ann-assign "x" (subscript "Optional" "int") (call "f" ())))))))
+
 ;; conformance_suite/optional_is_inhabitable_other.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (ann-assign "x" (subscript "Optional" "int") (con "foo"))))))))
+
+;; conformance_suite/optional_is_inhabitable_other_rt.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" () dynamic ((return (con "foo")))) (ann-assign "x" (subscript "Optional" "int") (call "f" ())))))))
 
 ;; conformance_suite/optional_refine_and.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "expect_int" (("i" "int")) (con None) ((return (con None)))) (function-def "f" (("x" (subscript "Optional" "int"))) (con None) ((return (bool-op and ("x" (call "expect_int" ("x"))))))) (assert (compare (call "f" ((con None))) ((is (con None))))) (assert (compare (call "f" ((con 42))) ((is (con None))))))))))
@@ -363,12 +408,6 @@
 
 ;; conformance_suite/str_is_inhabitable.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "str" (con "hello")))))))
-
-;; conformance_suite/subclass_builtin_atomic.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" ("int") (pass)) (ann-assign "x" "C" (call "C" ((con 42)))) (ann-assign "y" "int" "x"))))))
-
-;; conformance_suite/subclass_builtin_generic.py
-(test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" ((subscript "CheckedDict" (tuple ("str" "int")))) (pass)) (ann-assign "x" "C" (call "C" ((dict ())))) (ann-assign "y" (subscript "CheckedDict" (tuple ("str" "int"))) "x"))))))
 
 ;; conformance_suite/subtype_CheckedDict_key_contravariant.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "C" () (pass)) (ann-assign "d" (subscript "CheckedDict" (tuple ("C" "str"))) (call (subscript "CheckedDict" (tuple ("object" "str"))) ((dict ()))))))))))
@@ -961,6 +1000,9 @@
 ;; conformance_suite/try_except_catch_sub_class.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" ("Exception") (pass)) (function-def "f" () dynamic ((try-except-else-finally ((raise (call "C" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42))))))))))
 
+;; conformance_suite/tuple_is_inhabitable.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "tuple" (tuple ())))))))
+
 ;; conformance_suite/union_optional_is_supported_neg.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Union")) (function-def "f" (("x" (subscript "Union" (tuple ((con None) "int"))))) dynamic (pass)) (expr (call "f" ((con "foo"))))))))))
 
@@ -969,6 +1011,9 @@
 
 ;; conformance_suite/union_other_is_dyn.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Union")) (function-def "f" (("x" (subscript "Union" (tuple ("str" "int"))))) dynamic (pass)) (class "C" () (pass)) (expr (call "f" ((call "C" ())))))))))
+
+;; conformance_suite/upcast_C1_to_C2.py
+(test-match SP-compiled program- (term (compile-program (desugar-program ((class "C1" () (pass)) (class "C2" ("C1") (pass)) (function-def "f" () dynamic ((return (call "C2" ())))) (ann-assign "x" "C1" (call "f" ())))))))
 
 ;; conformance_suite/upcast_bool_to_int.py
 (test-match SP-compiled program- (term (compile-program (desugar-program ((ann-assign "x" "bool" (con #t)) (ann-assign "y" "int" "x"))))))

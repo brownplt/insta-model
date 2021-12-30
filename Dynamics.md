@@ -2,25 +2,13 @@
 
 This file describes the dynamic semantics (runtime) of the idealized Static Python.
 
-## Empty Program
+## Optional
 
-The empty program should type check and terminate.
+`Optional[T]` checks accept `None` and instances of `T`, but not others.
 
-- [empty_program.py](conformance_suite/empty_program.py)
-
-## Base Types
-
-`bool` is inhabitable.
-
-- [bool_is_inhabitable.py](conformance_suite/bool_is_inhabitable.py)
-
-`int` is inhabitable.
-
-- [int_is_inhabitable.py](conformance_suite/int_is_inhabitable.py)
-
-`str` is inhabitable.
-
-- [str_is_inhabitable.py](conformance_suite/str_is_inhabitable.py)
+- [optional_is_inhabitable_none_rt.py](conformance_suite/optional_is_inhabitable_none_rt.py)
+- [optional_is_inhabitable_nonnone_rt.py](conformance_suite/optional_is_inhabitable_nonnone_rt.py)
+- [optional_is_inhabitable_other_rt.py](conformance_suite/optional_is_inhabitable_other_rt.py)
 
 ## PyDict
 
@@ -115,6 +103,13 @@ CheckedDicts check new values.
 
 - [CheckedDict_update_checks_values.py](conformance_suite/CheckedDict_update_checks_values.py)
 
+## PyDicts and CheckedDicts
+
+`PyDict`s are not `CheckedDict`s, and vice versa.
+
+- [PyDict_to_CheckedDict_forward.py](conformance_suite/PyDict_to_CheckedDict_forward.py)
+- [PyDict_to_CheckedDict_backward.py](conformance_suite/PyDict_to_CheckedDict_backward.py)
+
 ## Procedure
 
 Procedures work.
@@ -133,54 +128,46 @@ Procedures check return types.
 
 - [procedure_check_return_type_dynamically.py](conformance_suite/procedure_check_return_type_dynamically.py)
 
-## Optional types
-
-TODO
-
-## Optimizations
-
-TODO: CheckedDict methods
-
-TODO: Other optimizations
-
-## Runtime Checks
+## Runtime class checks
 
 Casting to a super class is okay.
 
 - [upcast_bool_to_int.py](conformance_suite/upcast_bool_to_int.py)
+- [upcast_C2_to_C1.py](conformance_suite/upcast_C1_to_C2.py)
 
 Casting to a sub class may or maynot be okay
 
 - [downcast_int_to_bool_pos.py](conformance_suite/downcast_int_to_bool_pos.py)
 - [downcast_int_to_bool_neg.py](conformance_suite/downcast_int_to_bool_neg.py)
+- [downcast_C1_to_C2_pos.py](conformance_suite/downcast_C1_to_C2_pos.py)
+- [downcast_C1_to_C2_neg.py](conformance_suite/downcast_C1_to_C2_neg.py)
 
-TODO: cast PyDict to CheckedDict and the other way
+## Members
 
-## User-defined classes
-
-- [classes_work.py](conformance_suite/classes_work.py)
-
-## Attributes / fields
+Class variables in sub-classes shadow variables in parent classes.
 
 - [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)
 
-Programmers can't introduce new members.
-
-- [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
-- [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)
-
-Methods can be declared as class variables.
+Methods are class variables.
 
 - [methods_can_be_declared_as_class_variables.py](conformance_suite/methods_can_be_declared_as_class_variables.py)
-
-Methods are just function-typed members.
-
 - [method_from_def.py](conformance_suite/method_from_def.py)
 - [method_from_lambda.py](conformance_suite/method_from_lambda.py)
+
+Methods override.
+
+- [method_override_exact.py](conformance_suite/method_override_exact.py)
+- [method_override_inexact.py](conformance_suite/method_override_inexact.py)
+- [method_override_dynamic.py](conformance_suite/method_override_dynamic.py)
 
 Methods are generative.
 
 - [method_generative.py](conformance_suite/method_generative.py)
+
+Programmers can't introduce new fields.
+
+- [static_class_update_dynamic_field.py](conformance_suite/static_class_update_dynamic_field.py)
+- [static_class_update_static_field.py](conformance_suite/static_class_update_static_field.py)
 
 ## Try-except
 
