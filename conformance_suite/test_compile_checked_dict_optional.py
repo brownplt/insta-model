@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from __static__ import CheckedDict
 from typing import Optional
 def testfunc():

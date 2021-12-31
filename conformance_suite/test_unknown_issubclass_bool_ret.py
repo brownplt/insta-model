@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from typing import Any
 class C:
     def __init__(self, x: str):

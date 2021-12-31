@@ -1,7 +1,7 @@
 # test_unknown_isinstance_narrows.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from typing import Any
 class C:

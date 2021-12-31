@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 def dec(f):
     return f
 @dec

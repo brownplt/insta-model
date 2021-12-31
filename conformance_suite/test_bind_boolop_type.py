@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from typing import Any
 class C:
     def f(self) -> bool:

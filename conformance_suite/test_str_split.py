@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 def get_str() -> str:
     return "something here"
 def test() -> str:

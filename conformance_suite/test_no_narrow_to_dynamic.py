@@ -1,7 +1,7 @@
 # test_no_narrow_to_dynamic.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f():
     return 42

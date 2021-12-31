@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 def use(i: object) -> object:
     return i
 def outer(x: int) -> object:

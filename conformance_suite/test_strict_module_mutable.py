@@ -1,7 +1,7 @@
 # test_strict_module_mutable.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from __strict__ import mutable
 @mutable

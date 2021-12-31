@@ -3,6 +3,7 @@ This program processes tests.py, which is the official conformance suite of
 Static Python. It generates tests written in our format and put them in 
 ./conformance_suite and ./skipped_tests.
 """
+import json
 import ast
 
 input_file = "./tests.py"
@@ -10,7 +11,7 @@ skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
 output_path_prefix = "./conformance_suite/"
 skipped_tests_path_prefix = "./skipped_tests/"
-cannot_parse_path_prefix  = "./cannot_parse/"
+cannot_parse_path_prefix = "./cannot_parse/"
 # Ignore a test if it contains one of the following word
 ban_anywhere_in_test = [
     # float are fairly broken
@@ -84,13 +85,13 @@ ban_anywhere_in_test = [
 
     # We don't support this.
     'test_incompat_override_method_arg_name',
-    
+
     # The scope is funny
     'test_assign_try_except_typing_redeclared_after',
-    
+
     # This test is bad
     'test_break_condition',
-    
+
     # fancy argment spec
     'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
 
@@ -111,8 +112,8 @@ skip_anywhere_in_test = [
     '__setattr__',
     '__slots__',
     'reveal_type',
-    '_for_', # for-loops
-    'test_sorted', # also for-loop
+    '_for_',  # for-loops
+    'test_sorted',  # also for-loop
     'xxclassloader',
     'weakref',
     '@_donotcompile',
@@ -157,6 +158,7 @@ def read_tests(file_path):
     if len(acc) > 0:
         yield acc_to_test(acc)
 
+
 def get_name(test):
     # A simple test is a test that looks like
     #     def test_name(self):
@@ -171,6 +173,7 @@ def get_name(test):
     first_line = lines[0]
     name = first_line[4:first_line.index("(self)")]
     return name
+
 
 def parse_simple_test(test):
     # A simple test is a test that looks like
@@ -196,7 +199,8 @@ def parse_simple_test(test):
     # process code
     assert len(defcode.targets) == 1, "parse_simple_test"
     assert isinstance(defcode.targets[0], ast.Name), "parse_simple_test"
-    assert str(defcode.targets[0].id) in {"codestr", "code"}, "parse_simple_test"
+    assert str(defcode.targets[0].id) in {
+        "codestr", "code"}, "parse_simple_test"
     assert isinstance(defcode.value, ast.Constant), "parse_simple_test"
     code = defcode.value.value
     code = code.split('\n')
@@ -294,6 +298,7 @@ def translate_self_type_error_test(name, test):
     content += commented_src + '\n'
     return content
 
+
 def translate_with_compile_test(name, test):
     code, spec = parse_simple_test(test)
     # Capture tests that look like
@@ -342,20 +347,21 @@ def translate_assertInByteCode_test(name, test):
     #         ...
     #         assertInByteCode
     #         ...
-    
+
     assert ('self.assertInBytecode' in test) or ('self.assertNotInBytecode' in test)
 
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
+        '# This is an optimization test.',
         '# This should terminate.',
-        '# This should be optimized.',
         '',
         ''
     ]) + code
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
     return content
+
 
 def translate_optimization_test(name, test):
     code, spec = parse_simple_test(test)
@@ -377,8 +383,8 @@ def translate_optimization_test(name, test):
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
+    ] + (['# This is an optimization test.'] if 'assertInBytecode' in test else []) + [
         '# This should terminate.',
-        '# This should be optimized.' if 'assertInBytecode' in test else '',
         '',
         ''
     ]) + code
@@ -388,6 +394,8 @@ def translate_optimization_test(name, test):
 
 
 reason_count = {}
+
+
 def record_skipped_test(name, test, reason):
     reason_count[reason] = reason_count.get(reason, 0) + 1
     print('/' + '-' * 10 + '\\')
@@ -399,6 +407,7 @@ def record_skipped_test(name, test, reason):
     skipped_tests_file.write("# Reason: {}\n".format(reason))
     skipped_tests_file.write(test)
     return
+
 
 def main():
     banned_counter = 0
@@ -420,7 +429,8 @@ def main():
             print("<SKIPPED begin")
             print(test)
             print("<SKIPPED end")
-            record_skipped_test("imparsable_test_{}".format(imparsable_counter), test, "Format too complicated")
+            record_skipped_test("imparsable_test_{}".format(
+                imparsable_counter), test, "Format too complicated")
             imparsable_counter += 1
             continue
 
@@ -428,11 +438,12 @@ def main():
         for word in skip_anywhere_in_test:
             if word in test:
                 skipped = True
-                record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
+                record_skipped_test(
+                    name, test, "Hitted a skipped word ({})".format(word))
                 break
         if skipped:
             continue
-        
+
         translators = [
             translate_simple_compile_test,
             translate_self_type_error_test,
@@ -453,9 +464,11 @@ def main():
                 print("WHAT?", repr(e))
                 continue
         if not translated:
-            record_skipped_test(name, test, "Can't be translated by any of the three translator")
+            record_skipped_test(
+                name, test, "Can't be translated by any of the three translator")
+
 
 main()
-import json
-reason_count = list(sorted([ (v, k) for k,v in reason_count.items()], reverse=True))
+reason_count = list(sorted([(v, k)
+                    for k, v in reason_count.items()], reverse=True))
 print(json.dumps(reason_count, indent=2))

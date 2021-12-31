@@ -358,23 +358,27 @@ def python_file_to_sexp(test_file):
 def parse_python_file(test_file):
     print("Working on " + test_file)
     name = test_file
-    head = open(test_file).readlines()[1:4]
+    lines = open(test_file).readlines()
     prog = python_file_to_sexp(test_file)
-    if head[0] == '# This should pass.\n':
-        spec = {'compile': True, 'optimized': False}
-        if head[1] == '# This should terminate.\n':
+    base = 1
+    if lines[base] == '# This should fail.\n':
+        spec = {'compile': False }
+    elif lines[base] == '# This should pass.\n':
+        spec = {'compile': True }
+        base += 1
+        if lines[base] == '# This is an optimization test.\n':
+            spec['optimization'] = True
+            base += 1
+        else:
+            spec['optimization'] = False
+        if lines[base] == '# This should terminate.\n':
             spec['run'] = True
-            if len(head) >= 3 and head[2] == '# This should be optimized.\n':
-                spec['optimized'] = True
-        elif head[1] == '# This should error.\n':
+        elif lines[base] == '# This should error.\n':
             spec['run'] = False
         else:
-            assert not head[1].startswith('# ')
             spec['run'] = None
-    elif head[0] == '# This should fail.\n':
-        spec = {'compile': False, 'optimized': False}
     else:
-        assert False, repr(head)
+        assert False, repr(lines[base])
     source = open(test_file).readlines()
     return name, spec, prog, source
 
@@ -620,7 +624,7 @@ def main():
             ''
         ]))
         for name, spec, prog, source in parsed_test_files:
-            if spec['optimized']:
+            if spec['compile'] and spec['optimization']:
                 test = python_file_to_redex_optimization_test(spec, prog)
                 f.write('\n')
                 f.write(';; ' + name + '\n')

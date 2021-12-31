@@ -1,7 +1,7 @@
 # test_invoke_int_method.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def func():
     a = 42

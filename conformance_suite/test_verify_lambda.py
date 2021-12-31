@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 x = lambda x: x
 a = x("hi")
 # def test_verify_lambda(self):

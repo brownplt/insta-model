@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class C(Exception):
     def f(self):
         return 42

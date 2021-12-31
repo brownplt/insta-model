@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class _Inner():
     pass
 def something(klass):

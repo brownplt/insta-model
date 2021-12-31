@@ -1,7 +1,7 @@
 # test_invoke_str_method_arg.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def func():
     a = 'a b c'

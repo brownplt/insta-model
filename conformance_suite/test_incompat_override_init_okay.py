@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class A:
     def __init__(self) -> None:
         pass

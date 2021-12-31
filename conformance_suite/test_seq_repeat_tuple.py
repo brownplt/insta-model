@@ -1,7 +1,7 @@
 # test_seq_repeat_tuple.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f():
     t = (1, 2)

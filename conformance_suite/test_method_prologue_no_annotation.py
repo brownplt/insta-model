@@ -1,7 +1,7 @@
 # test_method_prologue_no_annotation.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f(x):
     return 42

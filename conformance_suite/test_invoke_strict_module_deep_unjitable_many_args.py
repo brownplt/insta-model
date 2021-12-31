@@ -1,7 +1,7 @@
 # test_invoke_strict_module_deep_unjitable_many_args.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f0(): return 42
 def f1(a, b, c, d, e, f, g, h):

@@ -1,7 +1,7 @@
 # test_invoke_all_extra_args.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def target(a, b, c, d, e, f, g):
     return a * 2 + b * 3 + c * 4 + d * 5 + e * 6 + f * 7 + g

@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from __static__ import pydict as dict
 class B: pass
 class D(B): pass

@@ -1,7 +1,7 @@
 # test_generic_method_ret_type.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from __static__ import CheckedDict
 from typing import Optional

@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class C:
     def __init__(self):
         self.x: Optional[C] = None

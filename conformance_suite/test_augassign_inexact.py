@@ -1,7 +1,7 @@
 # test_augassign_inexact.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def something():
     return 3

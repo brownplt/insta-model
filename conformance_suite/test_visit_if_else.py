@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 x = 0
 if x:
     pass

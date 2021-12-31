@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 def foo(x: int | str) -> int:
     assert isinstance(x, int)
     return x + 1

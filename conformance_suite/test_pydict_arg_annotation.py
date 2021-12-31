@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from __static__ import PyDict
 def f(d: PyDict[str, int]) -> str:
     # static python ignores the untrusted generic types

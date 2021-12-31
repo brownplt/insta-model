@@ -1,7 +1,7 @@
 # test_unknown_type_compare.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def x(a, b):
     z = a > b

@@ -1,7 +1,7 @@
 # test_min.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f(a: int, b: int) -> int:
     return min(a, b)

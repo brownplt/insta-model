@@ -1,7 +1,7 @@
 # test_assign_constant_to_object.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f():
     x: object = 42 + 1

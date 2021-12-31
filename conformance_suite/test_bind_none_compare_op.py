@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from typing import Any
 def has_none(x) -> bool:
     return None in x

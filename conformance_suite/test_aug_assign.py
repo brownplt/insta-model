@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 def f(l):
     l[0] += 1
 # def test_aug_assign(self) -> None:

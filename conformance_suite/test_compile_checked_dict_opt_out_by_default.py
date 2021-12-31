@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class B: pass
 class D(B): pass
 def testfunc():

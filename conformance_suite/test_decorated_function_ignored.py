@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class C: pass
 def mydecorator(x):
     return C

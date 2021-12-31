@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from typing import List
 def f1(x: List):
     try:

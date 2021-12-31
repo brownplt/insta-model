@@ -1,7 +1,7 @@
 # test_dict_invoke_ret.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from __static__ import pydict
 def g(): return None

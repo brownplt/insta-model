@@ -1,7 +1,7 @@
 # test_max_stability.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f(a: int, b: int) -> int:
     return max(a, b)

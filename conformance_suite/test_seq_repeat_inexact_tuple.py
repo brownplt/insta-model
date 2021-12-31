@@ -1,7 +1,7 @@
 # test_seq_repeat_inexact_tuple.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from typing import Tuple
 def f(t: Tuple[int]):

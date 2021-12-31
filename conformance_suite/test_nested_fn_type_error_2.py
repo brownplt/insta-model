@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 def f(i: int, j: str, k: int) -> bool:
     def g(k: int) -> bool:
         return k > 0 if j == "gt" else k <= 0

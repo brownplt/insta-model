@@ -1,7 +1,7 @@
 # test_ret_type_cast.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from typing import Any
 def testfunc(x: str, y: str) -> bool:

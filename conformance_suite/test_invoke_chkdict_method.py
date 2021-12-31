@@ -1,7 +1,7 @@
 # test_invoke_chkdict_method.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 from __static__ import CheckedDict
 def dict_maker() -> CheckedDict[int, int]:

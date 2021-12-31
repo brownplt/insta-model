@@ -1,7 +1,7 @@
 # test_typed_swap_nested.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def test(a):
     x: int

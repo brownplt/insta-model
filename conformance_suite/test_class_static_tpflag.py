@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 class A:
     pass
 # def test_class_static_tpflag(self):

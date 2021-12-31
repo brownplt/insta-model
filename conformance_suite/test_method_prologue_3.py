@@ -1,7 +1,7 @@
 # test_method_prologue_3.py
 # This should pass.
+# This is an optimization test.
 # This should terminate.
-# This should be optimized.
 
 def f(x: int, y: str):
     return 42

@@ -2,7 +2,6 @@
 # This should pass.
 # This should terminate.
 
-
 from typing import Optional
 def f(s1: Optional[str], s2: Optional[str]) -> str:
     return s1 or s2 or "hi"
