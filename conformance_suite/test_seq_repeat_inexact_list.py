@@ -1,7 +1,6 @@
 # test_seq_repeat_inexact_list.py
 # This should pass.
 # This is an optimization test.
-# This should terminate.
 
 from typing import List
 def f(l: List[int]):

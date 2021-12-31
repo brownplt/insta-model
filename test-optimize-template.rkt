@@ -11,7 +11,6 @@
 ;; conformance_suite/test_assign_constant_to_object.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (bin-op + (con 42) (con 1))))))))))
 #|
-
 def f():
     x: object = 42 + 1
 # def test_assign_constant_to_object(self):
@@ -29,7 +28,6 @@ def f():
 ;; conformance_suite/test_assign_dynamic_to_object.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "object" (call "C" ())))))))))
 #|
-
 def f(C):
     x: object = C()
 # def test_assign_dynamic_to_object(self):
@@ -47,7 +45,6 @@ def f(C):
 ;; conformance_suite/test_assign_num_to_object.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((ann-assign "x" "object" (con 42)))))))))
 #|
-
 def f():
     x: object = 42
 # def test_assign_num_to_object(self):
@@ -93,7 +90,6 @@ def t():
 ;; conformance_suite/test_compare_subclass.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((class "C" () (pass)) (class "D" ("C") (pass)) (assign ("x") (compare (call "C" ()) ((> (call "D" ()))))))))))
 #|
-
 class C: pass
 class D(C): pass
 x = C() > D()
@@ -188,7 +184,6 @@ def f(x):
 ;; conformance_suite/test_exact_invoke_function.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () "str" ((return (call (attribute (con ", ") "join") ((list ((con "1") (con "2") (con "3")))))))))))))
 #|
-
 def f() -> str:
     return ", ".join(['1','2','3'])
 # def test_exact_invoke_function(self):
@@ -761,7 +756,6 @@ def f(a: int, b: int) -> int:
 ;; conformance_suite/test_multiply_list_exact_by_int.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (list ((con 1) (con 2) (con 3))) (con 2))) (return (call "len" ("l"))))))))))
 #|
-
 def f() -> int:
     l = [1, 2, 3] * 2
     return len(l)
@@ -781,7 +775,6 @@ def f() -> int:
 ;; conformance_suite/test_multiply_list_exact_by_int_reverse.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (con 2) (list ((con 1) (con 2) (con 3))))) (return (call "len" ("l"))))))))))
 #|
-
 def f() -> int:
     l = 2 * [1, 2, 3]
     return len(l)
@@ -830,7 +823,6 @@ def g():
 ;; conformance_suite/test_nonarray_len.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((class "Lol" () ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 421)))))) (function-def "y" () dynamic ((return (call "len" ((call "Lol" ())))))))))))
 #|
-
 class Lol:
     def __len__(self):
         return 421
@@ -923,7 +915,6 @@ def testfunc(x: str, y: str) -> bool:
 ;; conformance_suite/test_seq_repeat_inexact_list.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))))))))
 #|
-
 from typing import List
 def f(l: List[int]):
     return l * 2
@@ -947,7 +938,6 @@ def f(l: List[int]):
 ;; conformance_suite/test_seq_repeat_inexact_num.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))))))))
 #|
-
 def f(num: int):
     return num * [1, 2]
 # def test_seq_repeat_inexact_num(self):
@@ -973,7 +963,6 @@ def f(num: int):
 ;; conformance_suite/test_seq_repeat_inexact_tuple.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))))))))
 #|
-
 from typing import Tuple
 def f(t: Tuple[int]):
     return t * 2
@@ -997,7 +986,6 @@ def f(t: Tuple[int]):
 ;; conformance_suite/test_seq_repeat_list.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * "l" (con 2))))))))))
 #|
-
 def f():
     l = [1, 2]
     return l * 2
@@ -1017,7 +1005,6 @@ def f():
 ;; conformance_suite/test_seq_repeat_list_reversed.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * (con 2) "l")))))))))
 #|
-
 def f():
     l = [1, 2]
     return 2 * l
@@ -1037,7 +1024,6 @@ def f():
 ;; conformance_suite/test_seq_repeat_tuple.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("t") (tuple ((con 1) (con 2)))) (return (bin-op * "t" (con 2))))))))))
 #|
-
 def f():
     t = (1, 2)
     return t * 2
@@ -1057,7 +1043,6 @@ def f():
 ;; conformance_suite/test_seq_repeat_tuple_reversed.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("t") (tuple ((con 1) (con 2)))) (return (bin-op * (con 2) "t")))))))))
 #|
-
 def f():
     t = (1, 2)
     return 2 * t
@@ -1099,7 +1084,6 @@ class C:
 ;; conformance_suite/test_typed_swap.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ((con 1) "a"))))))))))
 #|
-
 def test(a):
     x: int
     y: str
@@ -1120,7 +1104,6 @@ def test(a):
 ;; conformance_suite/test_typed_swap_2.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ("a" (con "abc")))))))))))
 #|
-
 def test(a):
     x: int
     y: str
@@ -1141,7 +1124,6 @@ def test(a):
 ;; conformance_suite/test_typed_swap_list.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((list ("x" "y"))) (tuple ("a" (con "abc")))))))))))
 #|
-
 def test(a):
     x: int
     y: str
@@ -1162,7 +1144,6 @@ def test(a):
 ;; conformance_suite/test_typed_swap_member.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") "int" (con 42)))))) (function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ((attribute (call "C" ()) "x") "y"))) (tuple ("a" (con "abc")))))))))))
 #|
-
 class C:
     def __init__(self):
         self.x: int = 42
@@ -1189,7 +1170,6 @@ def test(a):
 ;; conformance_suite/test_typed_swap_nested.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ("a" (con "abc"))) (con "foo")))))))))))
 #|
-
 def test(a):
     x: int
     y: str
@@ -1212,7 +1192,6 @@ def test(a):
 ;; conformance_suite/test_typed_swap_nested_2.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ((con 1) "a")) (con "foo")))))))))))
 #|
-
 def test(a):
     x: int
     y: str
@@ -1235,7 +1214,6 @@ def test(a):
 ;; conformance_suite/test_typed_swap_nested_3.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "int") (ann-assign "z" "str") (assign ((tuple ((tuple ("x" "y")) "z"))) (tuple ((tuple ((con 1) (con 2))) "a"))))))))))
 #|
-
 def test(a):
     x: int
     y: int
@@ -1376,7 +1354,6 @@ class C:
 ;; conformance_suite/test_unknown_type_binary.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "x" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("z") (bin-op + "a" "b")))))))))
 #|
-
 def x(a, b):
     z = a + b
 # def test_unknown_type_binary(self):
@@ -1392,7 +1369,6 @@ def x(a, b):
 ;; conformance_suite/test_unknown_type_compare.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "x" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("z") (compare "a" ((> "b")))))))))))
 #|
-
 def x(a, b):
     z = a > b
 # def test_unknown_type_compare(self):
@@ -1408,7 +1384,6 @@ def x(a, b):
 ;; conformance_suite/test_unknown_type_unary.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y")))))))))
 #|
-
 def x(y):
     z = -y
 # def test_unknown_type_unary(self):
@@ -1424,7 +1399,6 @@ def x(y):
 ;; conformance_suite/test_with_traceback.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None)))))))))))
 #|
-
 def f():
     x = Exception()
     return x.with_traceback(None)

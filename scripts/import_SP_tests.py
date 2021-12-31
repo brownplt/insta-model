@@ -354,7 +354,6 @@ def translate_assertInByteCode_test(name, test):
         '# {}.py'.format(name),
         '# This should pass.',
         '# This is an optimization test.',
-        '# This should terminate.',
         '',
         ''
     ]) + code

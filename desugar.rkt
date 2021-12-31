@@ -383,11 +383,24 @@
    (raise (desugar-e e+))])
 (define-metafunction SP-core
   make-try : s ([e x s] ...) s -> s
-  [(make-try s_bdy () s_els) (make-begin s_bdy s_els)]
-  [(make-try s_bdy ([e_exn1 x_exn1 s_exn1] [e_exn2 x_exn2 s_exn2] ...) s_els)
-   (make-try (try s_bdy e_exn1 x_exn1 s_exn1 (begin))
-             ([e_exn2 x_exn2 s_exn2] ...)
-             s_els)])
+  [(make-try s_bdy ([e_exn x_exn s_exn] ...) s_els)
+   (try s_bdy
+        (ref "Exception")
+        x_tmp
+        (make-cond
+          ([(call (ref "isinstance") (x_tmp e_exn))
+            (begin
+              (ann-assign x_exn dynamic x_tmp)
+              s_exn)]
+           ...)
+          (raise x_tmp))
+        s_els)
+    (where x_tmp "-tmp-")])
+(define-metafunction SP-core
+  make-cond : ([e s] ...) s -> s
+  [(make-cond () s) s]
+  [(make-cond ([e_thn s_thn] [e_rst s_rst] ...) s_els)
+   (if e_thn s_thn (make-cond ([e_rst s_rst] ...) s_els))])
 (define-metafunction SP-core
   desugar-h : h+ -> [e x s]
   [(desugar-h (except-handler e+ x+None (s+ ...)))

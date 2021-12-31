@@ -1,7 +1,6 @@
 # test_unknown_type_unary.py
 # This should pass.
 # This is an optimization test.
-# This should terminate.
 
 def x(y):
     z = -y

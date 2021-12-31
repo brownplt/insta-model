@@ -1,7 +1,6 @@
 # test_with_traceback.py
 # This should pass.
 # This is an optimization test.
-# This should terminate.
 
 def f():
     x = Exception()

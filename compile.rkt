@@ -50,8 +50,6 @@
         ([x s-] ...)
         ;; instance-level members and corresponding checks
         ([x s-] ...))
-      ;; new construct
-      (raise-error any)
       (new l (e- ...)))
 
   ;; statements
@@ -321,14 +319,18 @@
       ["__getitem__" (-> (T_key) T_val)]
       ["__setitem__" (-> (T_key T_val) (subof "NoneType"))]
       ["__delitem__" (-> (T_key) (subof "NoneType"))]
-      ["setdefault" (-> (T_key T_val) (subof "NoneType"))])
+      ["setdefault" (-> (T_key T_val) (subof "NoneType"))]
+      ["clear" (-> () (subof "NoneType"))]
+      ["__eq__" (-> (dynamic) (subof "bool"))])
      (["__init__" (method (chkdict T_key T_val) "__init__")]
       ["get" (method (chkdict T_key T_val) "get")]
       ["keys" (method (chkdict T_key T_val) "keys")]
       ["__getitem__" (method (chkdict T_key T_val) "__getitem__")]
       ["__setitem__" (method (chkdict T_key T_val) "__setitem__")]
       ["__delitem__" (method (chkdict T_key T_val) "__delitem__")]
-      ["setdefault" (method (chkdict T_key T_val) "setdefault")])
+      ["setdefault" (method (chkdict T_key T_val) "setdefault")]
+      ["clear" (method (chkdict T_key T_val) "clear")]
+      ["__eq__" (method (chkdict T_key T_val) "__eq__")])
      ())])
 (define-metafunction SP-compiled
   tuple-class : -> (class l*+dynamic Γ ρ Γ)
@@ -1068,8 +1070,10 @@
 
 (define-metafunction SP-compiled
   compile-check : e- T -> s-
-  [(compile-check e- dynamic) (begin)]
-  [(compile-check e- (-> (T_arg ...) T_ret)) (expr (raise-error "internal error"))]
+  [(compile-check e- dynamic)
+   (begin)]
+  [(compile-check e- (-> (T_arg ...) T_ret))
+   (raise (new "Exception" ((con "internal error"))))]
   [(compile-check e- (exactness l))
    (make-assert
     (check-exactness (invoke-function "type" (e-)) exactness l))]
@@ -1096,7 +1100,9 @@
   ;; assert
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (assert (con #t))))
-              (term (if (ref (con #t)) (begin) (expr (raise-error "assertion error")))))
+              (term (if (ref (con #t))
+                        (begin)
+                        (raise (new "Exception" ((con "assertion error")))))))
   ;; begin
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (begin (expr "int") (expr "bool"))))
@@ -1135,7 +1141,7 @@
                                                          ((invoke-function "type" ("i"))
                                                           (ref "int")))
                                         (begin)
-                                        (expr (raise-error "assertion error"))))
+                                        (raise (new "Exception" ((con "assertion error"))))))
                                   (local ("i")
                                     (return "i"))))))
   )
@@ -1285,7 +1291,7 @@
 (define-metafunction SP-compiled
   make-assert-k : e- s- -> s-
   [(make-assert-k e- s-)
-   (if e- s- (expr (raise-error "assertion error")))])
+   (if e- s- (raise (new "Exception" ((con "assertion error")))))])
 (define-metafunction SP-compiled
   compile-m : Ψ Γ x m -> [boolean x T s-]
   ;; declare-only member can be either a ClassVar

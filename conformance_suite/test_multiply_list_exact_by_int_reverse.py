@@ -1,7 +1,6 @@
 # test_multiply_list_exact_by_int_reverse.py
 # This should pass.
 # This is an optimization test.
-# This should terminate.
 
 def f() -> int:
     l = 2 * [1, 2, 3]

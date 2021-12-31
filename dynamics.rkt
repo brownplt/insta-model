@@ -48,7 +48,9 @@
       ;; install the new environment
       (enter l s-)
       ;; restore the old environment
-      (leave l s-))
+      (leave l s-)
+      ;; raise
+      (raise e-))
   ;; runtime representation of programs
   (p [Σ l s-]
      (error any)
@@ -70,7 +72,8 @@
       (call-function v (v ... ee e- ...))
       (class x (v ... ee e- ...) ([x s-] ...) ([x s-] ...))
       (leave l se)
-      (new l (v ... ee e- ...)))
+      (new l (v ... ee e- ...))
+      (raise ee))
   ;; in expression reduce statement
   (es (tuple (v ... es e- ...))
       (set (v ... es e- ...))
@@ -87,7 +90,8 @@
       (call-function v (v ... es e- ...))
       (class (v ... es e- ...) ([x s-+☠] ...))
       (leave l ss)
-      (new l (v ... es e- ...)))
+      (new l (v ... es e- ...))
+      (raise es))
   ;; in statement reduce expression
   (se (expr ee)
       (return ee)
@@ -113,6 +117,32 @@
       (try ss e- x s- s-)
       (finally ss s-)
       (raise es))
+  ;; in statement bubble up exception
+  (sx (expr hole)
+      (return hole)
+      (begin hole s- ...)
+      (if hole s- s-)
+      (delete (attribute hole x))
+      (assign x hole)
+      (assign (attribute hole x) e-)
+      (assign (attribute v x) hole)
+      (raise hole))
+  ;; in expression bubble up exception
+  (ex (tuple (v ... hole e- ...))
+      (set (v ... hole e- ...))
+      (dict ([v v] ... [hole e-] [e- e-] ...))
+      (dict ([v v] ... [v hole] [e- e-] ...))
+      (is hole e-)
+      (is v hole)
+      (if-exp hole e- e-)
+      (attribute mode hole x)
+      (invoke-function l (v ... hole e- ...))
+      (invoke-method l x hole (e- ...))
+      (invoke-method l x v (v ... hole e- ...))
+      (call-function hole (e- ...))
+      (call-function v (v ... hole e- ...))
+      (class (v ... hole e- ...) ([x s-+☠] ...))
+      (new l (v ... hole e- ...)))
   ;; builtin-op-l, a subset of l
   (prim-op-l
    "issubclass"
@@ -129,11 +159,14 @@
    (method (chkdict T T) "__init__")
    (method (chkdict T T) "__getitem__")
    (method (chkdict T T) "__setitem__")
-   (method (chkdict T T) "__delitem__"))
+   (method (chkdict T T) "__delitem__")
+   (method (chkdict T T) "__eq__")
+   (method (chkdict T T) "clear"))
   ;; utilities
   (v+☠ v ☠)
   (l+☠ l ☠)
-  (vv [v v]))
+  (vv [v v])
+  (number+* number *))
 
 (module+ test
   (test-equal (term (alloc ()))
@@ -167,25 +200,7 @@
   (test-equal (term
                (lookup-Σ ([0 (env () ☠)]) 0))
               (term
-               (env () ☠)))
-  (test-equal (term
-               (lookup-Σ (base-Σ) "builtin-env"))
-              (term
-               (env
-                (["object" (ref "object")]
-                 ["int" (ref "int")]
-                 ["bool" (ref "bool")]
-                 ["str" (ref "str")]
-                 ["dict" (ref "dict")]
-                 ["set" (ref "set")]
-                 ["type" (ref "type")]
-                 ["isinstance" (ref "isinstance")]
-                 ["len" (ref "len")]
-                 ["Exception" (ref "Exception")]
-                 ["max" (ref "max")]
-                 ["min" (ref "min")]
-                 ["issubclass" (ref "issubclass")])
-                ☠))))
+               (env () ☠))))
 (define-metafunction SP-dynamics
   lookup-Σ : Σ l -> h
   [(lookup-Σ Σ l)
@@ -232,7 +247,7 @@
   [(lookup-Σ-primitive (method (chkdict T_key T_val) "__setitem__"))
    (obj "function"
         (lambda -1 ("dict" "key" "val")
-          (begin 
+          (begin
             (compile-check "key" T_key)
             (compile-check "val" T_val))
           (local ("dict" "key" "val")
@@ -325,13 +340,15 @@
    (delta-dict-getitem Σ v ...)]
   [(delta Σ (method "dict" "__setitem__") (v ...))
    (delta-dict-setitem Σ v ...)]
-  [(delta Σ (method (chkdict T_key T_val) "__init__") ((ref l_obj) (ref l_dct)))
-   (delta-checkeddict-init Σ T_key T_val l_obj l_dct)]
+  [(delta Σ (method (chkdict T_key T_val) "__init__") ((ref l_obj) (ref l_arg) ...))
+   (delta-checkeddict-init Σ T_key T_val l_obj l_arg ...)]
+  [(delta Σ (method (chkdict T_key T_val) "clear") ((ref l_obj) (ref l_arg) ...))
+   (delta-checkeddict-clear Σ T_key T_val l_obj l_arg ...)]
   [(delta Σ "issubclass" (v ...))
    (delta-issubclass Σ v ...)]
   ;; fall back
   [(delta Σ l (v ...))
-   [Σ (raise-error "delta")]])
+   [Σ (raise (new "Exception" ((con "delta"))))]])
 (define-metafunction SP-dynamics
   delta-exception-init : Σ v ... -> [Σ e-]
   [(delta-exception-init Σ_0 (ref l_exn) (ref l_msg))
@@ -340,29 +357,46 @@
    (where (obj l_msgcls (con string) ρ) (lookup-Σ Σ_0 l_msg))
    (where Σ_1 (update Σ_0 [l_exn (obj l_exncls (con string) ())]))]
   [(delta-exception-init Σ_0 (ref l_exn) (ref l_msg))
-   [Σ_0 (raise-error ("Exception: must be initialized with a string" (lookup-Σ Σ_0 l_exn) (lookup-Σ Σ_0 l_msg)))]])
+   [Σ_0 (raise (new "Exception" ((con "Exception: must be initialized with a string"))))]])
 (define-metafunction SP-dynamics
-  delta-checkeddict-init : Σ T_key T_val l_obj l_dct -> [Σ e-]
+  delta-checkeddict-clear : Σ T_key T_val l_obj l_arg ... -> [Σ e-]
+  [(delta-checkeddict-clear Σ_0 T_key T_val l_obj)
+   [Σ_1 (ref l_obj)]
+   (where (obj l_cls g ρ)
+          (lookup-Σ Σ_0 l_obj))
+   (where Σ_1
+          (update Σ_0 [l_obj (obj l_cls (dict ()) ρ)]))])
+(define-metafunction SP-dynamics
+  delta-checkeddict-init : Σ T_key T_val l_obj l_arg ... -> [Σ e-]
+  [(delta-checkeddict-init Σ_0 T_key T_val l_obj)
+   [Σ_1 (ref l_obj)]
+   (where (obj (chkdict T_key T_val) (nothing) ())
+          (lookup-Σ Σ_0 l_obj))
+   (where Σ_1
+          (update Σ_0
+                  [l_obj (obj (chkdict T_key T_val)
+                              (dict ())
+                              ())]))]
   [(delta-checkeddict-init Σ_0 T_key T_val l_obj l_dct)
    [Σ_1 (enter -1
-        ;; TODO: switch to for, because we can't know v_key and v_val at compile time
-        (begin
-          (compile-check v_key T_key)
-          ...
-          (compile-check v_val T_val)
-          ...
-          (return (ref l_obj))))]
+               ;; TODO: switch to for, because we can't know v_key and v_val at compile time
+               (begin
+                 (compile-check v_key T_key)
+                 ...
+                 (compile-check v_val T_val)
+                 ...
+                 (return (ref l_obj))))]
    (where (obj (chkdict T_key T_val) (nothing) ())
           (lookup-Σ Σ_0 l_obj))
    (where (obj "dict" (dict ([v_key v_val] ...)) ρ)
           (lookup-Σ Σ_0 l_dct))
    (where Σ_1
           (update Σ_0
-            [l_obj (obj (chkdict T_key T_val)
-                        (dict ([v_key v_val] ...))
-                        ())]))]
+                  [l_obj (obj (chkdict T_key T_val)
+                              (dict ([v_key v_val] ...))
+                              ())]))]
   [(delta-checkeddict-init Σ T_key T_val l_obj l_dct)
-   [Σ (raise-error "CheckedDict expects a valid dict")]])
+   [Σ (raise (new "Exception" ((con "CheckedDict expects a valid dict"))))]])
 (define-metafunction SP-dynamics
   delta-checkeddict-delitem : Σ T_key T_val l_obj l_key -> [Σ e-]
   [(delta-checkeddict-delitem Σ_0 T_key T_val l_obj l_key)
@@ -381,7 +415,7 @@
    [Σ_0 v_val]
    (where (obj l_typ (dict (vv_1 ... [v_key v_val] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))]
   [(delta-dict-getitem Σ v ...)
-   [Σ (raise-error "getitem")]])
+   [Σ (raise (new "Exception" ((con "getitem"))))]])
 (define-metafunction SP-dynamics
   delta-dict-setitem : Σ v ... -> [Σ e-]
   [(delta-dict-setitem Σ_0 (ref l_map) v_key v_new)
@@ -393,7 +427,7 @@
    (where (obj l_typ (dict (vv ...)) ρ) (lookup-Σ Σ_0 l_map))
    (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict ([v_key v_val] vv ...)) ρ)]))]
   [(delta-dict-setitem Σ v ...)
-   [Σ (raise-error ("setitem"))]])
+   [Σ (raise (new "Exception" ((con "setitem"))))]])
 (define-metafunction SP-dynamics
   delta-dict-delitem : Σ v ... -> [Σ e-]
   [(delta-dict-delitem Σ_0 (ref l_map) v_key)
@@ -401,7 +435,7 @@
    (where (obj l_typ (dict (vv_1 ... [v_key v_val] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))
    (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict (vv_1 ... vv_2 ...)) ρ)]))]
   [(delta-dict-delitem Σ v ...)
-   [Σ (raise-error ("delitem"))]])
+   [Σ (raise (new "Exception" ((con "delitem"))))]])
 (define-metafunction SP-dynamics
   delta-issubclass : Σ v ... -> [Σ e-]
   ;; same class refl
@@ -421,9 +455,9 @@
           (lookup-Σ Σ l_1))]
   ;; arity error
   [(delta-issubclass Σ v)
-   [Σ (raise-error "issubclass: arity error")]]
+   [Σ (raise (new "Exception" ((con "issubclass: arity error"))))]]
   [(delta-issubclass Σ v_1 v_2 v_3 v_4 ...)
-   [Σ (raise-error "issubclass: arity error")]])
+   [Σ (raise (new "Exception" ((con "issubclass: arity error"))))]])
 
 (define-metafunction SP-dynamics
   do-call-function : Σ l h (v ...) -> [Σ l e-]
@@ -433,7 +467,7 @@
   [(do-call-function Σ l (obj "function" g ρ) (v ...))
    (do-call-function-good-rator Σ l (obj "function" g ρ) (v ...))]
   [(do-call-function Σ l h (v ...))
-   [Σ l (raise-error ("CALL_FUNCTION: not a callable" h))]])
+   [Σ l (raise (new "Exception" ((con "CALL_FUNCTION: not a callable"))))]])
 (define-metafunction SP-dynamics
   do-call-function-good-rator : Σ l h (v ...) -> [Σ l e-]
   ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`
@@ -445,21 +479,28 @@
   do-call-function-check-arity : Σ l (obj "function" g ρ) (v ...) -> [Σ l e-]
   [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
    (do-invoke-function Σ l (obj "function" g ρ) (v ...))
+   (where * (arity g))]
+  [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
+   (do-invoke-function Σ l (obj "function" g ρ) (v ...))
    (where #t ,(= (term (arity g)) (length (term (v ...)))))]
   [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
-   [Σ l (raise-error ("arity-mismatch" (arity g) ,(length (term (v ...)))))]])
+   [Σ l (enter -1
+               (raise (new "Exception" ((con ,(format "arity-mismatch ~a: ~a vs ~a"
+                                                      (term g)
+                                                      (term (arity g))
+                                                      (length (term (v ...)))))))))]])
 (define-metafunction SP-dynamics
-  arity : g -> number
+  arity : g -> number+*
   [(arity (prim-op l))
    (arity-prim-op l)]
   [(arity (lambda l_cls (x_arg ...) s-_chk (local (x_var ...) s-_bdy)))
    ,(length (term (x_arg ...)))])
 (define-metafunction SP-dynamics
-  arity-prim-op : prim-op-l -> number
+  arity-prim-op : prim-op-l -> number+*
   [(arity-prim-op "isinstance") 2]
   [(arity-prim-op "issubclass") 2]
   [(arity-prim-op (method "object" "__init__")) 1]
-  [(arity-prim-op (method "Exception" "__init__")) 2]
+  [(arity-prim-op (method "Exception" "__init__")) *]
   [(arity-prim-op (method "int" "__add__")) 2]
   [(arity-prim-op (method "int" "__sub__")) 2]
   [(arity-prim-op (method "int" "__mul__")) 2]
@@ -468,7 +509,7 @@
   [(arity-prim-op (method "dict" "__getitem__")) 2]
   [(arity-prim-op (method "dict" "__setitem__")) 3]
   [(arity-prim-op (method "dict" "__delitem__")) 2]
-  [(arity-prim-op (method (chkdict T_key T_val) "__init__")) 2]
+  [(arity-prim-op (method (chkdict T_key T_val) "__init__")) *]
   [(arity-prim-op (method (chkdict T_key T_val) "__getitem__")) 2]
   [(arity-prim-op (method (chkdict T_key T_val) "__setitem__")) 3]
   [(arity-prim-op (method (chkdict T_key T_val) "__delitem__")) 2])
@@ -616,7 +657,7 @@
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
    (where (yes any) (lookup? ρ x_mem))]
   [(do-assign-attribute-safe Σ l_obj x_mem (ref l_new))
-   [Σ (expr (raise-error ("assign-attribute: undeclared field" x_mem)))]])
+   [Σ (raise (new "Exception" ((con "assign-attribute: undeclared field"))))]])
 (define-metafunction SP-dynamics
   do-delete-attribute : Σ mode l x -> Σ
   [(do-delete-attribute Σ mode l_obj x_mem)
@@ -679,20 +720,31 @@
    [--> [Σ l (begin)]
         (terminate)
         "terminate"]
+   [--> [Σ l (raise (ref l_exn))]
+        (error string)
+        (where (obj l_cls (con string) ρ) (lookup-Σ Σ l_exn))
+        "error"]
    ;; enter
    [--> (in-hole [Σ l_0 se] (enter l_1 s-))
         (in-hole [Σ l_1 se] (leave l_0 s-))
         "enter"]
-   ;; return
+   ;; leave-return
    [--> (in-hole [Σ l_0 se] (leave l_1 (return v)))
         (in-hole [Σ l_1 se] v)
-        "leave"]
+        "leave-return"]
+   ;; leave-raise
+   [--> (in-hole [Σ l_0 se] (leave l_1 (raise v)))
+        (in-hole [Σ l_1 se] (raise v))
+        "leave-raise"]
+   [--> (in-hole [Σ l se] (in-hole ex (raise v)))
+        (in-hole [Σ l se] (raise v))
+        "raise 1"]
+   [--> (in-hole [Σ l ss] (in-hole sx (raise v)))
+        (in-hole [Σ l ss] (raise v))
+        "raise 2"]
    [--> (in-hole [Σ l ss] (begin (return v) s- ...))
         (in-hole [Σ l ss] (return v))
         "return"]
-   [--> (in-hole [Σ l ss] (begin (raise v) s- ...))
-        (in-hole [Σ l ss] (raise v))
-        "raise"]
    ;; reduce statements
    [--> (in-hole [Σ l ss] (expr v))
         (in-hole [Σ l ss] (begin))
@@ -750,10 +802,6 @@
                                   (begin s-_thn (while e- s-_thn s-_els))
                                   s-_els))
         "while"]
-   ;; reduce expression
-   [--> (in-hole [Σ l_env se] (raise-error any))
-        (error any)
-        "error"]
    [--> (in-hole [Σ l_env se] x)
         (in-hole [Σ l_env se] v)
         (where v (lookup-env Σ l_env x))
@@ -770,7 +818,7 @@
         (where [Σ_2 l] (alloc Σ_1 (obj "list" (list (v ...)) ())))
         "list"]
    [--> (in-hole [Σ_1 l_env se] (set (v ...)))
-        (in-hole [Σ_2 l_env se] (ref l)) 
+        (in-hole [Σ_2 l_env se] (ref l))
         (where [Σ_2 l] (alloc Σ_1 (obj "set" (set (v ...)) ())))
         "set"]
    [--> (in-hole [Σ_1 l_env se] (dict ([v_key v_val] ...)))
