@@ -344,11 +344,13 @@
    (delta-checkeddict-init Σ T_key T_val l_obj l_arg ...)]
   [(delta Σ (method (chkdict T_key T_val) "clear") ((ref l_obj) (ref l_arg) ...))
    (delta-checkeddict-clear Σ T_key T_val l_obj l_arg ...)]
+  [(delta Σ (method (chkdict T_key T_val) "__eq__") ((ref l_obj) (ref l_arg) ...))
+   (delta-checkeddict-eq Σ T_key T_val l_obj l_arg ...)]
   [(delta Σ "issubclass" (v ...))
    (delta-issubclass Σ v ...)]
   ;; fall back
   [(delta Σ l (v ...))
-   [Σ (raise (new "Exception" ((con "delta"))))]])
+   [Σ (raise (new "Exception" ((con ,(format "delta: ~a" (term l))))))]])
 (define-metafunction SP-dynamics
   delta-exception-init : Σ v ... -> [Σ e-]
   [(delta-exception-init Σ_0 (ref l_exn) (ref l_msg))
@@ -366,6 +368,14 @@
           (lookup-Σ Σ_0 l_obj))
    (where Σ_1
           (update Σ_0 [l_obj (obj l_cls (dict ()) ρ)]))])
+(define-metafunction SP-dynamics
+  delta-checkeddict-eq : Σ T_key T_val l_obj l_arg ... -> [Σ e-]
+  [(delta-checkeddict-eq Σ T_key T_val l_obj l_arg)
+   [Σ (ref (con,(equal? (term g_lft) (term g_rht))))]
+   (where (obj l_lft g_lft ρ_lft)
+          (lookup-Σ Σ l_obj))
+   (where (obj l_rht g_rht ρ_rht)
+          (lookup-Σ Σ l_arg))])
 (define-metafunction SP-dynamics
   delta-checkeddict-init : Σ T_key T_val l_obj l_arg ... -> [Σ e-]
   [(delta-checkeddict-init Σ_0 T_key T_val l_obj)
@@ -467,7 +477,7 @@
   [(do-call-function Σ l (obj "function" g ρ) (v ...))
    (do-call-function-good-rator Σ l (obj "function" g ρ) (v ...))]
   [(do-call-function Σ l h (v ...))
-   [Σ l (raise (new "Exception" ((con "CALL_FUNCTION: not a callable"))))]])
+   [Σ l (raise (new "Exception" ((con ,(format "CALL_FUNCTION: not a callable ~a" (term h))))))]])
 (define-metafunction SP-dynamics
   do-call-function-good-rator : Σ l h (v ...) -> [Σ l e-]
   ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`

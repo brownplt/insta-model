@@ -179,7 +179,6 @@
    "list"
    "tuple"
    "dict"
-   "type"
    "Exception"
    "TypeError"
    "KeyError"
@@ -212,11 +211,6 @@
    (class ()
      (["__init__" (-> () dynamic)])
      (["__init__" (method "object" "__init__")])
-     ())]
-  [(lookup-builtin-class "type")
-   (class ("object")
-     ()
-     ()
      ())]
   [(lookup-builtin-class "Exception")
    (class ("object")
@@ -355,8 +349,8 @@
     ["tuple" (Type (subof "tuple"))]
     ["set" (Type (subof "set"))]
     ["dict" (Type (subof "dict"))]
-    ["type" (Type (subof "type"))]
     ["isinstance" "isinstance"]
+    ["type" (-> (dynamic) dynamic)]
     ["len" (-> (dynamic) dynamic)]
     ["Exception" (Type (subof "Exception"))]
     ["TypeError" (Type (subof "TypeError"))]
@@ -720,7 +714,7 @@
    T
    (where #f ,(redex-match? SP-compiled (subof "Optional") (term T)))]
   [(T-of-T (exact "NoneType")) (subof "NoneType")]
-  [(T-of-T dynamic) dynamic])
+  [(T-of-T T) dynamic])
 
 (module+ test
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) "int"))
@@ -909,12 +903,6 @@
                                    (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_cls))))
     (exact "bool")]
    (where [e-_fun "isinstance"] (compile-e Ψ Γ_dcl Γ_lcl e_fun))]
-  #; ;; TODO: delete?
-  ;; the type function
-  [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg))
-   [(call-function e-_fun ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg))))
-    (Type (subof "type"))]
-   (where [e-_fun (Type (subof "type"))] (compile-e Ψ Γ_dcl Γ_lcl e_fun))]
   ;; the cast operator
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_dst e_val))
    [(maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_val) T_dst)
@@ -928,10 +916,6 @@
    (where [e-_fun dynamic] (compile-e Ψ Γ_dcl Γ_lcl e_fun))])
 (define-metafunction SP-compiled
   compile-new : Ψ Γ_dcl Γ_lcl T (e_arg ...) -> [e- T]
-  ;; the type function
-  [(compile-new Ψ Γ_dcl Γ_lcl (subof "type") (e_arg))
-   [(call-function (ref "type") ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg))))
-    (Type (subof "type"))]]
   ;; CheckedDict(dict)
   [(compile-new Ψ Γ_dcl Γ_lcl (subof l) ((dict ([e_key e_val] ...))))
    [(new l ((dict ([(maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_key) T_key)
