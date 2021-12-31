@@ -93,6 +93,9 @@ ban_anywhere_in_test = [
     
     # fancy argment spec
     'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
+
+    # These tests have been hand-translated.
+    'test_checked_dict'
 ]
 
 skip_anywhere_in_test = [
