@@ -4,9 +4,12 @@
 
 from __static__ import CheckedDict
 
+def as_dyn(x):
+    return x
+
 x = CheckedDict[str, int]()
 try:
-    x.setdefault("abc", "abc")
+    x.setdefault("abc", as_dyn("abc"))
 except TypeError:
     pass
 else:
@@ -14,7 +17,7 @@ else:
 
 assert x == {}
 try:
-    x.setdefault(42, 42)
+    x.setdefault(as_dyn(42), 42)
 except TypeError:
     pass
 else:

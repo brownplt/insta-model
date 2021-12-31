@@ -4,16 +4,19 @@
 
 from __static__ import CheckedDict
 
+def as_dyn(x):
+    return x
+
 x = CheckedDict[str, int]({"x": 2})
 try:
-    x.get(100)
+    x.get(as_dyn(100))
 except TypeError:
     pass
 else:
     raise Exception()
 
 try:
-    x.get("x", "abc")
+    x.get("x", as_dyn("abc"))
 except TypeError:
     pass
 else:

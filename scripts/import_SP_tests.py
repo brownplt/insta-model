@@ -348,6 +348,8 @@ def translate_assertInByteCode_test(name, test):
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
+        '# This should terminate.',
+        '# This should be optimized.',
         '',
         ''
     ]) + code

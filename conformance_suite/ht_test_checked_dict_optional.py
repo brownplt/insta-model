@@ -2,10 +2,10 @@
 # This should pass.
 # This should terminate.
 
-from typing import Optional
+from typing import Any, Optional
 from __static__ import CheckedDict
 
-x = CheckedDict[str, Optional[str]]()
+x: Any = CheckedDict[str, Optional[str]]()
 x["abc"] = None
 x = CheckedDict[Optional[str], str]()
 x[None] = "abc"

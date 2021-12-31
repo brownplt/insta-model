@@ -2,11 +2,15 @@
 # This should pass.
 # This should terminate.
 
+from typing import Any
 from __static__ import CheckedDict
 
-x = CheckedDict[str, str]()
+def as_dyn(x):
+    return x
+
+x: Any = CheckedDict[str, str]()
 try:
-    x[42] = "abc"
+    x[as_dyn(42)] = "abc"
 except TypeError:
     pass
 else:
@@ -14,16 +18,16 @@ else:
 assert x == {}
 
 try:
-    x["abc"] = 42
+    x["abc"] = as_dyn(42)
 except TypeError:
     pass
 else:
     raise Exception()
 assert x == {}
 
-x = chkdict[str, int]()
+x = CheckedDict[str, int]()
 try:
-    x[42] = 42
+    x[as_dyn(42)] = 42
 except TypeError:
     pass
 else:
@@ -31,7 +35,7 @@ else:
 assert x == {}
 
 try:
-    x["abc"] = "abc"
+    x["abc"] = as_dyn("abc")
 except TypeError:
     pass
 else:

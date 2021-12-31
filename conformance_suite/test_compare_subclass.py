@@ -1,5 +1,7 @@
 # test_compare_subclass.py
 # This should pass.
+# This should terminate.
+# This should be optimized.
 
 class C: pass
 class D(C): pass

@@ -3,11 +3,14 @@
 # This should terminate.
 
 from __static__ import CheckedDict
-from typing import Optional
+from typing import Any, Optional
 
-x = CheckedDict[str, Optional[str]]()
+def as_dyn(x):
+    return x
+
+x: Any = CheckedDict[str, Optional[str]]()
 try:
-    x[None] = "abc"
+    x[as_dyn(None)] = "abc"
 except TypeError:
     pass
 else:
@@ -15,7 +18,7 @@ else:
 
 x = CheckedDict[Optional[str], str]()
 try:
-    x["abc"] = None
+    x["abc"] = as_dyn(None)
 except TypeError:
     pass
 else:

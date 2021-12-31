@@ -1,5 +1,7 @@
 # test_typed_swap_member.py
 # This should pass.
+# This should terminate.
+# This should be optimized.
 
 class C:
     def __init__(self):

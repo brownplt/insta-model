@@ -1,5 +1,7 @@
 # test_typed_swap.py
 # This should pass.
+# This should terminate.
+# This should be optimized.
 
 def test(a):
     x: int

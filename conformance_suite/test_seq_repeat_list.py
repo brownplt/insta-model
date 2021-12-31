@@ -1,5 +1,7 @@
 # test_seq_repeat_list.py
 # This should pass.
+# This should terminate.
+# This should be optimized.
 
 def f():
     l = [1, 2]

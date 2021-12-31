@@ -2,9 +2,10 @@
 # This should pass.
 # This should terminate.
 
+from typing import Any
 from __static__ import CheckedDict
 
-x = CheckedDict[str, str]()
+x: Any = CheckedDict[str, str]()
 x["abc"] = "foo"
 x = CheckedDict[str, int]()
 x["abc"] = 42

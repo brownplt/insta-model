@@ -1,5 +1,7 @@
 # test_with_traceback.py
 # This should pass.
+# This should terminate.
+# This should be optimized.
 
 def f():
     x = Exception()

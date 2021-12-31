@@ -183,6 +183,8 @@
    "dict"
    "type"
    "Exception"
+   "TypeError"
+   "KeyError"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T))
 
@@ -222,6 +224,16 @@
    (class ("object")
      (["__init__" dynamic])
      (["__init__" (method "Exception" "__init__")])
+     ())]
+  [(lookup-builtin-class "TypeError")
+   (class ("Exception")
+     ()
+     ()
+     ())]
+  [(lookup-builtin-class "KeyError")
+   (class ("Exception")
+     ()
+     ()
      ())]
   [(lookup-builtin-class "int")
    (class ("object")
@@ -271,7 +283,7 @@
       ["__getitem__" (-> (dynamic) dynamic)]
       ["__setitem__" (-> (dynamic dynamic) (subof "NoneType"))]
       ["__delitem__" (-> (dynamic) (subof "NoneType"))]
-      ["get" (-> (dynamic) dynamic)])
+      ["get" dynamic])
      (["__init__" (method "dict" "__init__")]
       ["__getitem__" (method "dict" "__getitem__")]
       ["__setitem__" (method "dict" "__setitem__")]
@@ -303,8 +315,8 @@
      ())]
   [(lookup-builtin-class (chkdict T_key T_val))
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
-      ["get" (-> (T_key) (union (base-Ψ) (subof "NoneType") T_val))]
+     (["__init__" dynamic]
+      ["get" dynamic]
       ["keys" (-> () (subof "list"))]
       ["__getitem__" (-> (T_key) T_val)]
       ["__setitem__" (-> (T_key T_val) (subof "NoneType"))]
@@ -345,6 +357,8 @@
     ["isinstance" "isinstance"]
     ["len" (-> (dynamic) dynamic)]
     ["Exception" (Type (subof "Exception"))]
+    ["TypeError" (Type (subof "TypeError"))]
+    ["KeyError" (Type (subof "KeyError"))]
     ["max" dynamic]
     ["min" dynamic]
     ["issubclass" (-> (dynamic dynamic) (exact "bool"))])])

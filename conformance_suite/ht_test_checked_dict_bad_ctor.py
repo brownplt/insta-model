@@ -2,10 +2,10 @@
 # This should pass.
 # This should terminate.
 
-from __static__ import chkdict
+from __static__ import CheckedDict
 
 try:
-    chkdict[str, str](None)
+    CheckedDict[str, str](None)
 except Exception:
     pass
 else:
