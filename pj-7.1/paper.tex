@@ -26,8 +26,9 @@
 \newcommand{\mfeq}{=}
 \newcommand{\langmid}{\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
+\newcommand{\ipara}[1]{\emph{#1}\/.}
 
-  \newcommand{\bmname}[1]{\textbf{#1}}
+\newcommand{\bmname}[1]{\textbf{#1}}
 \newcommand{\typefont}[1]{\mathsf{#1}}
 \newcommand{\paramtype}[2]{#1[#2]}
 \newcommand{\sptype}{\typefont{T}}
@@ -490,7 +491,7 @@ for a standard type precision relation.
 %% do not break the gradual guarantees for a type precision relation that is tailored to \SP{}.}
 %%   %% tailored = describes exactly the migrations that SP allows
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
-%% \footnote{In addition, C types~(\cref{s:ctypes}) are incompatible with type dynamic.}
+%% \footnote{In addition, C types~(\cref{s:c-types}) are incompatible with type dynamic.}
 \begin{itemize}
   \item
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
@@ -558,6 +559,22 @@ The literature on gradual types has served only as a guide, not a mandate.
   \caption{\SP{} values performance over the gradual guarantees.}
   \label{fig:gg-failure}
 \end{figure}
+
+%% TODO carl 2021-12-24 ... very important to introduce with ChkDict ... GG not necessary only nice-to-have
+%% > One area where we definitely violate the gradual guarantee and always will
+%% > is primitive machine types. Unlike Python object types these do not flow to
+%% > dynamic, and dynamic can never flow to them! Effectively they form a
+%% > fully-typed subset of the type system that does not participate in gradual
+%% > typing and can never occur in non-static code. So this violates GG because
+%% > there are many examples where removing an annotation of a primitive machine
+%% > type can cause static code to no longer type check.
+%% > 
+%% > We are ok with this violation of the gradual guarantee because the form of
+%% > the gradual guarantee we really care about is not “removing an arbitrary
+%% > annotation” but rather “an untyped module compiles without changes when
+%% > adopted into the SP compiler” — and an untyped module cannot have
+%% > pre-existing uses of the primitive machine types, since those types cannot
+%% > exist outside SP.
 
 
 \subsubsection{Concrete Types and Shallow Types}
@@ -708,12 +725,12 @@ The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
 and nominal classes.
 Additional ``C types'' enable aggressive compilation of primitive
-values~(\cref{s:ctypes}).
+values~(\cref{s:c-types}).
 Union types are well-supported statically and narrow down in accordance
 with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
 but hardly supported at run-time.
-Only binary unions of a type and false get enforced with a run-time check
-(\code{Union[T, False]}, or \code{Optional[t0]}).
+Only binary unions of a type and the none value get enforced with a run-time check
+(\code{Union[T, None]}, or \code{Optional[t0]}).
 
 Three unsupported types bear special mention.
 There are no first-class class or object types, as noted in \cref{s:inheritance}.
@@ -840,7 +857,21 @@ a constructor, checked update functions, and a tag.
 
 
 \subsubsection{Unboxed Primitive}
-\label{s:ctypes}
+\label{s:c-types}
+
+%% 2021-12-29: TODO
+%% Using the term “ctypes” for these might be confusing, since the Python stdlib
+%% has a “ctypes” module that isn’t related to our primitive types. We do call the
+%% base type for them CType in our compiler, but when discussing them we usually
+%% call them “primitive types” or “machine types” — “C types” could also work but
+%% I wouldn’t combine it into one word :)
+%%
+%% I just did a very rough grep check and found that we have only 12 modules
+%% currently using primitive types: all int32 and int64 and cbool. So they are
+%% used pretty sparingly, but they are also definitely critical to our ability to
+%% match Cython in a few of the  hottest code paths that used to be Cython.
+
+
 
 For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
 that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
@@ -878,6 +909,12 @@ appropriate conversions.
 %% NOTE
 %% - remark: model gives errors of the same kind in SP, but not always the same
 %%   message, after all its not our goal to reproduce SP exactly
+
+%% TODO 2021-12-28
+%% - model soundness argument = similar to Nom, Redex tests
+%% - while True break another example of modeling helping out
+%%   it's a second implementation, helpful to find bugs
+%%   TODO if SP folks say that "continue" version matters for production, ... umm something to think about for us
 
 \subsection{Goals and Limitations}
 
@@ -957,6 +994,10 @@ see \cref{s:impl} for further discussion.
 
 \subsection{Properties}
 
+%% TODO 2021-12-29: Carl
+%% "full soundness" requires strict modules, means you can trust module toplevel
+%% hmph
+
 \begin{theorem}[Type Soundness]
   If\ \(~\vdash \spexpr_0 : \sptype_0\)
   then one of the following holds:
@@ -1033,6 +1074,7 @@ E.g. what would the TypeScript team need to know before using our model
 to add soundness?
 
 \subsection{Dynamic Python Features}
+\label{s:dynamic-python}
 
 \SP{} does not ascribe types to the following Python features.
 These are not covered in our model because the implementation simply
@@ -1121,6 +1163,13 @@ and it will force developers to rewrite untyped code in order to fix any errors 
 %% Because of the latter concern, type dynamic is a very reasonable default.
 
 
+\paragraph{Set attribute}
+
+Carl: Removing the use of super-dynamic Python features like
+\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
+we’ve done this it hasn’t required a major rewrite.
+
+
 \section{Production Experience}
 \label{s:eval}
 %% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
@@ -1130,6 +1179,22 @@ and it will force developers to rewrite untyped code in order to fix any errors 
 %  identify CPU savings with good granularity when a change lands in prod, and the
 %  observed CPU savings for a variety of staticification changes we’ve landed over
 %  the last half sum up to 2% of total IG prod CPU usage." --Carl
+
+%% TODO 2021-12-29 Carl
+%% We definitely did find some regressions (especially when converting Cython, but
+%% also one or two in non-Cython conversions.) But we were never satisfied with a
+%% regression, and we were always able to apply the JIT or improve SP
+%% optimizations or adjust the code to turn the regression neutral or positive.
+%% (In fact I think all? the non-Cython regressions I can recall boiled down to
+%% “we forgot to enable the JIT for an important function” and just rectifying
+%% that took care of it.)
+
+%% TODO think about it 2021-12-29 Ben
+%% > + Is there any sense in which the 530 converted modules are a big
+%% > sample? Maybe not, since as you say 530 is tiny for the codebase as a
+%% > whole. But do they exercise all sorts of behavior? Do they form a big
+%% > sample of certain parts of the Instagram codebase?
+
 
 \begin{table}
   \caption{Overview: \SP{} in production}
@@ -1195,91 +1260,130 @@ without code changes.
 
 
 \subsection{Analyzing Code Changes}
+%% TODO boring unclear writing
 
-The fact that the \SP{} team has been changing code as well as types
-during its migrations is potentially troubling.
+Because the \SP{} team has been changing code as well as types
+during its migrations, the question arises as to whether the code changes
+raise any threats to validity.
 It could be that the \SP{} approach to gradual typing only pays off
 after significant modifications, or only for a restrictive style of programming.
 
-To understand the code changes, an author affiliated with Instagram reviewed
-approximately 30 patches that significantly improved performance.
-In general, the patches contain relatively minor code changes.
-The biggest changes are to testing code rather than production code.
-Both these points are encouranging.
-The following nine points describe common patterns:
+To understand the code changes, we reviewed approximately 30 patches that
+significantly improved performance.
+In general, the patches have minor code changes and most of these changes
+affect tests rather than production code.
+Digging deeper, there are nine common kinds of changes.
+Six of these address type errors; the other three focus on performance.
+
+%% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
+%%  removes an extra call layer
+%%  helps with (timing [ context managers / decorators ])
+
+%% TODO section formatting looks good?
+\subsubsection{Code Changes for the Type Checker}
+
+    %% X bg: lookup the dino email about mocks
+    %% And we do go through great lengths to make monkey patching work.  Because
+    %% we need to enforce return types it ends up being not quite as flexible as
+    %% normal Python.  For example one common pattern is to use Python’s mock
+    %% library and we currently end up throwing lots of TypeError’s when a
+    %% function which returns None is mocked and starts returning a MagicMock
+    %% object instead.  But it’s an easy fix in that you can specify the return
+    %% value to be compatible.  There may be more complex cases where you want to
+    %% return a mock for an actual class.  For example in our code base there’s
+    %% frequent mocking of the HttpRequest object and we have a MockReqeust object
+    %% which is a subclass of HttpRequest so that these can still be mocked
+    %% (luckily this actually pre-dated our static conversion work).
 
 \begin{enumerate}
   \item
-   adjustments to tests to pass correct types instead of mock objects, as as
-   not to fail type checks in SP code. This is an inherent and desired
-   incompatibility; next half we plan to work on improving the Python mock
-   framework to automatically create mocks of the correct types.
-   %% - bg: lookup the dino email about mocks
+    \ipara{Fix type errors due to mock wrappers}
+    When test code introduces a mock wrapper, it may change the return type of
+    a function.
+    For example, the wrapped version of a function that returns \code{None}
+    will return a \code{MagicMock} object unless the programmer explicitly
+    specifies a return value.
+    %% Carl: This is an inherent and desired
+    %% incompatibility; next half we plan to work on improving the Python mock
+    %% framework to automatically create mocks of the correct types.
 
- \item
-   adjustments to mock assertions in tests about calls to adjust for the
-   fact that SP currently converts all call arguments to be positional (we plan
-   to fix this incompatibility by falling back to the original call arguments
-   when we detect the target function has been patched.)
-   %% - bg: ??? bit fuzzy about positional and others
+  \item
+    \ipara{Change mocked function to expect positional arguments}
+    \SP{} currently rewrites all function calls to use positional arguments.
+    Mock-wrapped functions therefore need to positional arguments instead of keywords.
+    %% Carl: we plan to fix this incompatibility by falling back to the original call
+    %% arguments when we detect the target function has been patched.
 
- \item
-   adjustments around class attributes vs instance attributes (Python allows
-   this to be a bit fuzzy, where a class attribute can be a fallback default
-   for an instance attribute if not set, but SP currently requires an attribute
-   to be clearly one or the other, and we have more efficient access for
-    instance attributes via \code{LOAD\_FIELD} that we don’t have for class attributes.)
-   %% - related to github #37 ?
+  \item
+    \ipara{Change functions to accept positional arguments}
+    Functions that expect only keyword arguments cannot yet be called from \SP{} contexts.
+    These functions need to change.
+    %% Carl: We plan to support this next half.
 
- \item
-   convert @classmethod that don’t actually need the class to @staticmethod,
-    allowing for emitting direct \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
+  \item
+    \ipara{Organize class and instance attributes}
+    Whereas Python allows class attributes to serve as default values for instance attributes,
+    \SP{} does not.
+    Programmers have to decide where an attribute belongs so that \SP{} can optimize
+    reads from instance attributes.
+    %% Carl: (efficient via \code{LOAD\_FIELD})
+    %% - related to github #37 ?
 
- \item
-   extract special types that our compiler doesn’t yet support/understand
-   (classes decorated with @dataclass or inheriting from `enum.Enum`) out of
-   the module we are converting to static. We have work in progress on
-   supporting some Enum types, and plan to add a @dataclass intrinsic soon.
+  \item
+    \ipara{Move \code{@dataclass} and \code{Enum} classes}
+    \SP{} does not support classes decorated with \code{@dataclass}
+    and classes that are enums.
+    Programmers have to move these classes to a different module for now.
+    %% Carl: We have work in progress on supporting some Enum types, and plan to add a @dataclass intrinsic soon.
 
- \item
-   Removing the use of super-dynamic Python features like \code{\_\_setattr\_\_} that
-   we don’t support. So far in the cases where we’ve done this it hasn’t
-   required a major rewrite.
-   %% - bg: more details pls ,,, sketch the rewrite
+  \item
+    \ipara{Remove unsupported Python features}
+    Occurrences of the dynamic Python features listed in \cref{s:dynamic-python} must be rewritten or moved.
+    According to the \SP{} team, these changes have not required any major rewrites.
 
- \item
-   Removing the use of keyword-only arguments (bare `*`) in function
-   signatures, since we don’t yet support calling such functions. We plan to
-   support this next half.
-
- \item
-   Convert Python integers and bools used in very hot code paths into SP
-   machine primitives.
-   %% - bg: focus on block, convert, no problem?
-
- \item
-   Occasionally converting a regular Python list or dict to a CheckedList or
-   CheckedDict.
-   %% - bg: how occasional? worried about power of the "gradual soundness" claim
 \end{enumerate}
 
-%% significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
-%%  removes an extra call layer
-%%  helps with (timing [ context managers / decorators ])
-%%
-%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
-%%  because the pay / payoff isn't yet attractive
+
+%% TODO section formatting looks good?
+\subsubsection{Code Changes for Performance}
+
+\begin{enumerate}
+  \item
+    \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
+    Static methods can get invoked directly as functions, bypassing the class.
+    %% Carl: \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
+
+  \item
+    \ipara{Use primitive types}
+    Any Python integers and booleans in hot code paths are better as
+    \SP{} primitive values~(\cref{s:c-types}).
+    %% - bg: focus on block, convert, no problem?
+
+  \item
+    \ipara{Use Checked Types}
+    Occasionally, converting a Python dictionary or Python list to a
+    checked type has a big impact on performance.
+    As noted in \cref{s:checked-type}, these conversions affect all downstream
+    clients of the data structure.
+    %% - bg: how occasional? worried about power of the "gradual soundness" claim
+
+\end{enumerate}
 
 
-\subsection{Developer Experience}
+\subsubsection{Developer Experience}
 
-%% - pushback one time about removing MI multiple inheritance
-%% - otherwise, people happy with low-cost improvements
+For the most part, developers at Instagram have been happy adopting \SP{}.
+The transition from Pyre to \SP{} has thus far delivered performance benefits
+that outweigh the cost of code changes.
 
-%% - pyre challenges?
+One significant pushback dealt with multiple inheritance.
+The \SP{} team proposed a rewrite from multiple inheritance to single inheritance
+to improve performance and static checks.
+But the code maintainers preferred to keep multiple inheritance.
+Because \SP{} defaults to Python behavior, the maintainers were able
+to keep multiple inheritance alongside \SP{} code.
 
-FILL
-
+%% any more?
 
 
 \subsection{Microbenchmarks}
@@ -1308,6 +1412,7 @@ A ratio between 0 and 1 means that performance improved thanks to the types.
   \caption{Microbenchmark Performance Ratios}
   \label{t:microbenchmark}
   %% show untyped Python time?
+  %% transpose?
   \begin{tabular}{ll}
     Name               & Typed / Dynamic \\\midrule
     \bmname{deltablue} &             0\% \\
@@ -1357,6 +1462,15 @@ by compiling source code to C extension modules.
 
 %% Immediate future: fix adoption friction points
 %% 2021-12-15: WHAT ARE THESE?
+%% - mocks need manual return_value ... "next half we plan to work on improving the Python mock framework to automatically create mocks of the correct types."
+%% - mock calls have to rewrite to expect positional args, not keywords "plan to avoid rewrite if fn is patched"
+%% - functions have to expect positionals (can't do keyword only)
+%% - @dataclass enum.Enum
+%%
+%% significant selection bias
+%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
+%%  because the pay / payoff isn't yet attractive
+
 
 %% engineering: JIT profiling, instead of hand-requested JIT list
 %% model: metaclasses
@@ -1375,7 +1489,7 @@ Build an automatic migration tool for Checked data.
 Build a static analysis that hoists transient annotations to an early, shared point.
 Take care to give quality error messages.
 
-Optimize Python integer operations (in addition to the ctypes).
+Optimize Python integer operations (in addition to the c types).
 Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
 or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
