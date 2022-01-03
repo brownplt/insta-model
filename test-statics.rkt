@@ -233,6 +233,15 @@
 ;; conformance_suite/empty_program.py
 (check-judgment-holds* (⊢p (desugar-program ())))
 
+;; conformance_suite/for-loop_basic.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "fact" (("n" "int")) "int" ((ann-assign "o" "int" (con 1)) (for "i" (call "range" ("n")) ((aug-assign "o" * (bin-op + "i" (con 1)))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120)))))))))
+
+;; conformance_suite/for-loop_else_break.py
+(check-judgment-holds* (⊢p (desugar-program ((for "i" (list ((con 2))) (break) ((assign ("i") (con 3)))) (assert (compare "i" ((is (con 2)))))))))
+
+;; conformance_suite/for-loop_else_nonbreak.py
+(check-judgment-holds* (⊢p (desugar-program ((for "i" (list ((con 2))) (pass) ((assign ("i") (con 3)))) (assert (compare "i" ((is (con 3)))))))))
+
 ;; conformance_suite/ht_test_checked_dict.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (assign ((subscript "x" (con "abc"))) (con "foo")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (assign ((subscript "x" (con "abc"))) (con 42)) (assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ())) (assign ((subscript "x" (con 42))) (con "abc"))))))
 
@@ -280,9 +289,6 @@
 
 ;; conformance_suite/ht_test_checked_dict_setdefault_bad_values.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((con "abc") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((call "as_dyn" ((con 42))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
-
-;; conformance_suite/ht_test_checked_dict_sizeof.py
-(check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (attribute (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)))))) "__sizeof__") ())) (assert (compare (call "type" ("x")) ((== "int"))))))))
 
 ;; conformance_suite/ht_test_checked_dict_types_enforced.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con 42))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
@@ -682,6 +688,9 @@
 
 ;; conformance_suite/test_exact_invoke_function.py
 (check-judgment-holds* (⊢p (desugar-program ((function-def "f" () "str" ((return (call (attribute (con ", ") "join") ((list ((con "1") (con "2") (con "3"))))))))))))
+
+;; conformance_suite/test_for_iter_unchecked_get.py
+(check-judgment-holds* (⊢p (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2) (con 3)))) (assign ("acc") (list ())) (for "x" "l" ((expr (call (attribute "acc" "append") ("x")))) ()) (return "acc")))))))
 
 ;; conformance_suite/test_generic_method_ret_type.py
 (check-judgment-holds* (⊢p (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x")))))))))

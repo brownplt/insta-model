@@ -192,10 +192,21 @@ The final block is executed with and without exception.
 
 ## While loop
 
-Typical use.
+Basic use.
 
 - [while-loop_basic.py](conformance_suite/while-loop_basic.py)
 
 While-else.
 
 - [while-loop_else.py](conformance_suite/while-loop_else.py)
+
+## For loop
+
+Basic use.
+
+- [for-loop_basic.py](conformance_suite/for-loop_basic.py)
+
+The `else` lines are executed "if the loop finishes normally" [Python ast.For](https://docs.python.org/3/library/ast.html#ast.For)
+
+- [for-loop_else_break.py](conformance_suite/for-loop_else_break.py)
+- [for-loop_else_nonbreak.py](conformance_suite/for-loop_else_nonbreak.py)

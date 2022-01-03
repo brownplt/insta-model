@@ -201,6 +201,33 @@ def f() -> str:
 |#
 
 
+;; conformance_suite/test_for_iter_unchecked_get.py
+(test-match SP-compiled any (term (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2) (con 3)))) (assign ("acc") (list ())) (for "x" "l" ((expr (call (attribute "acc" "append") ("x")))) ()) (return "acc"))))))))
+#|
+
+def f():
+    l = [1, 2, 3]
+    acc = []
+    for x in l:
+        acc.append(x)
+    return acc
+# def test_for_iter_unchecked_get(self):
+#     """We don't need to check sequence bounds when we've just compared with the list size."""
+#     codestr = """
+#         def f():
+#             l = [1, 2, 3]
+#             acc = []
+#             for x in l:
+#                 acc.append(x)
+#             return acc
+#     """
+#     with self.in_module(codestr) as mod:
+#         f = mod.f
+#         self.assertInBytecode(f, "SEQUENCE_GET", SEQ_LIST | SEQ_SUBSCR_UNCHECKED)
+#         self.assertEqual(f(), [1, 2, 3])
+|#
+
+
 ;; conformance_suite/test_generic_method_ret_type.py
 (test-match SP-compiled any (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))))))))
 #|

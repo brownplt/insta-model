@@ -182,6 +182,8 @@
    "Exception"
    "TypeError"
    "KeyError"
+   "StopIteration"
+   "list_iterator"
    (tuple (checkable-T ...))
    (chkdict checkable-T checkable-T))
 
@@ -209,8 +211,10 @@
   ;; primitive/builtin classes are handled here
   [(lookup-builtin-class "object")
    (class ()
-     (["__init__" (-> () dynamic)])
-     (["__init__" (method "object" "__init__")])
+     (["__init__" (-> () dynamic)]
+      ["__eq__" (-> (dynamic) (subof "bool"))])
+     (["__init__" (method "object" "__init__")]
+      ["__eq__" (method "object" "__eq__")])
      ())]
   [(lookup-builtin-class "Exception")
    (class ("object")
@@ -223,6 +227,11 @@
      ()
      ())]
   [(lookup-builtin-class "KeyError")
+   (class ("Exception")
+     ()
+     ()
+     ())]
+  [(lookup-builtin-class "StopIteration")
    (class ("Exception")
      ()
      ()
@@ -262,25 +271,9 @@
   [(lookup-builtin-class "str")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
-      ["__eq__" (-> ((subof "str")) (exact "bool"))]
-      ;; can't type optional arguments
       ["split" dynamic])
      (["__init__" (method "str" "__init__")]
-      ["__eq__" (method "str" "__eq__")]
       ["split" (method "str" "split")])
-     ())]
-  [(lookup-builtin-class "dict")
-   (class ("object")
-     (["__init__" (-> (dynamic) dynamic)]
-      ["__getitem__" (-> (dynamic) dynamic)]
-      ["__setitem__" (-> (dynamic dynamic) (subof "NoneType"))]
-      ["__delitem__" (-> (dynamic) (subof "NoneType"))]
-      ["get" dynamic])
-     (["__init__" (method "dict" "__init__")]
-      ["__getitem__" (method "dict" "__getitem__")]
-      ["__setitem__" (method "dict" "__setitem__")]
-      ["__delitem__" (method "dict" "__delitem__")]
-      ["get" (method "dict" "get")])
      ())]
   [(lookup-builtin-class "set")
    (class ("object")
@@ -292,14 +285,53 @@
   [(lookup-builtin-class "list")
    (class ("object")
      (["__init__" dynamic]
+      ["__eq__" (-> (dynamic) (subof "bool"))]
+      ["__len__" (-> () (subof "int"))]
+      ["__iter__" (-> () dynamic)]
+      ["__getitem__" (-> (dynamic) dynamic)]
       ["append" (-> (dynamic) (subof "list"))])
      (["__init__" (method "list" "__init__")]
+      ["__eq__" (method "list" "__eq__")]
+      ["__len__" (method "list" "__len__")]
+      ["__iter__" (method "list" "__iter__")]
+      ["__getitem__" (method "list" "__getitem__")]
       ["append" (method "list" "append")])
      ())]
+  [(lookup-builtin-class "list_iterator")
+   (class ("object")
+     (["__init__" dynamic]
+      ["__next__" dynamic])
+     (["__init__" (method "list_iterator" "__init__")]
+      ["__next__" (method "list_iterator" "__next__")])
+     (["seq" dynamic]
+      ["index" (exact "int")]))]
   [(lookup-builtin-class "tuple")
    (tuple-class)]
-  [(lookup-builtin-class (tuple (T ...)))
-   (tuple-class)]
+  [(lookup-builtin-class "dict")
+   (class ("object")
+     (["__init__" (-> (dynamic) dynamic)]
+      ["__getitem__" (-> (dynamic) dynamic)]
+      ["__setitem__" (-> (dynamic dynamic) (subof "NoneType"))]
+      ["__delitem__" (-> (dynamic) (subof "NoneType"))]
+      ["get" dynamic]
+      ["items" (-> () (subof "list"))]
+      ["keys" (-> () (subof "list"))]
+      ["values" (-> () (subof "list"))]
+      ["pop" (-> (dynamic) dynamic)]
+      ["popitem" (-> () (subof "tuple"))]
+      ["update" (-> (dynamic) (subof "NoneType"))])
+     (["__init__" (method "dict" "__init__")]
+      ["__getitem__" (method "dict" "__getitem__")]
+      ["__setitem__" (method "dict" "__setitem__")]
+      ["__delitem__" (method "dict" "__delitem__")]
+      ["get" (method "dict" "get")]
+      ["items" (method "dict" "items")]
+      ["keys" (method "dict" "keys")]
+      ["values" (method "dict" "values")]
+      ["pop" (method "dict" "pop")]
+      ["popitem" (method "dict" "popitem")]
+      ["update" (method "dict" "update")])
+     ())]
   [(lookup-builtin-class "NoneType")
    (class ("object")
      ()
@@ -308,30 +340,44 @@
   [(lookup-builtin-class (chkdict T_key T_val))
    (class ("object")
      (["__init__" dynamic]
-      ["get" dynamic]
-      ["keys" (-> () (subof "list"))]
       ["__getitem__" (-> (T_key) T_val)]
       ["__setitem__" (-> (T_key T_val) (subof "NoneType"))]
       ["__delitem__" (-> (T_key) (subof "NoneType"))]
+      ["__eq__" (-> (dynamic) (subof "bool"))]
+      ["get" dynamic]
+      ["keys" (-> () (subof "list"))]
+      ["values" (-> () (subof "list"))]
+      ["items" (-> () (subof "list"))]
       ["setdefault" (-> (T_key T_val) (subof "NoneType"))]
       ["clear" (-> () (subof "NoneType"))]
-      ["__eq__" (-> (dynamic) (subof "bool"))])
+      ["pop" (-> (T_key) T_val)]
+      ["popitem" (-> () (subof "tuple"))]
+      ["update" (-> (dynamic) (subof "NoneType"))])
      (["__init__" (method (chkdict T_key T_val) "__init__")]
-      ["get" (method (chkdict T_key T_val) "get")]
-      ["keys" (method (chkdict T_key T_val) "keys")]
       ["__getitem__" (method (chkdict T_key T_val) "__getitem__")]
       ["__setitem__" (method (chkdict T_key T_val) "__setitem__")]
       ["__delitem__" (method (chkdict T_key T_val) "__delitem__")]
+      ["__eq__" (method (chkdict T_key T_val) "__eq__")]
+      ["get" (method (chkdict T_key T_val) "get")]
+      ["keys" (method "dict" "keys")]
+      ["values" (method "dict" "values")]
+      ["items" (method "dict" "items")]
       ["setdefault" (method (chkdict T_key T_val) "setdefault")]
       ["clear" (method (chkdict T_key T_val) "clear")]
-      ["__eq__" (method (chkdict T_key T_val) "__eq__")])
+      ["pop" (method (chkdict T_key T_val) "pop")]
+      ["popitem" (method "dict" "popitem")]
+      ["update" (method "dict" "update")])
      ())])
 (define-metafunction SP-compiled
   tuple-class : -> (class l*+dynamic Γ ρ Γ)
   [(tuple-class)
    (class ("object")
-     (["__init__" (-> (dynamic) dynamic)])
-     (["__init__" (method "tuple" "__init__")])
+     (["__init__" (-> (dynamic) dynamic)]
+      ["__eq__" (-> (dynamic) (subof "bool"))]
+      ["__getitem__" (-> (dynamic) dynamic)])
+     (["__init__" (method "tuple" "__init__")]
+      ["__eq__" (method "tuple" "__eq__")]
+      ["__getitem__" (method "tuple" "__getitem__")])
      ())])
 
 (define-metafunction SP-compiled
@@ -350,13 +396,15 @@
     ["set" (Type (subof "set"))]
     ["dict" (Type (subof "dict"))]
     ["isinstance" "isinstance"]
-    ["type" (-> (dynamic) dynamic)]
     ["len" (-> (dynamic) dynamic)]
     ["Exception" (Type (subof "Exception"))]
     ["TypeError" (Type (subof "TypeError"))]
     ["KeyError" (Type (subof "KeyError"))]
+    ["StopIteration" (Type (subof "StopIteration"))]
+    ["type" dynamic]
     ["max" dynamic]
     ["min" dynamic]
+    ["range" (-> ((subof "int")) (exact "list"))]
     ["issubclass" (-> (dynamic dynamic) (exact "bool"))])])
 
 (define-metafunction SP-compiled
@@ -714,7 +762,7 @@
    T
    (where #f ,(redex-match? SP-compiled (subof "Optional") (term T)))]
   [(T-of-T (exact "NoneType")) (subof "NoneType")]
-  [(T-of-T T) dynamic])
+  [(T-of-T dynamic) dynamic])
 
 (module+ test
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) "int"))
@@ -843,17 +891,16 @@
   (test-equal (term (compile-e-call (base-Ψ) (prim-Γ) (prim-Γ)
                                     (attribute "CheckedDict" "__getitem__")
                                     ((tuple ("int" "str")))))
-              (term [(call-function
-                      (attribute safe "CheckedDict" "__getitem__")
-                      ((tuple ("int" "str"))))
+              (term [(ref (chkdict (subof "int") (subof "str")))
                      (Type (subof (chkdict (subof "int") (subof "str"))))])))
 (define-metafunction SP-compiled
   compile-e-call-generic : Ψ Γ_dcl Γ_lcl e-_obj G (e_arg ...) -> [e- T]
   [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "CheckedDict" ((tuple (e_lft e_rht))))
-   [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
-    (Type (subof (chkdict (T-of-T T_lft) (T-of-T T_rht))))]
+   [(ref l)
+    (Type (subof l))]
    (where [e-_lft T_lft] (compile-e Ψ Γ_dcl Γ_lcl e_lft))
-   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))]
+   (where [e-_rht T_rht] (compile-e Ψ Γ_dcl Γ_lcl e_rht))
+   (where l (chkdict (T-of-T T_lft) (T-of-T T_rht)))]
   [(compile-e-call-generic Ψ Γ_dcl Γ_lcl e-_obj "Union" ((tuple (e_lft e_rht))))
    [(call-function (attribute safe e-_obj "__getitem__") ((tuple (e-_lft e-_rht))))
     (Type (union Ψ (T-of-T T_lft) (T-of-T T_rht)))]
@@ -1059,7 +1106,7 @@
   [(compile-check e- (-> (T_arg ...) T_ret))
    (raise (new "Exception" ((con "internal error"))))]
   [(compile-check e- (exactness l))
-   (make-assert
+   (make-type-assert
     (check-exactness (invoke-function "type" (e-)) exactness l))]
   [(compile-check e- (Optional T))
    (if (is e- (con None))
@@ -1071,6 +1118,10 @@
    (is e- (ref l))]
   [(check-exactness e- subof l)
    (invoke-function "issubclass" (e- (ref l)))])
+(define-metafunction SP-compiled
+  make-type-assert : e- -> s-
+  [(make-type-assert e-)
+   (if e- (begin) (raise (new "TypeError" ())))])
 
 (module+ test
   ;; expr
@@ -1125,7 +1176,7 @@
                                                          ((invoke-function "type" ("i"))
                                                           (ref "int")))
                                         (begin)
-                                        (raise (new "Exception" ((con "assertion error"))))))
+                                        (raise (new "TypeError" ()))))
                                   (local ("i")
                                     (return "i"))))))
   )
@@ -1523,9 +1574,7 @@
                         (import-from "__static__" "CheckedDict")
                         (assign "C"
                                 (class "C"
-                                  ((call-function
-                                    (attribute safe "CheckedDict" "__getitem__")
-                                    ((tuple ("str" "int")))))
+                                  ((ref (chkdict (subof "str") (subof "int"))))
                                   ()
                                   ()))
                         (assign "D"

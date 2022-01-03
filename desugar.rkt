@@ -313,6 +313,10 @@
   [(make-begin any ...)
    (begin any ...)])
 (define-metafunction SP-core
+  desugar-s* : (s+ ...) -> s
+  [(desugar-s* (s+ ...))
+   (make-begin (desugar-s s+) ...)])
+(define-metafunction SP-core
   desugar-s : s+ -> s
   [(desugar-s pass)
    (begin)]
@@ -331,8 +335,21 @@
           (make-begin (desugar-s s+_thn) ...)
           (make-begin (desugar-s s+_els) ...))]
   [(desugar-s (for a-target e+ (s+_thn ...) (s+_els ...)))
-   (desugar-s (begin (ann-assign x dynamic (attribute e+ ()))(while e+ (s+_thn ...) (s+_els ...))))
-   (where x ,(symbol->string (gensym '-)))]
+   (begin
+     (ann-assign x dynamic (call (attribute e+ "__iter__") ()))
+     (while (con #t)
+       (try
+         (begin
+           (desugar-s (assign (a-target) (call (attribute x "__next__") ())))
+           (make-begin (desugar-s s+_thn) ...))
+         (ref "StopIteration")
+         "-tmp-"
+         (begin
+           (make-begin (desugar-s s+_els) ...)
+           break)
+         (begin))
+       (begin)))
+   (where x ,(symbol->string (gensym '-for-)))]
   [(desugar-s break) break]
   [(desugar-s continue) continue]
   [(desugar-s (delete e+))

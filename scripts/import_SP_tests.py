@@ -112,8 +112,14 @@ skip_anywhere_in_test = [
     '__setattr__',
     '__slots__',
     'reveal_type',
-    '_for_',  # for-loops
     'test_sorted',  # also for-loop
+    'test_for_iter_list_modified(', # slicing
+    'test_for_iter_list(', # list comprehension
+    'test_for_iter_sequence_orelse(', # list comprehension
+    'test_for_iter_sequence_return(',  # list comprehension
+    'test_nested_for_iter_sequence(', # list comprehension
+    'test_nested_for_iter_sequence_return(', # list comprehension
+    'test_for_iter_tuple(', # list comprehension
     'xxclassloader',
     'weakref',
     '@_donotcompile',

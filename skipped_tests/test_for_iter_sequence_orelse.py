@@ -1,4 +1,4 @@
-# Reason: Hitted a skipped word (_for_)
+# Reason: Hitted a skipped word (test_for_iter_sequence_orelse()
 def test_for_iter_sequence_orelse(self):
     codestr = """
         from typing import List
