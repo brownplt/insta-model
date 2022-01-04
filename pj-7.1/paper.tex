@@ -34,6 +34,7 @@
 \newcommand{\codefont}[1]{\emph{#1}}
 \newcommand{\paramtype}[2]{#1[#2]}
 \newcommand{\sptype}{\typefont{T}}
+\newcommand{\spteval}{\typefont{S}}
 \newcommand{\sptclass}{\typefont{C}}
 \newcommand{\sptint}{\typefont{Int}}
 \newcommand{\sptbool}{\typefont{Bool}}
@@ -87,6 +88,7 @@
 \newcommand{\mfapply}[2]{#1\,(#2)}
 \newcommand{\mffont}[1]{\mathit{#1}}
 \newcommand{\mftypeF}[1]{\mfapply{\mffont{F}}{#1}}
+\newcommand{\mfcast}[2]{\mfapply{\mffont{Cast}}{#1, #2}}
 \newcommand{\mfopt}[1]{\mfapply{\mffont{opt}}{#1}}
 
 \newcommand{\sperror}{\mathrm{Error}}
@@ -940,6 +942,14 @@ appropriate conversions.
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
+%% 2022-01-04 argument = nom soundness -> sp model sound -> sp sound via conformance equivalence
+%% 2022-01-04 KC will look into pbt for nom properties (I don't think there's much to see there!)
+
+%% TODO 2022-01-04 (somewhere) explain that a verified compiler is an entirely separate project,
+%%  need bytecode model, full transformations, memory model / machine etc.
+%%  hence we don't model optimizations, little benefit
+%%  opt. don't tell us about the surface language ... the particular SP opts are changing representations but not results
+
 %% TODO 2021-12-30 outline
 %% NOTE strict modules not modeled
 %% - what is language
@@ -1115,7 +1125,7 @@ see \cref{s:impl} for further discussion.
     \inferrule*{
       \sptvardef{\spf_0}{\sptdyn} \in \sptenv_0
       \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
+      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
     }{
       \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptdyn
     }
@@ -1131,7 +1141,7 @@ see \cref{s:impl} for further discussion.
     \inferrule*{
       \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
       \\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptype_1
+      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
     }{
       \sptenv_0 \wtexpr \spexpr_0[\spexpr_1] : \sptdyn
     }
@@ -1151,6 +1161,25 @@ see \cref{s:impl} for further discussion.
 \end{figure}
 
 \begin{figure}[t]
+  \begin{langarray}
+    \spvalue & \defeq &
+      \mbox{heap-allocated Python values}
+    \\
+    \spteval & \defeq &
+      \sptdyn \langmid
+      \sptnone \langmid
+      \sptclass \langmid
+      \sptobject \langmid
+      \sptint \langmid
+      \sptbool \langmid
+      \sptfloat \langmid
+    \\ & &
+      \sptrawpydict \langmid
+      \sptchkdict{\sptype}{\sptype} \langmid
+      \sptoptional{\sptype}
+  \end{langarray}
+
+  \bigskip
   \(
     \mftypeF{\sptype_0}
     \mfeq
@@ -1217,9 +1246,28 @@ see \cref{s:impl} for further discussion.
     }
   \end{mathpar}
 
-  \caption{TBA Surface Types to Evaluation Types}
+  \caption{TBA Type Metafunctions}
   \label{f:surface-to-eval-types}
 \end{figure}
+
+\begin{table}
+  \caption{TBD Run-time checks}
+  \label{t:cast}
+
+  \(\begin{array}{l@{\quad}l}
+    \mbox{Eval. type $\spteval$} & \mbox{Description of run-time check} \\\hline
+    \sptoptional{\spteval_0} & \mbox{Accepts either the none value or values that match $\spteval_0$} \\
+    \sptrawpydict & \mbox{Accepts any Python dictionary} \\
+    \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries with the same key and value types (${\spteval_0, \spteval_1}$)} \\
+    \sptdyn & \mbox{No check needed, accepts any value} \\
+    \sptobject & \mbox{Accepts any non-primitive value} \\  %% except primitives
+    \sptclass_0 & \mbox{Accepts instances of class $\sptclass_0$} \\
+    \sptnone & \mbox{Accepts the Python none value} \\
+    \sptint & \mbox{Accepts integers} \\
+    \sptbool & \mbox{Accepts booleans (\code{0} and \code{1})} \\
+    \sptfloat & \mbox{Accepts floats}
+  \end{array}\)
+\end{table}
 
 
 \subsection{Properties}
@@ -1432,6 +1480,8 @@ we’ve done this it hasn’t required a major rewrite.
 \section{Production Experience}
 \label{s:eval}
 %% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
+
+%% 2022-01-04 TODO ask C&D how many teams have adopted SP ... get sense of adoption
 
 % "The workload for those rough percentage numbers is “Instagram web server
 %  production.” We have pretty extensive production profiling that lets us
