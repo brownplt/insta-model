@@ -28,26 +28,59 @@
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
 
+\newcommand{\spann}[2]{#1\!:\!#2}
 \newcommand{\bmname}[1]{\textbf{#1}}
 \newcommand{\typefont}[1]{\mathsf{#1}}
+\newcommand{\codefont}[1]{\emph{#1}}
 \newcommand{\paramtype}[2]{#1[#2]}
 \newcommand{\sptype}{\typefont{T}}
 \newcommand{\sptclass}{\typefont{C}}
 \newcommand{\sptint}{\typefont{Int}}
+\newcommand{\sptbool}{\typefont{Bool}}
 \newcommand{\sptfloat}{\typefont{Float}}
 \newcommand{\sptdyn}{\typefont{Dynamic}}
 \newcommand{\sptobject}{\typefont{Object}}
-\newcommand{\sptnone}{\typefont{NoneType}}
+\newcommand{\sptnone}{\typefont{None}}
 \newcommand{\sptinstanceof}[1]{\paramtype{\typefont{Instance}}{#1}}
-\newcommand{\sptfun}[2]{#1 \rightarrow #2}
-\newcommand{\sptunion}[2]{#1 \cup #2}
 \newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
+\newcommand{\sptunion}[1]{\paramtype{\typefont{Union}}{#1}}
 \newcommand{\sptrawpydict}{\typefont{PyDict}}
 \newcommand{\sptpydict}[2]{\paramtype{\sptrawpydict}{#1, #2}}
 \newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
+\newcommand{\sptenv}{\Gamma}
+\newcommand{\sptenvnil}{\cdot}
+\newcommand{\sptenvempty}{\sptenvnil}
+\newcommand{\sptvardef}[2]{\spann{#1}{#2}}
+\newcommand{\sptfundef}[3]{#1(#2)\code{ -> }#3}
+\newcommand{\sptclassdef}[4]{\mathrm{class}~#1(#2):~#3~#4}
 
-\newcommand{\spexpr}{e}
-\newcommand{\spvalue}{v}
+\newcommand{\spx}{\code{x}}
+\newcommand{\spf}{\code{f}}
+\newcommand{\spc}{\code{c}}
+\newcommand{\spprog}{\codefont{prog}}
+\newcommand{\spstmt}{\codefont{stmt}}
+\newcommand{\spexpr}{\codefont{expr}}
+\newcommand{\spvalue}{\codefont{val}}
+\newcommand{\vdashsub}[1]{\vdash_{#1}}
+\newcommand{\wtprog}{\vdashsub{\mathbf{P}}}
+\newcommand{\wtexpr}{\vdashsub{\mathbf{E}}}
+\newcommand{\spsubt}{\mathrel{\leq:}}
+\newcommand{\spcompat}{\sqsubseteq}
+\newcommand{\spmatr}{\prec}
+\newcommand{\spvardef}[3]{\sptvardef{#1}{#2} = #3}
+\newcommand{\spfundef}[4]{\mathrm{def}~#1(#2)\code{ -> }#3: #4}
+\newcommand{\spclassdef}[4]{\mathrm{class}~#1(#2):~#3~#4}
+\newcommand{\spself}{\code{self}}
+\newcommand{\spobject}{\code{object}}
+\newcommand{\spnone}{\code{none}}
+\newcommand{\spint}{\codefont{int}}
+\newcommand{\spbool}{\codefont{bool}}
+\newcommand{\spfloat}{\codefont{float}}
+\newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
+\newcommand{\spchkdict}[1]{\code{chkdict}(#1)}
+\newcommand{\spapp}[2]{#1(#2)}
+\newcommand{\spref}[2]{#1[#2]}
+\newcommand{\spset}[3]{#1[#2] = #3}
 
 \newcommand{\sprred}{\rightarrow^*}
 
@@ -72,6 +105,7 @@
 
 %\usepackage{cleveref}
 \usepackage{amsthm}
+\usepackage{mathpartir}
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
 \usepackage[backend=biber]{biblatex}
@@ -730,7 +764,7 @@ Union types are well-supported statically and narrow down in accordance
 with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
 but hardly supported at run-time.
 Only binary unions of a type and the none value get enforced with a run-time check
-(\code{Union[T, None]}, or \code{Optional[t0]}).
+($\sptunion{\sptype, \sptnone}$, or $\sptoptional{\sptype}$).
 
 Three unsupported types bear special mention.
 There are no first-class class or object types, as noted in \cref{s:inheritance}.
@@ -902,9 +936,16 @@ appropriate conversions.
 
 
 
-\section{Model}
+\section{Model of Core \SP{}}
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
+
+%% TODO 2021-12-30 outline
+%% NOTE strict modules not modeled
+%% - what is language
+%% - what properties
+%% - what did in model, how to navigate?
+%% - bug reports
 
 %% NOTE
 %% - remark: model gives errors of the same kind in SP, but not always the same
@@ -912,6 +953,8 @@ appropriate conversions.
 
 %% TODO 2021-12-28
 %% - model soundness argument = similar to Nom, Redex tests
+%%   - Nom has dispatch modes .. SP does not, simpler
+%%     - are dyn -> stat overrides allowed and do they affect soundness?
 %% - while True break another example of modeling helping out
 %%   it's a second implementation, helpful to find bugs
 %%   TODO if SP folks say that "continue" version matters for production, ... umm something to think about for us
@@ -938,43 +981,174 @@ These include \code{eval}, first-class classes, multiple inheritance, and module
 \SP{} does not rely on types for these features to guide program transformations;
 see \cref{s:impl} for further discussion.
 
+%% TODO model omits primitives because their typing is easy, separate hierarchy, clear boundaries
+%% TODO paper-model focus on boundaries ... where can dyn slip in ... not a full semantics ... 
 
-\subsection{Surface Language}
+\subsection{Surface Syntax and Types}
 
 \begin{figure}[t]
-  %% ported types from redex model
   \begin{langarray}
+    \spprog & \defeq &
+      \spstmt \langmid \spstmt,~\spprog
+  \\
+    \spstmt & \defeq &
+      \spvardef{\spx}{\sptype}{\spexpr} \langmid
+  \\ & &
+      \spfundef{\spf}{\spann{\spx}{\sptype}}{\sptype}{\spexpr} \langmid
+  \\ & &
+      \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr} \ldots}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr} \ldots}
+  \\
+    \spexpr & \defeq &
+      \spx \langmid \spnone \langmid \spobject \langmid \spint \langmid \spbool \langmid \spfloat \langmid
+  \\ & &
+      \sppydict{\spx: \spexpr, \ldots} \langmid
+      \spchkdict{\sppydict{\spx: \spexpr, \ldots}} \langmid
+  \\ & &
+      \spapp{\spx}{\spexpr} \langmid
+      \spref{\spexpr}{\spexpr} \langmid
+      \spset{\spexpr}{\spexpr}{\spexpr}
+  \\
     \sptype & \defeq &
       \sptdyn \langmid
       \sptnone \langmid
       \sptclass \langmid
-      \sptinstanceof{\sptclass} \langmid
-      \sptfun{\sptype}{\sptype} \langmid
-      \sptunion{\sptclass}{\sptclass}
-  \\
-    \sptclass & \defeq &
-      \sptint \langmid
-      \sptfloat \langmid
       \sptobject \langmid
-      \sptpydict{\sptclass}{\sptclass} \langmid
-      \sptchkdict{\sptclass}{\sptclass} \langmid
-      \mbox{(user defined class)}
+      \sptint \langmid
+      \sptbool \langmid
+      \sptfloat \langmid
+  \\ & &
+      \sptpydict{\sptype}{\sptype} \langmid
+      \sptchkdict{\sptype}{\sptype} \langmid
+      \sptunion{\sptype, \ldots}
+  \\
+    \sptenv & \defeq &
+      \sptenvnil \langmid
+      \sptvardef{\spx}{\sptype},~\sptenv \langmid
+      \sptfundef{\spf}{\sptype}{\sptype},~\sptenv \langmid
+      \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype} \ldots}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype} \ldots},~\sptenv
+  \\
+    \spx, \spf, \spc & \defeq & \mbox{variable names}
   \end{langarray}
 
-  \begin{center}\parbox{0.8\columnwidth}{
-    Abbreviation: $\sptoptional{\sptclass} \defeq \sptunion{\sptclass}{\sptnone}$
+%%  \begin{center}\parbox{0.8\columnwidth}{
+  \bigskip
+    \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
+%%  }\end{center}
 
-    EXCEPT THAT $\sptoptional{\sptclass}$ may be a generic parameter just like any other class $\sptclass$
-
-    Function types cannot expect or return other function types.
-  }\end{center}
-
-  \caption{Surface Types}
+  \caption{Surface Syntax and Types}
   \label{f:surface-types}
 \end{figure}
 
+%% TODO assume well-formed / normal-form
+%% - no circular field defs (x:t = x)
+%% - unions are tidy ... Opt[Dyn] = Dyn
+%% kk
 
-\subsection{Evaluation Language, Optimizations}
+%% TODO surface typing judgment omitted
+%% - straightforward
+%% - eval typing far more interesting
+%% - for now, main goal is to narrow unions ... that's kinda boring / not worth effort reading & writing
+
+
+\subsection{Evaluation Types, Materialization, Casts}
+
+\begin{figure}[t]
+  \fbox{$\sptenv \wtprog \spprog \dashv \sptenv$}
+  \begin{mathpar}
+    \inferrule*{
+      \sptenv_0 \wtprog \spstmt_0 \dashv \sptenv_1
+      \\\\
+      \sptenv_1 \wtprog \spprog_0 \dashv \sptenv_2
+    }{
+      \sptenv_0 \wtprog \spstmt_0, \spprog_0 \dashv \sptenv_2
+    }
+  \end{mathpar}
+
+  \fbox{$\sptenv \wtprog \spstmt \dashv \sptenv$}
+  \begin{mathpar}
+    \inferrule*{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
+    }{
+      \sptenv_0 \wtprog \spvardef{\spx_0}{\sptype_0}{\spexpr_0} \dashv \sptvardef{\spx_0}{\sptype_0},~\sptenv_0
+    }
+
+    \inferrule*{
+      \sptenv_1 = \sptfundef{\spf_0}{\sptype_0}{\sptype_1},~\sptenv_0
+      \\\\
+      \sptenv_1 \wtexpr \spexpr_0 : \sptype_1
+    }{
+      \sptenv_0 \wtprog \spfundef{\spf_0}{\spann{\spx_0}{\sptype_0}}{\sptype_1}{\spexpr_0} \dashv \sptenv_1
+    }
+
+    \inferrule*{
+      \sptenv_1 = \sptclassdef{\spc_0}{\spc_1}{\sptvardef{\spx_0}{\sptype_0} \ldots}{\sptfundef{\spf_n}{\spc_0, \sptype_{dn}}{\sptype_{cn}}}
+      \\\\
+      %% TODO
+      \emph{lookup parent}
+      \\\\
+      \emph{overrides are subtypes (not merely compatible)}
+      \\\\
+      \emph{fields and methods are well typed}
+    }{
+      \sptenv_0 \wtprog \spclassdef{\spc_0}{\spc_1}{\spvardef{\spx_0}{\sptype_0}{\spexpr_0} \ldots}{\spfundef{\spf_n}{\spself, \spann{\spx_n}{\sptype_{dn}}}{\sptype_{cn}}{\spexpr_n}} \dashv \sptenv_1
+    }
+  \end{mathpar}
+
+  \fbox{$\sptenv \wtexpr \spexpr : \sptype$} (selected rules)
+  \begin{mathpar}
+    \inferrule*{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_1
+      \\
+      \sptype_1 \spcompat \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
+    }
+
+    \inferrule*{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_1
+      \\
+      \sptype_1 \spmatr \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
+    }
+
+    \inferrule*{
+      \sptvardef{\spf_0}{\sptdyn} \in \sptenv_0
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptdyn
+    }
+
+    \inferrule*{
+      \sptfundef{\spf_0}{\sptype_0}{\sptype_1} \in \sptenv_0
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptype_1
+    }
+
+    \inferrule*{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
+      \\
+      \sptenv_0 \wtexpr \spexpr_1 : \sptype_1
+    }{
+      \sptenv_0 \wtexpr \spexpr_0[\spexpr_1] : \sptdyn
+    }
+
+    \inferrule*{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\sptype_0}{\sptype_1}
+      \\
+      \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spexpr_0[\spexpr_1] : \sptype_1
+    }
+
+  \end{mathpar}
+
+  \caption{Evaluation Typing Judgment}
+  \label{f:eval-typing}
+\end{figure}
 
 \begin{figure}[t]
   \(
@@ -983,11 +1157,67 @@ see \cref{s:impl} for further discussion.
     \left\{\begin{array}{ll}
       \sptrawpydict & \mbox{if $\sptype_0 = \sptpydict{\sptclass}{\sptclass}$}
     \\
+      \sptdyn & \mbox{if $\sptype_0 = \sptunion{\sptype, \ldots}$ and $\sptype_0 \neq \sptoptional{\sptype}$}
+    \\
       \sptype_0 & \mbox{otherwise}
     \end{array}\right.
   \)
 
-  \caption{Surface Types to Evaluation Types}
+  \fbox{$\sptype \spsubt \sptype$}
+  \begin{mathpar}
+    \inferrule*{
+    }{
+      \sptype_0 \spsubt \sptobject
+    }
+
+    \inferrule*{
+    }{
+      \sptbool \spsubt \sptint
+    }
+
+    \inferrule*{
+      \sptype_0 \spsubt \sptype_1
+    }{
+      \sptype_0 \spsubt \sptoptional{\sptype_1}
+    }
+
+    \inferrule*{
+    }{
+      \sptype_0 \spsubt \sptype_0
+    }
+
+    \inferrule*{
+      \sptype_0 \spsubt \sptype_1
+      \\
+      \sptype_1 \spsubt \sptype_2
+    }{
+      \sptype_0 \spsubt \sptype_2
+    }
+  \end{mathpar}
+
+  \fbox{$\sptype \spcompat \sptype$}
+  \begin{mathpar}
+    \inferrule*{
+      \sptype_0 \spsubt \sptype_1
+    }{
+      \sptype_0 \spcompat \sptype_1
+    }
+
+    \inferrule*{
+    }{
+      \sptype_0 \spcompat \sptdyn
+    }
+  \end{mathpar}
+
+  \fbox{$\sptype \spmatr \sptype$}
+  \begin{mathpar}
+    \inferrule*{
+    }{
+      \sptdyn \spmatr \sptype_0
+    }
+  \end{mathpar}
+
+  \caption{TBA Surface Types to Evaluation Types}
   \label{f:surface-to-eval-types}
 \end{figure}
 
@@ -1027,6 +1257,25 @@ see \cref{s:impl} for further discussion.
 %\end{theorem}
 
 
+\subsubsection{Informal Connection to Nom}
+
+\SP{} types restrict the use of Nom,
+thus model is kind of a restriction of Nom.
+
+So since Nom is sound for any sort of dyn mixing,
+and SP allows fewer mixings,
+and both Nom and SP do similar checks at boundaries,
+can begin to see how SP could be sound.
+
+Or perhaps mention this at the start.
+SP similar to Nom, similar checks, keep that in mind.
+
+
+\subsection{Redex Development, Navigation, Integration, Conformance Tests}
+
+FILL
+
+
 \subsection{Bug Reports}
 
 While formalizing Static Python, we submitted N bug reports to the language developers.
@@ -1040,6 +1289,8 @@ The developers acknowledged M of these bugs as issues to fix.
 
 \section{Scaling to Python}
 \label{s:impl}
+
+%% TODO unions tracked statically in SP, erased to dyn unless narrowed
 
 %% TODO discuss optimizations here, not in sec 2
 
@@ -1072,6 +1323,14 @@ The developers acknowledged M of these bugs as issues to fix.
 Purpose: explain significant gaps between the model and the implementation.
 E.g. what would the TypeScript team need to know before using our model
 to add soundness?
+
+
+\subsection{Python Interaction}
+
+FILL
+
+extend model with Python ... two languages ... boundaries ... argue for soundness
+
 
 \subsection{Dynamic Python Features}
 \label{s:dynamic-python}
@@ -1474,6 +1733,26 @@ by compiling source code to C extension modules.
 
 %% engineering: JIT profiling, instead of hand-requested JIT list
 %% model: metaclasses
+
+%% 2021-12-30 Whence Nominal GT?
+%%
+%% KC: I think in general adding gradual typing to Java/C# (an also Python) is boring:
+%% - MonNom allows you to cast between an arbitrary type and dyn.
+%% - dyn is effectively Object
+%% - Upcasts, casts from an arbitrary type to Object, are already in the language
+%% - Downcasts, casts from Object to an arbitrary type is also possible, but must be explicit in the fully static language
+%% So MonNom effectively gives programmers another way to name Object, with which downcasts can be automatically inserted by the compiler.
+%% I think this sentence covers all the interesting stuff about MonNom.
+%%
+%% SK: This matches my intuition that gradual nominal is just not very
+%% interesting. KC puts this on a technical footing with his very astute comment,
+%% which to me can be summarized as "every nominal language that has Object is
+%% already gradual" [leaving aside the boring non-Object base type distinction].
+       So the entire remaining game is one of making the programming interface
+%% as painless as possible. Some of that is just a trivial matter of
+%% syntactic defaults; some of it is making the type-checker more forgiving
+%% and replacing static checks with dynamic checks. There doesn't seem to
+%% be much else left.
 
 Adapt SP ideas to a new setting, test performance takeaways.
 
