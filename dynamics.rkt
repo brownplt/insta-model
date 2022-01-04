@@ -168,6 +168,7 @@
    (method "int" "__div__")
    (method "int" "__lt__")
    (method "int" "__eq__")
+   (method "str" "__iter__")
    (method "list" "__init__")
    (method "list" "__eq__")
    (method "list" "__len__")
@@ -185,6 +186,7 @@
    (method "dict" "values")
    (method "dict" "popitem")
    (method "dict" "setdefault")
+   (method "dict" "fromkeys")
    (method (chkdict T T) "__init__")
    (method (chkdict T T) "__getitem__")
    (method (chkdict T T) "__setitem__")
@@ -192,7 +194,8 @@
    (method (chkdict T T) "__eq__")
    (method (chkdict T T) "clear")
    (method (chkdict T T) "get")
-   (method (chkdict T T) "items"))
+   (method (chkdict T T) "items")
+   (method (chkdict T T) "fromkeys"))
   (dunder-member
    "__eq__")
   ;; utilities
@@ -489,6 +492,8 @@
    [Σ (ref (con ,(< (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "__eq__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(= (term number_1) (term number_2))))]]
+  [(delta Σ (method "str" "__iter__") (v ...))
+   (delta-str-iter Σ v ...)]
   [(delta Σ (method "list" "__init__") (v ...))
    (delta-list-init Σ v ...)]
   [(delta Σ (method "list" "__eq__") (v ...))
@@ -511,6 +516,8 @@
    (delta-dict-setitem Σ v ...)]
   [(delta Σ (method "dict" "get") ((ref l_arg) ...))
    (delta-dict-get Σ l_arg ...)]
+  [(delta Σ (method "dict" "fromkeys") ((ref l_arg) ...))
+   (delta-dict-fromkeys Σ l_arg ...)]
   [(delta Σ (method "dict" "keys") ((ref l_arg) ...))
    (delta-dict-keys Σ l_arg ...)]
   [(delta Σ (method "dict" "values") ((ref l_arg) ...))
@@ -529,6 +536,8 @@
    (delta-checkeddict-eq Σ T_key T_val l_obj l_arg ...)]
   [(delta Σ (method (chkdict T_key T_val) "get") ((ref l_obj) (ref l_arg) ...))
    (delta-checkeddict-get Σ T_key T_val l_obj l_arg ...)]
+  [(delta Σ (method (chkdict T_key T_val) "fromkeys") ((ref l_arg) ...))
+   (delta-checkeddict-fromkeys Σ T_key T_val l_arg ...)]
   [(delta Σ "type" (v ...))
    (delta-type Σ v ...)]
   [(delta Σ "issubclass" (v ...))
@@ -537,6 +546,23 @@
   [(delta Σ l (v ...))
    [Σ (raise (new "Exception" ((con ,(format "delta: ~a" (term l))))))]
    (where any ,(raise (format "delta: ~a" (term l))))])
+(define-metafunction SP-dynamics
+  delta-checkeddict-fromkeys : Σ T_key T_val l_arg ... -> [Σ e-]
+  [(delta-checkeddict-fromkeys Σ T_key T_val l_arg ...)
+   [Σ (call-function e-_fun ((invoke-function (method "dict" "fromkeys") ((ref l_arg) ...))))]
+   (where e-_fun (lambda ("dict")
+                   (begin)
+                   (local ("dict" "chkdict")
+                     (begin
+                       (assign "chkdict" (new (chkdict T_key T_val) ()))
+                       (expr (call-function (attribute fast "chkdict" "update") ("dict")))
+                       (return "chkdict")))))])
+(define-metafunction SP-dynamics
+  delta-str-iter : Σ v ... -> [Σ e-]
+  [(delta-str-iter Σ (ref (con string)))
+   [Σ (new "list_iterator" ((list (v_elm ...))))]
+   (where (any_char ...) ,(map string (string->list (term string))))
+   (where (v_elm ...) ((ref (con any_char)) ...))])
 (define-metafunction SP-dynamics
   delta-exception-init : Σ v ... -> [Σ e-]
   [(delta-exception-init Σ (ref l_exn))
@@ -642,6 +668,25 @@
    (where (obj l_typ (dict (vv ...)) ρ) (lookup-Σ Σ l_obj))]
   [(delta-dict-get Σ l_obj l_key l_arg ...)
    [Σ (raise (new "Exception" ((con "delta-dict-get"))))]])
+(define-metafunction SP-dynamics
+  delta-dict-fromkeys : Σ l_arg ... -> [Σ e-]
+  [(delta-dict-fromkeys Σ l_keys)
+   (delta-dict-fromkeys Σ l_keys (con None))]
+  [(delta-dict-fromkeys Σ l_keys l_val)
+   [Σ (call-function e-_fun ((ref l_keys) (ref l_val)))]
+   (where e-_fun (as-dyn (compile-function
+                           (base-Ψ) (base-Γ)
+                           (["keys" dynamic] ["default" dynamic])
+                           dynamic
+                           (desugar-s*-to-level
+                             (["keys" dynamic] ["default" dynamic])
+                             ((ann-assign "obj" dynamic (dict ()))
+                              (for "key" "keys"
+                                ((assign ((subscript "obj" "key")) "default"))
+                                ())
+                              (return "obj"))))))]
+  [(delta-dict-fromkeys Σ l_keys l_arg ...)
+   [Σ (raise (new "Exception" ((con "delta-dict-fromkeys"))))]])
 (define-metafunction SP-dynamics
   delta-checkeddict-eq : Σ T_key T_val l_obj l_arg ... -> [Σ e-]
   [(delta-checkeddict-eq Σ T_key T_val l_obj l_arg)

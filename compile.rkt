@@ -271,8 +271,10 @@
   [(lookup-builtin-class "str")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
+      ["__iter__" dynamic]
       ["split" dynamic])
      (["__init__" (method "str" "__init__")]
+      ["__iter__" (method "str" "__iter__")]
       ["split" (method "str" "split")])
      ())]
   [(lookup-builtin-class "set")
@@ -319,7 +321,8 @@
       ["values" (-> () (subof "list"))]
       ["pop" (-> (dynamic) dynamic)]
       ["popitem" (-> () (subof "tuple"))]
-      ["update" (-> (dynamic) (subof "NoneType"))])
+      ["update" (-> (dynamic) (subof "NoneType"))]
+      ["fromkeys" dynamic])
      (["__init__" (method "dict" "__init__")]
       ["__getitem__" (method "dict" "__getitem__")]
       ["__setitem__" (method "dict" "__setitem__")]
@@ -330,7 +333,8 @@
       ["values" (method "dict" "values")]
       ["pop" (method "dict" "pop")]
       ["popitem" (method "dict" "popitem")]
-      ["update" (method "dict" "update")])
+      ["update" (method "dict" "update")]
+      ["fromkeys" (method "dict" "fromkeys")])
      ())]
   [(lookup-builtin-class "NoneType")
    (class ("object")
@@ -352,7 +356,8 @@
       ["clear" (-> () (subof "NoneType"))]
       ["pop" (-> (T_key) T_val)]
       ["popitem" (-> () (subof "tuple"))]
-      ["update" (-> (dynamic) (subof "NoneType"))])
+      ["update" (-> (dynamic) (subof "NoneType"))]
+      ["fromkeys" dynamic])
      (["__init__" (method (chkdict T_key T_val) "__init__")]
       ["__getitem__" (method (chkdict T_key T_val) "__getitem__")]
       ["__setitem__" (method (chkdict T_key T_val) "__setitem__")]
@@ -366,7 +371,8 @@
       ["clear" (method (chkdict T_key T_val) "clear")]
       ["pop" (method (chkdict T_key T_val) "pop")]
       ["popitem" (method "dict" "popitem")]
-      ["update" (method "dict" "update")])
+      ["update" (method "dict" "update")]
+      ["fromkeys" (method (chkdict T_key T_val) "fromkeys")])
      ())])
 (define-metafunction SP-compiled
   tuple-class : -> (class l*+dynamic Γ ρ Γ)

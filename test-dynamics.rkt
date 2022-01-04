@@ -227,6 +227,12 @@
 ;; conformance_suite/int_is_inhabitable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "int" (con 42))))))))
 
+;; conformance_suite/iterate-list.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("l") (list ())) (for "x" (list ((con 1) (con 2) (con 3))) ((expr (call (attribute "l" "append") ("x")))) ()) (assert (compare "l" ((== (list ((con 1) (con 2) (con 3)))))))))))))
+
+;; conformance_suite/iterate-str.py
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("l") (list ())) (for "x" (con "abc") ((expr (call (attribute "l" "append") ("x")))) ()) (assert (compare "l" ((== (list ((con "a") (con "b") (con "c")))))))))))))
+
 ;; conformance_suite/list_is_inhabitable.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "list" (list ()))))))))
 

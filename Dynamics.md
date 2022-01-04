@@ -210,3 +210,10 @@ The `else` lines are executed "if the loop finishes normally" [Python ast.For](h
 
 - [for-loop_else_break.py](conformance_suite/for-loop_else_break.py)
 - [for-loop_else_nonbreak.py](conformance_suite/for-loop_else_nonbreak.py)
+
+## For loop and base types
+
+`list`s and `str`s are iterable.
+
+- [iterate-list.py](conformance_suite/iterate-list.py)
+- [iterate-str.py](conformance_suite/iterate-str.py)

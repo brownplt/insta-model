@@ -666,6 +666,10 @@
    (drop-later-dynamic (xd_1 ... [x d] xd_2 ... xd_3 ...))]
   [(drop-later-dynamic xd*) xd*])
 
+(define-metafunction SP-core
+  desugar-s*-to-level : ([x t+] ...) (s+ ...) -> level
+  [(desugar-s*-to-level ([x t+] ...) (s+ ...))
+   (level-of-s ([x (desugar-t t+)] ...) (make-begin (desugar-s s+) ...))])
 (module+ test
   (test-equal (term (desugar-program ()))
               (term (local () (begin)))))
