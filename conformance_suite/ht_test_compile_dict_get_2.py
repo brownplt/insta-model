@@ -10,10 +10,7 @@ def testfunc():
     x = CheckedDict[B, int]({B():42, D():42})
     return x
 
-def main(test, B):
-    assert type(test()) == CheckedDict[B, int]
-
-main(testfunc, B)
+assert type(testfunc()) == CheckedDict[B, int]
 
 # def test_compile_dict_get(self):
 #     codestr = """

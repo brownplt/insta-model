@@ -384,7 +384,8 @@
                   ([x_arg (desugar-t t+_arg)] ...)
                   (make-begin
                    (desugar-s s+)
-                   ...)))]
+                   ...
+                   (return (con None)))))]
   ;; import-from
   [(desugar-s (import-from x_mod (x_dst ...)))
    (make-begin (import-from x_mod x_dst) ...)]

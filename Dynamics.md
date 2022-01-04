@@ -144,6 +144,15 @@ Casting to a sub class may or maynot be okay
 
 ## Members
 
+Constructors work.
+
+- [instance_creation.py](conformance_suite/instance_creation.py)
+
+Fields are checked when initilized and updated.
+
+- [field_init.py](conformance_suite/field_init.py)
+- [field_update.py](conformance_suite/field_update.py)
+
 Class variables in sub-classes shadow variables in parent classes.
 
 - [class_variables_may_shadow.py](conformance_suite/class_variables_may_shadow.py)

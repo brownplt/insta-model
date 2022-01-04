@@ -1,6 +1,5 @@
 # test_package_no_parent.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 class C:

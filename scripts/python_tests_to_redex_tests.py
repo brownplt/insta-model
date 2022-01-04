@@ -516,10 +516,9 @@ def python_file_to_redex_optimization_test(spec, prog):
 path_to_conformance_suite = 'conformance_suite'
 path_to_test_grammar = './test-grammar.rkt'
 path_to_test_desugar = './test-desugar.rkt'
-path_to_test_statics = './test-statics.rkt'
 path_to_test_compile = './test-compile.rkt'
 path_to_test_dynamics = './test-dynamics.rkt'
-path_to_test_optimize = './test-optimize-template.rkt'
+# path_to_test_optimize = './test-optimize-template.rkt'
 
 
 def main():
@@ -558,23 +557,6 @@ def main():
             f.write(';; ' + name + '\n')
             f.write(str_of_sexp(test))
             f.write('\n')
-    # output test_statics.rkt
-    with open(path_to_test_statics, 'w') as f:
-        f.write('\n'.join([
-            '#lang racket',
-            '(require redex/reduction-semantics)',
-            '(require redex-abbrevs)',
-            '(require "grammar.rkt")',
-            '(require "desugar.rkt")',
-            '(require "statics.rkt")',
-            ''
-        ]))
-        for name, spec, prog, source in parsed_test_files:
-            test = python_file_to_redex_static_test(spec, prog)
-            f.write('\n')
-            f.write(';; ' + name + '\n')
-            f.write(str_of_sexp(test))
-            f.write('\n')
     # output test_compile.rkt
     with open(path_to_test_compile, 'w') as f:
         f.write('\n'.join([
@@ -609,31 +591,31 @@ def main():
                 f.write(';; ' + name + '\n')
                 f.write(str_of_sexp(test))
                 f.write('\n')
-    # output test_optimize.rkt
-    with open(path_to_test_optimize, 'w') as f:
-        f.write('\n'.join([
-            '#lang racket',
-            '(require redex/reduction-semantics)',
-            '(require redex-abbrevs)',
-            '(require "desugar.rkt")',
-            '(require "compile.rkt")',
-            '',
-            '(define-language Matcher',
-            '  (Any hole',
-            '  (any ... Any any ...)))',
-            ''
-        ]))
-        for name, spec, prog, source in parsed_test_files:
-            if spec['compile'] and spec['optimization']:
-                test = python_file_to_redex_optimization_test(spec, prog)
-                f.write('\n')
-                f.write(';; ' + name + '\n')
-                f.write(str_of_sexp(test))
-                f.write('\n')
-                f.write('#|\n')
-                f.writelines(source[4:])
-                f.write('|#\n')
-                f.write('\n')
+    # # output test_optimize.rkt
+    # with open(path_to_test_optimize, 'w') as f:
+    #     f.write('\n'.join([
+    #         '#lang racket',
+    #         '(require redex/reduction-semantics)',
+    #         '(require redex-abbrevs)',
+    #         '(require "desugar.rkt")',
+    #         '(require "compile.rkt")',
+    #         '',
+    #         '(define-language Matcher',
+    #         '  (Any hole',
+    #         '  (any ... Any any ...)))',
+    #         ''
+    #     ]))
+    #     for name, spec, prog, source in parsed_test_files:
+    #         if spec['compile'] and spec['optimization']:
+    #             test = python_file_to_redex_optimization_test(spec, prog)
+    #             f.write('\n')
+    #             f.write(';; ' + name + '\n')
+    #             f.write(str_of_sexp(test))
+    #             f.write('\n')
+    #             f.write('#|\n')
+    #             f.writelines(source[4:])
+    #             f.write('|#\n')
+    #             f.write('\n')
 
 
 main()

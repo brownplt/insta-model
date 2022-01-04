@@ -1,6 +1,5 @@
 # test_dict_invoke.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 from __static__ import pydict

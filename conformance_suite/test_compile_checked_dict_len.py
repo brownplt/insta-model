@@ -1,6 +1,5 @@
 # test_compile_checked_dict_len.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 from __static__ import CheckedDict

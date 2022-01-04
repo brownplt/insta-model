@@ -190,29 +190,29 @@ def parse_simple_test(test):
     #         statements that specify what to check
     parsed_test = ast.parse(test, type_comments=True)
 
-    assert isinstance(parsed_test, ast.Module), "parse_simple_test"
-    assert len(parsed_test.body) == 1, "parse_simple_test"
+    assert isinstance(parsed_test, ast.Module)
+    assert len(parsed_test.body) == 1
     deffun = parsed_test.body[0]
-    assert isinstance(deffun, ast.FunctionDef), "parse_simple_test"
+    assert isinstance(deffun, ast.FunctionDef)
     body = deffun.body
-    assert len(body) > 1, "parse_simple_test"
+    assert len(body) > 1
     if isinstance(body[0], ast.Expr):
         body = body[1:]
     defcode = body[0]
     spec = body[1:]
-    assert isinstance(defcode, ast.Assign), "parse_simple_test"
+    assert isinstance(defcode, ast.Assign)
 
     # process code
-    assert len(defcode.targets) == 1, "parse_simple_test"
-    assert isinstance(defcode.targets[0], ast.Name), "parse_simple_test"
+    assert len(defcode.targets) == 1
+    assert isinstance(defcode.targets[0], ast.Name)
     assert str(defcode.targets[0].id) in {
-        "codestr", "code"}, "parse_simple_test"
-    assert isinstance(defcode.value, ast.Constant), "parse_simple_test"
+        "codestr", "code"}
+    assert isinstance(defcode.value, ast.Constant)
     code = defcode.value.value
     code = code.split('\n')
     # skip the first and last empty line
-    assert code[0].strip() == "", "parse_simple_test"
-    assert code[-1].strip() == "", "parse_simple_test"
+    assert code[0].strip() == ""
+    assert code[-1].strip() == ""
     code = code[1:-1]
     # remove the extra indentation
     while all([line.startswith('    ') for line in code]):
@@ -278,10 +278,6 @@ def translate_self_type_error_test(name, test):
     #         self.type_error(...)
     assert len(spec) == 1
     spec = spec[0]
-
-    if 'test_assert_narrowing_type_error' in name:
-        print("Hello!")
-        # exit(-1)
 
     assert isinstance(spec, ast.Expr)
     spec = spec.value
@@ -388,7 +384,6 @@ def translate_optimization_test(name, test):
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
-    ] + (['# This is an optimization test.'] if 'assertInBytecode' in test else []) + [
         '# This should terminate.',
         '',
         ''

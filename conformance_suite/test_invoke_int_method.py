@@ -1,6 +1,5 @@
 # test_invoke_int_method.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 def func():

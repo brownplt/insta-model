@@ -1,6 +1,5 @@
 # test_invoke_strict_module_deep.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 def f0(): return 42

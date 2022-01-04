@@ -230,6 +230,12 @@
 ;; conformance_suite/empty_program.py
 (test-match SP program+ (term ()))
 
+;; conformance_suite/field_init.py
+(test-match SP program+ (term ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((assign ((attribute "self" "x")) "arg"))))) (try-except-else-finally ((assign ("o") (call "C" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+
+;; conformance_suite/field_update.py
+(test-match SP program+ (term ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((assign ((attribute "self" "x")) "arg"))))) (assign ("o") (call "C" ((con "foo")))) (try-except-else-finally ((function-def "dyn_int" () dynamic ((return (con 42)))) (assign ((attribute "o" "x")) (call "dyn_int" ()))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+
 ;; conformance_suite/for-loop_basic.py
 (test-match SP program+ (term ((function-def "fact" (("n" "int")) "int" ((ann-assign "o" "int" (con 1)) (for "i" (call "range" ("n")) ((aug-assign "o" * (bin-op + "i" (con 1)))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120))))))))
 
@@ -300,7 +306,7 @@
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "values") ()))) ((== (list ((con 2) (con 3))))))))))
 
 ;; conformance_suite/ht_test_compile_dict_get_2.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic) ("B" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc" "B"))))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (assert (compare (call "type" ((call "testfunc" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))))
 
 ;; conformance_suite/ht_test_error_incompat_return.py
 (test-match SP program+ (term ((class "D" () (pass)) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "x")) (con None)))) (function-def "f" (("self" dynamic)) (con "C") ((return (call "D" ())))))))))
@@ -309,7 +315,7 @@
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (function-def "foo" (("tval" (subscript "Optional" "object"))) "str" ((if (call "isinstance" ("tval" "str")) ((return "tval")) ()) (return (con "hi")))))))
 
 ;; conformance_suite/ht_test_typed_field_deleted_attr.py
-(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "value"))))) (assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((assign ((attribute "self" "x")) "value"))))) (assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/ht_test_verify_arg_dynamic_type.py
 (test-match SP program+ (term ((function-def "x" (("v" "str")) dynamic ((return (con "abc")))) (function-def "y" (("v" dynamic)) dynamic ((return (call "x" ("v"))))) (try-except-else-finally ((expr (call "y" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ((con "y(42)"))))) ()) (assert (compare (call "y" ((con "foo"))) ((== (con "abc"))))))))
@@ -322,6 +328,9 @@
 
 ;; conformance_suite/insert_new_field.py
 (test-match SP program+ (term ((class "C" () (pass)) (function-def "f" (("c" "C")) dynamic ((assign ((attribute "c" "x")) (con 42)))))))
+
+;; conformance_suite/instance_creation.py
+(test-match SP program+ (term ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((assign ((attribute "self" "x")) "arg"))))) (assign ("o") (call "C" ((con "foo")))) (assert (compare (attribute "o" "x") ((== (con "foo"))))))))
 
 ;; conformance_suite/instance_variables_initialize_at_class.py
 (test-match SP program+ (term ((class "C" () ((ann-assign "x" "int" (con 42)))))))

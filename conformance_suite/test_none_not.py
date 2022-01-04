@@ -1,6 +1,5 @@
 # test_none_not.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 def t() -> bool:

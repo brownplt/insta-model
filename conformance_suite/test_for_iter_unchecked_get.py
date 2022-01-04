@@ -1,6 +1,5 @@
 # test_for_iter_unchecked_get.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 def f():

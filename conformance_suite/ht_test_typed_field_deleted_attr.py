@@ -1,10 +1,14 @@
-# test_typed_field_deleted_attr.py
+# ht_test_typed_field_deleted_attr.py
 # This should pass.
 # This should terminate.
 
 class C:
+    # This line is added because the model doesn't understand `self.x`-like annotations.
+    x: str
     def __init__(self, value: str):
-        self.x: str = value
+        # This line is edited to remove the annotation
+        # self.x: str = value
+        self.x = value
 
 a = C("abc")
 del a.x

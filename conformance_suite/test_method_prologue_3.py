@@ -1,6 +1,5 @@
 # test_method_prologue_3.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 def f(x: int, y: str):

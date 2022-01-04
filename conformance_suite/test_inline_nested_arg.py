@@ -1,6 +1,5 @@
 # test_inline_nested_arg.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 from __static__ import inline

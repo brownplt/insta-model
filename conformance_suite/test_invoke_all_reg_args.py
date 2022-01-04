@@ -1,6 +1,5 @@
 # test_invoke_all_reg_args.py
 # This should pass.
-# This is an optimization test.
 # This should terminate.
 
 def target(a, b, c, d, e, f):

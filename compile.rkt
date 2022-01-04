@@ -182,6 +182,7 @@
    "Exception"
    "TypeError"
    "KeyError"
+   "AttributeError"
    "StopIteration"
    "list_iterator"
    (tuple (checkable-T ...))
@@ -227,6 +228,11 @@
      ()
      ())]
   [(lookup-builtin-class "KeyError")
+   (class ("Exception")
+     ()
+     ()
+     ())]
+  [(lookup-builtin-class "AttributeError")
    (class ("Exception")
      ()
      ()
@@ -406,6 +412,7 @@
     ["Exception" (Type (subof "Exception"))]
     ["TypeError" (Type (subof "TypeError"))]
     ["KeyError" (Type (subof "KeyError"))]
+    ["AttributeError" (Type (subof "AttributeError"))]
     ["StopIteration" (Type (subof "StopIteration"))]
     ["type" dynamic]
     ["max" dynamic]
@@ -1435,7 +1442,7 @@
   compile-level : Ψ Γ T level -> level-
   [(compile-level Ψ Γ T (local ([x d] ...) s))
    (local (x ...)
-     (compile-s Ψ Γ_bdy Γ_bdy T (begin s (return (con None)))))
+     (compile-s Ψ Γ_bdy Γ_bdy T s))
    (where #f (some-duplicates x ...))
    (where Γ_0 Γ)
    (where Γ_1 (extend Γ_0 [x dynamic] ...))
