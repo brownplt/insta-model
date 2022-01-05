@@ -5,6 +5,7 @@
 def func():
     a = 42
     return a.bit_length()
+f = func
 assert f() == 6
 
 # def test_invoke_int_method(self):
