@@ -2,7 +2,12 @@
 # This should pass.
 # This should terminate.
 
+# The next line is added because we need to declare a field explicitly.
+from typing import Any
+
 class D:
+    # This line is added because we don't collect field declarations from __init__.
+    counter: Any
     def __init__(self, counter):
         self.counter = counter
         self.counter[0] += 1

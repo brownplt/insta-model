@@ -483,18 +483,24 @@ def python_file_to_redex_dynamic_test(spec, prog):
             symbol('any'),
         ]
     return [
-        symbol('test-match'),
-        symbol('SP-dynamics'),
-        check,
+        symbol('check-not-exn'),
         [
-            symbol('term'),
-            [
-                symbol('calc'),
+            symbol('lambda'),
+            [], [
+                symbol('test-match'),
+                symbol('SP-dynamics'),
+                check,
                 [
-                    symbol('compile-program'),
+                    symbol('term'),
                     [
-                        symbol('desugar-program'),
-                        prog
+                        symbol('calc'),
+                        [
+                            symbol('compile-program'),
+                            [
+                                symbol('desugar-program'),
+                                prog
+                            ]
+                        ]
                     ]
                 ]
             ]
@@ -589,6 +595,7 @@ def main():
             '(require "desugar.rkt")',
             '(require "compile.rkt")',
             '(require "dynamics.rkt")',
+            '(require rackunit)',
             ''
         ]))
         for name, spec, prog, source in parsed_test_files:

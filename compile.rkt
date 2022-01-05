@@ -182,6 +182,7 @@
    "list"
    "tuple"
    "dict"
+   "function"
    "Exception"
    "TypeError"
    "KeyError"
@@ -219,6 +220,11 @@
       ["__eq__" (-> (dynamic) dynamic)])
      (["__init__" (method "object" "__init__")]
       ["__eq__" (method "object" "__eq__")])
+     ())]
+  [(lookup-builtin-class "function")
+   (class ("object")
+     ()
+     ()
      ())]
   [(lookup-builtin-class "Exception")
    (class ("object")

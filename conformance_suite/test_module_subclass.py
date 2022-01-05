@@ -2,9 +2,17 @@
 # This should pass.
 # This should terminate.
 
+# The following line is added because this test should have imported
+#   Optional.
+from typing import Optional
 class C:
+    # The following line is added because we moved the annotation
+    #   here from somewhere else.
+    x: Optional[C]
     def __init__(self):
-        self.x: Optional[C] = None
+        # The following line is edited to move the annotation outward
+        # self.x: Optional[C] = None
+        self.x = None
 c = C()
 assert c.x == None
 
