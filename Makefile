@@ -1,9 +1,14 @@
-refresh_conformance_suite:
+typical: python_test_to_redex_test
+
+everything: import
+
+import:
 	rm -f ./skipped_tests/*
 	rm -f ./conformance_suite/test_*
-	python3 ./scripts/import_SP_tests.py && \
-	python3 ./scripts/python_tests_to_redex_tests.py && \
-	echo "All done!"
+	python3.9 ./scripts/import_SP_tests.py
+
+python_test_to_redex_test:
+	python3.9 ./scripts/python_tests_to_redex_tests.py
 
 run_redex_tests:
 	racket ./test-desugar.rkt && \

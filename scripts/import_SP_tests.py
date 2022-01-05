@@ -5,6 +5,8 @@ Static Python. It generates tests written in our format and put them in
 """
 import json
 import ast
+from os import stat
+from re import match
 
 input_file = "./tests.py"
 skip_prefix = "    @skipIf("
@@ -96,7 +98,14 @@ ban_anywhere_in_test = [
     'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
 
     # These tests have been hand-translated.
-    'test_checked_dict'
+    'test_checked_dict',
+    'test_compile_dict_get',
+    'test_compile_method',
+    'test_error_incompat_return',
+    'test_strict_module_isinstance',
+    'test_typed_field_deleted_attr',
+    'test_verify_arg_dynamic_type',
+    'test_widen_to_dynamic'
 ]
 
 skip_anywhere_in_test = [
@@ -113,13 +122,13 @@ skip_anywhere_in_test = [
     '__slots__',
     'reveal_type',
     'test_sorted',  # also for-loop
-    'test_for_iter_list_modified(', # slicing
-    'test_for_iter_list(', # list comprehension
-    'test_for_iter_sequence_orelse(', # list comprehension
+    'test_for_iter_list_modified(',  # slicing
+    'test_for_iter_list(',  # list comprehension
+    'test_for_iter_sequence_orelse(',  # list comprehension
     'test_for_iter_sequence_return(',  # list comprehension
-    'test_nested_for_iter_sequence(', # list comprehension
-    'test_nested_for_iter_sequence_return(', # list comprehension
-    'test_for_iter_tuple(', # list comprehension
+    'test_nested_for_iter_sequence(',  # list comprehension
+    'test_nested_for_iter_sequence_return(',  # list comprehension
+    'test_for_iter_tuple(',  # list comprehension
     'xxclassloader',
     'weakref',
     '@_donotcompile',
@@ -223,6 +232,8 @@ def parse_simple_test(test):
 
 
 def translate_simple_compile_test(name, test):
+    # This group is good. It only translates compilation tests.
+    # And we keep all information about compilation tests.
     code, spec = parse_simple_test(test)
     # process spec
     pass_spec1 = '\n'.join([
@@ -338,49 +349,34 @@ def translate_with_compile_test(name, test):
     content += commented_src + '\n'
     return content
 
+def split_items(matched_string):
+    import ast
+    m = ast.parse('({})'.format(matched_string))
+    e1, e2 = m.body[0].value.elts
+    return ast.unparse(e1), ast.unparse(e2)
 
-def translate_assertInByteCode_test(name, test):
+def translate_all_assert_tests(name, test):
     code, spec = parse_simple_test(test)
-    # Capture tests that look like
-    #     def test_name(self) -> None:
-    #         codestr = """
-    #             some code
-    #         """
-    #         ...
-    #         assertInByteCode
-    #         ...
+    # Capture tests that have some assertEqual/assertRaise ... (TODO)
+    asserts = [
+        'assertEqual',
+    ]
+    assert any(word in test for word in asserts)
+    
+    assertions = {
+        'assertEqual': []
+    }
 
-    assert ('self.assertInBytecode' in test) or ('self.assertNotInBytecode' in test)
-
-    content = '\n'.join([
-        '# {}.py'.format(name),
-        '# This should pass.',
-        '# This is an optimization test.',
-        '',
-        ''
-    ]) + code
-    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
-    content += commented_src + '\n'
-    return content
-
-
-def translate_optimization_test(name, test):
-    code, spec = parse_simple_test(test)
-    # Capture tests that look like
-    #     def test_name(self) -> None:
-    #         codestr = """
-    #             some code
-    #         """
-    #         with ....:
-    #             ....
-    assert len(spec) == 1
-    spec = spec[0]
-
-    # assert 'assertInBytecode' in test
-    # assert 'INVOKE_FUNCTION' in test
-
-    assert isinstance(spec, ast.With)
-
+    import re
+    pattern = 'self\\.assertEqual\\((.*)\\)$'
+    assertEqual_matches = re.findall(pattern, test)
+    for matched_string in assertEqual_matches:
+        try:
+            lft_e, rht_e = split_items(matched_string)
+            code += '\n' + 'assert {} == {}'.format(lft_e, rht_e) + '\n'
+        except Exception:
+            code += '\n' + '# self.assertEqual({})'.format(matched_string) + '\n'
+    
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
@@ -388,10 +384,36 @@ def translate_optimization_test(name, test):
         '',
         ''
     ]) + code
+
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
     return content
 
+def translate_optimization_test(name, test):
+    code, spec = parse_simple_test(test)
+    # Capture tests that look like
+    #     def test_name(self) -> None:
+    #         ...
+    #         assertInByteCode/assertNotInByteCode/assertTrue/assertFalse
+    #         ...
+
+    asserts = [
+        'assertInBytecode',
+        'assertNotInBytecode',
+        'assertTrue',
+        'assertFalse'
+    ]
+    assert any(word in test for word in asserts)
+
+    content = '\n'.join([
+        '# {}.py'.format(name),
+        '# This should pass.',
+        '',
+        ''
+    ]) + code
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
+    return content
 
 reason_count = {}
 
@@ -448,8 +470,8 @@ def main():
             translate_simple_compile_test,
             translate_self_type_error_test,
             translate_with_compile_test,
-            translate_optimization_test,
-            translate_assertInByteCode_test
+            translate_all_assert_tests,
+            translate_optimization_test
         ]
         translated = False
         for tr in translators:

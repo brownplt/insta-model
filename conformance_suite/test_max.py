@@ -4,6 +4,8 @@
 
 def f(a: int, b: int) -> int:
     return max(a, b)
+assert f(3, 1) == 3
+
 # def test_max(self):
 #     codestr = """
 #         def f(a: int, b: int) -> int:

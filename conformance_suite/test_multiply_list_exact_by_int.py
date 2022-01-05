@@ -1,10 +1,12 @@
 # test_multiply_list_exact_by_int.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 def f() -> int:
     l = [1, 2, 3] * 2
     return len(l)
+assert mod.f() == 6
+
 # def test_multiply_list_exact_by_int(self):
 #     codestr = """
 #         def f() -> int:

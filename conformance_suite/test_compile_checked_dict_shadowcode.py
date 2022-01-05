@@ -8,6 +8,8 @@ class D(B): pass
 def testfunc():
     x = CheckedDict[B, int]({B():42, D():42})
     return x
+assert type(test()) == chkdict[B, int]
+
 # def test_compile_checked_dict_shadowcode(self):
 #     codestr = """
 #         from __static__ import CheckedDict

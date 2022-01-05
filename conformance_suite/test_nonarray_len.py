@@ -1,12 +1,14 @@
 # test_nonarray_len.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 class Lol:
     def __len__(self):
         return 421
 def y():
     return len(Lol())
+assert y() == 421
+
 # def test_nonarray_len(self):
 #     codestr = """
 #         class Lol:

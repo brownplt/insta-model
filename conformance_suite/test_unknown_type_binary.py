@@ -1,6 +1,5 @@
 # test_unknown_type_binary.py
 # This should pass.
-# This is an optimization test.
 
 def x(a, b):
     z = a + b

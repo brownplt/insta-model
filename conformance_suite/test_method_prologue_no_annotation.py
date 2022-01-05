@@ -4,6 +4,8 @@
 
 def f(x):
     return 42
+assert f('abc') == 42
+
 # def test_method_prologue_no_annotation(self):
 #     codestr = """
 #     def f(x):

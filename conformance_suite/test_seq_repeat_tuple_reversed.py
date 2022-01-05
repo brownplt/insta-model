@@ -1,10 +1,12 @@
 # test_seq_repeat_tuple_reversed.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 def f():
     t = (1, 2)
     return 2 * t
+assert mod.f() == (1, 2, 1, 2)
+
 # def test_seq_repeat_tuple_reversed(self):
 #     codestr = """
 #         def f():

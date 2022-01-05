@@ -5,6 +5,8 @@
 class C:
     def __init__(self):
         self.x: Optional[C] = None
+assert c.x == None
+
 # def test_module_subclass(self):
 #     codestr = """
 #     class C:

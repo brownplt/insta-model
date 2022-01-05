@@ -10,6 +10,8 @@ def f():
     return 42
 def g():
     return f()
+assert type(g()) == C
+
 # def test_decorated_function_ignored(self):
 #     codestr = """
 #         class C: pass

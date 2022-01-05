@@ -11,6 +11,8 @@ class C:
         return 3
     def f(self):
         return self.foo()
+assert C().f() == 3
+
 # def test_class_unknown_decorator(self):
 #     codestr = """
 #         def dec(f):

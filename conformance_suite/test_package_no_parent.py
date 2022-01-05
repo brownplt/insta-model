@@ -5,6 +5,8 @@
 class C:
     def f(self):
         return 42
+assert C().f() == 42
+
 # def test_package_no_parent(self):
 #     codestr = """
 #         class C:

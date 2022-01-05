@@ -9,6 +9,8 @@ def t():
     b = 0
     b += a
     return b
+assert t() == 3
+
 # def test_augassign_inexact(self):
 #     codestr = """
 #     def something():

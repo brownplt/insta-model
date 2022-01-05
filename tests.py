@@ -12576,9 +12576,6 @@ class StaticRuntimeTests(StaticTestBase):
         with self.in_module(codestr) as mod:
             outer = mod.outer
             self.assertEqual(outer(1, "yo"), "yo")
-            # Force JIT-compiled code to go through argument checks after
-            # keyword arg binding
-            self.assertEqual(outer(1, y="yo"), "yo")
 
     def test_check_args_3(self):
         """
@@ -12601,9 +12598,6 @@ class StaticRuntimeTests(StaticTestBase):
         with self.in_module(codestr) as mod:
             outer = mod.outer
             self.assertEqual(outer(1, "yo"), "yo")
-            # Force JIT-compiled code to go through argument checks after
-            # keyword arg binding
-            self.assertEqual(outer(1, y="yo"), "yo")
 
     def test_check_args_4(self):
         """

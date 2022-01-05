@@ -1,6 +1,5 @@
 # test_unknown_isinstance_narrows_class_attr.py
 # This should pass.
-# This should terminate.
 
 from typing import Any
 class C:

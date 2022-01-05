@@ -8,6 +8,8 @@ def f():
     for x in l:
         acc.append(x)
     return acc
+assert f() == [1, 2, 3]
+
 # def test_for_iter_unchecked_get(self):
 #     """We don't need to check sequence bounds when we've just compared with the list size."""
 #     codestr = """

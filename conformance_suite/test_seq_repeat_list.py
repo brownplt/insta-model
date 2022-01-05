@@ -1,10 +1,12 @@
 # test_seq_repeat_list.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 def f():
     l = [1, 2]
     return l * 2
+assert mod.f() == [1, 2, 1, 2]
+
 # def test_seq_repeat_list(self):
 #     codestr = """
 #         def f():

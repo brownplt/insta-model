@@ -9,6 +9,8 @@ def f(x):
     z = y.get('foo')
     z = None  # should be typed to dynamic
     return z
+assert f({}) == None
+
 # def test_dict_invoke_ret(self):
 #     codestr = """
 #         from __static__ import pydict

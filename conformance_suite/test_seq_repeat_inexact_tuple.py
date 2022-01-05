@@ -1,10 +1,12 @@
 # test_seq_repeat_inexact_tuple.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 from typing import Tuple
 def f(t: Tuple[int]):
     return t * 2
+assert mod.f(MyTuple((1, 2))) == 'RESULT'
+
 # def test_seq_repeat_inexact_tuple(self):
 #     codestr = """
 #         from typing import Tuple

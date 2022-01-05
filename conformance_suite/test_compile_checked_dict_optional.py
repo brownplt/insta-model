@@ -10,6 +10,8 @@ def testfunc():
         'y': 'z'
     })
     return x
+assert type(x) == chkdict[str, str | None]
+
 # def test_compile_checked_dict_optional(self):
 #     codestr = """
 #         from __static__ import CheckedDict

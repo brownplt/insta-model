@@ -1,9 +1,11 @@
 # test_seq_repeat_inexact_num.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 def f(num: int):
     return num * [1, 2]
+assert mod.f(MyInt(2)) == 'RESULT'
+
 # def test_seq_repeat_inexact_num(self):
 #     codestr = """
 #         def f(num: int):

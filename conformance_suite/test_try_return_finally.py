@@ -8,6 +8,8 @@ def f1(x: List):
         return
     finally:
         x.append("hi")
+assert l == ['hi']
+
 # def test_try_return_finally(self):
 #     codestr = """
 #     from typing import List

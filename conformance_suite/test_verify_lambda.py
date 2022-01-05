@@ -4,6 +4,8 @@
 
 x = lambda x: x
 a = x("hi")
+assert mod.a == 'hi'
+
 # def test_verify_lambda(self):
 #     codestr = """
 #         x = lambda x: x

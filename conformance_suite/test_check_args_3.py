@@ -9,6 +9,8 @@ def outer(x: int, y: str) -> object:
         use(y)
     use(x)
     return use(y)
+assert outer(1, 'yo') == 'yo'
+
 # def test_check_args_3(self):
 #     """
 #     Tests whether CHECK_ARGS can handle variables which are in a Cell,
@@ -26,6 +28,3 @@ def outer(x: int, y: str) -> object:
 #     with self.in_module(codestr) as mod:
 #         outer = mod.outer
 #         self.assertEqual(outer(1, "yo"), "yo")
-#         # Force JIT-compiled code to go through argument checks after
-#         # keyword arg binding
-#         self.assertEqual(outer(1, y="yo"), "yo")

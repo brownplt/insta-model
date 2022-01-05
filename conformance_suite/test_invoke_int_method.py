@@ -5,6 +5,8 @@
 def func():
     a = 42
     return a.bit_length()
+assert f() == 6
+
 # def test_invoke_int_method(self):
 #     codestr = """
 #     def func():

@@ -1,6 +1,5 @@
 # test_method_prologue_2.py
 # This should pass.
-# This should terminate.
 
 def f(x, y: str):
     return 42

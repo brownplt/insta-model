@@ -1,6 +1,5 @@
 # test_slotification_decorated.py
 # This should pass.
-# This should terminate.
 
 class _Inner():
     pass

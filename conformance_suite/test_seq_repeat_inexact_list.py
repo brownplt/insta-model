@@ -1,10 +1,12 @@
 # test_seq_repeat_inexact_list.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 from typing import List
 def f(l: List[int]):
     return l * 2
+assert mod.f(MyList([1, 2])) == 'RESULT'
+
 # def test_seq_repeat_inexact_list(self):
 #     codestr = """
 #         from typing import List
