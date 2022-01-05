@@ -449,9 +449,6 @@
 ;; conformance_suite/test_max.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "f" ((con 1) (con 3))) ((== (con 3))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 3)))))))))))
 
-;; conformance_suite/test_max_stability.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "id" ((call "f" ("p" "q")))) ((== (call "id" ("p")))))) (assert (compare (call "id" ((call "f" ("q" "p")))) ((== (call "id" ("q"))))))))))))
-
 ;; conformance_suite/test_method_prologue_no_annotation.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic)) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc"))) ((== (con 42)))))))))))
 
@@ -464,11 +461,8 @@
 ;; conformance_suite/test_min.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "f" ((con 1) (con 3))) ((== (con 1))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 1)))))))))))
 
-;; conformance_suite/test_min_stability.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "id" ((call "f" ("p" "q")))) ((== (call "id" ("p")))))) (assert (compare (call "id" ((call "f" ("q" "p")))) ((== (call "id" ("q"))))))))))))
-
 ;; conformance_suite/test_module_subclass.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None)))))) (assert (compare (attribute "c" "x") ((== (con None)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None)))))) (assign ("c") (call "C" ())) (assert (compare (attribute "c" "x") ((== (con None)))))))))))
 
 ;; conformance_suite/test_multiply_list_exact_by_int.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (list ((con 1) (con 2) (con 3))) (con 2))) (return (call "len" ("l"))))) (assert (compare (call "f" ()) ((== (con 6)))))))))))

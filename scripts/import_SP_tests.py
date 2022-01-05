@@ -100,6 +100,9 @@ ban_anywhere_in_test = [
     # code flag
     'test_code_flags',
 
+    # memory address
+    'test_max_stability',
+
     # These tests have been hand-translated.
     'test_checked_dict',
     'test_compile_dict_get',
@@ -376,6 +379,8 @@ def translate_all_assert_tests(name, test):
         code += '\n' + 'test = testfunc'
     if 'f = mod.func' in test:
         code += '\n' + 'f = func'
+    if 'c = C()' in test:
+        code += '\n' + 'c = C()'
 
     import re
     pattern = 'self\\.assertEqual\\((.*)\\)\n'
