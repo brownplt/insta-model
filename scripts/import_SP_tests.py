@@ -371,6 +371,7 @@ def translate_all_assert_tests(name, test):
     pattern = 'self\\.assertEqual\\((.*)\\)\n'
     assertEqual_matches = re.findall(pattern, test)
     for matched_string in assertEqual_matches:
+        matched_string: str = matched_string.replace('chkdict', 'CheckedDict')
         try:
             lft_e, rht_e = split_items(matched_string)
             if lft_e.startswith('mod.'):
