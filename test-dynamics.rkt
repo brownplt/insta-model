@@ -365,9 +365,6 @@
 ;; conformance_suite/test_chkdict_literal.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict ())) (return "x"))) (assign ("f") "testfunc") (assert (compare (call "type" ((call "f" ()))) ((== (subscript "CheckedDict" (tuple ("int" "str")))))))))))))
 
-;; conformance_suite/test_class_unknown_decorator.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "dec" (("f" dynamic)) dynamic ((return "f"))) (class "C" () ((function-def "foo" (("self" dynamic)) "int" ((return (con 3)))) (function-def "f" (("self" dynamic)) dynamic ((return (call (attribute "self" "foo") ())))))) (assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 3)))))))))))
-
 ;; conformance_suite/test_compile_checked_dict_explicit_dict.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "pydict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== "dict"))))))))))
 
@@ -397,9 +394,6 @@
 
 ;; conformance_suite/test_compile_nested_dict.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int"))))))))))))))))
-
-;; conformance_suite/test_decorated_function_ignored.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () (pass)) (function-def "mydecorator" (("x" dynamic)) dynamic ((return "C"))) (function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))) (assert (compare (call "type" ((call "g" ()))) ((== "C"))))))))))
 
 ;; conformance_suite/test_dict_invoke.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (function-def "f" (("x" dynamic)) dynamic ((ann-assign "y" "pydict" "x") (return (call (attribute "y" "get") ((con "foo")))))) (assert (compare (call "f" ((dict ()))) ((== (con None)))))))))))

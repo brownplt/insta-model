@@ -631,9 +631,6 @@
 ;; conformance_suite/test_class_static_tpflag.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((class "A" () (pass)))))))))
 
-;; conformance_suite/test_class_unknown_decorator.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "dec" (("f" dynamic)) dynamic ((return "f"))) (class "C" () ((function-def "foo" (("self" dynamic)) "int" ((return (con 3)))) (function-def "f" (("self" dynamic)) dynamic ((return (call (attribute "self" "foo") ())))))) (assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 3))))))))))))
-
 ;; conformance_suite/test_clen_bad_arg.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("clen")) (function-def "f" (("l" dynamic)) dynamic ((expr (call "clen" ("l")))))))))))
 
@@ -696,9 +693,6 @@
 
 ;; conformance_suite/test_compile_nested_dict.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))))))))))))))
-
-;; conformance_suite/test_decorated_function_ignored.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" () (pass)) (function-def "mydecorator" (("x" dynamic)) dynamic ((return "C"))) (function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((return (call "f" ())))) (assert (compare (call "type" ((call "g" ()))) ((== "C")))))))))))
 
 ;; conformance_suite/test_dict_invoke.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("pydict")) (function-def "f" (("x" dynamic)) dynamic ((ann-assign "y" "pydict" "x") (return (call (attribute "y" "get") ((con "foo")))))) (assert (compare (call "f" ((dict ()))) ((== (con None))))))))))))
