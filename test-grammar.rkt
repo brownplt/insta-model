@@ -962,9 +962,6 @@
 ;; conformance_suite/test_type_type_final.py
 (test-match SP program+ (term ((class "A" ("type") (pass)))))
 
-;; conformance_suite/test_typed_field_del.py
-(test-match SP program+ (term ((import-from "typing" ("Any")) (class "D" () ((ann-assign "counter" "Any") (function-def "__init__" (("self" dynamic) ("counter" dynamic)) dynamic ((assign ((attribute "self" "counter")) "counter") (aug-assign (subscript (attribute "self" "counter") (con 0)) + (con 1)))) (function-def "__del__" (("self" dynamic)) dynamic ((aug-assign (subscript (attribute "self" "counter") (con 0)) - (con 1)))))) (class "C" () ((function-def "__init__" (("self" dynamic) ("value" "D")) dynamic ((ann-assign (attribute "self" "x") "D" "value"))) (function-def "__del__" (("self" dynamic)) dynamic ((delete (attribute "self" "x")))))) (assign ("counter") (list ((con 0)))) (assign ("d") (call "D" ("counter"))) (assign ("a") (call "C" ("d"))) (delete "d") (assert (compare (subscript "counter" (con 0)) ((== (con 1))))) (delete "a") (assert (compare (subscript "counter" (con 0)) ((== (con 0))))))))
-
 ;; conformance_suite/test_typed_swap.py
 (test-match SP program+ (term ((function-def "test" (("a" dynamic)) dynamic ((ann-assign "x" "int") (ann-assign "y" "str") (assign ((tuple ("x" "y"))) (tuple ((con 1) "a"))))))))
 
@@ -1048,9 +1045,6 @@
 
 ;; conformance_suite/test_while_optional_cond.py
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" (con "C")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((while (compare "x" ((is-not (con None)))) ((ann-assign "val" (subscript "Optional" "C") (attribute "x" "field")) (if (compare "val" ((is-not (con None)))) ((assign ("x") "val")) ())) ()))))))
-
-;; conformance_suite/test_with_traceback.py
-(test-match SP program+ (term ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None)))))) (assert (compare (call "type" ((call "f" ()))) ((== "Exception")))))))
 
 ;; conformance_suite/try_except_basic.py
 (test-match SP program+ (term ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42))))))))

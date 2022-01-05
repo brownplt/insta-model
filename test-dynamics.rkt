@@ -513,17 +513,11 @@
 ;; conformance_suite/test_try_return_finally.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f1" (("x" "List")) dynamic ((try-except-else-finally ((return (con None))) () () ((expr (call (attribute "x" "append") ((con "hi")))))))) (assign ("l") (list ())) (expr (call "f1" ("l"))) (assert (compare "l" ((== (list ((con "hi")))))))))))))))
 
-;; conformance_suite/test_typed_field_del.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (class "D" () ((ann-assign "counter" "Any") (function-def "__init__" (("self" dynamic) ("counter" dynamic)) dynamic ((assign ((attribute "self" "counter")) "counter") (aug-assign (subscript (attribute "self" "counter") (con 0)) + (con 1)))) (function-def "__del__" (("self" dynamic)) dynamic ((aug-assign (subscript (attribute "self" "counter") (con 0)) - (con 1)))))) (class "C" () ((function-def "__init__" (("self" dynamic) ("value" "D")) dynamic ((ann-assign (attribute "self" "x") "D" "value"))) (function-def "__del__" (("self" dynamic)) dynamic ((delete (attribute "self" "x")))))) (assign ("counter") (list ((con 0)))) (assign ("d") (call "D" ("counter"))) (assign ("a") (call "C" ("d"))) (delete "d") (assert (compare (subscript "counter" (con 0)) ((== (con 1))))) (delete "a") (assert (compare (subscript "counter" (con 0)) ((== (con 0)))))))))))))
-
 ;; conformance_suite/test_verify_lambda.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi")))) (assert (compare "a" ((== (con "hi")))))))))))))
 
 ;; conformance_suite/test_visit_if_else.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42)))))) (assert (compare (call "f" ()) ((== (con 42)))))))))))))
-
-;; conformance_suite/test_with_traceback.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None)))))) (assert (compare (call "type" ((call "f" ()))) ((== "Exception"))))))))))))
 
 ;; conformance_suite/try_except_basic.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42)))))))))))))
