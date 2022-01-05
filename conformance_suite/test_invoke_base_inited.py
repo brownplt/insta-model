@@ -12,6 +12,7 @@ class D(B):
 def g(x: D):
     return x.g()
 assert X == 42
+d = D()
 assert g(d) == 100
 
 # def test_invoke_base_inited(self):

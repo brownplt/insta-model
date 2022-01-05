@@ -374,6 +374,8 @@ def translate_all_assert_tests(name, test):
         code += '\n' + 'f = testfunc'
     if 'test = mod.testfunc' in test:
         code += '\n' + 'test = testfunc'
+    if 'f = mod.func' in test:
+        code += '\n' + 'f = func'
 
     import re
     pattern = 'self\\.assertEqual\\((.*)\\)\n'
