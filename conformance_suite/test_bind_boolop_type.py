@@ -12,6 +12,7 @@ class C:
         return self.f() and self.g()
     def y(self) -> bool:
         return self.f() or self.g()
+c = C()
 assert c.x() == False
 assert c.y() == True
 

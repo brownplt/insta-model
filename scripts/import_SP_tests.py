@@ -97,6 +97,9 @@ ban_anywhere_in_test = [
     # fancy argment spec
     'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
 
+    # code flag
+    'test_code_flags',
+
     # These tests have been hand-translated.
     'test_checked_dict',
     'test_compile_dict_get',
@@ -366,6 +369,9 @@ def translate_all_assert_tests(name, test):
     assertions = {
         'assertEqual': []
     }
+
+    if 'test = mod.testfunc' in test:
+        code += '\n' + 'test = testfunc'
 
     import re
     pattern = 'self\\.assertEqual\\((.*)\\)\n'

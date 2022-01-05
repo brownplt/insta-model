@@ -591,13 +591,13 @@
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" "Optional")) dynamic ((return (attribute "x" "foo"))))))))
 
 ;; conformance_suite/test_aug_assign.py
-(test-match SP-core program (term (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assert (compare (subscript "l" (con 0)) ((== (con 2)))))))))
+(test-match SP-core program (term (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assign ("l") (list ((con 1)))) (assert (compare (subscript "l" (con 0)) ((== (con 2)))))))))
 
 ;; conformance_suite/test_augassign_inexact.py
 (test-match SP-core program (term (desugar-program ((function-def "something" () dynamic ((return (con 3)))) (function-def "t" () dynamic ((ann-assign "a" "int" (call "something" ())) (assign ("b") (con 0)) (aug-assign "b" + "a") (return "b"))) (assert (compare (call "t" ()) ((== (con 3)))))))))
 
 ;; conformance_suite/test_bind_boolop_type.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (assert (compare (call (attribute "c" "x") ()) ((== (con #f))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t)))))))))
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (assign ("c") (call "C" ())) (assert (compare (call (attribute "c" "x") ()) ((== (con #f))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t)))))))))
 
 ;; conformance_suite/test_bind_none_compare_op.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "has_none" (("x" dynamic)) "bool" ((return (compare (con None) ((in "x")))))) (function-def "has_no_none" (("x" dynamic)) "bool" ((return (compare (con None) ((not-in "x"))))))))))
@@ -624,7 +624,7 @@
 (test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo")))))))))
 
 ;; conformance_suite/test_chkdict_literal.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict ())) (return "x"))) (assert (compare (call "type" ((call "f" ()))) ((== (subscript "CheckedDict" (tuple ("int" "str")))))))))))
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict ())) (return "x"))) (assign ("f") "testfunc") (assert (compare (call "type" ((call "f" ()))) ((== (subscript "CheckedDict" (tuple ("int" "str")))))))))))
 
 ;; conformance_suite/test_class_static_tpflag.py
 (test-match SP-core program (term (desugar-program ((class "A" () (pass))))))
@@ -634,9 +634,6 @@
 
 ;; conformance_suite/test_clen_bad_arg.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("clen")) (function-def "f" (("l" dynamic)) dynamic ((expr (call "clen" ("l")))))))))
-
-;; conformance_suite/test_code_flags.py
-(test-match SP-core program (term (desugar-program ((function-def "func" () dynamic ((expr (call "print" ((con "hi")))))) (expr (call "func" ()))))))
 
 ;; conformance_suite/test_compare_subclass.py
 (test-match SP-core program (term (desugar-program ((class "C" () (pass)) (class "D" ("C") (pass)) (assign ("x") (compare (call "C" ()) ((> (call "D" ())))))))))
@@ -648,7 +645,7 @@
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" "int" (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "abc") (con "abc"))))))) (return "x")))))))
 
 ;; conformance_suite/test_compile_checked_dict_explicit_dict.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "pydict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x"))) (assert (compare (call "type" ((call "test" ()))) ((== "dict"))))))))
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "pydict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== "dict"))))))))
 
 ;; conformance_suite/test_compile_checked_dict_explicit_dict_as_dict.py
 (test-match SP-core program (term (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "dict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x"))) (assert (compare (call "type" ((call "test" ()))) ((== "dict"))))))))

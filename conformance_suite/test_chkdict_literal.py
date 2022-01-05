@@ -6,6 +6,7 @@ from __static__ import CheckedDict
 def testfunc():
     x: CheckedDict[int,str]  = {}
     return x
+f = testfunc
 assert type(f()) == CheckedDict[int, str]
 
 # def test_chkdict_literal(self):
