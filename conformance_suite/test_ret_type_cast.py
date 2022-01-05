@@ -5,6 +5,7 @@
 from typing import Any
 def testfunc(x: str, y: str) -> bool:
     return x == y
+f = testfunc
 assert f('abc', 'abc') == True
 
 # def test_ret_type_cast(self):

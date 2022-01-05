@@ -8,6 +8,7 @@ class D(B): pass
 def testfunc():
     x = CheckedDict[B, int]({D():42, B():42})
     return x
+test = testfunc
 assert type(test()) == CheckedDict[B, int]
 
 # def test_compile_checked_dict_reversed(self):

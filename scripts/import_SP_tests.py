@@ -370,6 +370,8 @@ def translate_all_assert_tests(name, test):
         'assertEqual': []
     }
 
+    if 'f = mod.testfunc' in test:
+        code += '\n' + 'f = testfunc'
     if 'test = mod.testfunc' in test:
         code += '\n' + 'test = testfunc'
 

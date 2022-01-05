@@ -10,6 +10,7 @@ def testfunc():
         'y': 'z'
     })
     return x
+f = testfunc
 assert type(x) == CheckedDict[str, str | None]
 
 # def test_compile_checked_dict_optional(self):

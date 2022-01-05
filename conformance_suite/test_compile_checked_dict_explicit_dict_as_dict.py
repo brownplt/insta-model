@@ -8,6 +8,7 @@ class D(B): pass
 def testfunc():
     x: dict = {B():42, D():42}
     return x
+test = testfunc
 assert type(test()) == dict
 
 # def test_compile_checked_dict_explicit_dict_as_dict(self):

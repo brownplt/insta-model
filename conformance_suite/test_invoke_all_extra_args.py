@@ -6,6 +6,7 @@ def target(a, b, c, d, e, f, g):
     return a * 2 + b * 3 + c * 4 + d * 5 + e * 6 + f * 7 + g
 def testfunc():
     return target(1,2,3,4,5,6,7)
+f = testfunc
 assert f() == 119
 
 # def test_invoke_all_extra_args(self):

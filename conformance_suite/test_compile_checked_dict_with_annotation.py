@@ -7,6 +7,7 @@ class B: pass
 def testfunc():
     x: CheckedDict[B, int] = {B():42}
     return x
+test = testfunc
 assert type(test()) == CheckedDict[B, int]
 
 # def test_compile_checked_dict_with_annotation(self):
