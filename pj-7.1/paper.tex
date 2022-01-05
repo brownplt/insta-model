@@ -24,10 +24,11 @@
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\defeq}{=}
 \newcommand{\mfeq}{=}
-\newcommand{\langmid}{\mathrel{\mathbf{\Big\vert}}}
+\newcommand{\langmid}{\mid} %% {\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
 
+\newcommand{\spapp}[2]{#1\,(#2)}
 \newcommand{\spann}[2]{#1\!:\!#2}
 \newcommand{\bmname}[1]{\textbf{#1}}
 \newcommand{\typefont}[1]{\mathsf{#1}}
@@ -52,8 +53,8 @@
 \newcommand{\sptenvnil}{\cdot}
 \newcommand{\sptenvempty}{\sptenvnil}
 \newcommand{\sptvardef}[2]{\spann{#1}{#2}}
-\newcommand{\sptfundef}[3]{#1(#2)\code{ -> }#3}
-\newcommand{\sptclassdef}[4]{\mathrm{class}~#1(#2):~#3~#4}
+\newcommand{\sptfundef}[3]{\spapp{#1}{#2}\code{ -> }#3}
+\newcommand{\sptclassdef}[4]{\mathrm{class}~\spapp{#1}{#2}:~#3;~#4}
 
 \newcommand{\spx}{\code{x}}
 \newcommand{\spf}{\code{f}}
@@ -65,12 +66,13 @@
 \newcommand{\vdashsub}[1]{\vdash_{#1}}
 \newcommand{\wtprog}{\vdashsub{\mathbf{P}}}
 \newcommand{\wtexpr}{\vdashsub{\mathbf{E}}}
-\newcommand{\spsubt}{\mathrel{\leq:}}
+\newcommand{\spsubt}{\mathrel{<:}}
+\newcommand{\spsubteq}{\mathrel{\leq:}}
 \newcommand{\spcompat}{\sqsubseteq}
 \newcommand{\spmatr}{\prec}
 \newcommand{\spvardef}[3]{\sptvardef{#1}{#2} = #3}
-\newcommand{\spfundef}[4]{\mathrm{def}~#1(#2)\code{ -> }#3: #4}
-\newcommand{\spclassdef}[4]{\mathrm{class}~#1(#2):~#3~#4}
+\newcommand{\spfundef}[4]{\mathrm{def}~\spapp{#1}{#2}\code{ -> }#3: #4}
+\newcommand{\spclassdef}[4]{\mathrm{class}~\spapp{#1}{#2}:~#3;~#4}
 \newcommand{\spself}{\code{self}}
 \newcommand{\spobject}{\code{object}}
 \newcommand{\spnone}{\code{none}}
@@ -78,10 +80,13 @@
 \newcommand{\spbool}{\codefont{bool}}
 \newcommand{\spfloat}{\codefont{float}}
 \newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
-\newcommand{\spchkdict}[1]{\code{chkdict}(#1)}
-\newcommand{\spapp}[2]{#1(#2)}
-\newcommand{\spref}[2]{#1[#2]}
-\newcommand{\spset}[3]{#1[#2] = #3}
+\newcommand{\spchkdict}[1]{\spapp{\code{chkdict}}{#1}}
+\newcommand{\spenvapp}[2]{\spapp{#1}{#2}}
+\newcommand{\spdictref}[2]{#1[#2]}
+\newcommand{\spdictset}[3]{\spdictref{#1}{#2} = #3}
+\newcommand{\spobjref}[2]{#1.#2}
+\newcommand{\spobjset}[3]{\spobjref{#1}{#2} = #3}
+\newcommand{\spobjapp}[3]{\spobjref{#1}{\spapp{#2}{#3}}}
 
 \newcommand{\sprred}{\rightarrow^*}
 
@@ -782,7 +787,6 @@ Neither Pyre nor mypy have recursive types either.
 \subsection{Runtime System Highlights}
 %% Non-Highlights:
 %% - shadow frames = JIT feature, lite array to track Python call stack
-%% - strict modules ... avoids toplevel function wrapper
 
 Cinder, the \SP{} runtime system, extends the standard Python runtime in
 several ways.
@@ -907,6 +911,7 @@ a constructor, checked update functions, and a tag.
 %% used pretty sparingly, but they are also definitely critical to our ability to
 %% match Cython in a few of the  hottest code paths that used to be Cython.
 
+%% TODO move prim.types up?
 
 
 For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
@@ -937,8 +942,18 @@ appropriate conversions.
 % https://github.com/facebookincubator/cinder/issues/52
 
 
+\subsubsection{Strict Modules}
+\label{s:strict-mod}
 
-\section{Model of Core \SP{}}
+Python modules are mutable collections of names.
+Names can be added, deleted, and updated at runtime.
+\SP{} accommodates these behaviors in the same manner as standard Python, which
+necessarily limits the benefits of module types.
+As an alternative, \SP{} programmers may opt in to a \emph{strict module} semantics.
+Strict modules are immutable, and thus enable type-based compiler optimizations.
+
+
+\section{Formal Model}
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
@@ -950,49 +965,64 @@ appropriate conversions.
 %%  hence we don't model optimizations, little benefit
 %%  opt. don't tell us about the surface language ... the particular SP opts are changing representations but not results
 
-%% TODO 2021-12-30 outline
-%% NOTE strict modules not modeled
-%% - what is language
-%% - what properties
-%% - what did in model, how to navigate?
-%% - bug reports
-
 %% NOTE
 %% - remark: model gives errors of the same kind in SP, but not always the same
 %%   message, after all its not our goal to reproduce SP exactly
 
 %% TODO 2021-12-28
-%% - model soundness argument = similar to Nom, Redex tests
-%%   - Nom has dispatch modes .. SP does not, simpler
-%%     - are dyn -> stat overrides allowed and do they affect soundness?
 %% - while True break another example of modeling helping out
 %%   it's a second implementation, helpful to find bugs
-%%   TODO if SP folks say that "continue" version matters for production, ... umm something to think about for us
 
-\subsection{Goals and Limitations}
+To validate the design of \SP{}, we have developed a mechanized model using PLT
+Redex~\cite{RYR}.
+The model encompasses two soundness claims:
+%% addresses two soundness concerns?
+\begin{enumerate}
+  \item
+    \SP{}'s overall approach to gradual interactions is sound; namely, that interactions
+    with untyped code do not undermine the validity of types.
+  \item
+    The typed half of \SP{} is a sound type system for Python.
+\end{enumerate}
+This section explores the first claim in depth by way of a tiny formal model
+that illustrates the \SP{} gradual interaction strategy.
+The second claim is justified by our Redex development;
+in particular, by its test suite.
+This section describes the Redex development in broad strokes.
 
-Our model of \SP{} includes the key aspects of its types,
+FILL pick names to avoid confusion between the Redex model and the tiny paper model?
+
+
+\subsection{Goals and Non-Goals}
+
+Our Redex model of \SP{} includes the key aspects of its types,
 statements, and values.
 The model has two main goals:
-illustrate the boundaries where typed and untyped code can mix,
+illustrate the boundaries where typed and dynamic code can mix,
 and show how to soundly protect these boundaries.
 Compared to other gradual languages, these boundaries are quite restrictive---which
-partly explains \SP{} performance~(\cref{s:eval}).
-Indeed, the model is nearly a subset of the model for Nom~\cite{mt-oopsla-2021},
-hence we focus on explaining the gaps and omit formal proofs.
+partly explains how it is able to perform well in practice~(\cref{s:eval}).
+Indeed the boundaries are effectively a subset of those in Nom~\cite{mt-oopsla-2021},
+which is a compelling argument for their soundness.
 
 The model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
-handle soundly (FILL examples ... while loop?).
-Omitting these lets us focus on the difficult corners.
+handle soundly (e.g. primitive types~\cref{s:c-types} and strict modules~\cref{s:strict-mod}).
+Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
+are also omitted.
 Other Python features are left out because their \SP{} semantics is identical
-to Python.
-These include \code{eval}, first-class classes, multiple inheritance, and module-level cells.
-\SP{} does not rely on types for these features to guide program transformations;
+to the baseline Python semantics.
+These features include \code{eval}, first-class classes, multiple inheritance, and module-level cells;
 see \cref{s:impl} for further discussion.
 
-%% TODO model omits primitives because their typing is easy, separate hierarchy, clear boundaries
-%% TODO paper-model focus on boundaries ... where can dyn slip in ... not a full semantics ... 
+Lastly, the model does not include type-directed optimizations.
+Validating the correctness of optimizations is a separate task that requires
+significant components; namely, a model of the \SP{} bytecode and a faithful
+rendering of its type-based transformations.
+Our model establishes soundness as a baseline.
+Future work can use soundness to reason informally about optimizations,
+or even take it as a starting point for compiler verification.
+
 
 \subsection{Surface Syntax and Types}
 
@@ -1006,17 +1036,19 @@ see \cref{s:impl} for further discussion.
   \\ & &
       \spfundef{\spf}{\spann{\spx}{\sptype}}{\sptype}{\spexpr} \langmid
   \\ & &
-      \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr} \ldots}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr} \ldots}
+      \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
   \\
     \spexpr & \defeq &
       \spx \langmid \spnone \langmid \spobject \langmid \spint \langmid \spbool \langmid \spfloat \langmid
-  \\ & &
       \sppydict{\spx: \spexpr, \ldots} \langmid
       \spchkdict{\sppydict{\spx: \spexpr, \ldots}} \langmid
   \\ & &
       \spapp{\spx}{\spexpr} \langmid
-      \spref{\spexpr}{\spexpr} \langmid
-      \spset{\spexpr}{\spexpr}{\spexpr}
+      \spdictref{\spexpr}{\spexpr} \langmid
+      \spdictset{\spexpr}{\spexpr}{\spexpr} \langmid
+      \spobjref{\spc}{\spx} \langmid
+      \spobjset{\spc}{\spx}{\spexpr} \langmid
+      \spobjapp{\spc}{\spf}{\spexpr}
   \\
     \sptype & \defeq &
       \sptdyn \langmid
@@ -1035,7 +1067,7 @@ see \cref{s:impl} for further discussion.
       \sptenvnil \langmid
       \sptvardef{\spx}{\sptype},~\sptenv \langmid
       \sptfundef{\spf}{\sptype}{\sptype},~\sptenv \langmid
-      \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype} \ldots}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype} \ldots},~\sptenv
+      \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype}}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype}},~\sptenv
   \\
     \spx, \spf, \spc & \defeq & \mbox{variable names}
   \end{langarray}
@@ -1059,6 +1091,38 @@ see \cref{s:impl} for further discussion.
 %% - eval typing far more interesting
 %% - for now, main goal is to narrow unions ... that's kinda boring / not worth effort reading & writing
 
+The \SP{} surface syntax is the same as Python 3.8.
+Programmers may write type annotations using the PEP 484 syntax;
+unannotated code gets the dynamic type by default.
+The available static types provide a nominal type system with first-order functions.
+These surface types are meant to be descriptive.
+By design, they are not fully sound.
+
+\Cref{f:surface-types} illustrates the key aspects of the \SP{} syntax and types
+using a tiny grammar.
+A program is a sequence of statements;
+a statement defines a variable, function, or class.
+These definitions may only appear on the top level
+and they all require full type annotations.
+Functions must have one positional argument.
+Classes must declare one parent (perhaps $\spobject$), one field, and one method.
+Expressions describe values and simple computations.
+The basic values consist of the following: the none value, the top object, integers,
+booleans (technically the integers \code{0} and \code{1}), and floating point numbers.
+There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
+The remaining forms express function calls, dictionary reads and writes, object field reads and writes,
+and method calls.
+Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
+user-defined class, and union types.
+There is no function type; the only way to define a higher-order function is to use the dynamic type.
+
+Relative to \SP{} and our Redex model, the formalization in \cref{f:surface-types} omits
+many details of Python including imports, conditionals, and exception handlers.
+These details are crucial in the context of the Redex model, which tests whether \SP{}
+soundly approximates Python.
+They are less important here, where our focus is on type boundaries.
+None of the omitted features give substantially new ways for typed code to interact with dynamic code.
+
 
 \subsection{Evaluation Types, Materialization, Casts}
 
@@ -1072,10 +1136,7 @@ see \cref{s:impl} for further discussion.
     }{
       \sptenv_0 \wtprog \spstmt_0, \spprog_0 \dashv \sptenv_2
     }
-  \end{mathpar}
 
-  \fbox{$\sptenv \wtprog \spstmt \dashv \sptenv$}
-  \begin{mathpar}
     \inferrule*{
       \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
     }{
@@ -1091,20 +1152,23 @@ see \cref{s:impl} for further discussion.
     }
 
     \inferrule*{
-      \sptenv_1 = \sptclassdef{\spc_0}{\spc_1}{\sptvardef{\spx_0}{\sptype_0} \ldots}{\sptfundef{\spf_n}{\spc_0, \sptype_{dn}}{\sptype_{cn}}}
+      \sptenv_1 = \sptclassdef{\spc_0}{\spc_1}{\sptvardef{\spx_0}{\sptype_0}}{\sptfundef{\spf_1}{\spc_0, \sptype_1}{\sptype_2}}, \sptenv_0
       \\\\
-      %% TODO
-      \emph{lookup parent}
+      %% TODO are field overrides exact?
+      \mbox{if $\spann{\spx_0}{\sptype_0'} \in \spenvapp{\sptenv_1}{\spc_1}$ then $\sptype_0 = \sptype_0'$}
       \\\\
-      \emph{overrides are subtypes (not merely compatible)}
+      %% TODO can T override dyn?
+      \mbox{if $\sptfundef{\spf_1}{\spc_2, \sptype_1'}{\sptype_2'} \in \spenvapp{\sptenv_1}{\spc_1}$ then $\sptype_1' \spsubteq \sptype_1$ and $\sptype_2 \spsubteq \sptype_2'$}
       \\\\
-      \emph{fields and methods are well typed}
+      \sptenv_1 \wtexpr \spvardef{\spexpr_0} : \sptype_0
+      \\
+      \spann{\spself}{\spc_0}, \spann{\spx_1}{\sptype_1}, \sptenv_1 \wtexpr \spexpr_1 : \sptype_2
     }{
-      \sptenv_0 \wtprog \spclassdef{\spc_0}{\spc_1}{\spvardef{\spx_0}{\sptype_0}{\spexpr_0} \ldots}{\spfundef{\spf_n}{\spself, \spann{\spx_n}{\sptype_{dn}}}{\sptype_{cn}}{\spexpr_n}} \dashv \sptenv_1
+      \sptenv_0 \wtprog \spclassdef{\spc_0}{\spc_1}{\spvardef{\spx_0}{\sptype_0}{\spexpr_0}}{\spfundef{\spf_1}{\spself, \spann{\spx_1}{\sptype_1}}{\sptype_2}{\spexpr_1}} \dashv \sptenv_1
     }
   \end{mathpar}
 
-  \fbox{$\sptenv \wtexpr \spexpr : \sptype$} (selected rules)
+  \fbox{$\sptenv \wtexpr \spexpr : \sptype$}~selected rules
   \begin{mathpar}
     \inferrule*{
       \sptenv_0 \wtexpr \spexpr_0 : \sptype_1
@@ -1140,18 +1204,40 @@ see \cref{s:impl} for further discussion.
 
     \inferrule*{
       \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
-      \\
+      \\\\
       \sptenv_0 \wtexpr \spexpr_1 : \sptobject
     }{
-      \sptenv_0 \wtexpr \spexpr_0[\spexpr_1] : \sptdyn
+      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
     }
 
     \inferrule*{
       \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\sptype_0}{\sptype_1}
-      \\
+      \\\\
       \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
     }{
-      \sptenv_0 \wtexpr \spexpr_0[\spexpr_1] : \sptype_1
+      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptnone
+    }
+
+    \inferrule*{
+      \spann{\spx_0}{\sptype_0} \in \spenvapp{\sptenv_0}{\spc_0}
+    }{
+      \sptenv_0 \wtexpr \spobjref{\spc_0}{\spx_0} : \sptype_0
+    }
+
+    \inferrule*{
+      \spann{\spx_0}{\sptype_0} \in \spenvapp{\sptenv_0}{\spc_0}
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spobjset{\spc_0}{\spx_0}{\spexpr_0} : \sptnone
+    }
+
+    \inferrule*{
+      \sptfundef{\spf_0}{\spc_0, \sptype_0}{\sptype_1} \in \spenvapp{\sptenv_0}{\spc_0}
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
+    }{
+      \sptenv_0 \wtexpr \spobjapp{\spc_0}{\spf_0}{\spexpr_0} : \sptype_1
     }
 
   \end{mathpar}
@@ -1192,7 +1278,7 @@ see \cref{s:impl} for further discussion.
     \end{array}\right.
   \)
 
-  \fbox{$\sptype \spsubt \sptype$}
+  \fbox{$\sptype \spsubteq \sptype$} reflexive, transitive closure of $\spsubt$, defined below:
   \begin{mathpar}
     \inferrule*{
     }{
@@ -1210,18 +1296,18 @@ see \cref{s:impl} for further discussion.
       \sptype_0 \spsubt \sptoptional{\sptype_1}
     }
 
-    \inferrule*{
-    }{
-      \sptype_0 \spsubt \sptype_0
-    }
-
-    \inferrule*{
-      \sptype_0 \spsubt \sptype_1
-      \\
-      \sptype_1 \spsubt \sptype_2
-    }{
-      \sptype_0 \spsubt \sptype_2
-    }
+%    \inferrule*{
+%    }{
+%      \sptype_0 \spsubt \sptype_0
+%    }
+%
+%    \inferrule*{
+%      \sptype_0 \spsubt \sptype_1
+%      \\
+%      \sptype_1 \spsubt \sptype_2
+%    }{
+%      \sptype_0 \spsubt \sptype_2
+%    }
   \end{mathpar}
 
   \fbox{$\sptype \spcompat \sptype$}
@@ -1255,7 +1341,7 @@ see \cref{s:impl} for further discussion.
   \label{t:cast}
 
   \(\begin{array}{l@{\quad}l}
-    \mbox{Eval. type $\spteval$} & \mbox{Description of run-time check} \\\hline
+    \mbox{Eval. Type $\spteval$} & \mbox{Description of run-time check} \\\hline
     \sptoptional{\spteval_0} & \mbox{Accepts either the none value or values that match $\spteval_0$} \\
     \sptrawpydict & \mbox{Accepts any Python dictionary} \\
     \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries with the same key and value types (${\spteval_0, \spteval_1}$)} \\
@@ -1331,6 +1417,7 @@ The developers acknowledged M of these bugs as issues to fix.
 
 \begin{center}
   %% most filed by KC, a few by Ben
+  %% + Carl https://github.com/facebookincubator/cinder/issues/64
   \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024}
 \end{center}
 
@@ -1480,6 +1567,11 @@ we’ve done this it hasn’t required a major rewrite.
 \section{Production Experience}
 \label{s:eval}
 %% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
+
+%% 2021-01-04 TODO have no evidence that "any module" typing works out ... team
+%% tried hard to get network effects ... "We explicitly aimed for converting
+%% related modules like this to improve network effects and get better
+%% performance."
 
 %% 2022-01-04 TODO ask C&D how many teams have adopted SP ... get sense of adoption
 
