@@ -196,8 +196,6 @@
    (method (chkdict T T) "get")
    (method (chkdict T T) "items")
    (method (chkdict T T) "fromkeys"))
-  (dunder-member
-   "__eq__")
   ;; utilities
   (v+☠ v ☠)
   (l+☠ l ☠)

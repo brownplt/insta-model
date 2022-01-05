@@ -13,7 +13,12 @@ class C:
         self.x: D = value
     def __del__(self):
         del self.x
+counter = [0]
+d = D(counter)
+a = C(d)
+del d
 assert counter[0] == 1
+del a
 assert counter[0] == 0
 
 # def test_typed_field_del(self):

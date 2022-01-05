@@ -99,6 +99,9 @@
   ;; a local environment that maps names to labels
   (ρ ([x l+☠] ...))
 
+  (dunder-member
+   "__eq__")
+  
   ;; types
   (T dynamic
      (exactness class-l)
@@ -213,7 +216,7 @@
   [(lookup-builtin-class "object")
    (class ()
      (["__init__" (-> () dynamic)]
-      ["__eq__" (-> (dynamic) (subof "bool"))])
+      ["__eq__" (-> (dynamic) dynamic)])
      (["__init__" (method "object" "__init__")]
       ["__eq__" (method "object" "__eq__")])
      ())]
@@ -245,12 +248,12 @@
   [(lookup-builtin-class "int")
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
-      ["__gt__" (-> ((subof "int")) (subof "bool"))]
-      ["__lt__" (-> ((subof "int")) (subof "bool"))]
-      ["__eq__" (-> ((subof "int")) (subof "bool"))]
-      ["__le__" (-> ((subof "int")) (subof "bool"))]
-      ["__ge__" (-> ((subof "int")) (subof "bool"))]
-      ["__neg__" (-> (dynamic) (subof "bool"))]
+      ["__gt__" (-> (dynamic) dynamic)]
+      ["__lt__" (-> (dynamic) dynamic)]
+      ["__eq__" (-> (dynamic) dynamic)]
+      ["__le__" (-> (dynamic) dynamic)]
+      ["__ge__" (-> (dynamic) dynamic)]
+      ["__neg__" (-> (dynamic) dynamic)]
       ["__add__" (-> (dynamic) dynamic)]
       ["__sub__" (-> (dynamic) dynamic)]
       ["__mul__" (-> (dynamic) dynamic)]
@@ -1007,7 +1010,7 @@
   [(compile-method-calls Ψ Γ_dcl Γ_lcl [e-_obj T] x_mth e_arg ...)
    [(call-function (attribute safe (as-dyn [e-_obj T]) x_mth) ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
     dynamic]
-   (judgment-holds (attributable T))])
+   (judgment-holds (attributable T x_mth))])
 (define-metafunction SP-compiled
   compile-exact-method-calls : Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ... -> [e- T]
   [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl l_cls e-_obj x_mth e_arg ...)
@@ -1053,7 +1056,7 @@
   [(resolve-attribute Ψ Γ_dcl Γ_lcl e x)
    [safe (as-dyn [e- T]) dynamic]
    (where [e- T] (compile-e Ψ Γ_dcl Γ_lcl e))
-   (judgment-holds (attributable T))])
+   (judgment-holds (attributable T x))])
 (define-metafunction SP-compiled
   resolve-writable-attribute : Ψ Γ Γ e x -> [mode e- T]
   ;; similar to resolve-attribute, but with a writable test
@@ -1077,14 +1080,17 @@
    [safe e- dynamic]
    (where [e- dynamic] (compile-e Ψ Γ_dcl Γ_lcl e))])
 (define-judgment-form SP-compiled
-  #:mode (attributable I)
-  #:contract (attributable T)
+  #:mode (attributable I I)
+  #:contract (attributable T x)
 
   [----------------------
-   (attributable dynamic)]
+   (attributable T dunder-member)]
+  
+  [----------------------
+   (attributable dynamic x)]
 
   [----------------------
-   (attributable (Type T))]
+   (attributable (Type T) x)]
 
   [(where #f ,(redex-match? SP-compiled "NoneType" (term l)))
    (where #f ,(redex-match? SP-compiled "CheckedDict" (term l)))
@@ -1092,7 +1098,7 @@
    (where #f ,(redex-match? SP-compiled "Final" (term l)))
    (where #f ,(redex-match? SP-compiled "ClassVar" (term l)))
    ----------------------
-   (attributable (exactness l))])
+   (attributable (exactness l) x)])
 (define-metafunction SP-compiled
   bind-method : T -> T
   [(bind-method (-> (T_slf T_arg ...) T_ret))
@@ -1237,7 +1243,6 @@
    (assign x (maybe-cast Ψ [e- T_src] T_dst))
    (where [e- T_src] (compile-e Ψ Γ_dcl Γ_lcl e))
    (where T_dcl (lookup Γ_dcl x))
-   ;(judgment-holds (show (T_src T_dcl)))
    (where T_dst (intersection Ψ T_src T_dcl))]
   ;; ann-assign attribute, the annotation (t) is ignored
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (ann-assign (attribute e x) t e_src))
