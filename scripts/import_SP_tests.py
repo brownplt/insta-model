@@ -102,6 +102,7 @@ ban_anywhere_in_test = [
 
     # memory address
     'test_max_stability',
+    'test_min_stability',
 
     # These tests have been hand-translated.
     'test_checked_dict',
