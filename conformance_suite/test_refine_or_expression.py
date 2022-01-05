@@ -5,6 +5,7 @@
 from typing import Optional
 def f(s: Optional[str]) -> str:
     return s or "hi"
+assert f('A') == 'A'
 assert f(None) == 'hi'
 
 # def test_refine_or_expression(self):

@@ -5,7 +5,7 @@
 def f():
     l = [1, 2]
     return l * 2
-assert mod.f() == [1, 2, 1, 2]
+assert f() == [1, 2, 1, 2]
 
 # def test_seq_repeat_list(self):
 #     codestr = """

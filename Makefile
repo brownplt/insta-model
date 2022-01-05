@@ -21,4 +21,4 @@ statistics:
 	echo "in skipped_tests"
 	ls -l ./skipped_tests | wc -l
 	echo "in conformance_suite"
-	ls -l ./conformance_suite | wc -l
+	ls -l ./conformance_suite/test_* ./conformance_suite/ht_*  | wc -l

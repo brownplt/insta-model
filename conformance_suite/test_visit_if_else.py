@@ -7,7 +7,7 @@ if x:
     pass
 else:
     def f(): return 42
-assert mod.f() == 42
+assert f() == 42
 
 # def test_visit_if_else(self):
 #     codestr = """

@@ -4,6 +4,7 @@
 
 def f(a: int, b: int) -> int:
     return max(a, b)
+assert id(f(p, q)) == id(p)
 assert id(f(q, p)) == id(q)
 
 # def test_max_stability(self):

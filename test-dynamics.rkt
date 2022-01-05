@@ -336,13 +336,13 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "str" (con "hello"))))))))
 
 ;; conformance_suite/test_assert_narrowing_debug.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (assert (compare (call "foo" ((con 1))) ((== (con 2)))))))))))
 
 ;; conformance_suite/test_assert_narrowing_not_isinstance_optimized.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (unary-op not (call "isinstance" ("x" "int")))) (return "x"))) (assert (compare (call "foo" ((con "abc"))) ((== (con "abc")))))))))))
 
 ;; conformance_suite/test_assert_narrowing_optimized.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x")))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x"))) (assert (compare (call "foo" ((con 1))) ((== (con 1)))))))))))
 
 ;; conformance_suite/test_aug_assign.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assert (compare (subscript "l" (con 0)) ((== (con 2)))))))))))
@@ -351,7 +351,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "something" () dynamic ((return (con 3)))) (function-def "t" () dynamic ((ann-assign "a" "int" (call "something" ())) (assign ("b") (con 0)) (aug-assign "b" + "a") (return "b"))) (assert (compare (call "t" ()) ((== (con 3)))))))))))
 
 ;; conformance_suite/test_bind_boolop_type.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (assert (compare (call (attribute "c" "x") ()) ((== (con #f))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t)))))))))))
 
 ;; conformance_suite/test_check_args.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))))) (return (call "use" ("x"))))) (assert (compare (call "outer" ((con 1))) ((== (con 1)))))))))))
@@ -375,7 +375,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("pydict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" "dict" (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x"))) (assert (compare (call "type" ((call "test" ()))) ((== "dict"))))))))))
 
 ;; conformance_suite/test_compile_checked_dict_len.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (return (call "len" ("x")))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 1) (con "abc"))))))) (return (call "len" ("x"))))) (assert (compare (call "test" ()) ((== (con 1)))))))))))
 
 ;; conformance_suite/test_compile_checked_dict_opt_out_by_default.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))) (return "x"))) (assert (compare (call "type" ((call "test" ()))) ((== "dict"))))))))))
@@ -411,7 +411,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2) (con 3)))) (assign ("acc") (list ())) (for "x" "l" ((expr (call (attribute "acc" "append") ("x")))) ()) (return "acc"))) (assert (compare (call "f" ()) ((== (list ((con 1) (con 2) (con 3)))))))))))))
 
 ;; conformance_suite/test_generic_method_ret_type.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))) (assert (compare (call "f" ((con "bar"))) ((== (con None)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Optional")) (ann-assign "MAP" (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ((dict (((con "abc") (con "foo")) ((con "bar") (con None))))))) (function-def "f" (("x" "str")) (subscript "Optional" "str") ((return (call (attribute "MAP" "get") ("x"))))) (assert (compare (call "f" ((con "abc"))) ((== (con "foo"))))) (assert (compare (call "f" ((con "bar"))) ((== (con None)))))))))))
 
 ;; conformance_suite/test_inline_nested.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("inline")) (function-def "e" (("x" dynamic) ("y" dynamic)) dynamic ((return (bin-op + "x" "y")))) (function-def "f" (("x" dynamic) ("y" dynamic)) dynamic ((return (call "e" ("x" (con 3)))))) (function-def "g" () dynamic ((return (call "f" ((con 1) (con 2)))))) (assert (compare (call "g" ()) ((== (con 4)))))))))))
@@ -426,10 +426,10 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "target" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic)) dynamic ((return (bin-op + (bin-op + (bin-op + (bin-op + (bin-op + (bin-op * "a" (con 2)) (bin-op * "b" (con 3))) (bin-op * "c" (con 4))) (bin-op * "d" (con 5))) (bin-op * "e" (con 6))) (bin-op * "f" (con 7)))))) (function-def "testfunc" () dynamic ((return (call "target" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6)))))) (assert (compare (call "f" ()) ((== (con 112)))))))))))
 
 ;; conformance_suite/test_invoke_base_inited.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (assign ("X") (call (attribute (call "B" ()) "f") ())) (class "D" ("B") ((function-def "g" (("self" dynamic)) dynamic ((return (con 100)))))) (function-def "g" (("x" "D")) dynamic ((return (call (attribute "x" "g") ())))) (assert (compare (call (attribute "mod" "g") ("d")) ((== (con 100)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (assign ("X") (call (attribute (call "B" ()) "f") ())) (class "D" ("B") ((function-def "g" (("self" dynamic)) dynamic ((return (con 100)))))) (function-def "g" (("x" "D")) dynamic ((return (call (attribute "x" "g") ())))) (assert (compare (attribute "mod" "X") ((== (con 42))))) (assert (compare (call (attribute "mod" "g") ("d")) ((== (con 100)))))))))))
 
 ;; conformance_suite/test_invoke_chkdict_method.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple ("int" "int"))) ((dict (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign ("a") (call "dict_maker" ())) (return (call (attribute "a" "keys") ()))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple ("int" "int"))) ((dict (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign ("a") (call "dict_maker" ())) (return (call (attribute "a" "keys") ())))) (assert (compare (call "list" ((call "f" ()))) ((== (list ((con 2)))))))))))))
 
 ;; conformance_suite/test_invoke_int_method.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "func" () dynamic ((assign ("a") (con 42)) (return (call (attribute "a" "bit_length") ())))) (assert (compare (call "f" ()) ((== (con 6)))))))))))
@@ -441,31 +441,31 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "func" () dynamic ((assign ("a") (con "a b c")) (return (call (attribute "a" "split") ((con "a")))))) (assert (compare (call "f" ()) ((== (list ((con "") (con " b c")))))))))))))
 
 ;; conformance_suite/test_invoke_strict_module_deep.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" () dynamic ((return (call "f0" ())))) (function-def "f2" () dynamic ((return (call "f1" ())))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ()))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" () dynamic ((return (call "f0" ())))) (function-def "f2" () dynamic ((return (call "f1" ())))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ())))) (assert (compare (call "g" ()) ((== (con 42))))) (assert (compare (call "g" ()) ((== (con 42)))))))))))
 
 ;; conformance_suite/test_invoke_strict_module_deep_unjitable_many_args.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic) ("h" dynamic)) dynamic ((class "C" () (pass)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (call "f0" ()) "a") "b") "c") "d") "e") "f") "g") "h") (con 4))))) (function-def "f2" () dynamic ((return (call "f1" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7) (con 8)))))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ()))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" (("a" dynamic) ("b" dynamic) ("c" dynamic) ("d" dynamic) ("e" dynamic) ("f" dynamic) ("g" dynamic) ("h" dynamic)) dynamic ((class "C" () (pass)) (return (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (bin-op + (bin-op - (call "f0" ()) "a") "b") "c") "d") "e") "f") "g") "h") (con 4))))) (function-def "f2" () dynamic ((return (call "f1" ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7) (con 8)))))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ())))) (assert (compare (call "g" ()) ((== (con 42))))) (assert (compare (call "g" ()) ((== (con 42)))))))))))
 
 ;; conformance_suite/test_max.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 3)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "f" ((con 1) (con 3))) ((== (con 3))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 3)))))))))))
 
 ;; conformance_suite/test_max_stability.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "id" ((call "f" ("q" "p")))) ((== (call "id" ("q"))))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "id" ((call "f" ("p" "q")))) ((== (call "id" ("p")))))) (assert (compare (call "id" ((call "f" ("q" "p")))) ((== (call "id" ("q"))))))))))))
 
 ;; conformance_suite/test_method_prologue_no_annotation.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic)) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc"))) ((== (con 42)))))))))))
 
 ;; conformance_suite/test_method_prologue_shadowcode.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))))))))
 
 ;; conformance_suite/test_method_prologue_shadowcode_2.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc"))) ((== (con 42)))))))))))
 
 ;; conformance_suite/test_min.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 1)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "f" ((con 1) (con 3))) ((== (con 1))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 1)))))))))))
 
 ;; conformance_suite/test_min_stability.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "id" ((call "f" ("q" "p")))) ((== (call "id" ("q"))))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "id" ((call "f" ("p" "q")))) ((== (call "id" ("p")))))) (assert (compare (call "id" ((call "f" ("q" "p")))) ((== (call "id" ("q"))))))))))))
 
 ;; conformance_suite/test_module_subclass.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "x") (subscript "Optional" "C") (con None)))))) (assert (compare (attribute "c" "x") ((== (con None)))))))))))
@@ -489,22 +489,22 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("PyDict")) (function-def "f" (("d" (subscript "PyDict" (tuple ("str" "int"))))) "str" ((return (subscript "d" (con 3))))) (assert (compare (call (attribute "mod" "f") ((dict (((con 3) (con "foo")))))) ((== (con "foo")))))))))))
 
 ;; conformance_suite/test_refine_or_expression.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("s" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s" (con "hi")))))) (assert (compare (call "f" ((con None))) ((== (con "hi")))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("s" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s" (con "hi")))))) (assert (compare (call "f" ((con "A"))) ((== (con "A"))))) (assert (compare (call "f" ((con None))) ((== (con "hi")))))))))))
 
 ;; conformance_suite/test_refine_or_expression_with_multiple_optionals.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("s1" (subscript "Optional" "str")) ("s2" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s1" "s2" (con "hi")))))) (assert (compare (call "f" ((con None) (con None))) ((== (con "hi")))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("s1" (subscript "Optional" "str")) ("s2" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s1" "s2" (con "hi")))))) (assert (compare (call "f" ((con "A") (con None))) ((== (con "A"))))) (assert (compare (call "f" ((con None) (con "B"))) ((== (con "B"))))) (assert (compare (call "f" ((con "A") (con "B"))) ((== (con "A"))))) (assert (compare (call "f" ((con None) (con None))) ((== (con "hi")))))))))))
 
 ;; conformance_suite/test_ret_type_cast.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (function-def "testfunc" (("x" "str") ("y" "str")) "bool" ((return (compare "x" ((== "y"))))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (function-def "testfunc" (("x" "str") ("y" "str")) "bool" ((return (compare "x" ((== "y")))))) (assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con #t)))))))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_list.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))) (assert (compare (call (attribute "mod" "f") ((call "MyList" ((list ((con 1) (con 2))))))) ((== (con "RESULT")))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))) (assert (compare (call (attribute "mod" "f") ((list ((con 1) (con 2))))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call (attribute "mod" "f") ((call "MyList" ((list ((con 1) (con 2))))))) ((== (con "RESULT")))))))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_num.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (assert (compare (call (attribute "mod" "f") ((call "MyInt" ((con 2))))) ((== (con "RESULT")))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (assert (compare (call (attribute "mod" "f") ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call (attribute "mod" "f") ((call "MyInt" ((con 2))))) ((== (con "RESULT")))))))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_tuple.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (assert (compare (call (attribute "mod" "f") ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT")))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (assert (compare (call (attribute "mod" "f") ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call (attribute "mod" "f") ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT")))))))))))
 
 ;; conformance_suite/test_seq_repeat_list.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * "l" (con 2))))) (assert (compare (call (attribute "mod" "f") ()) ((== (list ((con 1) (con 2) (con 1) (con 2)))))))))))))
@@ -525,7 +525,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f1" (("x" "List")) dynamic ((try-except-else-finally ((return (con None))) () () ((expr (call (attribute "x" "append") ((con "hi")))))))) (assert (compare "l" ((== (list ((con "hi")))))))))))))
 
 ;; conformance_suite/test_typed_field_del.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "D" () ((function-def "__init__" (("self" dynamic) ("counter" dynamic)) dynamic ((assign ((attribute "self" "counter")) "counter") (aug-assign (subscript (attribute "self" "counter") (con 0)) + (con 1)))) (function-def "__del__" (("self" dynamic)) dynamic ((aug-assign (subscript (attribute "self" "counter") (con 0)) - (con 1)))))) (class "C" () ((function-def "__init__" (("self" dynamic) ("value" "D")) dynamic ((ann-assign (attribute "self" "x") "D" "value"))) (function-def "__del__" (("self" dynamic)) dynamic ((delete (attribute "self" "x")))))) (assert (compare (subscript "counter" (con 0)) ((== (con 0)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "D" () ((function-def "__init__" (("self" dynamic) ("counter" dynamic)) dynamic ((assign ((attribute "self" "counter")) "counter") (aug-assign (subscript (attribute "self" "counter") (con 0)) + (con 1)))) (function-def "__del__" (("self" dynamic)) dynamic ((aug-assign (subscript (attribute "self" "counter") (con 0)) - (con 1)))))) (class "C" () ((function-def "__init__" (("self" dynamic) ("value" "D")) dynamic ((ann-assign (attribute "self" "x") "D" "value"))) (function-def "__del__" (("self" dynamic)) dynamic ((delete (attribute "self" "x")))))) (assert (compare (subscript "counter" (con 0)) ((== (con 1))))) (assert (compare (subscript "counter" (con 0)) ((== (con 0)))))))))))
 
 ;; conformance_suite/test_verify_lambda.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi")))) (assert (compare (attribute "mod" "a") ((== (con "hi")))))))))))
@@ -534,7 +534,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((assign ("x") (con 0)) (if "x" (pass) ((function-def "f" () dynamic ((return (con 42)))))) (assert (compare (call (attribute "mod" "f") ()) ((== (con 42)))))))))))
 
 ;; conformance_suite/test_with_traceback.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None))))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("x") (call "Exception" ())) (return (call (attribute "x" "with_traceback") ((con None)))))) (assert (compare (call "type" ((call "f" ()))) ((== "Exception"))))))))))
 
 ;; conformance_suite/try_except_basic.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42)))))))))))

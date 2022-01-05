@@ -4,6 +4,7 @@
 
 def f(a: int, b: int) -> int:
     return min(a, b)
+assert id(f(p, q)) == id(p)
 assert id(f(q, p)) == id(q)
 
 # def test_min_stability(self):

@@ -4,6 +4,7 @@
 
 def f(a: int, b: int) -> int:
     return max(a, b)
+assert f(1, 3) == 3
 assert f(3, 1) == 3
 
 # def test_max(self):

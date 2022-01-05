@@ -5,6 +5,8 @@
 def f():
     x = Exception()
     return x.with_traceback(None)
+assert type(f()) == Exception
+
 # def test_with_traceback(self):
 #     codestr = """
 #         def f():

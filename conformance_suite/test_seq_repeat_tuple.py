@@ -5,7 +5,7 @@
 def f():
     t = (1, 2)
     return t * 2
-assert mod.f() == (1, 2, 1, 2)
+assert f() == (1, 2, 1, 2)
 
 # def test_seq_repeat_tuple(self):
 #     codestr = """

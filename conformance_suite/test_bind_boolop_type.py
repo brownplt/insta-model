@@ -12,6 +12,7 @@ class C:
         return self.f() and self.g()
     def y(self) -> bool:
         return self.f() or self.g()
+assert c.x() == False
 assert c.y() == True
 
 # def test_bind_boolop_type(self):

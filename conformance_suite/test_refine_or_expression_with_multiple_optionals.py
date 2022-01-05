@@ -5,6 +5,9 @@
 from typing import Optional
 def f(s1: Optional[str], s2: Optional[str]) -> str:
     return s1 or s2 or "hi"
+assert f('A', None) == 'A'
+assert f(None, 'B') == 'B'
+assert f('A', 'B') == 'A'
 assert f(None, None) == 'hi'
 
 # def test_refine_or_expression_with_multiple_optionals(self):

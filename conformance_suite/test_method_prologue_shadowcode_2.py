@@ -4,6 +4,8 @@
 
 def f(x: str):
     return 42
+assert f('abc') == 42
+
 # def test_method_prologue_shadowcode_2(self):
 #     codestr = """
 #     def f(x: str):

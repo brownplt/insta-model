@@ -5,7 +5,8 @@
 from typing import Tuple
 def f(t: Tuple[int]):
     return t * 2
-assert mod.f(MyTuple((1, 2))) == 'RESULT'
+assert f((1, 2)) == (1, 2, 1, 2)
+assert f(MyTuple((1, 2))) == 'RESULT'
 
 # def test_seq_repeat_inexact_tuple(self):
 #     codestr = """

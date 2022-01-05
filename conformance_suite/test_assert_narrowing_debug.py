@@ -5,6 +5,8 @@
 def foo(x: int | str) -> int:
     assert isinstance(x, int)
     return x + 1
+assert foo(1) == 2
+
 # def test_assert_narrowing_debug(self):
 #     codestr = """
 #     def foo(x: int | str) -> int:

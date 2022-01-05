@@ -5,7 +5,7 @@
 def f() -> int:
     l = [1, 2, 3] * 2
     return len(l)
-assert mod.f() == 6
+assert f() == 6
 
 # def test_multiply_list_exact_by_int(self):
 #     codestr = """

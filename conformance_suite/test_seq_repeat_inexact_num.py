@@ -4,7 +4,8 @@
 
 def f(num: int):
     return num * [1, 2]
-assert mod.f(MyInt(2)) == 'RESULT'
+assert f(2) == [1, 2, 1, 2]
+assert f(MyInt(2)) == 'RESULT'
 
 # def test_seq_repeat_inexact_num(self):
 #     codestr = """

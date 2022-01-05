@@ -5,6 +5,8 @@
 def foo(x: int | str) -> object:
     assert isinstance(x, int)
     return x
+assert foo(1) == 1
+
 # def test_assert_narrowing_optimized(self):
 #     # We ensure that the code without the assert would work in the runtime.
 #     codestr = """

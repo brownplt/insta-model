@@ -368,14 +368,18 @@ def translate_all_assert_tests(name, test):
     }
 
     import re
-    pattern = 'self\\.assertEqual\\((.*)\\)$'
+    pattern = 'self\\.assertEqual\\((.*)\\)\n'
     assertEqual_matches = re.findall(pattern, test)
     for matched_string in assertEqual_matches:
         try:
             lft_e, rht_e = split_items(matched_string)
-            code += '\n' + 'assert {} == {}'.format(lft_e, rht_e) + '\n'
+            if lft_e.startswith('mod.'):
+                lft_e = lft_e[len('mod.'):]
+            code += '\n' + 'assert {} == {}'.format(lft_e, rht_e)
         except Exception:
-            code += '\n' + '# self.assertEqual({})'.format(matched_string) + '\n'
+            code += '\n' + '# self.assertEqual({})'.format(matched_string)
+
+    code += '\n'
     
     content = '\n'.join([
         '# {}.py'.format(name),
