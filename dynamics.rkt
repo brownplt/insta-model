@@ -173,6 +173,7 @@
    (method "list" "__eq__")
    (method "list" "__len__")
    (method "list" "__getitem__")
+   (method "list" "__setitem__")
    (method "list" "append")
    (method "tuple" "__eq__")
    (method "tuple" "__getitem__")
@@ -180,6 +181,7 @@
    (method "dict" "__getitem__")
    (method "dict" "__setitem__")
    (method "dict" "__delitem__")
+   (method "dict" "__len__")
    (method "dict" "get")
    (method "dict" "items")
    (method "dict" "keys")
@@ -253,6 +255,13 @@
    (where ([x T] ...) (base-Γ))]
   [(lookup-Σ-primitive (con c))
    (obj (l-of-c c) (con c) ())]
+  [(lookup-Σ-primitive "len")
+   (obj "function"
+        (lambda -1 ("x")
+          (begin)
+          (local ("x")
+            (return (call-function (attribute safe "x" "__len__") ()))))
+        ())]
   [(lookup-Σ-primitive "range")
    (obj "function"
         (lambda -1 ("n")
@@ -500,6 +509,8 @@
    (delta-list-len Σ v ...)]
   [(delta Σ (method "list" "__getitem__") (v ...))
    (delta-list-getitem Σ v ...)]
+  [(delta Σ (method "list" "__setitem__") (v ...))
+   (delta-list-setitem Σ v ...)]
   [(delta Σ (method "tuple" "__getitem__") (v ...))
    (delta-tuple-getitem Σ v ...)]
   [(delta Σ (method "list" "append") (v ...))
@@ -512,6 +523,8 @@
    (delta-dict-getitem Σ v ...)]
   [(delta Σ (method "dict" "__setitem__") (v ...))
    (delta-dict-setitem Σ v ...)]
+  [(delta Σ (method "list" "__len__") (v ...))
+   (delta-list-len Σ v ...)]
   [(delta Σ (method "dict" "get") ((ref l_arg) ...))
    (delta-dict-get Σ l_arg ...)]
   [(delta Σ (method "dict" "fromkeys") ((ref l_arg) ...))
@@ -768,6 +781,14 @@
   [(delta-dict-setitem Σ v ...)
    [Σ (raise (new "Exception" ((con "setitem"))))]])
 (define-metafunction SP-dynamics
+  delta-dict-len : Σ v ... -> [Σ e-]
+  [(delta-dict-len Σ (ref l_map) v_key v_val)
+   [Σ (ref number)]
+   (where (obj l_typ (dict (vv ...)) ρ) (lookup-Σ Σ l_map))
+   (where number ,(length (term (vv ...))))]
+  [(delta-dict-len Σ v ...)
+   [Σ (raise (new "Exception" ((con "len"))))]])
+(define-metafunction SP-dynamics
   delta-dict-delitem : Σ v ... -> [Σ e-]
   [(delta-dict-delitem Σ_0 (ref l_map) v_key)
    [Σ_1 (ref (con None))]
@@ -806,6 +827,14 @@
   [(delta-list-len Σ (ref l_lft))
    [Σ (con ,(length (term (v_lft ...))))]
    (where (obj l_lftcls (list (v_lft ...)) ρ_lft) (lookup-Σ Σ l_lft))])
+(define-metafunction SP-dynamics
+  delta-list-setitem : Σ v ... -> [Σ e-]
+  [(delta-list-setitem Σ_0 (ref l_obj) (ref (con number)) v_new)
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls (list (v_elm ...)) ρ) (lookup-Σ Σ_0 l_obj))
+   (where #t ,(< (term number) (length (term (v_elm ...)))))
+   (where (v_ret ...) ,(list-set (term (v_elm ...)) (term number) (term v_new)))
+   (where Σ_1 (update Σ_0 [l_obj (obj l_cls (list (v_ret ...)) ρ)]))])
 (define-metafunction SP-dynamics
   delta-list-getitem : Σ v ... -> [Σ e-]
   [(delta-list-getitem Σ (ref l_obj) (ref (con number)))

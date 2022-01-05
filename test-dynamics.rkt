@@ -345,7 +345,7 @@
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x"))) (assert (compare (call "foo" ((con 1))) ((== (con 1)))))))))))
 
 ;; conformance_suite/test_aug_assign.py
-(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assign ("l") (list ((con 1)))) (assert (compare (subscript "l" (con 0)) ((== (con 2)))))))))))
+(test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assign ("l") (list ((con 1)))) (expr (call "f" ("l"))) (assert (compare (subscript "l" (con 0)) ((== (con 2)))))))))))
 
 ;; conformance_suite/test_augassign_inexact.py
 (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "something" () dynamic ((return (con 3)))) (function-def "t" () dynamic ((ann-assign "a" "int" (call "something" ())) (assign ("b") (con 0)) (aug-assign "b" + "a") (return "b"))) (assert (compare (call "t" ()) ((== (con 3)))))))))))

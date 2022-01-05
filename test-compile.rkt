@@ -593,7 +593,7 @@
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("x" "Optional")) dynamic ((return (attribute "x" "foo"))))))))))
 
 ;; conformance_suite/test_aug_assign.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assign ("l") (list ((con 1)))) (assert (compare (subscript "l" (con 0)) ((== (con 2))))))))))))
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assign ("l") (list ((con 1)))) (expr (call "f" ("l"))) (assert (compare (subscript "l" (con 0)) ((== (con 2))))))))))))
 
 ;; conformance_suite/test_augassign_inexact.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "something" () dynamic ((return (con 3)))) (function-def "t" () dynamic ((ann-assign "a" "int" (call "something" ())) (assign ("b") (con 0)) (aug-assign "b" + "a") (return "b"))) (assert (compare (call "t" ()) ((== (con 3))))))))))))

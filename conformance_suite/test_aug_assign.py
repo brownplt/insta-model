@@ -5,6 +5,7 @@
 def f(l):
     l[0] += 1
 l = [1]
+f(l)
 assert l[0] == 2
 
 # def test_aug_assign(self) -> None:
