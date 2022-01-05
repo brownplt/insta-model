@@ -59,6 +59,8 @@ ban_anywhere_in_test = [
     'nested_class',
     # ban decorator
     'decorator',
+    # methods that are too specific
+    'with_traceback',
 
     # These test uses an unbound identifier
     'test_if_else_optional_return_two_branches',
@@ -105,6 +107,9 @@ ban_anywhere_in_test = [
     # memory address
     'test_max_stability',
     'test_min_stability',
+
+    # We don't model GC
+    '__del__',
 
     # These tests have been hand-translated.
     'test_checked_dict',
