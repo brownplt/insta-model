@@ -789,13 +789,13 @@
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (function-def "dict_maker" () (subscript "CheckedDict" (tuple ("int" "int"))) ((return (call (subscript "CheckedDict" (tuple ("int" "int"))) ((dict (((con 2) (con 2))))))))) (function-def "func" () dynamic ((assign ("a") (call "dict_maker" ())) (return (call (attribute "a" "keys") ())))) (assign ("f") "func") (assert (compare (call "list" ((call "f" ()))) ((== (list ((con 2))))))))))
 
 ;; conformance_suite/test_invoke_int_method.py
-(test-match SP program+ (term ((function-def "func" () dynamic ((assign ("a") (con 42)) (return (call (attribute "a" "bit_length") ())))) (assert (compare (call "f" ()) ((== (con 6))))))))
+(test-match SP program+ (term ((function-def "func" () dynamic ((assign ("a") (con 42)) (return (call (attribute "a" "bit_length") ())))) (assign ("f") "func") (assert (compare (call "f" ()) ((== (con 6))))))))
 
 ;; conformance_suite/test_invoke_method_non_static_base.py
 (test-match SP program+ (term ((class "C" ("Exception") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))) (function-def "g" (("self" dynamic)) dynamic ((return (call (attribute "self" "f") ())))))) (assert (compare (call (attribute (call "C" ()) "g") ()) ((== (con 42))))))))
 
 ;; conformance_suite/test_invoke_str_method_arg.py
-(test-match SP program+ (term ((function-def "func" () dynamic ((assign ("a") (con "a b c")) (return (call (attribute "a" "split") ((con "a")))))) (assert (compare (call "f" ()) ((== (list ((con "") (con " b c"))))))))))
+(test-match SP program+ (term ((function-def "func" () dynamic ((assign ("a") (con "a b c")) (return (call (attribute "a" "split") ((con "a")))))) (assign ("f") "func") (assert (compare (call "f" ()) ((== (list ((con "") (con " b c"))))))))))
 
 ;; conformance_suite/test_invoke_strict_module_deep.py
 (test-match SP program+ (term ((function-def "f0" () dynamic ((return (con 42)))) (function-def "f1" () dynamic ((return (call "f0" ())))) (function-def "f2" () dynamic ((return (call "f1" ())))) (function-def "f3" () dynamic ((return (call "f2" ())))) (function-def "f4" () dynamic ((return (call "f3" ())))) (function-def "f5" () dynamic ((return (call "f4" ())))) (function-def "f6" () dynamic ((return (call "f5" ())))) (function-def "f7" () dynamic ((return (call "f6" ())))) (function-def "f8" () dynamic ((return (call "f7" ())))) (function-def "f9" () dynamic ((return (call "f8" ())))) (function-def "f10" () dynamic ((return (call "f9" ())))) (function-def "f11" () dynamic ((return (call "f10" ())))) (function-def "g" () dynamic ((return (call "f11" ())))) (assert (compare (call "g" ()) ((== (con 42))))) (assert (compare (call "g" ()) ((== (con 42))))))))
