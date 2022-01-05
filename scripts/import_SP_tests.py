@@ -59,8 +59,6 @@ ban_anywhere_in_test = [
     'nested_class',
     # ban decorator
     'decorator',
-    # ban bit_length
-    'bit_length',
 
     # These test uses an unbound identifier
     'test_if_else_optional_return_two_branches',
