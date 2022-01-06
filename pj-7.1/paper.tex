@@ -15,6 +15,8 @@
 %% - idea: formalism would be a SUBSET of Nom, so our burden of proof is low
 %% - what are the idiomatic base SP types ... int or Int ?
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
+%% - use ChkDict not ChkList ... avoid confusion
+%% - is \sqle _consistent_ or _compatible_ subtyping?
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -49,12 +51,13 @@
 \newcommand{\sptrawpydict}{\typefont{PyDict}}
 \newcommand{\sptpydict}[2]{\paramtype{\sptrawpydict}{#1, #2}}
 \newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
-\newcommand{\sptenv}{\Gamma}
+\newcommand{\sptenv}{\typefont{Env}}
 \newcommand{\sptenvnil}{\cdot}
 \newcommand{\sptenvempty}{\sptenvnil}
 \newcommand{\sptvardef}[2]{\spann{#1}{#2}}
 \newcommand{\sptfundef}[3]{\spapp{#1}{#2}\code{ -> }#3}
 \newcommand{\sptclassdef}[4]{\mathrm{class}~\spapp{#1}{#2}:~#3;~#4}
+\newcommand{\trule}[1]{\textsc{#1}}
 
 \newcommand{\spx}{\code{x}}
 \newcommand{\spf}{\code{f}}
@@ -80,7 +83,7 @@
 \newcommand{\spbool}{\codefont{bool}}
 \newcommand{\spfloat}{\codefont{float}}
 \newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
-\newcommand{\spchkdict}[1]{\spapp{\code{chkdict}}{#1}}
+\newcommand{\spchkdict}[3]{\spapp{\paramtype{\code{chkdict}}{#1, #2}}{#3}}
 \newcommand{\spenvapp}[2]{\spapp{#1}{#2}}
 \newcommand{\spdictref}[2]{#1[#2]}
 \newcommand{\spdictset}[3]{\spdictref{#1}{#2} = #3}
@@ -329,6 +332,17 @@ Other restrictions might be lifted by future research.
 \section{\SP{} and the Cinder JIT}
 \label{s:tour}
 %% purpose = SP looks like Pyre, adds soundness to certain types
+
+%% 2022-01-05 Carl:
+%% "All the data I’ve been sharing is from a single codebase, the primary IG web
+%% server monolith. The existence of JITted but not SP modules is mostly just due
+%% to the fact that opting a function into the JIT is semantically transparent and
+%% (unless it reveals a latent bug in the JIT) requires no code changes, so it’s
+%% quite easy to do (the only tradeoff pushing us away from JITting everything is
+%% just how much CPU we spend JIT-compiling and how much memory we spend storing
+%% JIT-compiled code), whereas opting a module into SP requires more work so the
+%% bottleneck is available developer time to do conversions."
+
 
 % {Language Pipeline}
 % \begin{enumerate}
@@ -974,7 +988,7 @@ Strict modules are immutable, and thus enable type-based compiler optimizations.
 %%   it's a second implementation, helpful to find bugs
 
 To validate the design of \SP{}, we have developed a mechanized model using PLT
-Redex~\cite{RYR}.
+Redex~\cite{kcdeffmrtf-popl-2012}.
 The model encompasses two soundness claims:
 %% addresses two soundness concerns?
 \begin{enumerate}
@@ -989,8 +1003,6 @@ that illustrates the \SP{} gradual interaction strategy.
 The second claim is justified by our Redex development;
 in particular, by its test suite.
 This section describes the Redex development in broad strokes.
-
-FILL pick names to avoid confusion between the Redex model and the tiny paper model?
 
 
 \subsection{Goals and Non-Goals}
@@ -1025,6 +1037,7 @@ or even take it as a starting point for compiler verification.
 
 
 \subsection{Surface Syntax and Types}
+%% TODO assume well-formed; no circular defs (x:t = x)
 
 \begin{figure}[t]
   \begin{langarray}
@@ -1039,9 +1052,9 @@ or even take it as a starting point for compiler verification.
       \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
   \\
     \spexpr & \defeq &
-      \spx \langmid \spnone \langmid \spobject \langmid \spint \langmid \spbool \langmid \spfloat \langmid
+      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spfloat \langmid \spobject \langmid
       \sppydict{\spx: \spexpr, \ldots} \langmid
-      \spchkdict{\sppydict{\spx: \spexpr, \ldots}} \langmid
+      \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
   \\ & &
       \spapp{\spx}{\spexpr} \langmid
       \spdictref{\spexpr}{\spexpr} \langmid
@@ -1053,11 +1066,11 @@ or even take it as a starting point for compiler verification.
     \sptype & \defeq &
       \sptdyn \langmid
       \sptnone \langmid
-      \sptclass \langmid
-      \sptobject \langmid
       \sptint \langmid
       \sptbool \langmid
       \sptfloat \langmid
+      \sptobject \langmid
+      \sptclass \langmid
   \\ & &
       \sptpydict{\sptype}{\sptype} \langmid
       \sptchkdict{\sptype}{\sptype} \langmid
@@ -1072,24 +1085,12 @@ or even take it as a starting point for compiler verification.
     \spx, \spf, \spc & \defeq & \mbox{variable names}
   \end{langarray}
 
-%%  \begin{center}\parbox{0.8\columnwidth}{
   \bigskip
-    \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
-%%  }\end{center}
+  \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
 
   \caption{Surface Syntax and Types}
   \label{f:surface-types}
 \end{figure}
-
-%% TODO assume well-formed / normal-form
-%% - no circular field defs (x:t = x)
-%% - unions are tidy ... Opt[Dyn] = Dyn
-%% kk
-
-%% TODO surface typing judgment omitted
-%% - straightforward
-%% - eval typing far more interesting
-%% - for now, main goal is to narrow unions ... that's kinda boring / not worth effort reading & writing
 
 The \SP{} surface syntax is the same as Python 3.8.
 Programmers may write type annotations using the PEP 484 syntax;
@@ -1097,6 +1098,9 @@ unannotated code gets the dynamic type by default.
 The available static types provide a nominal type system with first-order functions.
 These surface types are meant to be descriptive.
 By design, they are not fully sound.
+For this reason, we omit the surface typing judgment and merely present their
+declarative syntax.
+%% TODO awkward
 
 \Cref{f:surface-types} illustrates the key aspects of the \SP{} syntax and types
 using a tiny grammar.
@@ -1107,162 +1111,43 @@ and they all require full type annotations.
 Functions must have one positional argument.
 Classes must declare one parent (perhaps $\spobject$), one field, and one method.
 Expressions describe values and simple computations.
-The basic values consist of the following: the none value, the top object, integers,
-booleans (technically the integers \code{0} and \code{1}), and floating point numbers.
+The basic values consist of the following: the none value, integers,
+booleans (which are the integers \code{0} and \code{1}), floating point numbers, and the top object.
 There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
 The remaining forms express function calls, dictionary reads and writes, object field reads and writes,
 and method calls.
 Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
 user-defined class, and union types.
+We assume that all unions are written a concise normal form, e.g., that
+$\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be flattened and normalized to $\sptdyn$.
 There is no function type; the only way to define a higher-order function is to use the dynamic type.
 
+%% FILL generally, no way to express higher-order cast ... either trivial C=C or impossible C=D
+
 Relative to \SP{} and our Redex model, the formalization in \cref{f:surface-types} omits
-many details of Python including imports, conditionals, and exception handlers.
+many details of Python including class variables, imports, conditionals, and exception handlers.
 These details are crucial in the context of the Redex model, which tests whether \SP{}
 soundly approximates Python.
 They are less important here, where our focus is on type boundaries.
 None of the omitted features give substantially new ways for typed code to interact with dynamic code.
 
 
-\subsection{Evaluation Types, Materialization, Casts}
-
-\begin{figure}[t]
-  \fbox{$\sptenv \wtprog \spprog \dashv \sptenv$}
-  \begin{mathpar}
-    \inferrule*{
-      \sptenv_0 \wtprog \spstmt_0 \dashv \sptenv_1
-      \\\\
-      \sptenv_1 \wtprog \spprog_0 \dashv \sptenv_2
-    }{
-      \sptenv_0 \wtprog \spstmt_0, \spprog_0 \dashv \sptenv_2
-    }
-
-    \inferrule*{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
-    }{
-      \sptenv_0 \wtprog \spvardef{\spx_0}{\sptype_0}{\spexpr_0} \dashv \sptvardef{\spx_0}{\sptype_0},~\sptenv_0
-    }
-
-    \inferrule*{
-      \sptenv_1 = \sptfundef{\spf_0}{\sptype_0}{\sptype_1},~\sptenv_0
-      \\\\
-      \sptenv_1 \wtexpr \spexpr_0 : \sptype_1
-    }{
-      \sptenv_0 \wtprog \spfundef{\spf_0}{\spann{\spx_0}{\sptype_0}}{\sptype_1}{\spexpr_0} \dashv \sptenv_1
-    }
-
-    \inferrule*{
-      \sptenv_1 = \sptclassdef{\spc_0}{\spc_1}{\sptvardef{\spx_0}{\sptype_0}}{\sptfundef{\spf_1}{\spc_0, \sptype_1}{\sptype_2}}, \sptenv_0
-      \\\\
-      %% TODO are field overrides exact?
-      \mbox{if $\spann{\spx_0}{\sptype_0'} \in \spenvapp{\sptenv_1}{\spc_1}$ then $\sptype_0 = \sptype_0'$}
-      \\\\
-      %% TODO can T override dyn?
-      \mbox{if $\sptfundef{\spf_1}{\spc_2, \sptype_1'}{\sptype_2'} \in \spenvapp{\sptenv_1}{\spc_1}$ then $\sptype_1' \spsubteq \sptype_1$ and $\sptype_2 \spsubteq \sptype_2'$}
-      \\\\
-      \sptenv_1 \wtexpr \spvardef{\spexpr_0} : \sptype_0
-      \\
-      \spann{\spself}{\spc_0}, \spann{\spx_1}{\sptype_1}, \sptenv_1 \wtexpr \spexpr_1 : \sptype_2
-    }{
-      \sptenv_0 \wtprog \spclassdef{\spc_0}{\spc_1}{\spvardef{\spx_0}{\sptype_0}{\spexpr_0}}{\spfundef{\spf_1}{\spself, \spann{\spx_1}{\sptype_1}}{\sptype_2}{\spexpr_1}} \dashv \sptenv_1
-    }
-  \end{mathpar}
-
-  \fbox{$\sptenv \wtexpr \spexpr : \sptype$}~selected rules
-  \begin{mathpar}
-    \inferrule*{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_1
-      \\
-      \sptype_1 \spcompat \sptype_0
-    }{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
-    }
-
-    \inferrule*{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_1
-      \\
-      \sptype_1 \spmatr \sptype_0
-    }{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
-    }
-
-    \inferrule*{
-      \sptvardef{\spf_0}{\sptdyn} \in \sptenv_0
-      \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
-    }{
-      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptdyn
-    }
-
-    \inferrule*{
-      \sptfundef{\spf_0}{\sptype_0}{\sptype_1} \in \sptenv_0
-      \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
-    }{
-      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptype_1
-    }
-
-    \inferrule*{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
-      \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
-    }{
-      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
-    }
-
-    \inferrule*{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\sptype_0}{\sptype_1}
-      \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptype_0
-    }{
-      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptnone
-    }
-
-    \inferrule*{
-      \spann{\spx_0}{\sptype_0} \in \spenvapp{\sptenv_0}{\spc_0}
-    }{
-      \sptenv_0 \wtexpr \spobjref{\spc_0}{\spx_0} : \sptype_0
-    }
-
-    \inferrule*{
-      \spann{\spx_0}{\sptype_0} \in \spenvapp{\sptenv_0}{\spc_0}
-      \\\\
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
-    }{
-      \sptenv_0 \wtexpr \spobjset{\spc_0}{\spx_0}{\spexpr_0} : \sptnone
-    }
-
-    \inferrule*{
-      \sptfundef{\spf_0}{\spc_0, \sptype_0}{\sptype_1} \in \spenvapp{\sptenv_0}{\spc_0}
-      \\\\
-      \sptenv_0 \wtexpr \spexpr_0 : \sptype_0
-    }{
-      \sptenv_0 \wtexpr \spobjapp{\spc_0}{\spf_0}{\spexpr_0} : \sptype_1
-    }
-
-  \end{mathpar}
-
-  \caption{Evaluation Typing Judgment}
-  \label{f:eval-typing}
-\end{figure}
+\subsection{Evaluation Types, Casts, and Typing Judgment}
 
 \begin{figure}[t]
   \begin{langarray}
-    \spvalue & \defeq &
-      \mbox{heap-allocated Python values}
-    \\
     \spteval & \defeq &
       \sptdyn \langmid
       \sptnone \langmid
-      \sptclass \langmid
-      \sptobject \langmid
       \sptint \langmid
       \sptbool \langmid
       \sptfloat \langmid
+      \sptobject \langmid
+      \sptclass \langmid
     \\ & &
       \sptrawpydict \langmid
-      \sptchkdict{\sptype}{\sptype} \langmid
-      \sptoptional{\sptype}
+      \sptchkdict{\spteval}{\spteval} \langmid
+      \sptoptional{\spteval}
   \end{langarray}
 
   \bigskip
@@ -1270,7 +1155,11 @@ None of the omitted features give substantially new ways for typed code to inter
     \mftypeF{\sptype_0}
     \mfeq
     \left\{\begin{array}{ll}
-      \sptrawpydict & \mbox{if $\sptype_0 = \sptpydict{\sptclass}{\sptclass}$}
+      \sptrawpydict & \mbox{if $\sptype_0 = \sptpydict{\sptype}{\sptype}$}
+    \\
+      \sptchkdict{\mftypeF{\sptype_1}}{\mftypeF{\sptype_2}} & \mbox{if $\sptype_0 = \sptchkdict{\sptype_1}{\sptype_2}$}
+    \\
+      \sptoptional{\mftypeF{\sptype_1}} & \mbox{if $\sptype_0 = \sptoptional{\sptype_1}$}
     \\
       \sptdyn & \mbox{if $\sptype_0 = \sptunion{\sptype, \ldots}$ and $\sptype_0 \neq \sptoptional{\sptype}$}
     \\
@@ -1278,11 +1167,297 @@ None of the omitted features give substantially new ways for typed code to inter
     \end{array}\right.
   \)
 
-  \fbox{$\sptype \spsubteq \sptype$} reflexive, transitive closure of $\spsubt$, defined below:
+  \caption{Evaluation Types, Surface-to-Evaluation Mapping}
+  \label{f:surface-to-eval-types}
+\end{figure}
+
+Evaluation type $\spteval$ are a subset of the surface types.
+These are the types that \SP{} promises to soundly enforce.
+\Cref{f:surface-to-eval-types} presents the syntax of evaluation types
+and a retraction $\mftypeF{\cdot}$ from surface types to evaluation types.
+As the retraction makes clear, the evaluation types make two main changes:
+\begin{enumerate}
+  \item
+    The parameterized type for Python dictionaries
+    $\sptpydict{\sptype_0}{\sptype_1}$ gets replaced with
+    a raw type $\sptrawpydict$.
+    The raw type behaves the same as $\sptpydict{\sptdyn}{\sptdyn}$ would.
+  \item
+    Unions get replaced with the dynamic type, except for the special case
+    of unions with none ($\sptoptional{\sptype_0}$).
+\end{enumerate}
+
+The \SP{} team chose these particular evaluation types because they can all
+be enforced fully and efficiently with run-time casts.
+
+
+\subsubsection{Casts}
+
+\Cref{t:cast} describes the casts in detail.
+Most call for a simple tag check, i.e., a Python \code{isinstance} test.
+The sole exception is optional types, which require a tag check and a test for the none value.
+Even checked dictionaries rely on tag checks.
+A checked dict type with keys $\sptype_0$ and values $\sptype_1$ accepts only
+checked dict values that were initialized with exactly the same key and value type.
+As noted in~\cref{s:type-dynamic}, the exact-match rules applies even when $\sptype_0$
+or $\sptype_1$ is the dynamic type.
+
+There are two key observations to make about casts.
+First, all allowed casts can run in constant time.
+No cast requires traversing a data structure.
+Similarly, no cast allocates a wrapper to check higher-order behaviors in a delayed fashion.
+This latter property means that blame-tracking is trivial;
+casts succeed or fail immediately.
+
+Second, the strict cast for checked dictionaries makes type compatibility simple in \SP{}.
+Values that are partly-dynamic are incompatible with static types.
+For example, suppose that a function expects a list of numbers.
+In a typical gradual language, a list of dynamic values would be a valid input to the function.
+In \SP{}, a list of dynamic values is not a valid input.
+Consequently, \SP{} can use a simple ahead-of-time strategy to enforce soundness.
+Any position where the dynamic type meets a static type needs a cast.
+Other meetings between types can be resolved statically.
+
+\begin{table}[t]
+  \caption{How to Enforce the Evaluation Types}
+  \label{t:cast}
+
+  \(\begin{array}{l@{\quad}l}
+    \mbox{Eval. Type $\spteval$} & \mbox{Description of run-time check} \\\hline
+    \sptoptional{\spteval_0} & \mbox{Accepts either the none value or values that match $\spteval_0$} \\
+    \sptrawpydict & \mbox{Accepts any Python dictionary} \\
+    \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries parameterized by $\spteval_0$ and $\spteval_1$} \\
+    %% \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries with the same key and value types (${\spteval_0, \spteval_1}$)} \\
+    \sptdyn & \mbox{No check needed, accepts any value} \\
+    \sptobject & \mbox{Accepts any value (except primitives,~\cref{s:c-types})} \\
+    \sptclass_0 & \mbox{Accepts instances of class $\sptclass_0$} \\
+    \sptnone & \mbox{Accepts the Python none value} \\
+    \sptint & \mbox{Accepts integers} \\
+    \sptbool & \mbox{Accepts booleans (the integers \code{0} and \code{1})} \\
+    \sptfloat & \mbox{Accepts floats}
+  \end{array}\)
+\end{table}
+
+
+\subsubsection{Expression Typing, Cast Insertion}
+
+To better show where \SP{} needs to insert casts, we present a selection of typing rules.
+Recall that a program declares variables, functions, and classes~(\cref{f:surface-types}).
+These statements come with types and fill an environment ($\sptenv$).
+Relative to the current environment, the expressions within each statement must
+satisfy the judgment in~\cref{f:eval-types} 
+
+The first two rules are for function application.
+A typed function may be applied an argument that matches its domain type,
+in which case it computes a value that matches its codomain type.
+A dynamically-typed variable may be applied to any input (that matches the top
+type $\sptobject$) to yield a dynamically-typed result.
+The next rules illustrate reads from Python dictionaries and checked dictionaries.
+A Python dict may be deferenced by any value; the read promises a dynamically-typed result.
+By contrast, a checked dict requires an index value that matches its type
+and promises a typed result.
+Next we have two rules for classes:
+\trule{F-Set} says that writes to a class field must match the declared field
+type; and \trule{M-App} shows that typed methods impose similar constraints as
+typed fuctions.
+
+The final two rules, \trule{C-Sub} and \trule{Matr}, depend on auxiliary judgments
+for consistent subtyping ($\spcompat$) and materialization ($\spmatr$).
+Consistent subtyping relates type $\spteval_0$ to type $\spteval_1$ if they are
+related by static subtyping ($\spteval_0 \spsubteq \spteval_1$) or if
+$\spteval_1$ is the dynamic type.
+When this relation holds, it is safe to upcast a value from type $\spteval_0$
+to type $\spteval_1$.
+Materialization relates the dynamic type to any non-dynamic type.
+Occurrences of the \trule{Matr} rule are downcasts that require a
+run-time check.
+
+The name \emph{materialization} and the rule \trule{Matr} are inspired by prior
+work~\cite{clps-popl-2019}.
+By itself, the judgment is merely an upside-down type precision relation~\cite{g-icfp-2013,sv-dls-2008}.
+Combined with the typing rule, however, materialization is a concise way to find
+where a well-typed program needs to insert casts to ensure soundness.
+For example, suppose that $\spf$ is a function from integers to the dynamic
+type and that $\spx$ is a variable with the dynamic type.
+An application $\spapp{\spf}{\spx}$ can satisfy type $\sptfloat$ using two materializations:
+
+\medskip
+\begin{mathpar}
+  \inferrule*[left=Matr]{
+    \inferrule*{
+      \inferrule*[left=Matr]{
+        \sptenv_0 \wtexpr \spx : \sptdyn
+        \\
+        \sptdyn \spmatr \sptint
+      }{
+        \sptenv_0 \wtexpr \spx : \sptint
+      }
+    }{
+      \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptdyn
+    }
+    \quad
+    \sptdyn \spmatr \sptfloat
+  }{
+    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptfloat
+  }
+
+  \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
+\end{mathpar}
+\medskip
+Consequently, this type derivation calls for two casts at run-time.
+
+We end here, with materialization, rather than present a semantics
+for the formalization.
+After all, the main benefit of a full formal semantics is to validate
+the behavior of complex expressions---a job
+better left to the mechanized Redex model.
+
+Furthermore, our casts-via-materialization rule is more aggressive
+than what \SP{} actually does to insert casts because
+\SP{} supports interactions with plain Python code.
+Because it chooses not to recompile Python modules, \SP{} inserts
+casts in an overapproximate way:
+\begin{itemize}
+  \item
+    typed functions and methods begin by checking all their arguments;
+  \item
+    typed classes check all field writes;
+  \item
+    checked dictionaries check all writes; and
+  \item
+    typed code checks the results of function calls, references, etc. whenever there is a materialization from the dynamic type.
+\end{itemize}
+\Cref{s:impl} explains how the type-directed optimizer avoids some
+of these checks.
+
+
+\begin{figure}[t]
+  \fbox{$\sptenv \wtexpr \spexpr : \spteval$}~selected rules
+  \begin{mathpar}
+    \inferrule*[left=S-App]{
+      \sptfundef{\spf_0}{\spteval_0}{\spteval_1} \in \sptenv_0
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+    }{
+      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \spteval_1
+    }
+
+    \inferrule*[left=D-App]{
+      \sptvardef{\spf_0}{\sptdyn} \in \sptenv_0
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+    }{
+      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptdyn
+    }
+
+    \inferrule*[left=PD-Ref]{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+    }{
+      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
+    }
+
+    \inferrule*[left=CD-Ref]{
+      \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+    }{
+      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \spteval_1
+    }
+
+    %% TODO show dict write rules?
+    %\inferrule*[left=PD-Set]{
+    %  \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
+    %  \\\\
+    %  \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+    %  \\\\
+    %  \sptenv_0 \wtexpr \spexpr_2 : \sptobject
+    %}{
+    %  \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
+    %}
+    %
+    %\inferrule*[left=CD-Set]{
+    %  \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
+    %  \\\\
+    %  \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+    %  \\\\
+    %  \sptenv_0 \wtexpr \spexpr_2 : \spteval_1
+    %}{
+    %  \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1} : \sptnone
+    %}
+
+    %\inferrule*[left=F-Ref]{
+    %  \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv_0}{\spc_0}
+    %}{
+    %  \sptenv_0 \wtexpr \spobjref{\spc_0}{\spx_0} : \spteval_0
+    %}
+
+    \inferrule*[left=F-Set]{
+      \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv_0}{\spc_0}
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+    }{
+      \sptenv_0 \wtexpr \spobjset{\spc_0}{\spx_0}{\spexpr_0} : \sptnone
+    }
+
+    \inferrule*[left=M-App]{
+      \sptfundef{\spf_0}{\spc_0, \spteval_0}{\spteval_1} \in \spenvapp{\sptenv_0}{\spc_0}
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+    }{
+      \sptenv_0 \wtexpr \spobjapp{\spc_0}{\spf_0}{\spexpr_0} : \spteval_1
+    }
+
+    \inferrule*[left=C-Sub]{
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_1
+      \\
+      \spteval_1 \spcompat \spteval_0
+    }{
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+    }
+
+    \inferrule*[left=Matr]{
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_1
+      \\
+      \spteval_1 \spmatr \spteval_0
+    }{
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+    }
+
+  \end{mathpar}
+
+  \begin{minipage}[t]{0.5\columnwidth}
+    \fbox{$\spteval \spcompat \spteval$}
+    \begin{mathpar}
+      \inferrule*{
+        \spteval_0 \spsubt \spteval_1
+      }{
+        \spteval_0 \spcompat \spteval_1
+      }
+
+      \inferrule*{
+      }{
+        \spteval_0 \spcompat \sptdyn
+      }
+  \end{mathpar}
+
+  \end{minipage}\begin{minipage}[t]{0.5\columnwidth}
+    \fbox{$\spteval \spmatr \spteval$}
+    \begin{mathpar}
+      \inferrule*[right={$\spteval_0 \neq \sptdyn$}]{
+      }{
+        \sptdyn \spmatr \spteval_0
+      }
+    \end{mathpar}
+  \end{minipage}
+
+  \medskip
+  \fbox{$\spteval \spsubteq \spteval$}~reflexive, transitive closure of the following $\spsubt$ relation:
   \begin{mathpar}
     \inferrule*{
     }{
-      \sptype_0 \spsubt \sptobject
+      \spteval_0 \spsubt \sptobject
     }
 
     \inferrule*{
@@ -1291,97 +1466,149 @@ None of the omitted features give substantially new ways for typed code to inter
     }
 
     \inferrule*{
-      \sptype_0 \spsubt \sptype_1
+      \spteval_0 \spsubt \spteval_1
     }{
-      \sptype_0 \spsubt \sptoptional{\sptype_1}
+      \spteval_0 \spsubt \sptoptional{\spteval_1}
     }
 
 %    \inferrule*{
 %    }{
-%      \sptype_0 \spsubt \sptype_0
+%      \spteval_0 \spsubt \spteval_0
 %    }
 %
 %    \inferrule*{
-%      \sptype_0 \spsubt \sptype_1
+%      \spteval_0 \spsubt \spteval_1
 %      \\
-%      \sptype_1 \spsubt \sptype_2
+%      \spteval_1 \spsubt \spteval_2
 %    }{
-%      \sptype_0 \spsubt \sptype_2
+%      \spteval_0 \spsubt \spteval_2
 %    }
   \end{mathpar}
 
-  \fbox{$\sptype \spcompat \sptype$}
-  \begin{mathpar}
-    \inferrule*{
-      \sptype_0 \spsubt \sptype_1
-    }{
-      \sptype_0 \spcompat \sptype_1
-    }
-
-    \inferrule*{
-    }{
-      \sptype_0 \spcompat \sptdyn
-    }
-  \end{mathpar}
-
-  \fbox{$\sptype \spmatr \sptype$}
-  \begin{mathpar}
-    \inferrule*{
-    }{
-      \sptdyn \spmatr \sptype_0
-    }
-  \end{mathpar}
-
-  \caption{TBA Type Metafunctions}
-  \label{f:surface-to-eval-types}
+  \caption{Expression Typing, Consistent Subtyping, and Materialization}
+  \label{f:eval-types}
 \end{figure}
 
-\begin{table}
-  \caption{TBD Run-time checks}
-  \label{t:cast}
 
-  \(\begin{array}{l@{\quad}l}
-    \mbox{Eval. Type $\spteval$} & \mbox{Description of run-time check} \\\hline
-    \sptoptional{\spteval_0} & \mbox{Accepts either the none value or values that match $\spteval_0$} \\
-    \sptrawpydict & \mbox{Accepts any Python dictionary} \\
-    \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries with the same key and value types (${\spteval_0, \spteval_1}$)} \\
-    \sptdyn & \mbox{No check needed, accepts any value} \\
-    \sptobject & \mbox{Accepts any non-primitive value} \\  %% except primitives
-    \sptclass_0 & \mbox{Accepts instances of class $\sptclass_0$} \\
-    \sptnone & \mbox{Accepts the Python none value} \\
-    \sptint & \mbox{Accepts integers} \\
-    \sptbool & \mbox{Accepts booleans (\code{0} and \code{1})} \\
-    \sptfloat & \mbox{Accepts floats}
-  \end{array}\)
-\end{table}
+%\subsubsection{Program Typing, Inheritance Restriction}
+%
+%\Cref{f:program-typing} presents the typing judgment for programs,
+%which folds over a sequence of statements to build a type environment.
+%The typing rules for variables and functions are standard.
+%We draw attention to the rule for classes, in particular the override condition.
+%A class may override fields and methods from its parent;
+%if it does, the overriding definition must be a \emph{static subtype} of the original.
+%For example, a method that returns an integer can be overridden by a method that returns
+%a boolean, but it cannot be overriden by a method that returns the dynamic type.
+%This restriction lets the \SP{} compiler avoid some run-time checks; it can assume
+%that static methods return reliable values instead of having to insert checks for subtypes.
+%
+%\begin{figure}[t]
+%  \fbox{$\sptenv \wtprog \spprog \dashv \sptenv$}
+%  \begin{mathpar}
+%    \inferrule*{
+%      \sptenv_0 \wtprog \spstmt_0 \dashv \sptenv_1
+%      \\\\
+%      \sptenv_1 \wtprog \spprog_0 \dashv \sptenv_2
+%    }{
+%      \sptenv_0 \wtprog \spstmt_0, \spprog_0 \dashv \sptenv_2
+%    }
+%
+%    \inferrule*{
+%      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+%    }{
+%      \sptenv_0 \wtprog \spvardef{\spx_0}{\spteval_0}{\spexpr_0} \dashv \sptvardef{\spx_0}{\spteval_0},~\sptenv_0
+%    }
+%
+%    \inferrule*{
+%      \sptenv_1 = \sptfundef{\spf_0}{\spteval_0}{\spteval_1},~\sptenv_0
+%      \\\\
+%      \sptenv_1 \wtexpr \spexpr_0 : \spteval_1
+%    }{
+%      \sptenv_0 \wtprog \spfundef{\spf_0}{\spann{\spx_0}{\spteval_0}}{\spteval_1}{\spexpr_0} \dashv \sptenv_1
+%    }
+%
+%    \inferrule*{
+%      \sptenv_1 = \sptclassdef{\spc_0}{\spc_1}{\sptvardef{\spx_0}{\spteval_0}}{\sptfundef{\spf_1}{\spc_0, \spteval_1}{\spteval_2}}, \sptenv_0
+%      \\\\
+%      %% TODO are field overrides exact?
+%      \mbox{if $\spann{\spx_0}{\spteval_0'} \in \spenvapp{\sptenv_1}{\spc_1}$ then $\spteval_0 = \spteval_0'$}
+%      \\\\
+%      %% TODO can T override dyn?
+%      \mbox{if $\sptfundef{\spf_1}{\spc_2, \spteval_1'}{\spteval_2'} \in \spenvapp{\sptenv_1}{\spc_1}$ then $\spteval_1' \spsubteq \spteval_1$ and $\spteval_2 \spsubteq \spteval_2'$}
+%      \\\\
+%      \sptenv_1 \wtexpr \spvardef{\spexpr_0} : \spteval_0
+%      \\
+%      \spann{\spself}{\spc_0}, \spann{\spx_1}{\spteval_1}, \sptenv_1 \wtexpr \spexpr_1 : \spteval_2
+%    }{
+%      \sptenv_0 \wtprog \spclassdef{\spc_0}{\spc_1}{\spvardef{\spx_0}{\spteval_0}{\spexpr_0}}{\spfundef{\spf_1}{\spself, \spann{\spx_1}{\spteval_1}}{\spteval_2}{\spexpr_1}} \dashv \sptenv_1
+%    }
+%  \end{mathpar}
+%
+%  \caption{Program Typing}
+%  \label{f:program-typing}
+%\end{figure}
 
 
-\subsection{Properties}
+\subsection{Type Soundness}
 
-%% TODO 2021-12-29: Carl
-%% "full soundness" requires strict modules, means you can trust module toplevel
-%% hmph
+The central question for the model is whether \SP{}'s approach to gradual typing
+is sound.
+No matter how an expression mixes typed and untyped code, its static
+\emph{evaluation} type should be an accurate prediction about the results
+of evaluation.
+Using the metavariable $\spvalue$ to represent heap-allocated Python values
+and $\sprred$ as the evaluation relation (which would need to maintain a heap),
+an approximate soundness theorem is as follows:
 
 \begin{theorem}[Type Soundness]
-  If\ \(~\vdash \spexpr_0 : \sptype_0\)
+  If\ \(~\vdash \spexpr : \sptype\)
   then one of the following holds:
   \begin{itemize}
     \item
-      \(\spexpr_0 \sprred \spvalue_0
+      \(\spexpr \sprred \spvalue
         \mbox{ and }
-        \vdash \spvalue_0 : \mftypeF{\sptype_0}
+        \vdash \spvalue : \mftypeF{\sptype}
       \)
     \item
-      \(\spexpr_0\) diverges
+      \(\spexpr\) diverges
     \item
-      \(\spexpr_0 \sprred \sperror\)
+      \(\spexpr\) reduces to an allowed error
   \end{itemize}
 \end{theorem}
 
-\begin{theorem}[Optimization Soundness]
-  If\ \(~\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
-  then\ \(~\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
-\end{theorem}
+As mentioned above, our argument for soundness has two parts
+and the question at hand is whether the boundaries to type dynamic
+are adequately protected with run-time checks.
+The Redex model's comprehensive test suite provides the other half of the
+argument; namely, that \SP{} is a sound type system for Python.
+
+The direct path to boundary soundness involves two observations.
+First, every evaluation type can be enforced with a decidable cast.
+This is clearly the case for basic values such as floats.
+It true for parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$
+because of their strict semantics.
+Second, all boundaries relate the dynamic type to an evaluation type.
+There are no significant boundaries that relate a partially static type
+to an evaluation type.
+This is due to the strict semantics for checked types and the fact that
+$\sptoptional{\sptdyn}$ normalizes to the dynamic type.
+
+Alternatively, observe that the boundaries in \SP{} are a subset
+of the boundaries in Nom, a gradual language that comes with a detailed
+proof of soundness~\cite{mt-oopsla-2017,mt-oopsla-2021}.
+Given an \SP{} program, it is possible to derive a Nom program with
+the same type boundaries by replacing every checked dict instance
+with a fresh class type.
+Because different checked dict instantiations are incompatible with
+one another, the \SP{} boundaries impose the same constraints as the Nom
+boundaries.
+
+
+%\begin{theorem}[Optimization Soundness]
+%  If\ \(~\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
+%  then\ \(~\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
+%\end{theorem}
 
 %\begin{theorem}[Optimization Effectiveness]
 %  FILL how do we know optimizations are useful rather than trivial?
@@ -1391,23 +1618,15 @@ None of the omitted features give substantially new ways for typed code to inter
 %\end{theorem}
 
 
-\subsubsection{Informal Connection to Nom}
-
-\SP{} types restrict the use of Nom,
-thus model is kind of a restriction of Nom.
-
-So since Nom is sound for any sort of dyn mixing,
-and SP allows fewer mixings,
-and both Nom and SP do similar checks at boundaries,
-can begin to see how SP could be sound.
-
-Or perhaps mention this at the start.
-SP similar to Nom, similar checks, keep that in mind.
-
 
 \subsection{Redex Development, Navigation, Integration, Conformance Tests}
 
 FILL
+
+%% - count tests
+%% - summarize expressions
+%% - 
+%% - pbt?
 
 
 \subsection{Bug Reports}
@@ -1465,6 +1684,12 @@ to add soundness?
 FILL
 
 extend model with Python ... two languages ... boundaries ... argue for soundness
+
+
+\subsection{Bytecode, Optimization}
+\label{s:optimize}
+
+FILL
 
 
 \subsection{Dynamic Python Features}
@@ -1568,7 +1793,11 @@ we’ve done this it hasn’t required a major rewrite.
 \label{s:eval}
 %% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
 
-%% 2021-01-04 TODO have no evidence that "any module" typing works out ... team
+%% 2022-01-05 TODO We are currently JITting at least some functions in 873
+%% modules, but we are about to increase this by about an order of magnitude,
+%% independent of Static Python.
+
+%% 2022-01-04 TODO have no evidence that "any module" typing works out ... team
 %% tried hard to get network effects ... "We explicitly aimed for converting
 %% related modules like this to improve network effects and get better
 %% performance."
