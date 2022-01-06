@@ -203,6 +203,14 @@
    (call-function (lambda (x ...) (begin) (local (x ...) s-))
                   (e- ...))])
 
+(define-judgment-form SP-compiled
+  #:mode (compileo I O)
+  #:contract (compileo program+ program-)
+  [(where program- ,(with-handlers ([exn:fail (λ (e) (void))])
+                      (term (compile-program (desugar-program program+)))))
+   ------------------------------------
+   (compileo program+ program-)])
+
 (define-metafunction SP-compiled
   lookup-Ψ : Ψ class-l -> (class l*+dynamic Γ ρ Γ)
   ;; Find the meaning of a class by its cid
@@ -301,6 +309,7 @@
    (class ("object")
      (["__init__" dynamic]
       ["__eq__" (-> (dynamic) (subof "bool"))]
+      ["__mul__" (-> (dynamic) dynamic)]
       ["__len__" (-> () (subof "int"))]
       ["__iter__" (-> () dynamic)]
       ["__getitem__" (-> (dynamic) dynamic)]
@@ -308,6 +317,7 @@
       ["append" (-> (dynamic) (subof "list"))])
      (["__init__" (method "list" "__init__")]
       ["__eq__" (method "list" "__eq__")]
+      ["__mul__" (method "list" "__mul__")]
       ["__len__" (method "list" "__len__")]
       ["__iter__" (method "list" "__iter__")]
       ["__getitem__" (method "list" "__getitem__")]
@@ -399,9 +409,11 @@
    (class ("object")
      (["__init__" (-> (dynamic) dynamic)]
       ["__eq__" (-> (dynamic) (subof "bool"))]
+      ["__mul__" (-> (dynamic) dynamic)]
       ["__getitem__" (-> (dynamic) dynamic)])
      (["__init__" (method "tuple" "__init__")]
       ["__eq__" (method "tuple" "__eq__")]
+      ["__mul__" (method "tuple" "__mul__")]
       ["__getitem__" (method "tuple" "__getitem__")])
      ())])
 
