@@ -16,7 +16,7 @@
 %% - what are the idiomatic base SP types ... int or Int ?
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
 %% - use ChkDict not ChkList ... avoid confusion
-%% - is \sqle _consistent_ or _compatible_ subtyping?
+%% - do the LESSONS from SP come across clearly? beware making this a "progress report"
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -72,6 +72,7 @@
 \newcommand{\spsubt}{\mathrel{<:}}
 \newcommand{\spsubteq}{\mathrel{\leq:}}
 \newcommand{\spcompat}{\sqsubseteq}
+\newcommand{\spconsist}{\spcompat}
 \newcommand{\spmatr}{\prec}
 \newcommand{\spvardef}[3]{\sptvardef{#1}{#2} = #3}
 \newcommand{\spfundef}[4]{\mathrm{def}~\spapp{#1}{#2}\code{ -> }#3: #4}
@@ -1839,12 +1840,12 @@ The Instagram web server has been running \SP{} in production since April 2021.
 Overall, the results are very encouraging.
 Instagram's internal profiling tools, which continuously monitor
 performance, attribute a 3.7\% improvement in global CPU to \SP{} conversions.
-\cref{t:prod-stat} reports a few other production statistics.
+\Cref{t:prod-stat} reports a few other production statistics.
 Over 500 modules have been converted thus far.
 None of the converted modules have gotten slower because of \SP{}
 
 
-\subsection{The Migration Path}
+\subsection{Migration Path}
 
 \SP{} first entered the Instagram web server as a replacement for Cython,
 which Instagram had been using to speed up critical modules.
@@ -1870,13 +1871,23 @@ Often, the types came with small code changes.
 The accepted types and changes resulted in a 1\% improvement
 in global CPU usage.
 During the second half of 2021, the \SP{} team applied the same
-process at a larger scale by incorporating a tool that drafts
-initial type annotations.
-These changes resulted in a 2\% global CPU improvement.
+process at a larger scale.
+They also changed a code-generating module to output \SP{} code instead
+of untyped Python code;
+this one change brought over four hundred generated modules into the \SP{} fold.
+Overall, these changes resulted in a 2\% global CPU improvement.
 
-As of December 2021, the \SP{} team has converted 530 modules.
-Most of these came from the annotation tool (400); the rest
-are from hand conversions.
+As of December 2021, the \SP{} team has converted 541 modules.
+Most of these came from the tool (417); the rest
+are from hand conversions (124).
+These modules are well-mixed with untyped modules in the codebase.
+All together, over thirty thousand identifiers cross a type boundary
+at compile-time by either entering or leaving a \SP{} module.
+Two-thirds of these crossings are exports from \SP{} modules
+to untyped modules;
+in other words, the typed identifiers are widely used throughout the Instagram web server.
+%% data in src/static-python-imports-analysis
+
 In a typical week, the team adds types to four additional modules.
 These modules have seen speedups ranging from 0\% to 25\% depending
 on their nature.
@@ -1886,6 +1897,7 @@ without code changes.
 %% - rough measure: 0 to 25% per module
 %%   ... but depends on nature of module
 %%   ... doesn't measure the cooperative effect of static-to-static cross-module calls
+%% 2022-01-06 FILL team did significant work to fight regressions
 
 
 \subsection{Analyzing Code Changes}
@@ -2145,6 +2157,8 @@ or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
 \section{Conclusion / Lessons / Design Principles}
 \label{s:conclusion}
+
+%% 2022-01-06 TODO multiple dimensions of gradual
 
 \subsection{Nominal, Checked Types}
 \label{s:concrete-migration}
