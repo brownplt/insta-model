@@ -971,7 +971,7 @@ Strict modules are immutable, and thus enable type-based compiler optimizations.
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
-%% 2022-01-04 argument = nom soundness -> sp model sound -> sp sound via conformance equivalence
+%% 2022-01-06 TODO subtyping for classes C ... matters for casts at least
 %% 2022-01-04 KC will look into pbt for nom properties (I don't think there's much to see there!)
 
 %% TODO 2022-01-04 (somewhere) explain that a verified compiler is an entirely separate project,
@@ -1252,10 +1252,9 @@ A typed function may be applied an argument that matches its domain type,
 in which case it computes a value that matches its codomain type.
 A dynamically-typed variable may be applied to any input (that matches the top
 type $\sptobject$) to yield a dynamically-typed result.
-The next rules illustrate reads from Python dictionaries and checked dictionaries.
-A Python dict may be deferenced by any value; the read promises a dynamically-typed result.
-By contrast, a checked dict requires an index value that matches its type
-and promises a typed result.
+The next rules illustrate writes to Python dictionaries and checked dictionaries.
+A Python dict may be updated with any kind of key and value.
+By contrast, a checked dict requires keys and values that match its type parameters.
 Next we have two rules for classes:
 \trule{F-Set} says that writes to a class field must match the declared field
 type; and \trule{M-App} shows that typed methods impose similar constraints as
@@ -1337,55 +1336,55 @@ of these checks.
     \inferrule*[left=S-App]{
       \sptfundef{\spf_0}{\spteval_0}{\spteval_1} \in \sptenv_0
       \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
     }{
-      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \spteval_1
+      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_0} : \spteval_1
     }
 
     \inferrule*[left=D-App]{
       \sptvardef{\spf_0}{\sptdyn} \in \sptenv_0
       \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+      \sptenv_0 \wtexpr \spexpr_0 : \sptobject
     }{
-      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_1} : \sptdyn
+      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_0} : \sptdyn
     }
 
-    \inferrule*[left=PD-Ref]{
+    %% TODO show dict read rules?
+%    \inferrule*[left=PD-Ref]{
+%      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
+%      \\\\
+%      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+%    }{
+%      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
+%    }
+%
+%    \inferrule*[left=CD-Ref]{
+%      \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
+%      \\\\
+%      \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+%    }{
+%      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \spteval_1
+%    }
+
+    \inferrule*[lab=PD-Set]{
       \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
       \\\\
       \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_2 : \sptobject
     }{
-      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
+      \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
     }
 
-    \inferrule*[left=CD-Ref]{
+    \inferrule*[lab=CD-Set]{
       \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
       \\\\
       \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+      \\\\
+      \sptenv_0 \wtexpr \spexpr_2 : \spteval_1
     }{
-      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \spteval_1
+      \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
     }
-
-    %% TODO show dict write rules?
-    %\inferrule*[left=PD-Set]{
-    %  \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
-    %  \\\\
-    %  \sptenv_0 \wtexpr \spexpr_1 : \sptobject
-    %  \\\\
-    %  \sptenv_0 \wtexpr \spexpr_2 : \sptobject
-    %}{
-    %  \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
-    %}
-    %
-    %\inferrule*[left=CD-Set]{
-    %  \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
-    %  \\\\
-    %  \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
-    %  \\\\
-    %  \sptenv_0 \wtexpr \spexpr_2 : \spteval_1
-    %}{
-    %  \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1} : \sptnone
-    %}
 
     %\inferrule*[left=F-Ref]{
     %  \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv_0}{\spc_0}
