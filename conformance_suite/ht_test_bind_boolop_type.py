@@ -12,12 +12,18 @@ class C:
         return self.f() and self.g()
     def y(self) -> bool:
         return self.f() or self.g()
-def main(C):
+
+# We edited the next line because we don't support first-class classes
+# def main(C):
+def main():
     c = C()
     assert c.x() == False
     assert c.y() == True
 
-main(C)
+# We edited the next line because we don't support first-class classes
+# main(C)
+main()
+
 # def test_bind_boolop_type(self):
 #     codestr = """
 #         from typing import Any

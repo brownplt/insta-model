@@ -7,10 +7,16 @@ class C(Exception):
         return 42
     def g(self):
         return self.f()
-def main(C):
+
+# We edited the next line because we don't support first-class classes
+# def main(C):
+def main():
     assert C().g() == 42
 
-main(C)
+# We edited the next line because we don't support first-class classes
+# main(C)
+main()
+
 # def test_invoke_method_non_static_base(self):
 #     codestr = """
 #     class C(Exception):

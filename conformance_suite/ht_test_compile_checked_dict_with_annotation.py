@@ -7,10 +7,14 @@ class B: pass
 def testfunc():
     x: CheckedDict[B, int] = {B():42}
     return x
-def main(test, B):
+# The next line is edited because we don't support first-class classes.
+# def main(test, B):
+def main(test):
     assert type(test()) == CheckedDict[B, int]
 
-main(testfunc, B)
+# The next line is edited because we don't support first-class classes.
+# main(testfunc, B)
+main(testfunc)
 # def test_compile_checked_dict_with_annotation(self):
 #     codestr = """
 #         from __static__ import CheckedDict

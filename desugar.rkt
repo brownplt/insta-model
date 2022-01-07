@@ -325,7 +325,7 @@
   [(desugar-s (return e+))
    (return (desugar-e e+))]
   [(desugar-s (assert e+))
-   (if (desugar-e e+) (begin) (raise (call (ref "Exception") ((con "assertion error")))))]
+   (if (desugar-e e+) (begin) (raise (call (ref "AssertionError") ())))]
   [(desugar-s (if e+ (s+_thn ...) (s+_els ...)))
    (if (desugar-e e+)
        (make-begin (desugar-s s+_thn) ...)

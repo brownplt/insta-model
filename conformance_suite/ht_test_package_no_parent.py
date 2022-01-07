@@ -5,10 +5,16 @@
 class C:
     def f(self):
         return 42
-def main(C):
+
+# We edited the next line because we don't support first-class classes
+# def main(C):
+def main():
     assert C().f() == 42
 
-main(C)
+# We edited the next line because we don't support first-class classes
+# main(C)
+main()
+
 # def test_package_no_parent(self):
 #     codestr = """
 #         class C:
