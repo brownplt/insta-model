@@ -1185,7 +1185,7 @@
                                (assert (con #t))))
               (term (if (ref (con #t))
                         (begin)
-                        (raise (new "Exception" ((con "assertion error")))))))
+                        (raise (new "AssertionError" ())))))
   ;; begin
   (test-equal (term (compile-s (base-Ψ) (prim-Γ) (prim-Γ) ☠
                                (begin (expr "int") (expr "bool"))))
@@ -1373,7 +1373,7 @@
 (define-metafunction SP-compiled
   make-assert-k : e- s- -> s-
   [(make-assert-k e- s-)
-   (if e- s- (raise (new "Exception" ((con "assertion error")))))])
+   (if e- s- (raise (new "AssertionError" ())))])
 (define-metafunction SP-compiled
   compile-m : Ψ Γ x m -> [boolean x T s-]
   ;; declare-only member can be either a ClassVar

@@ -4,15 +4,18 @@
 
 from typing import Optional
 class B:
-    # EDIT: We changed the next line.
+    # We edited the next line.
     # def f(self) -> "Optional[B]":
-    def f(self) -> Optional[B]:
+    def f(self) -> Optional["B"]:
         return self
 class D(B):
     pass
 def f(x: B):
     return x.f()
-def main(B, D, f):
+
+# We edited the next line because we don't support first-class classes.
+# def main(B, D, f):
+def main(f):
     b = B()
     d = D()
     assert f(b) == b
@@ -21,7 +24,10 @@ def main(B, D, f):
     assert f(b) == b
     assert f(d) == None
 
-main(B, D, f)
+# We edited the next line because we don't support first-class classes.
+# main(B, D, f)
+main(f)
+
 # def test_override_override_inherited(self):
 #     codestr = """
 #     from typing import Optional

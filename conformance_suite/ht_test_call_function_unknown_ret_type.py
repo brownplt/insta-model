@@ -1,11 +1,12 @@
-# test_call_function_unknown_ret_type.py
+# ht_test_call_function_unknown_ret_type.py
 # This should pass.
 # This should terminate.
+
+from __future__ import annotations
 
 # EDIT: import Any and use it in place of `foo`
 from typing import Any
 
-from __future__ import annotations
 # EDIT: use `Any` in place of `foo`
 def g() -> Any:
     return 42
