@@ -347,7 +347,10 @@
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))))))
 
 ;; conformance_suite/ht_test_method_prologue_shadowcode.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 100))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))))))
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 2))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))))))
+
+;; conformance_suite/ht_test_method_prologue_shadowcode_2.py
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 10))) ((assert (compare (call "f" ((con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))))))
 
 ;; conformance_suite/ht_test_override_override_inherited.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "B" () ((function-def "f" (("self" dynamic)) (subscript "Optional" "B") ((return "self"))))) (class "D" ("B") (pass)) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (function-def "main" (("B" dynamic) ("D" dynamic) ("f" dynamic)) dynamic ((assign ("b") (call "B" ())) (assign ("d") (call "D" ())) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== "d")))) (assign ((attribute "D" "f")) (lambda (("self" dynamic)) (con None))) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== (con None))))))) (expr (call "main" ("B" "D" "f"))))))))))
@@ -726,6 +729,9 @@
 
 ;; conformance_suite/test_compile_checked_dict_with_annotation_wrong_value_type.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (dict (((call "B" ()) (con "hi"))))) (return "x")))))))))
+
+;; conformance_suite/test_compile_dict_get_typed.py
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 42) (con "abc"))))))) (ann-assign "y" (bin-op bit-or "str" (con None)) (call (attribute "x" "get") ((con 42)))))))))))))
 
 ;; conformance_suite/test_compile_dict_setdefault.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ((dict (((con 42) (con "abc"))))))) (expr (call (attribute "x" "setdefault") ((con 100) (con 43))))))))))))

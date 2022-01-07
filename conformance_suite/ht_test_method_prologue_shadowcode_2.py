@@ -5,8 +5,9 @@
 def f(x: str):
     return 42
 def main(f):
-    for i in range(100):
-    self.assertEqual(f('abc'), 42)
+    # EDIT: we changed the next line to reduce 100 to 10
+    for i in range(10):
+        assert f('abc') == 42
     try:
         f(42)
     except TypeError:
