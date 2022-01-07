@@ -246,6 +246,9 @@
 ;; conformance_suite/ht_test_seq_repeat_inexact_num.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (assert (compare (call "f" ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (class "MyInt" ("int") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyInt" ((con 2))))) ((== (con "RESULT")))))))))))))
 
+;; conformance_suite/ht_test_seq_repeat_inexact_tuple.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (assert (compare (call "f" ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (class "MyTuple" ("tuple") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT")))))))))))))
+
 ;; conformance_suite/ht_test_typed_field_deleted_attr.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((assign ((attribute "self" "x")) "value"))))) (assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
 
@@ -503,15 +506,6 @@
 
 ;; conformance_suite/test_ret_type_cast.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Any")) (function-def "testfunc" (("x" "str") ("y" "str")) "bool" ((return (compare "x" ((== "y")))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con #t))))))) (expr (call "main" ("testfunc")))))))))))
-
-;; conformance_suite/test_seq_repeat_inexact_list.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))) (function-def "main" () dynamic ((assert (compare (call "f" ((list ((con 1) (con 2))))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (class "MyList" ("list") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyList" ((list ((con 1) (con 2))))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))))))
-
-;; conformance_suite/test_seq_repeat_inexact_num.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (function-def "main" () dynamic ((assert (compare (call "f" ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (class "MyInt" ("int") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyInt" ((con 2))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))))))
-
-;; conformance_suite/test_seq_repeat_inexact_tuple.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (assert (compare (call "f" ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (class "MyTuple" ("tuple") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT")))))))))))))
 
 ;; conformance_suite/test_seq_repeat_list.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * "l" (con 2))))) (function-def "main" () dynamic ((assert (compare (call "f" ()) ((== (list ((con 1) (con 2) (con 1) (con 2))))))))) (expr (call "main" ()))))))))))
