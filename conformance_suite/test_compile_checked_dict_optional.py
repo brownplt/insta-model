@@ -12,7 +12,7 @@ def testfunc():
     return x
 f = testfunc
 x = f()
-x["z"] = None
+x['z'] = None
 assert type(x) == CheckedDict[str, str | None]
 
 # def test_compile_checked_dict_optional(self):

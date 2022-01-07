@@ -7,9 +7,9 @@ def f(t: Tuple[int]):
     return t * 2
 assert f((1, 2)) == (1, 2, 1, 2)
 class MyTuple(tuple):
-    def __mul__(self, other):
-        return "RESULT"
 
+    def __mul__(self, other):
+        return 'RESULT'
 assert f(MyTuple((1, 2))) == 'RESULT'
 
 # def test_seq_repeat_inexact_tuple(self):

@@ -1,4 +1,4 @@
-# test_compile_checked_dict_shadowcode.py
+# ht_test_compile_checked_dict_shadowcode.py
 # This should pass.
 # This should terminate.
 
@@ -10,7 +10,7 @@ def testfunc():
     return x
 test = testfunc
 for i in range(200):
-    self.assertEqual(type(test()), chkdict[B, int])
+    assert type(test()) == CheckedDict[B, int]
 
 # def test_compile_checked_dict_shadowcode(self):
 #     codestr = """

@@ -7,8 +7,9 @@ def f(l: List[int]):
     return l * 2
 assert f([1, 2]) == [1, 2, 1, 2]
 class MyList(list):
+
     def __mul__(self, other):
-        return "RESULT"
+        return 'RESULT'
 assert f(MyList([1, 2])) == 'RESULT'
 
 # def test_seq_repeat_inexact_list(self):

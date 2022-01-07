@@ -1,8 +1,16 @@
 # test_method_prologue.py
 # This should pass.
+# This should terminate.
 
 def f(x: str):
     return 42
+try:
+    f(42)
+except TypeError:
+    pass
+else:
+    raise Exception()
+
 # def test_method_prologue(self):
 #     codestr = """
 #     def f(x: str):

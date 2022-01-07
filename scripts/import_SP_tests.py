@@ -33,6 +33,7 @@ ban_anywhere_in_test = [
     'int64',
     'box',
     'cbool',
+    'ssize_t',
     'Array',
     # Rest arguments
     '*args',
@@ -61,6 +62,8 @@ ban_anywhere_in_test = [
     'decorator',
     # methods that are too specific
     'with_traceback',
+    # features that we don't care
+    'sys.modules'
 
     # These test uses an unbound identifier
     'test_if_else_optional_return_two_branches',
@@ -369,41 +372,174 @@ def split_items(matched_string):
     e1, e2 = m.body[0].value.elts
     return ast.unparse(e1), ast.unparse(e2)
 
+def parse_asserts(spec):
+    actions = []
+    def preprocess(e: str):
+        e = e.replace('chkdict', 'CheckedDict')
+        e = e.replace('mod.', '')
+        return e
+    def rec(node):
+        if isinstance(node, list):
+            for x in node:
+                rec(x)
+            return
+        if isinstance(node, ast.Assign):
+            return
+        if isinstance(node, ast.Expr):
+            rec(node.value)
+            return
+        if isinstance(node, ast.Call):
+            node_as_str = ast.unparse(node)
+            if node_as_str.startswith('self.assertInBytecode'):
+                return
+            if node_as_str.startswith('self.assertNotInBytecode'):
+                return
+        if isinstance(node, ast.With):
+            node_as_str = ast.unparse(node)
+            if node_as_str.split('\n')[0].endswith('as mod:'):
+                for s_as_stmt in node.body:
+                    s_as_str = ast.unparse(s_as_stmt)
+                    if s_as_str.startswith('self.assertTrue'):
+                        continue
+                    if s_as_str.startswith('self.assertFalse'):
+                        continue
+                    if s_as_str.startswith('self.assert_jitted'):
+                        continue
+                    if s_as_str.startswith('self.assert_not_jitted'):
+                        continue
+                    if s_as_str.startswith('self.assertInBytecode'):
+                        continue
+                    if s_as_str.startswith('self.assertNotInBytecode'):
+                        continue
+                    if s_as_str.startswith('if cinderjit'):
+                        continue
+                    if s_as_str.startswith('self.assertEqual'):
+                        assert isinstance(s_as_stmt, ast.Expr)
+                        value = s_as_stmt.value
+                        assert isinstance(value, ast.Call)
+                        lft = ast.unparse(value.args[0])
+                        rht = ast.unparse(value.args[1])
+                        actions.append("assert {} == {}".format(preprocess(lft), preprocess(rht)))
+                        continue
+                    if isinstance(s_as_stmt, ast.Assign):
+                        targets = s_as_stmt.targets
+                        assert len(targets) == 1
+                        target = ast.unparse(targets[0])
+                        source = preprocess(ast.unparse(s_as_stmt.value))
+                        if target != source:
+                            actions.append("{} = {}".format( target, preprocess(source)))
+                        continue
+                    if isinstance(s_as_stmt, ast.ClassDef):
+                        actions.append(s_as_str)
+                        continue
+                    if isinstance(s_as_stmt, ast.Expr):
+                        actions.append(s_as_str)
+                        continue
+                    if isinstance(s_as_stmt, ast.For):
+                        actions.append(s_as_str)
+                        continue
+                    if s_as_str.startswith('with self.assertRaises('):
+                        assert isinstance(s_as_stmt, ast.With)
+                        assert len(s_as_stmt.items) == 1
+                        item = s_as_stmt.items[0]
+                        context_expr = item.context_expr
+                        assert isinstance(context_expr, ast.Call)
+                        args = context_expr.args
+                        arg0_as_node = args[0]
+                        arg0_as_str: str = ast.unparse(arg0_as_node)
+                        if arg0_as_str in {'AssertionError', 'TypeError'}:
+                            body = s_as_stmt.body
+                            assert len(body) == 1
+                            s = ast.unparse(body[0])
+                            actions.append('\n'.join([
+                                'try:',
+                                '    {}'.format(s),
+                                'except {}:'.format(arg0_as_str),
+                                '    pass',
+                                'else:',
+                                '    raise Exception()'
+                            ]))
+                            continue
+                    if s_as_str.startswith('with self.assertRaisesRegex('):
+                        assert isinstance(s_as_stmt, ast.With)
+                        assert len(s_as_stmt.items) == 1
+                        item = s_as_stmt.items[0]
+                        context_expr = item.context_expr
+                        assert isinstance(context_expr, ast.Call)
+                        args = context_expr.args
+                        arg0_as_node = args[0]
+                        arg0_as_str: str = ast.unparse(arg0_as_node)
+                        if arg0_as_str.startswith('TypeError'):
+                            body = s_as_stmt.body
+                            assert len(body) == 1
+                            s = ast.unparse(body[0])
+                            actions.append('\n'.join([
+                                'try:',
+                                '    {}'.format(s),
+                                'except TypeError:',
+                                '    pass',
+                                'else:',
+                                '    raise Exception()'
+                            ]))
+                            continue
+                    print("#1 ")
+                    print(s_as_str)
+                    print(s_as_stmt)
+                    exit(1)
+                return
+                    
+        print(ast.unparse(node))
+        print(node)
+        exit(1)
+    
+    try:
+        rec(spec)
+    except Exception as e:
+        print(e)
+        exit(1)
+    
+    if all(isinstance(s, str) for s in actions):
+        return '\n'.join(actions) + '\n'
+    else:
+        print(actions)
+        exit(1)
+
+
 def translate_all_assert_tests(name, test):
     code, spec = parse_simple_test(test)
     # Capture tests that have some assertEqual/assertRaise ... (TODO)
     asserts = [
         'assertEqual',
+        'assertRaises'
     ]
     assert any(word in test for word in asserts)
-    
-    assertions = {
-        'assertEqual': []
-    }
 
-    if 'f = mod.testfunc' in test:
-        code += '\n' + 'f = testfunc'
-    if 'test = mod.testfunc' in test:
-        code += '\n' + 'test = testfunc'
-    if 'f = mod.func' in test:
-        code += '\n' + 'f = func'
-    if 'c = C()' in test:
-        code += '\n' + 'c = C()'
+    # if 'f = mod.testfunc' in test:
+    #     code += '\n' + 'f = testfunc'
+    # if 'test = mod.testfunc' in test:
+    #     code += '\n' + 'test = testfunc'
+    # if 'f = mod.func' in test:
+    #     code += '\n' + 'f = func'
+    # if 'c = C()' in test:
+    #     code += '\n' + 'c = C()'
 
-    import re
-    pattern = 'self\\.assertEqual\\((.*)\\)\n'
-    assertEqual_matches = re.findall(pattern, test)
-    for matched_string in assertEqual_matches:
-        matched_string: str = matched_string.replace('chkdict', 'CheckedDict')
-        try:
-            lft_e, rht_e = split_items(matched_string)
-            if lft_e.startswith('mod.'):
-                lft_e = lft_e[len('mod.'):]
-            code += '\n' + 'assert {} == {}'.format(lft_e, rht_e)
-        except Exception:
-            code += '\n' + '# self.assertEqual({})'.format(matched_string)
+    # import re
+    # pattern = 'self\\.assertEqual\\((.*)\\)\n'
+    # assertEqual_matches = re.findall(pattern, test)
+    # for matched_string in assertEqual_matches:
+    #     matched_string: str = matched_string.replace('chkdict', 'CheckedDict')
+    #     try:
+    #         lft_e, rht_e = split_items(matched_string)
+    #         if lft_e.startswith('mod.'):
+    #             lft_e = lft_e[len('mod.'):]
+    #         code += '\n' + 'assert {} == {}'.format(lft_e, rht_e)
+    #     except Exception:
+    #         code += '\n' + '# self.assertEqual({})'.format(matched_string)
 
-    code += '\n'
+    # code += '\n'
+
+    actions = parse_asserts(spec)
+    # actions = ""
     
     content = '\n'.join([
         '# {}.py'.format(name),
@@ -411,7 +547,7 @@ def translate_all_assert_tests(name, test):
         '# This should terminate.',
         '',
         ''
-    ]) + code
+    ]) + code + '\n' + actions
 
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
@@ -424,6 +560,9 @@ def translate_optimization_test(name, test):
     #         ...
     #         assertInByteCode/assertNotInByteCode/assertTrue/assertFalse
     #         ...
+    # Translate all these test to compilation test.
+    # We don't claim that we perform the same optimizations, but at least those
+    # programs type check.
 
     asserts = [
         'assertInBytecode',
@@ -488,8 +627,7 @@ def main():
         for word in skip_anywhere_in_test:
             if word in test:
                 skipped = True
-                record_skipped_test(
-                    name, test, "Hitted a skipped word ({})".format(word))
+                # record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
                 break
         if skipped:
             continue
