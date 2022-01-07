@@ -1,6 +1,4 @@
-typical: python_test_to_redex_test
-
-everything: import
+everything: import python_test_to_redex_test
 
 import:
 	rm -f ./skipped_tests/*

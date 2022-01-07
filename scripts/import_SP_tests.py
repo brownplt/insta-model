@@ -17,17 +17,15 @@ skipped_tests_path_prefix = "./skipped_tests/"
 cannot_parse_path_prefix = "./cannot_parse/"
 # Ignore a test if it contains one of the following word
 ban_anywhere_in_test = [
-    # float are fairly broken
-    #   it is not a super class of int
+    # We don't model floats.
+    #   float are fairly broken. it is not a super class of int
     #   many systems consider float a super type, but in fact it is not
     #   because .is_integer is not in int.
     'float',
-    # Weird python scope
+    # We don't model Python's weird scoping rules.
     'nonlocal',
     'global',
-    # Not useful for our purposes
-    '...',
-    # C types
+    # We don't model C types.
     'double',
     'int8',
     'int32',
@@ -36,7 +34,7 @@ ban_anywhere_in_test = [
     'cbool',
     'ssize_t',
     'Array',
-    # Rest arguments
+    # We don't model complicated argument specifications.
     '*args',
     'stararg',
     'default_arg',
@@ -44,90 +42,96 @@ ban_anywhere_in_test = [
     '_kw',
     'mixed_args',
     'vararg',
-    # async_method
+    #   These tests uses keyword argument
+    'test_compile_checked_dict_from_dict_call',
+    'test_inline_bare_return',
+    'test_inline_func_default',
+    'test_compile_checked_dict_bad_annotation',
+    #   These tests uses default argument
+    'test_verify_lambda_keyword_only',
+    'test_default_type_error',
+    'test_check_args_4',
+    'test_check_args_5',
+    # We don't model asynchronized methods.
     'await',
     'async',
-    # Byte string
+    # We don't model byte strings.
     'b"',
     "b'",
-    # format string
+    # We don't model format strings.
     'f"',
     "f'",
-    # Not even implemented in SP
+    # We don't model features that are not even implemented in Static Python
     "@skipIf(True, \"this isn't implemented yet\")",
-    # more powerful features.
-    'NamedTuple',
-    # ban nested classes
+    # We don't model nested classes.
+    #   The SP team wants to ban them too.
     'nested_class',
-    # ban decorator
+    # We don't model decorators
     'decorator',
-    # methods that are too specific
+    # We don't model list/dict/tuple/generator comprehensions.
+    '_comprehension',
+    '_comprehension_',
+    '_comprehensions_',
+    'test_compile_checked_dict_wrong_unknown_type', # dict
+    'test_for_iter_list(',  # list
+    'test_for_iter_sequence_orelse(',  # list
+    'test_for_iter_sequence_return(',  # list
+    'test_nested_for_iter_sequence(',  # list
+    'test_nested_for_iter_sequence_return(',  # list
+    'test_for_iter_tuple(',  # list
+    # We don't model memory management.
+    'test_max_stability',
+    'test_min_stability',
+    '__del__',
+    # We don't model function types that include argument names.
+    'test_incompat_override_method_arg_name',
+    # We don't model code flag.
+    'test_code_flags',
+
+    # We don't model this special case of redeclaration.
+    #   Redeclaration is generally banned. We don't want to allow this
+    #   special case.
+    'test_assign_try_except_typing_redeclared_after',
+
+    # We don't model slicing syntax.
+    'test_for_iter_list_modified(',
+
+    # We don't model constants.
+    'Final',
+    'Final[',
+
+    # We don't model finalized classes.
+    '@final',
+
+    # We don't model break and continue.
+    #   The challenges lie in the occurrance typing, not at runtime.
+    #   Our runtime does support break and continue. In fact, we desugar for-loops
+    #   to while-loops that involve break and continue.
+    'break', 'continue',
+
+    # We don't model these things as well.
+    '...',
+    'NamedTuple',
     'with_traceback',
-    # features that we don't care
     'sys.modules',
+    'Protocol',
+    'prod_assert',
+    'sorted',
+    'from __static__.compiler_flags import shadow_frame',
+    '__setattr__',
+    '__slots__',
+    'reveal_type',
+    'xxclassloader',
+    'weakref',
+    '@_donotcompile',
+
     # This test inherite static class in a dynamic module,
     #   which is impossible to simulate in a static module without
     #   nested classes. We banned nested classes.
     'test_override_bad_ret',
 
-    # These test uses an unbound identifier
-    'test_if_else_optional_return_two_branches',
-    'test_assign_try_except_redeclare_unknown_type',
-    'test_untyped_attr',
-    'test_assign_num_to_dynamic',
-    'test_assign_dynamic_to_dynamic',
-    'test_verify_arg_unknown_type',
-    'test_override_override_inherited',
-
-    # These test uses keyword argument
-    'test_compile_checked_dict_from_dict_call',
-    'test_inline_bare_return',
-    'test_inline_func_default',
-    'test_compile_checked_dict_bad_annotation',
-
-    # This test uses default argument
-    'test_verify_lambda_keyword_only',
-    'test_default_type_error',
-    'test_check_args_4',
-    'test_check_args_5',
-
-    # This test uses dict comprehension.
-    'test_compile_checked_dict_wrong_unknown_type',
-
-    # This test uses string literal to write Optional type...
-    'test_call_function_unknown_ret_type',
-
-    # We don't support this.
-    'test_incompat_override_method_arg_name',
-
-    # The scope is funny
-    'test_assign_try_except_typing_redeclared_after',
-
-    # This test is bad
+    # These tests are wrong. So our model don't support them.
     'test_break_condition',
-
-    # fancy argment spec
-    'test_method_prologue_posonly', 'test_check_args_6', 'test_check_args_7',
-
-    # code flag
-    'test_code_flags',
-
-    # memory address
-    'test_max_stability',
-    'test_min_stability',
-
-    # We don't model GC
-    '__del__',
-
-    # These tests have been hand-translated.
-    'test_checked_dict',
-    'test_compile_dict_get',
-    'test_compile_method',
-    'test_error_incompat_return',
-    'test_strict_module_isinstance',
-    'test_typed_field_deleted_attr',
-    'test_verify_arg_dynamic_type',
-    'test_widen_to_dynamic'
 ]
 
 import glob, re
@@ -136,32 +140,9 @@ hand_translated_tests = glob.glob('{}*'.format(hand_translated_prefix))
 hand_translated_tests = [ s[len(hand_translated_prefix):-3] for s in hand_translated_tests ]
 
 skip_anywhere_in_test = hand_translated_tests + [
+    # We don't model static methods. 
     '@staticmethod',
-    'break', 'continue',
-    '@final',
-    'Final',
-    'Final[',
-    'Protocol',
-    'prod_assert',
     '@property',
-    '__static__.compiler_flags',
-    '__setattr__',
-    '__slots__',
-    'reveal_type',
-    'test_sorted',  # also for-loop
-    'test_for_iter_list_modified(',  # slicing
-    'test_for_iter_list(',  # list comprehension
-    'test_for_iter_sequence_orelse(',  # list comprehension
-    'test_for_iter_sequence_return(',  # list comprehension
-    'test_nested_for_iter_sequence(',  # list comprehension
-    'test_nested_for_iter_sequence_return(',  # list comprehension
-    'test_for_iter_tuple(',  # list comprehension
-    'xxclassloader',
-    'weakref',
-    '@_donotcompile',
-    '_comprehension',
-    '_comprehension_',
-    '_comprehensions_',
 ]
 
 def read_tests(file_path):
@@ -257,7 +238,7 @@ def parse_simple_test(test):
     return code, spec
 
 
-def translate_simple_compile_test(name, test):
+def translate_simple_pass_compile_test(name, test):
     # This group is good. It only translates compilation tests.
     # And we keep all information about compilation tests.
     code, spec = parse_simple_test(test)
@@ -277,23 +258,28 @@ def translate_simple_compile_test(name, test):
         '    code = self.compile(codestr, modname="foo")',
         ''
     ])
-    fail_spec = '\n'.join([
-        '',
-        '    with self.assertRaises(TypedSyntaxError):',
-        '        self.compile(codestr, modname="foo")',
-        ''
-    ])
-    if test.endswith(fail_spec):
-        content = '\n'.join([
-            '# {}.py'.format(name),
-            '# This should fail.',
-            '',
-            ''
-        ]) + code
-    elif test.endswith(pass_spec1) or test.endswith(pass_spec2) or test.endswith(pass_spec3):
+    if test.endswith(pass_spec1) or test.endswith(pass_spec2) or test.endswith(pass_spec3):
         content = '\n'.join([
             '# {}.py'.format(name),
             '# This should pass.',
+            '',
+            ''
+        ]) + code
+    else:
+        assert False
+
+    commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
+    content += commented_src + '\n'
+    return content
+
+def translate_simple_fail_compile_test(name, test):
+    # This group is good. It only translates compilation tests.
+    # And we keep all information about compilation tests.
+    code, spec = parse_simple_test(test)
+    if "TypedSyntaxError" in test:
+        content = '\n'.join([
+            '# {}.py'.format(name),
+            '# This should fail.',
             '',
             ''
         ]) + code
@@ -381,7 +367,7 @@ def split_items(matched_string):
     e1, e2 = m.body[0].value.elts
     return ast.unparse(e1), ast.unparse(e2)
 
-def parse_asserts(spec):
+def parse_asserts(name, spec):
     imports = []
     actions = []
     def preprocess(e: str):
@@ -505,7 +491,8 @@ def parse_asserts(spec):
                     print(s_as_stmt)
                     exit(1)
                 return
-                    
+
+        print(name)    
         print(ast.unparse(node))
         print(node)
         exit(1)
@@ -561,7 +548,7 @@ def translate_all_assert_tests(name, test):
 
     # code += '\n'
 
-    actions = parse_asserts(spec)
+    actions = parse_asserts(name, spec)
     # actions = ""
     
     content = '\n'.join([
@@ -631,7 +618,7 @@ def main():
                 banned = word
                 break
         if banned is not None:
-            # record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
+            record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
             banned_counter += 1
             continue
 
@@ -656,7 +643,8 @@ def main():
             continue
 
         translators = [
-            translate_simple_compile_test,
+            translate_simple_fail_compile_test,
+            translate_simple_pass_compile_test,
             translate_self_type_error_test,
             translate_with_compile_test,
             translate_all_assert_tests,
