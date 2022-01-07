@@ -7,9 +7,9 @@ def f(num: int):
 def main():
     assert f(2) == [1, 2, 1, 2]
     class MyInt(int):
-
-    def __mul__(self, other):
-        return 'RESULT'
+    
+        def __mul__(self, other):
+            return 'RESULT'
     assert f(MyInt(2)) == 'RESULT'
 
 main()

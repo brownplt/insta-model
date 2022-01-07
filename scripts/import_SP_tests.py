@@ -444,7 +444,7 @@ def parse_asserts(spec):
                                 actions.append("{} = {}".format( target, source))
                             continue
                     if isinstance(s_as_stmt, ast.ClassDef):
-                        actions.append(s_as_str)
+                        actions += s_as_str.split('\n')
                         continue
                     if isinstance(s_as_stmt, ast.Expr):
                         actions.append(s_as_str)

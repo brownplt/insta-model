@@ -8,9 +8,9 @@ def f(t: Tuple[int]):
 def main():
     assert f((1, 2)) == (1, 2, 1, 2)
     class MyTuple(tuple):
-
-    def __mul__(self, other):
-        return 'RESULT'
+    
+        def __mul__(self, other):
+            return 'RESULT'
     assert f(MyTuple((1, 2))) == 'RESULT'
 
 main()

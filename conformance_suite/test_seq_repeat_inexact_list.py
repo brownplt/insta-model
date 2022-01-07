@@ -8,9 +8,9 @@ def f(l: List[int]):
 def main():
     assert f([1, 2]) == [1, 2, 1, 2]
     class MyList(list):
-
-    def __mul__(self, other):
-        return 'RESULT'
+    
+        def __mul__(self, other):
+            return 'RESULT'
     assert f(MyList([1, 2])) == 'RESULT'
 
 main()

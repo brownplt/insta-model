@@ -9,9 +9,9 @@ def f(x: B):
     return x.f()
 def main(B, f):
     class D(B):
-
-    def f(self):
-        return 42
+    
+        def f(self):
+            return 42
     try:
         f(D())
     except TypeError:
