@@ -5,14 +5,16 @@
 def foo(x: int | str) -> int:
     assert isinstance(x, int)
     return x + 1
-assert foo(1) == 2
-try:
-    foo('a')
-except AssertionError:
-    pass
-else:
-    raise Exception()
+def main(foo):
+    assert foo(1) == 2
+    try:
+        foo('a')
+    except AssertionError:
+        pass
+    else:
+        raise Exception()
 
+main(foo)
 # def test_assert_narrowing_debug(self):
 #     codestr = """
 #     def foo(x: int | str) -> int:

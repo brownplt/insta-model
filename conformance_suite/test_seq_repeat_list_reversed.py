@@ -5,8 +5,10 @@
 def f():
     l = [1, 2]
     return 2 * l
-assert f() == [1, 2, 1, 2]
+def main():
+    assert f() == [1, 2, 1, 2]
 
+main()
 # def test_seq_repeat_list_reversed(self):
 #     codestr = """
 #         def f():

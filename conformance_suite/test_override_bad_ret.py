@@ -7,17 +7,19 @@ class B:
         return self
 def f(x: B):
     return x.f()
-class D(B):
+def main(B, f):
+    class D(B):
 
     def f(self):
         return 42
-try:
-    f(D())
-except TypeError:
-    pass
-else:
-    raise Exception()
+    try:
+        f(D())
+    except TypeError:
+        pass
+    else:
+        raise Exception()
 
+main(B, f)
 # def test_override_bad_ret(self):
 #     codestr = """
 #     class B:

@@ -10,11 +10,12 @@ def testfunc():
         'y': 'z'
     })
     return x
-f = testfunc
-x = f()
-x['z'] = None
-assert type(x) == CheckedDict[str, str | None]
+def main(f):
+    x = f()
+    x['z'] = None
+    assert type(x) == CheckedDict[str, str | None]
 
+main(testfunc)
 # def test_compile_checked_dict_optional(self):
 #     codestr = """
 #         from __static__ import CheckedDict

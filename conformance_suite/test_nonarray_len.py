@@ -7,8 +7,10 @@ class Lol:
         return 421
 def y():
     return len(Lol())
-assert y() == 421
+def main(y):
+    assert y() == 421
 
+main(y)
 # def test_nonarray_len(self):
 #     codestr = """
 #         class Lol:

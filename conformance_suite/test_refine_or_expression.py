@@ -5,9 +5,11 @@
 from typing import Optional
 def f(s: Optional[str]) -> str:
     return s or "hi"
-assert f('A') == 'A'
-assert f(None) == 'hi'
+def main(f):
+    assert f('A') == 'A'
+    assert f(None) == 'hi'
 
+main(f)
 # def test_refine_or_expression(self):
 #     codestr = """
 #     from typing import Optional

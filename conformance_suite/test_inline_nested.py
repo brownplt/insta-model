@@ -11,8 +11,10 @@ def f(x, y):
     return e(x, 3)
 def g():
     return f(1,2)
-assert g() == 4
+def main(g):
+    assert g() == 4
 
+main(g)
 # def test_inline_nested(self):
 #     codestr = """
 #         from __static__ import inline

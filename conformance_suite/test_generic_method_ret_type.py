@@ -7,9 +7,11 @@ from typing import Optional
 MAP: CheckedDict[str, Optional[str]] = CheckedDict[str, Optional[str]]({'abc': 'foo', 'bar': None})
 def f(x: str) -> Optional[str]:
     return MAP.get(x)
-assert f('abc') == 'foo'
-assert f('bar') == None
+def main(f):
+    assert f('abc') == 'foo'
+    assert f('bar') == None
 
+main(f)
 # def test_generic_method_ret_type(self):
 #     codestr = """
 #         from __static__ import CheckedDict

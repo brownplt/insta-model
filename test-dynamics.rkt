@@ -231,6 +231,9 @@
 ;; conformance_suite/ht_test_checked_dict_values.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "values") ()))) ((== (list ((con 2) (con 3)))))))))))))))
 
+;; conformance_suite/ht_test_compile_checked_dict_shadowcode.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (assign ("test") "testfunc") (for "i" (call "range" ((con 200))) ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))) ())))))))))
+
 ;; conformance_suite/ht_test_compile_dict_get_2.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (assert (compare (call "type" ((call "testfunc" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))))))))))
 
@@ -337,13 +340,13 @@
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((ann-assign "x" "str" (con "hello"))))))))))
 
 ;; conformance_suite/test_assert_narrowing_debug.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (assert (compare (call "foo" ((con 1))) ((== (con 2)))))))))))))
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (assert (compare (call "foo" ((con 1))) ((== (con 2))))) (try-except-else-finally ((expr (call "foo" ((con "a"))))) ((except-handler "AssertionError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
 
 ;; conformance_suite/test_assert_narrowing_not_isinstance_optimized.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (unary-op not (call "isinstance" ("x" "int")))) (return "x"))) (assert (compare (call "foo" ((con "abc"))) ((== (con "abc")))))))))))))
 
 ;; conformance_suite/test_assert_narrowing_optimized.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x"))) (assert (compare (call "foo" ((con 1))) ((== (con 1)))))))))))))
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x"))) (assert (compare (call "foo" ((con 1))) ((== (con 1))))) (try-except-else-finally ((expr (call "foo" ((con "a"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
 
 ;; conformance_suite/test_aug_assign.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (assign ("l") (list ((con 1)))) (expr (call "f" ("l"))) (assert (compare (subscript "l" (con 0)) ((== (con 2)))))))))))))
@@ -383,9 +386,6 @@
 
 ;; conformance_suite/test_compile_checked_dict_reversed.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42)) ((call "B" ()) (con 42))))))) (return "x"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))))))))))
-
-;; conformance_suite/test_compile_checked_dict_shadowcode.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))))))))))
 
 ;; conformance_suite/test_compile_checked_dict_type_specified.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42))))))) (return "x"))) (assign ("test") "testfunc") (assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))))))))))
@@ -444,20 +444,26 @@
 ;; conformance_suite/test_max.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (assert (compare (call "f" ((con 1) (con 3))) ((== (con 3))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 3)))))))))))))
 
+;; conformance_suite/test_method_prologue.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
+
+;; conformance_suite/test_method_prologue_2.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
+
+;; conformance_suite/test_method_prologue_3.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (try-except-else-finally ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
+
 ;; conformance_suite/test_method_prologue_no_annotation.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic)) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc"))) ((== (con 42)))))))))))))
 
 ;; conformance_suite/test_method_prologue_shadowcode.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))))))))))
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (for "i" (call "range" ((con 100))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
 
 ;; conformance_suite/test_method_prologue_shadowcode_2.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (assert (compare (call "f" ((con "abc"))) ((== (con 42)))))))))))))
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (for "i" (call "range" ((con 100))) ((assert (compare (call "f" ((con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
 
 ;; conformance_suite/test_min.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "min" ("a" "b"))))) (assert (compare (call "f" ((con 1) (con 3))) ((== (con 1))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 1)))))))))))))
-
-;; conformance_suite/test_module_subclass.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((ann-assign "x" (subscript "Optional" "C")) (function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "x")) (con None)))))) (assign ("c") (call "C" ())) (assert (compare (attribute "c" "x") ((== (con None)))))))))))))
 
 ;; conformance_suite/test_multiply_list_exact_by_int.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (list ((con 1) (con 2) (con 3))) (con 2))) (return (call "len" ("l"))))) (assert (compare (call "f" ()) ((== (con 6)))))))))))))
@@ -465,11 +471,20 @@
 ;; conformance_suite/test_multiply_list_exact_by_int_reverse.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () "int" ((assign ("l") (bin-op * (con 2) (list ((con 1) (con 2) (con 3))))) (return (call "len" ("l"))))) (assert (compare (call "f" ()) ((== (con 6)))))))))))))
 
+;; conformance_suite/test_nested_fn_type_error.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("i" "int") ("j" "str") ("l" "int") ("m" "int") ("n" "int") ("o" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))) (try-except-else-finally ((expr (call "f" ((con 1) (con "a") (con 2) (con 3) (con "4") (con 5))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
+
+;; conformance_suite/test_nested_fn_type_error_2.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("i" "int") ("j" "str") ("k" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))) (try-except-else-finally ((expr (call "f" ((con 1) (con 2) (con 3))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
+
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ())))) (assert (compare (call "g" ()) ((== (con 6)))))))))))))
 
 ;; conformance_suite/test_nonarray_len.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "Lol" () ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 421)))))) (function-def "y" () dynamic ((return (call "len" ((call "Lol" ())))))) (assert (compare (call "y" ()) ((== (con 421)))))))))))))
+
+;; conformance_suite/test_override_bad_ret.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (try-except-else-finally ((expr (call "f" ((call "D" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))))))
 
 ;; conformance_suite/test_package_no_parent.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 42)))))))))))))

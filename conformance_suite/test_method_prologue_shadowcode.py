@@ -4,15 +4,17 @@
 
 def f(x, y: str):
     return 42
-for i in range(100):
-    assert f('abc', 'abc') == 42
-try:
-    f('abc', 42)
-except TypeError:
-    pass
-else:
-    raise Exception()
+def main(f):
+    for i in range(100):
+    self.assertEqual(f('abc', 'abc'), 42)
+    try:
+        f('abc', 42)
+    except TypeError:
+        pass
+    else:
+        raise Exception()
 
+main(f)
 # def test_method_prologue_shadowcode(self):
 #     codestr = """
 #     def f(x, y: str):

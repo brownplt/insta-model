@@ -7,6 +7,7 @@ import json
 import ast
 from os import stat
 from re import match
+import re
 
 input_file = "./tests.py"
 skip_prefix = "    @skipIf("
@@ -63,7 +64,7 @@ ban_anywhere_in_test = [
     # methods that are too specific
     'with_traceback',
     # features that we don't care
-    'sys.modules'
+    'sys.modules',
 
     # These test uses an unbound identifier
     'test_if_else_optional_return_two_branches',
@@ -125,7 +126,12 @@ ban_anywhere_in_test = [
     'test_widen_to_dynamic'
 ]
 
-skip_anywhere_in_test = [
+import glob, re
+hand_translated_prefix = './conformance_suite/ht_'
+hand_translated_tests = glob.glob('{}*'.format(hand_translated_prefix))
+hand_translated_tests = [ s[len(hand_translated_prefix):-3] for s in hand_translated_tests ]
+
+skip_anywhere_in_test = hand_translated_tests + [
     '@staticmethod',
     'break', 'continue',
     '@final',
@@ -153,7 +159,6 @@ skip_anywhere_in_test = [
     '_comprehension_',
     '_comprehensions_',
 ]
-
 
 def read_tests(file_path):
     f = open(file_path, 'r')
@@ -373,12 +378,14 @@ def split_items(matched_string):
     return ast.unparse(e1), ast.unparse(e2)
 
 def parse_asserts(spec):
+    imports = []
     actions = []
     def preprocess(e: str):
         e = e.replace('chkdict', 'CheckedDict')
         e = e.replace('mod.', '')
         return e
     def rec(node):
+        nonlocal actions, imports
         if isinstance(node, list):
             for x in node:
                 rec(x)
@@ -424,11 +431,18 @@ def parse_asserts(spec):
                     if isinstance(s_as_stmt, ast.Assign):
                         targets = s_as_stmt.targets
                         assert len(targets) == 1
+
                         target = ast.unparse(targets[0])
-                        source = preprocess(ast.unparse(s_as_stmt.value))
-                        if target != source:
-                            actions.append("{} = {}".format( target, preprocess(source)))
-                        continue
+                        source = ast.unparse(s_as_stmt.value)
+                        if 'mod.' in source:
+                            source = preprocess(source)
+                            imports.append((source, target))
+                            continue
+                        else:
+                            source = preprocess(source)
+                            if target != source:
+                                actions.append("{} = {}".format( target, source))
+                            continue
                     if isinstance(s_as_stmt, ast.ClassDef):
                         actions.append(s_as_str)
                         continue
@@ -451,14 +465,14 @@ def parse_asserts(spec):
                             body = s_as_stmt.body
                             assert len(body) == 1
                             s = ast.unparse(body[0])
-                            actions.append('\n'.join([
+                            actions = actions + [
                                 'try:',
                                 '    {}'.format(s),
                                 'except {}:'.format(arg0_as_str),
                                 '    pass',
                                 'else:',
                                 '    raise Exception()'
-                            ]))
+                            ]
                             continue
                     if s_as_str.startswith('with self.assertRaisesRegex('):
                         assert isinstance(s_as_stmt, ast.With)
@@ -473,14 +487,14 @@ def parse_asserts(spec):
                             body = s_as_stmt.body
                             assert len(body) == 1
                             s = ast.unparse(body[0])
-                            actions.append('\n'.join([
+                            actions = actions + [
                                 'try:',
                                 '    {}'.format(s),
                                 'except TypeError:',
                                 '    pass',
                                 'else:',
                                 '    raise Exception()'
-                            ]))
+                            ]
                             continue
                     print("#1 ")
                     print(s_as_str)
@@ -499,7 +513,12 @@ def parse_asserts(spec):
         exit(1)
     
     if all(isinstance(s, str) for s in actions):
-        return '\n'.join(actions) + '\n'
+        body = '\n'.join(['    {}'.format(s) for s in actions]) + '\n'
+        return '\n'.join([
+            'def main({}):'.format(', '.join(target for source, target in imports)),
+            body,
+            'main({})'.format(', '.join(source for source, target in imports))
+        ])
     else:
         print(actions)
         exit(1)

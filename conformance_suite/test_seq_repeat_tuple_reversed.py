@@ -5,8 +5,10 @@
 def f():
     t = (1, 2)
     return 2 * t
-assert f() == (1, 2, 1, 2)
+def main():
+    assert f() == (1, 2, 1, 2)
 
+main()
 # def test_seq_repeat_tuple_reversed(self):
 #     codestr = """
 #         def f():

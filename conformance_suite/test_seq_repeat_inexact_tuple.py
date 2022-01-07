@@ -5,13 +5,15 @@
 from typing import Tuple
 def f(t: Tuple[int]):
     return t * 2
-assert f((1, 2)) == (1, 2, 1, 2)
-class MyTuple(tuple):
+def main():
+    assert f((1, 2)) == (1, 2, 1, 2)
+    class MyTuple(tuple):
 
     def __mul__(self, other):
         return 'RESULT'
-assert f(MyTuple((1, 2))) == 'RESULT'
+    assert f(MyTuple((1, 2))) == 'RESULT'
 
+main()
 # def test_seq_repeat_inexact_tuple(self):
 #     codestr = """
 #         from typing import Tuple

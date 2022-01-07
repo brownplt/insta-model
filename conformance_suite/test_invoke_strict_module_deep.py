@@ -16,9 +16,11 @@ def f10(): return f9()
 def f11(): return f10()
 def g():
     return f11()
-assert g() == 42
-assert g() == 42
+def main(g):
+    assert g() == 42
+    assert g() == 42
 
+main(g)
 # def test_invoke_strict_module_deep(self):
 #     codestr = """
 #         def f0(): return 42

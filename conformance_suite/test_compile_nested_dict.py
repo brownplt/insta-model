@@ -9,9 +9,10 @@ def testfunc():
     x = CheckedDict[B, int]({B():42, D():42})
     y = CheckedDict[int, CheckedDict[B, int]]({42: x})
     return y
-test = testfunc
-assert type(test()) == CheckedDict[int, CheckedDict[B, int]]
+def main(test, B):
+    assert type(test()) == CheckedDict[int, CheckedDict[B, int]]
 
+main(testfunc, B)
 # def test_compile_nested_dict(self):
 #     codestr = """
 #         from __static__ import CheckedDict

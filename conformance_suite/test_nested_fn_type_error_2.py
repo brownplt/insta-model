@@ -6,13 +6,15 @@ def f(i: int, j: str, k: int) -> bool:
     def g(k: int) -> bool:
         return k > 0 if j == "gt" else k <= 0
     return g(i)
-try:
-    f(1, 2, 3)
-except TypeError:
-    pass
-else:
-    raise Exception()
+def main(f):
+    try:
+        f(1, 2, 3)
+    except TypeError:
+        pass
+    else:
+        raise Exception()
 
+main(f)
 # def test_nested_fn_type_error_2(self):
 #     codestr = """
 #     def f(i: int, j: str, k: int) -> bool:

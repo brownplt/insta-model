@@ -8,9 +8,10 @@ def dict_maker() -> CheckedDict[int, int]:
 def func():
     a = dict_maker()
     return a.keys()
-f = func
-assert list(f()) == [2]
+def main(f):
+    assert list(f()) == [2]
 
+main(func)
 # def test_invoke_chkdict_method(self):
 #     codestr = """
 #     from __static__ import CheckedDict

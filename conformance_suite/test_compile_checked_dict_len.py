@@ -6,9 +6,10 @@ from __static__ import CheckedDict
 def testfunc():
     x = CheckedDict[int, str]({1:'abc'})
     return len(x)
-test = testfunc
-assert test() == 1
+def main(test):
+    assert test() == 1
 
+main(testfunc)
 # def test_compile_checked_dict_len(self):
 #     codestr = """
 #         from __static__ import CheckedDict

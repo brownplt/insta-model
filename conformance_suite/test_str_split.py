@@ -7,8 +7,10 @@ def get_str() -> str:
 def test() -> str:
     a, b = get_str().split(None, 1)
     return b
-assert test() == 'here'
+def main(test):
+    assert test() == 'here'
 
+main(test)
 # def test_str_split(self):
 #     codestr = """
 #         def get_str() -> str:

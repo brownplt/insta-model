@@ -5,8 +5,10 @@
 def f():
     l = [1, 2]
     return l * 2
-assert f() == [1, 2, 1, 2]
+def main():
+    assert f() == [1, 2, 1, 2]
 
+main()
 # def test_seq_repeat_list(self):
 #     codestr = """
 #         def f():

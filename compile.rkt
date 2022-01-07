@@ -184,6 +184,7 @@
    "dict"
    "function"
    "Exception"
+   "AssertionError"
    "TypeError"
    "KeyError"
    "AttributeError"
@@ -240,6 +241,11 @@
      (["__init__" (method "Exception" "__init__")])
      ())]
   [(lookup-builtin-class "TypeError")
+   (class ("Exception")
+     ()
+     ()
+     ())]
+  [(lookup-builtin-class "AssertionError")
    (class ("Exception")
      ()
      ()
@@ -436,6 +442,7 @@
     ["len" (-> (dynamic) dynamic)]
     ["Exception" (Type (subof "Exception"))]
     ["TypeError" (Type (subof "TypeError"))]
+    ["AssertionError" (Type (subof "AssertionError"))]
     ["KeyError" (Type (subof "KeyError"))]
     ["AttributeError" (Type (subof "AttributeError"))]
     ["StopIteration" (Type (subof "StopIteration"))]

@@ -6,8 +6,10 @@ from __static__ import PyDict
 def f(d: PyDict[str, int]) -> str:
     # static python ignores the untrusted generic types
     return d[3]
-assert f({3: 'foo'}) == 'foo'
+def main():
+    assert f({3: 'foo'}) == 'foo'
 
+main()
 # def test_pydict_arg_annotation(self):
 #     codestr = """
 #         from __static__ import PyDict

@@ -5,14 +5,16 @@
 def foo(x: int | str) -> object:
     assert isinstance(x, int)
     return x
-assert foo(1) == 1
-try:
-    foo('a')
-except TypeError:
-    pass
-else:
-    raise Exception()
+def main(foo):
+    assert foo(1) == 1
+    try:
+        foo('a')
+    except TypeError:
+        pass
+    else:
+        raise Exception()
 
+main(foo)
 # def test_assert_narrowing_optimized(self):
 #     # We ensure that the code without the assert would work in the runtime.
 #     codestr = """

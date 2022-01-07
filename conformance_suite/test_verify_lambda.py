@@ -4,8 +4,10 @@
 
 x = lambda x: x
 a = x("hi")
-assert a == 'hi'
+def main():
+    assert a == 'hi'
 
+main()
 # def test_verify_lambda(self):
 #     codestr = """
 #         x = lambda x: x

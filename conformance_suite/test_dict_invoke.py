@@ -6,8 +6,10 @@ from __static__ import pydict
 def f(x):
     y: pydict = x
     return y.get('foo')
-assert f({}) == None
+def main(f):
+    assert f({}) == None
 
+main(f)
 # def test_dict_invoke(self):
 #     codestr = """
 #         from __static__ import pydict
