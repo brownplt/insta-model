@@ -4,15 +4,19 @@
 
 def f(num: int):
     return num * [1, 2]
-def main():
-    assert f(2) == [1, 2, 1, 2]
-    class MyInt(int):
-    
-        def __mul__(self, other):
-            return 'RESULT'
-    assert f(MyInt(2)) == 'RESULT'
 
-main()
+
+assert f(2) == [1, 2, 1, 2]
+
+
+class MyInt(int):
+
+    def __mul__(self, other):
+        return 'RESULT'
+
+
+assert f(MyInt(2)) == 'RESULT'
+
 # def test_seq_repeat_inexact_num(self):
 #     codestr = """
 #         def f(num: int):

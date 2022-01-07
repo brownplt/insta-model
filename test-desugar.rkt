@@ -317,6 +317,12 @@
 ;; conformance_suite/ht_test_method_prologue_shadowcode.py
 (test-match SP-core program (term (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 100))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
 
+;; conformance_suite/ht_test_seq_repeat_inexact_list.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))) (assert (compare (call "f" ((list ((con 1) (con 2))))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (class "MyList" ("list") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyList" ((list ((con 1) (con 2))))))) ((== (con "RESULT")))))))))
+
+;; conformance_suite/ht_test_seq_repeat_inexact_num.py
+(test-match SP-core program (term (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (assert (compare (call "f" ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (class "MyInt" ("int") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyInt" ((con 2))))) ((== (con "RESULT")))))))))
+
 ;; conformance_suite/ht_test_strict_module_isinstance.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "foo" (("tval" (subscript "Optional" "object"))) "str" ((if (call "isinstance" ("tval" "str")) ((return "tval")) ()) (return (con "hi"))))))))
 
@@ -927,7 +933,7 @@
 (test-match SP-core program (term (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (function-def "main" () dynamic ((assert (compare (call "f" ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (class "MyInt" ("int") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyInt" ((con 2))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
 
 ;; conformance_suite/test_seq_repeat_inexact_tuple.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (function-def "main" () dynamic ((assert (compare (call "f" ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (class "MyTuple" ("tuple") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (assert (compare (call "f" ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (class "MyTuple" ("tuple") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (assert (compare (call "f" ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT")))))))))
 
 ;; conformance_suite/test_seq_repeat_list.py
 (test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2)))) (return (bin-op * "l" (con 2))))) (function-def "main" () dynamic ((assert (compare (call "f" ()) ((== (list ((con 1) (con 2) (con 1) (con 2))))))))) (expr (call "main" ()))))))
