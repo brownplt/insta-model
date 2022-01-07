@@ -87,28 +87,24 @@ ban_anywhere_in_test = [
     'test_incompat_override_method_arg_name',
     # We don't model code flag.
     'test_code_flags',
-
     # We don't model this special case of redeclaration.
     #   Redeclaration is generally banned. We don't want to allow this
     #   special case.
     'test_assign_try_except_typing_redeclared_after',
-
     # We don't model slicing syntax.
     'test_for_iter_list_modified(',
-
     # We don't model constants.
     'Final',
     'Final[',
-
     # We don't model finalized classes.
     '@final',
-
     # We don't model break and continue.
     #   The challenges lie in the occurrance typing, not at runtime.
     #   Our runtime does support break and continue. In fact, we desugar for-loops
     #   to while-loops that involve break and continue.
     'break', 'continue',
-
+    # We don't model type variables.
+    'TypeVar',
     # We don't model these things as well.
     '...',
     'NamedTuple',
@@ -139,7 +135,7 @@ hand_translated_prefix = './conformance_suite/ht_'
 hand_translated_tests = glob.glob('{}*'.format(hand_translated_prefix))
 hand_translated_tests = [ s[len(hand_translated_prefix):-3] for s in hand_translated_tests ]
 
-skip_anywhere_in_test = hand_translated_tests + [
+skip_anywhere_in_test = [
     # We don't model static methods. 
     '@staticmethod',
     '@property',
@@ -618,7 +614,7 @@ def main():
                 banned = word
                 break
         if banned is not None:
-            record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
+            # record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
             banned_counter += 1
             continue
 
@@ -632,12 +628,15 @@ def main():
                 imparsable_counter), test, "Format too complicated")
             imparsable_counter += 1
             continue
+        
+        if name in hand_translated_tests:
+            continue
 
         skipped = False
         for word in skip_anywhere_in_test:
             if word in test:
                 skipped = True
-                # record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
+                record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
                 break
         if skipped:
             continue
