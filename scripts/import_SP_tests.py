@@ -65,6 +65,10 @@ ban_anywhere_in_test = [
     'with_traceback',
     # features that we don't care
     'sys.modules',
+    # This test inherite static class in a dynamic module,
+    #   which is impossible to simulate in a static module without
+    #   nested classes. We banned nested classes.
+    'test_override_bad_ret',
 
     # These test uses an unbound identifier
     'test_if_else_optional_return_two_branches',

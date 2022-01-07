@@ -489,9 +489,6 @@
 ;; conformance_suite/test_nonarray_len.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "Lol" () ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 421)))))) (function-def "y" () dynamic ((return (call "len" ((call "Lol" ())))))) (function-def "main" (("y" dynamic)) dynamic ((assert (compare (call "y" ()) ((== (con 421))))))) (expr (call "main" ("y")))))))))))
 
-;; conformance_suite/test_override_bad_ret.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (function-def "main" (("B" dynamic) ("f" dynamic)) dynamic ((class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (try-except-else-finally ((expr (call "f" ((call "D" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("B" "f")))))))))))
-
 ;; conformance_suite/test_package_no_parent.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (function-def "main" (("C" dynamic)) dynamic ((assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 42))))))) (expr (call "main" ("C")))))))))))
 

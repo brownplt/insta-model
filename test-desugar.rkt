@@ -902,9 +902,6 @@
 ;; conformance_suite/test_or_expression_with_multiple_optionals_type_error.py
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "f" (("s1" (subscript "Optional" "str")) ("s2" (subscript "Optional" "str"))) "str" ((return (bool-op or ("s1" "s2")))))))))
 
-;; conformance_suite/test_override_bad_ret.py
-(test-match SP-core program (term (desugar-program ((class "B" () ((function-def "f" (("self" dynamic)) (con "B") ((return "self"))))) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (function-def "main" (("B" dynamic) ("f" dynamic)) dynamic ((class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (try-except-else-finally ((expr (call "f" ((call "D" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("B" "f")))))))
-
 ;; conformance_suite/test_package_no_parent.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (function-def "main" (("C" dynamic)) dynamic ((assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 42))))))) (expr (call "main" ("C")))))))
 
