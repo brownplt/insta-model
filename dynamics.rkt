@@ -1246,6 +1246,11 @@
   [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
    [(update Σ [l_obj (obj l_cls g (update ρ [x_mem l_new]))])
     (begin)]
+   (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
+   (where (yes any) (lookup? ρ x_mem))]
+  [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
+   [(update Σ [l_obj (obj l_cls g (extend ρ [x_mem l_new]))])
+    (begin)]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))])
 (define-metafunction SP-dynamics
   do-assign-attribute-safe : Σ l x v -> [Σ s-]

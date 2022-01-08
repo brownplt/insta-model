@@ -3,12 +3,8 @@
 # This should terminate.
 
 class C:
-    # This line is added because the model doesn't understand `self.x`-like annotations.
-    x: str
     def __init__(self, value: str):
-        # This line is edited to remove the annotation
-        # self.x: str = value
-        self.x = value
+        self.x: str = value
 
 a = C("abc")
 del a.x

@@ -8,4 +8,4 @@
  SP-dynamics
  program+
  (implies (judgment-holds (compileo program+ program-))
-          ()))
+          (judgment-holds (reduceo ))))

@@ -231,10 +231,10 @@
 (test-match SP-core program (term (desugar-program ())))
 
 ;; conformance_suite/field_init.py
-(test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((assign ((attribute "self" "x")) "arg"))))) (try-except-else-finally ((assign ("o") (call "C" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
+(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (try-except-else-finally ((assign ("o") (call "C" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
 
 ;; conformance_suite/field_update.py
-(test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((assign ((attribute "self" "x")) "arg"))))) (assign ("o") (call "C" ((con "foo")))) (try-except-else-finally ((function-def "dyn_int" () dynamic ((return (con 42)))) (assign ((attribute "o" "x")) (call "dyn_int" ()))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
+(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (assign ("o") (call "C" ((con "foo")))) (try-except-else-finally ((function-def "dyn_int" () dynamic ((return (con 42)))) (assign ((attribute "o" "x")) (call "dyn_int" ()))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
 
 ;; conformance_suite/for-loop_basic.py
 (test-match SP-core program (term (desugar-program ((function-def "fact" (("n" "int")) "int" ((ann-assign "o" "int" (con 1)) (for "i" (call "range" ("n")) ((aug-assign "o" * (bin-op + "i" (con 1)))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120)))))))))
@@ -387,7 +387,7 @@
 (test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "foo" (("tval" (subscript "Optional" "object"))) "str" ((if (call "isinstance" ("tval" "str")) ((return "tval")) ()) (return (con "hi"))))))))
 
 ;; conformance_suite/ht_test_typed_field_deleted_attr.py
-(test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((assign ((attribute "self" "x")) "value"))))) (assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ())))))
+(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "value"))))) (assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ())))))
 
 ;; conformance_suite/ht_test_untyped_attr.py
 (test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (assign ("x") (call "f" ())) (assign ("y") (attribute "x" "load")) (assign ((attribute "x" "store")) (con 42)) (delete (attribute "x" "delete"))))))
@@ -408,7 +408,7 @@
 (test-match SP-core program (term (desugar-program ((class "C" () (pass)) (function-def "f" (("c" "C")) dynamic ((assign ((attribute "c" "x")) (con 42))))))))
 
 ;; conformance_suite/instance_creation.py
-(test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "str") (function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((assign ((attribute "self" "x")) "arg"))))) (assign ("o") (call "C" ((con "foo")))) (assert (compare (attribute "o" "x") ((== (con "foo")))))))))
+(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (assign ("o") (call "C" ((con "foo")))) (assert (compare (attribute "o" "x") ((== (con "foo")))))))))
 
 ;; conformance_suite/instance_variables_initialize_at_class.py
 (test-match SP-core program (term (desugar-program ((class "C" () ((ann-assign "x" "int" (con 42))))))))
@@ -601,9 +601,6 @@
 
 ;; conformance_suite/test_assert_narrowing_not_isinstance_optimized.py
 (test-match SP-core program (term (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (unary-op not (call "isinstance" ("x" "int")))) (return "x"))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con "abc"))) ((== (con "abc"))))))) (expr (call "main" ("foo")))))))
-
-;; conformance_suite/test_assert_narrowing_optimized.py
-(test-match SP-core program (term (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "object" ((assert (call "isinstance" ("x" "int"))) (return "x"))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con 1))) ((== (con 1))))) (try-except-else-finally ((expr (call "foo" ((con "a"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("foo")))))))
 
 ;; conformance_suite/test_assert_narrowing_type_error.py
 (test-match SP-core program (term (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (call "isinstance" ("x" "int"))) (return "x")))))))

@@ -128,6 +128,7 @@ ban_anywhere_in_test = [
 
     # These tests are wrong. So our model don't support them.
     'test_break_condition',
+    'test_assert_narrowing_optimized',
 ]
 
 import glob, re
