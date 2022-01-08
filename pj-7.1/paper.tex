@@ -651,13 +651,14 @@ generics), simple and full checks are easy to implement.
 Every type has a name and every value can carry a tag that corresponds to the
 name of its type.
 
+%% TODO 2022-01-07 List and ChkList are incompatible, need to anticipate somehow ... Chk does not allow any lists!
 Parameterized types (generics) are more difficult to fully enforce without
 changing the language.
 Consider a list datatype \code{List[T]} that is parameterized by the
 e type of its elements.
 If a function expects lists of integers (\code{List[int]}), then a simple check
 for lists is not strong enough to decide whether an incoming value matches the
-type~(\cref{f:list-boundary}).
+type.
 A deeper check is needed to validate the list elements.
 But, the default \code{List} type cannot support such a check because untyped
 code is free to create lists.
@@ -689,17 +690,20 @@ These options let programmers decide whether to change their code to benefit fro
 fully-sound types, or leave it as-is for a lower payoff.
 
 
-\begin{figure}[t]
-  How to enforce type \code{List[int]} simply?
-  \begin{itemize}
-    \item Checking for \code{List} is simple, but loose. It accepts \code{List[str]} and heterogeneous lists etc.
-    \item Can't check for \code{List[int]} by itself, the datatype does not support that.
-    \item Checking for \code{ChkList[int]} is simple, but needs buy-in from users.
-    \item Show venn diagram of the options?
-  \end{itemize}
-  \caption{FILL illustrate list boundary and checks}
-  \label{f:list-boundary}
-\end{figure}
+%\begin{figure}[t]
+%  How to enforce type \code{List[int]} simply?
+%  \begin{itemize}
+%    \item Checking for \code{List} is simple, but loose. It accepts \code{List[str]} and heterogeneous lists etc.
+%    \item Can't check for \code{List[int]} by itself, the datatype does not support that.
+%    \item Checking for \code{ChkList[int]} is simple, but needs buy-in from users.
+%  \end{itemize}
+%  2022-01-07: might be an interesting figure idea, showing the two options for enforcing a data structure
+%    Q How to enforce data structure without traversing
+%     \=> option 1: Shallow
+%     \=> option 2: Deep
+%  \caption{FILL illustrate list boundary and checks}
+%  \label{f:list-boundary}
+%\end{figure}
 
 Often, the shallow types are more attractive because concrete types impose
 a ripple effect throughout the codebase.
@@ -972,7 +976,7 @@ Strict modules are immutable, and thus enable type-based compiler optimizations.
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
-%% 2022-01-06 TODO subtyping for classes C ... matters for casts at least
+%% 2022-01-06 TODO subtyping for classes C ... matters for casts at least ... just add a Gamma, follow chain up one step at a time until refl.
 %% 2022-01-04 KC will look into pbt for nom properties (I don't think there's much to see there!)
 
 %% TODO 2022-01-04 (somewhere) explain that a verified compiler is an entirely separate project,
@@ -1887,6 +1891,7 @@ Two-thirds of these crossings are exports from \SP{} modules
 to untyped modules;
 in other words, the typed identifiers are widely used throughout the Instagram web server.
 %% data in src/static-python-imports-analysis
+%% 2022-01-06 TODO gen-code is configuration system / access control ... what are stats omitting these?!
 
 In a typical week, the team adds types to four additional modules.
 These modules have seen speedups ranging from 0\% to 25\% depending
