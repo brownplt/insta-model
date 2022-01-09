@@ -17,5 +17,5 @@ run_redex_tests:
 
 statistics:
 	grep 'def test_' ./tests.py | wc -l
-	ls -l ./conformance_suite/test_* ./conformance_suite/ht_*  | wc -l
-	ls -l ./skipped_tests | wc -l
+	ls -1 ./conformance_suite/test_* ./conformance_suite/ht_*  | wc -l
+	ls -1 ./skipped_tests | wc -l
