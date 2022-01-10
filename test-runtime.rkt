@@ -177,6 +177,12 @@
 ;; conformance_suite/ht_test_call_function_unknown_ret_type.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__future__" ("annotations")) (import-from "typing" ("Any")) (function-def "g" () "Any" ((return (con 42)))) (function-def "testfunc" () dynamic ((return (call "g" ())))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 42))))))) (expr (call "main" ("testfunc")))))))))))
 
+;; conformance_suite/ht_test_check_args_2.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))))))
+
+;; conformance_suite/ht_test_check_args_3.py
+(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))))))
+
 ;; conformance_suite/ht_test_check_args_6.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "hi"))) ((== (con "hi"))))))) (expr (call "main" ("outer")))))))))))
 
@@ -410,12 +416,6 @@
 
 ;; conformance_suite/test_check_args.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))))) (return (call "use" ("x"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1))) ((== (con 1))))))) (expr (call "main" ("outer")))))))))))
-
-;; conformance_suite/test_check_args_2.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))))))
-
-;; conformance_suite/test_check_args_3.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))))))
 
 ;; conformance_suite/test_chkdict_literal.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict ())) (return "x"))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "type" ((call "f" ()))) ((== (subscript "CheckedDict" (tuple ("int" "str"))))))))) (expr (call "main" ("testfunc")))))))))))

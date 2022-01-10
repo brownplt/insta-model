@@ -262,6 +262,12 @@
 ;; conformance_suite/ht_test_call_function_unknown_ret_type.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__future__" ("annotations")) (import-from "typing" ("Any")) (function-def "g" () "Any" ((return (con 42)))) (function-def "testfunc" () dynamic ((return (call "g" ())))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))))))
 
+;; conformance_suite/ht_test_check_args_2.py
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer"))))))))))
+
+;; conformance_suite/ht_test_check_args_3.py
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer"))))))))))
+
 ;; conformance_suite/ht_test_check_args_6.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "hi"))) ((== (con "hi"))))))) (expr (call "main" ("outer"))))))))))
 
@@ -357,6 +363,9 @@
 
 ;; conformance_suite/ht_test_if_else_optional_return_two_branches.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "field")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((if (compare "x" ((is (con None)))) ((function-def "f" () dynamic ((return (con 42)))) (assign ("a") (call "f" ())) (if "a" ((return (con 0))) ((return (con 2))))) ()) (return (attribute "x" "field")))))))))))
+
+;; conformance_suite/ht_test_if_optional_reassign.py
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ()))))))))))
 
 ;; conformance_suite/ht_test_invoke_method_non_static_base.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((class "C" ("Exception") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))) (function-def "g" (("self" dynamic)) dynamic ((return (call (attribute "self" "f") ())))))) (function-def "main" () dynamic ((assert (compare (call (attribute (call "C" ()) "g") ()) ((== (con 42))))))) (expr (call "main" ())))))))))
@@ -691,12 +700,6 @@
 ;; conformance_suite/test_check_args.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))))) (return (call "use" ("x"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1))) ((== (con 1))))))) (expr (call "main" ("outer"))))))))))
 
-;; conformance_suite/test_check_args_2.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer"))))))))))
-
-;; conformance_suite/test_check_args_3.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer"))))))))))
-
 ;; conformance_suite/test_chkdict_literal.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("int" "str"))) (dict ())) (return "x"))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "type" ((call "f" ()))) ((== (subscript "CheckedDict" (tuple ("int" "str"))))))))) (expr (call "main" ("testfunc"))))))))))
 
@@ -798,9 +801,6 @@
 
 ;; conformance_suite/test_if_optional_dependent_conditions.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" "C") (con None)))))) (function-def "f" (("x" (subscript "Optional" "C"))) "C" ((if (bool-op and ((compare "x" ((is-not (con None)))) (compare (attribute "x" "field") ((is-not (con None)))))) ((return "x")) ()) (if (compare "x" ((is (con None)))) ((return (call "C" ()))) ()) (return "x"))))))))))
-
-;; conformance_suite/test_if_optional_reassign.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((import-from "typing" ("Optional")) (class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ()))))))))))
 
 ;; conformance_suite/test_incompat_override.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "C" () ((ann-assign "x" "int"))) (class "D" ("C") ((function-def "x" (("self" dynamic)) dynamic (pass))))))))))

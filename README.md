@@ -1,5 +1,7 @@
 # insta-model
 
+`tests.py` is fetched on Jan 9, 2022. The commit hash ends with `6d61575`.
+
 ## The Model
 
 The script `./scripts/python_tests_to_redex_tests.py` parses files written in
