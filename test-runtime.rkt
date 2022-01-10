@@ -3,7 +3,7 @@
 (require redex-abbrevs)
 (require "desugar.rkt")
 (require "compile.rkt")
-(require "dynamics.rkt")
+(require "runtime.rkt")
 (require rackunit)
 
 ;; conformance_suite/CheckedDict_delete_bad_key.py
