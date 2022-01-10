@@ -16,7 +16,6 @@ run_redex_tests:
 	echo "All done!"
 
 statistics:
-	echo "in skipped_tests"
-	ls -l ./skipped_tests | wc -l
-	echo "in conformance_suite"
+	grep 'def test_' ./tests.py | wc -l
 	ls -l ./conformance_suite/test_* ./conformance_suite/ht_*  | wc -l
+	ls -l ./skipped_tests | wc -l
