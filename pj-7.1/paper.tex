@@ -973,7 +973,7 @@ patches to mutable data.
 Overall, it is an essential piece of infrastructure to enable soundness and optimizations.
 
 
-\section{Formal Model}
+\section{Model}
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
@@ -1299,7 +1299,8 @@ casts in an overapproximate way:
   \item
     typed code checks the results of function calls, references, etc. whenever there is a materialization from the dynamic type.
 \end{itemize}
-\Cref{s:impl} explains how the type-directed optimizer avoids some
+\Cref{s:impl} explains
+how the type-directed optimizer avoids some
 of these checks.
 
 
@@ -1393,6 +1394,7 @@ of these checks.
       \sptenv_0 \wtexpr \spexpr_0 : \spteval_1
       \\
       \spteval_1 \spmatr \spteval_0
+      %% side condition: result type is not a primitive
     }{
       \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
     }
@@ -1642,8 +1644,6 @@ about finer points in the language design.
 
 %% TODO unions tracked statically in SP, erased to dyn unless narrowed
 
-%% TODO discuss optimizations here, not in sec 2
-
 %% TODO SP side channels:
 %% ?? eval,
 %% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
@@ -1660,28 +1660,46 @@ about finer points in the language design.
 %%   the vtable wrappers to enforce LSP, we just know the behavior of the exact
 %%   builtin type
 
-%% TODO wherever we discuss optimizations, also talk about de-slowdowns
-%% Carl: not sure where this belongs exactly, but we go to a lot of work in the
-%%   compiler to intelligently minimize runtime checks by only inserting them when
-%%   the source value is of dynamic type (this includes also skipping CHECK_ARGS if
-%%   the function was statically invoked by another static function and thus we
-%%   know the compiler checked argument types)
+
+This section explains significant aspects of \SP{} that lie outside the
+scope of our model.
+These aspects include sound interactions with Python code,
+the bytecode language and optimizations, and dynamic Python features
+that \SP{} does not yet ascribe types to.
 
 
-[FILL]
+\subsection{Open-World Python Interactions}
 
-Purpose: explain significant gaps between the model and the implementation.
-E.g. what would the TypeScript team need to know before using our model
-to add soundness?
+Although \SP{} is technically a new language, it is designed for gradual adoption.
+Python programmers should be able to add types one module at a time to an
+existing codebase.
+Consequently, \SP{} supports interactions with Python modules in the only viable
+way: by letting the Python code run with minimal constraints.
+After all, if programmers need to fix every module in a codebase before they can
+run tests after typing a first module, then the gradual story is lost.
 
+Interactions with open-world~\cite{vss-popl-2017} Python code pose a minor
+threat to soundness.
+Typed functions (and methods) cannot assume that their arguments are
+well-typed.
+Arguments from typed contexts can be validated by either static checks
+or materialization casts, but arguments from untyped contexts are unchecked.
+For this reason, \SP{} compiles every typed function to check its inputs.
+\Cref{s:optimize} explains how the optimizer avoids some of these checks.
+%% 2022-01-09 worth mentioning primitive types? they get cast like anything else
+%% ... I guess the trick is that primitives don't materialize in typed code
 
-\subsection{Interactions with Python}
+FILL sound generics / checked types also need to guard their writes
 
-FILL
-
-model with Python ... two languages ... boundaries ... argue for soundness
-
-%% C-types are among the most complex because of casts? no not really complex, perhaps notable
+There are two cases, however, where new \SP{} types do add constraints to
+existing Python code.
+First, sound generic types (e.g. $\sptchkdict{\sptype_0}{\sptype_1}$)
+force value-suppliers to use a checked constructor.
+Existing code can \emph{use}\/ a checked generic via the same API as on
+un-checked one, but can create new values only using the \SP{} constructors.
+Second, the strict setting for modules prevents updates to module-level variables.
+If existing code happens to mutate a member of a newly-strict module, a run-time
+error will occur.
 
 
 \subsection{Bytecode and Optimizations}
@@ -1747,13 +1765,6 @@ The former checks a value against a type.
 The latter is for functions and methods; it checks all inputs to a function
 against their declared types.
 
-By convention, a \code{CHECK\_ARGS} instruction always appears on the first
-line of a typed function body.
-The optimizer uses this convention to skip argument checks by jumping
-past them when it is safe to do so; namely, whenever a typed function (or method)
-gets called with well-typed arguments.
-%% TODO ask C&D about materialize for fn calls
-
 \Cref{t:bytecode} presents two instructions that allocate \SP{}-specific data structures.
 The first creates a checked dictionary; the second creates an object with a vtable~(\cref{s:vtable}).
 Cinder comes with a similar instruction to build checked lists.
@@ -1770,6 +1781,26 @@ The \bcinst{FAST\_LEN} instruction gets the length of a built-in datatype direct
 of using the Python \code{\_\_len\_\_} attribute.
 Lastly, the \bcinst{REFINE\_TYPE} instruction tells the JIT about the type of a local value whose
 type is not clear from the context.
+
+
+\paragraph{Indirect Optimization}
+
+In addition to upgrading bytecode instructions to optimized ones, \SP{} takes care
+to minimize the type checks that it executes at run-time.
+In other words, the goal is to slow code down as little as possible.
+
+Part of this goal is met by inserting casts only in positions where the dynamic
+type flows into a static type.
+The materialze rule in the model illustrates this policy.
+Typed functions, however, are compiled with a \bcinst{CHECK\ARGS} instruction
+that casts all arguments.
+By convention, this instruction always appears on the first line of a typed
+function body.
+The optimizer uses this convention to skip argument checks by jumping past them
+when it is safe to do so; namely, whenever a typed function (or method) gets
+called in a typed context.
+In this way, all untyped calls get the necessary argument check and all typed
+calls benefit from materialize checks at the call-site.
 
 
 \subsection{Dynamic Python Features}
