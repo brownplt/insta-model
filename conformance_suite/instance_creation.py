@@ -3,9 +3,8 @@
 # This should terminate.
 
 class C:
-    x: str
     def __init__(self, arg) -> None:
-        self.x = arg
+        self.x: str = arg
 
 o = C("foo")
 assert o.x == "foo"

@@ -1,6 +1,5 @@
 # test_class_static_tpflag.py
 # This should pass.
-# This should terminate.
 
 class A:
     pass

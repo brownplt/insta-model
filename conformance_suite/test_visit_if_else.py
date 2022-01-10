@@ -7,6 +7,10 @@ if x:
     pass
 else:
     def f(): return 42
+def main():
+    assert f() == 42
+
+main()
 # def test_visit_if_else(self):
 #     codestr = """
 #         x = 0

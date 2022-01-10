@@ -8,6 +8,10 @@ class D(B): pass
 def testfunc():
     x: dict = {B():42, D():42}
     return x
+def main(test):
+    assert type(test()) == dict
+
+main(testfunc)
 # def test_compile_checked_dict_explicit_dict_as_dict(self):
 #     codestr = """
 #         from __static__ import pydict as dict

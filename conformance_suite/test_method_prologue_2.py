@@ -4,6 +4,15 @@
 
 def f(x, y: str):
     return 42
+def main(f):
+    try:
+        f('abc', 42)
+    except TypeError:
+        pass
+    else:
+        raise Exception()
+
+main(f)
 # def test_method_prologue_2(self):
 #     codestr = """
 #     def f(x, y: str):

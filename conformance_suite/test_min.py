@@ -4,6 +4,11 @@
 
 def f(a: int, b: int) -> int:
     return min(a, b)
+def main(f):
+    assert f(1, 3) == 1
+    assert f(3, 1) == 1
+
+main(f)
 # def test_min(self):
 #     codestr = """
 #         def f(a: int, b: int) -> int:

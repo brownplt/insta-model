@@ -1,6 +1,5 @@
 # test_typed_swap_member.py
 # This should pass.
-# This is an optimization test.
 
 class C:
     def __init__(self):

@@ -6,6 +6,15 @@ def f(i: int, j: str, l: int, m: int, n: int, o: int) -> bool:
     def g(k: int) -> bool:
         return k > 0 if j == "gt" else k <= 0
     return g(i)
+def main(f):
+    try:
+        f(1, 'a', 2, 3, '4', 5)
+    except TypeError:
+        pass
+    else:
+        raise Exception()
+
+main(f)
 # def test_nested_fn_type_error(self):
 #     codestr = """
 #     def f(i: int, j: str, l: int, m: int, n: int, o: int) -> bool:

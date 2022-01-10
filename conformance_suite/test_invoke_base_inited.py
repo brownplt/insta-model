@@ -11,6 +11,11 @@ class D(B):
         return 100
 def g(x: D):
     return x.g()
+def main(d):
+    assert X == 42
+    assert g(d) == 100
+
+main(D())
 # def test_invoke_base_inited(self):
 #     """when the base class v-table is initialized before a derived
 #     class we still have a properly initialized v-table for the

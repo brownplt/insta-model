@@ -8,6 +8,10 @@ def g():
     x: int = 100
     x = f()
     return x.bit_length()
+def main(g):
+    assert g() == 6
+
+main(g)
 # def test_no_narrow_to_dynamic(self):
 #     codestr = """
 #         def f():

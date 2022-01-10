@@ -5,6 +5,7 @@
 (require "desugar.rkt")
 (require "compile.rkt")
 (require "utilities.rkt")
+(require (rename-in (only-in racket/list append*) [append* racket-append*]))
 (provide (all-defined-out))
 
 (define-extended-language SP-dynamics SP-compiled
@@ -162,24 +163,31 @@
    "issubclass"
    (method "object" "__init__")
    (method "Exception" "__init__")
+   (method "int" "__init__")
    (method "int" "__add__")
    (method "int" "__sub__")
    (method "int" "__mul__")
    (method "int" "__div__")
    (method "int" "__lt__")
-   (method "int" "__eq__")
+   (method "int" "bit_length")
    (method "str" "__iter__")
+   (method "str" "split")
    (method "list" "__init__")
    (method "list" "__eq__")
    (method "list" "__len__")
    (method "list" "__getitem__")
+   (method "list" "__setitem__")
+   (method "list" "__mul__")
    (method "list" "append")
+   (method "tuple" "__init__")
    (method "tuple" "__eq__")
    (method "tuple" "__getitem__")
+   (method "tuple" "__mul__")
    (method "dict" "__init__")
    (method "dict" "__getitem__")
    (method "dict" "__setitem__")
    (method "dict" "__delitem__")
+   (method "dict" "__len__")
    (method "dict" "get")
    (method "dict" "items")
    (method "dict" "keys")
@@ -196,8 +204,6 @@
    (method (chkdict T T) "get")
    (method (chkdict T T) "items")
    (method (chkdict T T) "fromkeys"))
-  (dunder-member
-   "__eq__")
   ;; utilities
   (v+☠ v ☠)
   (l+☠ l ☠)
@@ -255,6 +261,31 @@
    (where ([x T] ...) (base-Γ))]
   [(lookup-Σ-primitive (con c))
    (obj (l-of-c c) (con c) ())]
+  [(lookup-Σ-primitive "len")
+   (obj "function"
+        (lambda -1 ("x")
+          (begin)
+          (local ("x")
+            (return (call-function (attribute safe "x" "__len__") ()))))
+        ())]
+  [(lookup-Σ-primitive "max")
+   (obj "function"
+        (lambda -1 ("x" "y")
+          (begin)
+          (local ("x" "y")
+            (if (call-function (attribute safe "y" "__lt__") ("x"))
+                (return "x")
+                (return "y"))))
+        ())]
+  [(lookup-Σ-primitive "min")
+   (obj "function"
+        (lambda -1 ("x" "y")
+          (begin)
+          (local ("x" "y")
+            (if (call-function (attribute safe "y" "__lt__") ("x"))
+                (return "y")
+                (return "x"))))
+        ())]
   [(lookup-Σ-primitive "range")
    (obj "function"
         (lambda -1 ("n")
@@ -475,45 +506,73 @@
    (where (Σ_2 l_2) (alloc (base-Σ) (env ([x ☠] ...) "builtin-env")))])
 
 (define-metafunction SP-dynamics
+  delta-int-mul : Σ l ... -> [Σ e-]
+  [(delta-int-mul Σ (con number_1) (con number_2))
+   [Σ (ref (con ,(* (term number_1) (term number_2))))]]
+  [(delta-int-mul Σ (con number) l)
+   [Σ (call-function (attribute safe (ref l) "__mul__") ((ref (con number))))]])
+(define-metafunction SP-dynamics
+  delta-int-init : Σ l ... -> [Σ e-]
+  [(delta-int-init Σ_0 l_obj (con number))
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls g_obj ρ_obj) (lookup-Σ Σ_0 l_obj))
+   (where Σ_1 (update Σ_0 [l_obj (obj l_cls (con number) ρ_obj)]))])
+(define-metafunction SP-dynamics
   delta : Σ prim-op-l (v ...) -> [Σ e-]
   [(delta Σ (method "object" "__init__") (v))
    [Σ v]]
   [(delta Σ (method "Exception" "__init__") (v ...))
    (delta-exception-init Σ v ...)]
+  [(delta Σ (method "int" "__init__") ((ref l_arg) ...))
+   (delta-int-init Σ l_arg ...)]
   [(delta Σ (method "int" "__add__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(+ (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "__sub__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(- (term number_1) (term number_2))))]]
-  [(delta Σ (method "int" "__mul__") ((ref (con number_1)) (ref (con number_2))))
-   [Σ (ref (con ,(* (term number_1) (term number_2))))]]
+  [(delta Σ (method "int" "__mul__") ((ref l_arg) ...))
+   (delta-int-mul Σ l_arg ...)]
   [(delta Σ (method "int" "__div__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(/ (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "__lt__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(< (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "__eq__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(= (term number_1) (term number_2))))]]
+  [(delta Σ (method "int" "bit_length") (v ...))
+   (delta-int-bit-length Σ v ...)]
   [(delta Σ (method "str" "__iter__") (v ...))
    (delta-str-iter Σ v ...)]
+  [(delta Σ (method "str" "split") (v ...))
+   (delta-str-split Σ v ...)]
   [(delta Σ (method "list" "__init__") (v ...))
    (delta-list-init Σ v ...)]
   [(delta Σ (method "list" "__eq__") (v ...))
    (delta-list-eq Σ v ...)]
+  [(delta Σ (method "list" "__mul__") (v ...))
+   (delta-list-mul Σ v ...)]
   [(delta Σ (method "list" "__len__") (v ...))
    (delta-list-len Σ v ...)]
   [(delta Σ (method "list" "__getitem__") (v ...))
    (delta-list-getitem Σ v ...)]
+  [(delta Σ (method "list" "__setitem__") (v ...))
+   (delta-list-setitem Σ v ...)]
   [(delta Σ (method "tuple" "__getitem__") (v ...))
    (delta-tuple-getitem Σ v ...)]
   [(delta Σ (method "list" "append") (v ...))
    (delta-list-append Σ v ...)]
+  [(delta Σ (method "tuple" "__init__") (v ...))
+   (delta-tuple-init Σ v ...)]
   [(delta Σ (method "tuple" "__eq__") (v ...))
    (delta-tuple-eq Σ v ...)]
+  [(delta Σ (method "tuple" "__mul__") (v ...))
+   (delta-tuple-mul Σ v ...)]
   [(delta Σ (method "dict" "__delitem__") (v ...))
    (delta-dict-delitem Σ v ...)]
   [(delta Σ (method "dict" "__getitem__") (v ...))
    (delta-dict-getitem Σ v ...)]
   [(delta Σ (method "dict" "__setitem__") (v ...))
    (delta-dict-setitem Σ v ...)]
+  [(delta Σ (method "dict" "__len__") (v ...))
+   (delta-dict-len Σ v ...)]
   [(delta Σ (method "dict" "get") ((ref l_arg) ...))
    (delta-dict-get Σ l_arg ...)]
   [(delta Σ (method "dict" "fromkeys") ((ref l_arg) ...))
@@ -563,6 +622,22 @@
    [Σ (new "list_iterator" ((list (v_elm ...))))]
    (where (any_char ...) ,(map string (string->list (term string))))
    (where (v_elm ...) ((ref (con any_char)) ...))])
+(define-metafunction SP-dynamics
+  delta-str-split : Σ v ... -> [Σ e-]
+  [(delta-str-split Σ (ref (con string_1)) (ref (con string_2)) (ref (con number)))
+   [Σ (list ((ref (con string_elm)) ...))]
+   (where (string_elm ...)
+          ,(letrec ([s1 (term string_1)]
+                    [s2 (term string_2)]
+                    [n (term number)])
+             (letrec ([o (string-split s1 s2 #:trim? #f)])
+               (if (>= n 0)
+                   (take o (min (add1 n) (length o)))
+                   o))))]
+  [(delta-str-split Σ (ref (con string)) (ref (con None)) v_rst ...)
+   (delta-str-split Σ (ref (con string)) (ref (con " ")) v_rst ...)]
+  [(delta-str-split Σ (ref (con string_1)) (ref (con string_2)))
+   (delta-str-split Σ (ref (con string_1)) (ref (con string_2)) (ref (con -1)))])
 (define-metafunction SP-dynamics
   delta-exception-init : Σ v ... -> [Σ e-]
   [(delta-exception-init Σ (ref l_exn))
@@ -770,6 +845,14 @@
   [(delta-dict-setitem Σ v ...)
    [Σ (raise (new "Exception" ((con "setitem"))))]])
 (define-metafunction SP-dynamics
+  delta-dict-len : Σ v ... -> [Σ e-]
+  [(delta-dict-len Σ (ref l_map))
+   [Σ (ref (con number))]
+   (where (obj l_typ (dict (vv ...)) ρ) (lookup-Σ Σ l_map))
+   (where number ,(length (term (vv ...))))]
+  [(delta-dict-len Σ v ...)
+   [Σ (raise (new "Exception" ((con "dict.__len__"))))]])
+(define-metafunction SP-dynamics
   delta-dict-delitem : Σ v ... -> [Σ e-]
   [(delta-dict-delitem Σ_0 (ref l_map) v_key)
    [Σ_1 (ref (con None))]
@@ -777,6 +860,11 @@
    (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict (vv_1 ... vv_2 ...)) ρ)]))]
   [(delta-dict-delitem Σ v ...)
    [Σ (raise (new "Exception" ((con "delitem"))))]])
+(define-metafunction SP-dynamics
+  delta-int-bit-length : Σ v ... -> [Σ e-]
+  [(delta-int-bit-length Σ (ref (con number_1)))
+   [Σ (ref (con number_2))]
+   (where number_2 ,(inexact->exact (ceiling (log (+ (term number_1) 1) 2))))])
 (define-metafunction SP-dynamics
   delta-list-init : Σ v ... -> [Σ e-]
   [(delta-list-init Σ_0 (ref l_obj))
@@ -794,6 +882,16 @@
    (where Σ_1
           (update Σ_0 [l_obj (obj l_cls (list (v_val ...)) ρ)]))])
 (define-metafunction SP-dynamics
+  delta-tuple-init : Σ v ... -> [Σ e-]
+  [(delta-tuple-init Σ_0 (ref l_obj) (ref l_tpl))
+   [Σ_1 (ref (con None))]
+   (where (obj l_objcls g_obj ρ_obj)
+          (lookup-Σ Σ_0 l_obj))
+   (where (obj l_tplcls g_tpl ρ_tpl)
+          (lookup-Σ Σ_0 l_tpl))
+   (where Σ_1
+          (update Σ_0 [l_obj (obj l_objcls g_tpl ρ_obj)]))])
+(define-metafunction SP-dynamics
   delta-list-eq : Σ v ... -> [Σ e-]
   [(delta-list-eq Σ (ref l_lft) (ref l_rht))
    [Σ (enter -1
@@ -802,12 +900,32 @@
    (where (obj l_rhtcls (list (v_rht ...)) ρ_rht) (lookup-Σ Σ l_rht))
    (where #t ,(= (length (term (v_lft ...))) (length (term (v_rht ...)))))]
   [(delta-list-eq Σ (ref l_lft) (ref l_rht))
-   #f])
+   [Σ (ref (con #f))]])
+(define-metafunction SP-dynamics
+  delta-list-mul : Σ v ... -> [Σ e-]
+  [(delta-list-mul Σ (ref l_lft) (ref (con number)))
+   [Σ (list (v_new ...))]
+   (where (obj l_cls (list (v_elm ...)) ρ) (lookup-Σ Σ l_lft))
+   (where (v_new ...) ,(racket-append* (build-list (term number) (lambda (_) (term (v_elm ...))))))])
+(define-metafunction SP-dynamics
+  delta-tuple-mul : Σ v ... -> [Σ e-]
+  [(delta-tuple-mul Σ (ref l_lft) (ref (con number)))
+   [Σ (tuple (v_new ...))]
+   (where (obj l_cls (tuple (v_elm ...)) ρ) (lookup-Σ Σ l_lft))
+   (where (v_new ...) ,(racket-append* (build-list (term number) (lambda (_) (term (v_elm ...))))))])
 (define-metafunction SP-dynamics
   delta-list-len : Σ v ... -> [Σ e-]
-  [(delta-list-len Σ (ref l_lft))
-   [Σ (con ,(length (term (v_lft ...))))]
-   (where (obj l_lftcls (list (v_lft ...)) ρ_lft) (lookup-Σ Σ l_lft))])
+  [(delta-list-len Σ (ref l_obj))
+   [Σ (con ,(length (term (v_elm ...))))]
+   (where (obj l_cls (list (v_elm ...)) ρ_obj) (lookup-Σ Σ l_obj))])
+(define-metafunction SP-dynamics
+  delta-list-setitem : Σ v ... -> [Σ e-]
+  [(delta-list-setitem Σ_0 (ref l_obj) (ref (con number)) v_new)
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls (list (v_elm ...)) ρ) (lookup-Σ Σ_0 l_obj))
+   (where #t ,(< (term number) (length (term (v_elm ...)))))
+   (where (v_ret ...) ,(list-set (term (v_elm ...)) (term number) (term v_new)))
+   (where Σ_1 (update Σ_0 [l_obj (obj l_cls (list (v_ret ...)) ρ)]))])
 (define-metafunction SP-dynamics
   delta-list-getitem : Σ v ... -> [Σ e-]
   [(delta-list-getitem Σ (ref l_obj) (ref (con number)))
@@ -837,7 +955,7 @@
    (where (obj l_rhtcls (tuple (v_rht ...)) ρ_rht) (lookup-Σ Σ l_rht))
    (where #t ,(= (length (term (v_lft ...))) (length (term (v_rht ...)))))]
   [(delta-tuple-eq Σ (ref l_lft) (ref l_rht))
-   #f])
+   [Σ (ref (con #f))]])
 (define-metafunction SP-dynamics
   make-and : e- ... -> e-
   [(make-and)
@@ -1127,6 +1245,11 @@
   do-assign-attribute-fast : Σ l x v -> [Σ s-]
   [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
    [(update Σ [l_obj (obj l_cls g (update ρ [x_mem l_new]))])
+    (begin)]
+   (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
+   (where (yes any) (lookup? ρ x_mem))]
+  [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
+   [(update Σ [l_obj (obj l_cls g (extend ρ [x_mem l_new]))])
     (begin)]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))])
 (define-metafunction SP-dynamics

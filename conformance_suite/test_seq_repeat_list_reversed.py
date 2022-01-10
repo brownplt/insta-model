@@ -1,10 +1,14 @@
 # test_seq_repeat_list_reversed.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 def f():
     l = [1, 2]
     return 2 * l
+def main():
+    assert f() == [1, 2, 1, 2]
+
+main()
 # def test_seq_repeat_list_reversed(self):
 #     codestr = """
 #         def f():

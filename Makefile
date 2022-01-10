@@ -1,9 +1,12 @@
-refresh_conformance_suite:
+everything: import python_test_to_redex_test
+
+import:
 	rm -f ./skipped_tests/*
 	rm -f ./conformance_suite/test_*
-	python3 ./scripts/import_SP_tests.py && \
-	python3 ./scripts/python_tests_to_redex_tests.py && \
-	echo "All done!"
+	python3.9 ./scripts/import_SP_tests.py
+
+python_test_to_redex_test:
+	python3.9 ./scripts/python_tests_to_redex_tests.py
 
 run_redex_tests:
 	racket ./test-desugar.rkt && \
@@ -13,7 +16,6 @@ run_redex_tests:
 	echo "All done!"
 
 statistics:
-	echo "in skipped_tests"
+	grep 'def test_' ./tests.py | wc -l
+	ls -l ./conformance_suite/test_* ./conformance_suite/ht_*  | wc -l
 	ls -l ./skipped_tests | wc -l
-	echo "in conformance_suite"
-	ls -l ./conformance_suite | wc -l

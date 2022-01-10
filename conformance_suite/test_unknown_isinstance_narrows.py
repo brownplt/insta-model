@@ -1,6 +1,5 @@
 # test_unknown_isinstance_narrows.py
 # This should pass.
-# This should terminate.
 
 from typing import Any
 class C:

@@ -305,10 +305,10 @@ def ast_to_sexp(node):
             name,
             [ast_to_sexp(s) for s in node.body],
         ]
-    elif isinstance (node, ast.List):
+    elif isinstance(node, ast.List):
         return [
             symbol('list'),
-            [ ast_to_sexp(e) for e in node.elts ]
+            [ast_to_sexp(e) for e in node.elts]
         ]
     elif isinstance(node, ast.ListComp):
         return [
@@ -320,7 +320,7 @@ def ast_to_sexp(node):
         return [
             ast_to_sexp(node.target),
             ast_to_sexp(node.iter),
-            [ ast_to_sexp(cnd) for cnd in node.ifs ]
+            [ast_to_sexp(cnd) for cnd in node.ifs]
         ]
     elif isinstance(node, ast.For):
         return [
@@ -362,9 +362,9 @@ def parse_python_file(test_file):
     prog = python_file_to_sexp(test_file)
     base = 1
     if lines[base] == '# This should fail.\n':
-        spec = {'compile': False }
+        spec = {'compile': False}
     elif lines[base] == '# This should pass.\n':
-        spec = {'compile': True }
+        spec = {'compile': True}
         base += 1
         if lines[base] == '# This is an optimization test.\n':
             spec['optimization'] = True
@@ -430,16 +430,23 @@ def python_file_to_redex_static_test(spec, prog):
 def python_file_to_redex_compile_test(spec, prog):
     if spec['compile']:
         return [
-            symbol('test-match'),
-            symbol('SP-compiled'),
-            symbol('program-'),
+            symbol('check-not-exn'),
             [
-                symbol('term'),
+                symbol('lambda'),
+                [],
                 [
-                    symbol('compile-program'),
+                    symbol('test-match'),
+                    symbol('SP-compiled'),
+                    symbol('program-'),
                     [
-                        symbol('desugar-program'),
-                        prog
+                        symbol('term'),
+                        [
+                            symbol('compile-program'),
+                            [
+                                symbol('desugar-program'),
+                                prog
+                            ]
+                        ]
                     ]
                 ]
             ]
@@ -476,18 +483,24 @@ def python_file_to_redex_dynamic_test(spec, prog):
             symbol('any'),
         ]
     return [
-        symbol('test-match'),
-        symbol('SP-dynamics'),
-        check,
+        symbol('check-not-exn'),
         [
-            symbol('term'),
-            [
-                symbol('calc'),
+            symbol('lambda'),
+            [], [
+                symbol('test-match'),
+                symbol('SP-dynamics'),
+                check,
                 [
-                    symbol('compile-program'),
+                    symbol('term'),
                     [
-                        symbol('desugar-program'),
-                        prog
+                        symbol('calc'),
+                        [
+                            symbol('compile-program'),
+                            [
+                                symbol('desugar-program'),
+                                prog
+                            ]
+                        ]
                     ]
                 ]
             ]
@@ -582,6 +595,7 @@ def main():
             '(require "desugar.rkt")',
             '(require "compile.rkt")',
             '(require "dynamics.rkt")',
+            '(require rackunit)',
             ''
         ]))
         for name, spec, prog, source in parsed_test_files:

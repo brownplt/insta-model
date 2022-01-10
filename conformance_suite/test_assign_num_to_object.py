@@ -1,6 +1,5 @@
 # test_assign_num_to_object.py
 # This should pass.
-# This is an optimization test.
 
 def f():
     x: object = 42

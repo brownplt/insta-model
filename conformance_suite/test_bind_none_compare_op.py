@@ -1,6 +1,5 @@
 # test_bind_none_compare_op.py
 # This should pass.
-# This should terminate.
 
 from typing import Any
 def has_none(x) -> bool:

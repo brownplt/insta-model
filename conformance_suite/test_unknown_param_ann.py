@@ -1,6 +1,5 @@
 # test_unknown_param_ann.py
 # This should pass.
-# This should terminate.
 
 from typing import Any
 class C:

@@ -325,7 +325,7 @@
   [(desugar-s (return e+))
    (return (desugar-e e+))]
   [(desugar-s (assert e+))
-   (if (desugar-e e+) (begin) (raise (call (ref "Exception") ((con "assertion error")))))]
+   (if (desugar-e e+) (begin) (raise (call (ref "AssertionError") ())))]
   [(desugar-s (if e+ (s+_thn ...) (s+_els ...)))
    (if (desugar-e e+)
        (make-begin (desugar-s s+_thn) ...)
@@ -376,7 +376,10 @@
    (desugar-s (assign (e+_dst) (bin-op o2 e+_dst e+_src)))]
   ;; class
   [(desugar-s (class x (t+ ...) (s+ ...)))
-   (class x ((desugar-t t+) ...) (m*-of-begin (make-begin (desugar-s s+) ...)))]
+   (class x ((desugar-t t+) ...) (m ...))
+   (where (m_explicit ...) (m*-of-begin (make-begin (desugar-s s+) ...)))
+   (where (m_implicit ...) (m*-of-m* (m_explicit ...)))
+   (where (m ...) (append (m_explicit ...) (m_implicit ...)))]
   ;; function-def
   [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret (s+ ...)))
    (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret)
@@ -529,6 +532,23 @@
    (field x t e)]
   [(m-of-s (function-def x ([x_arg t_arg] ...) t_ret level_bdy))
    (method x ([x_arg t_arg] ...) t_ret level_bdy)])
+(define-metafunction SP-core
+  self-m*-of-s : s -> (m ...)
+  [(self-m*-of-s (ann-assign (attribute "self" x) t e))
+   ((field x t))]
+  [(self-m*-of-s (begin s ...))
+   (append* (m ...) ...)
+   (where ((m ...) ...) ((self-m*-of-s s) ...))]
+  [(self-m*-of-s s)
+   ()])
+(define-metafunction SP-core
+  m*-of-m* : (m ...) -> (m ...)
+  [(m*-of-m* (m_1 ... 
+              (method "__init__" ([x_arg t_arg] ...) t_ret (local ([x_lcl d_lcl] ...) s_bdy))
+              m_2 ...))
+   (self-m*-of-s s_bdy)]
+  [(m*-of-m* (m ...))
+   ()])
 
 (define-metafunction SP-core
   level-of-s : ([x d] ...) s -> level

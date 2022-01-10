@@ -1,6 +1,5 @@
 # test_incompat_override_init_okay.py
 # This should pass.
-# This should terminate.
 
 class A:
     def __init__(self) -> None:

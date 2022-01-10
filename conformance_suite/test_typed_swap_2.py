@@ -1,6 +1,5 @@
 # test_typed_swap_2.py
 # This should pass.
-# This is an optimization test.
 
 def test(a):
     x: int

@@ -1,10 +1,14 @@
 # test_seq_repeat_tuple.py
 # This should pass.
-# This is an optimization test.
+# This should terminate.
 
 def f():
     t = (1, 2)
     return t * 2
+def main():
+    assert f() == (1, 2, 1, 2)
+
+main()
 # def test_seq_repeat_tuple(self):
 #     codestr = """
 #         def f():

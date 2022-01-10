@@ -5,6 +5,10 @@
 def func():
     a = 'a b c'
     return a.split('a')
+def main(f):
+    assert f() == ['', ' b c']
+
+main(func)
 # def test_invoke_str_method_arg(self):
 #     codestr = """
 #     def func():
