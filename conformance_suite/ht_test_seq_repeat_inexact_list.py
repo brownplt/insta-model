@@ -3,22 +3,20 @@
 # This should terminate.
 
 from typing import List
-
-
 def f(l: List[int]):
     return l * 2
-
-
-assert f([1, 2]) == [1, 2, 1, 2]
-
-
+# The next three line are moved here from the body of `main`
 class MyList(list):
     def __mul__(self, other):
         return 'RESULT'
+def main():
+    assert f([1, 2]) == [1, 2, 1, 2]
+    # class MyList(list):
+    #     def __mul__(self, other):
+    #         return 'RESULT'
+    assert f(MyList([1, 2])) == 'RESULT'
 
-
-assert f(MyList([1, 2])) == 'RESULT'
-
+main()
 # def test_seq_repeat_inexact_list(self):
 #     codestr = """
 #         from typing import List

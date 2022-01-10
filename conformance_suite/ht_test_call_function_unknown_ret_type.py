@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
-# EDIT: import Any and use it in place of `foo`
+# We added the next line.
 from typing import Any
 
-# EDIT: use `Any` in place of `foo`
+# We edited the next line to use use `Any` in place of `foo`
+# def g() -> foo:
 def g() -> Any:
     return 42
 def testfunc():

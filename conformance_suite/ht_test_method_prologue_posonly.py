@@ -2,7 +2,7 @@
 # This should pass.
 # This should terminate.
 
-# EDIT: We remove `/ ,`
+# The next line is edited to remove `/ ,`.
 # def f(x: int, /, y: str):
 def f(x: int, y: str):
     return 42

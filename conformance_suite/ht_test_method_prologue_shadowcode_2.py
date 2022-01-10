@@ -5,7 +5,8 @@
 def f(x: str):
     return 42
 def main(f):
-    # EDIT: we changed the next line to reduce 100 to 10
+    # we changed the number from 100 to 10
+    # for i in range(100):
     for i in range(10):
         assert f('abc') == 42
     try:

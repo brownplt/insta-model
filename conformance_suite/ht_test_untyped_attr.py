@@ -1,7 +1,7 @@
 # test_untyped_attr.py
 # This should pass.
 
-# EDIT: We added 2 lines below to declare x.
+# We added 2 lines below to declare x.
 def f(): return 42
 x = f()
 y = x.load

@@ -7,7 +7,7 @@ class C:
         self.field = self
 def f(x: Optional[C]):
     if x is None:
-        # EDIT: We added three lines below to declare `a`. Otherwise this program
+        # We added three lines below to declare `a`. Otherwise this program
         #   will be rejected because of the unbound identifier.
         def f():
             return 42

@@ -1,20 +1,23 @@
-# test_compile_dict_get_2.py
+# test_compile_dict_get.py
 # This should pass.
 # This should terminate.
 
-# EDIT: The first part of the test is ignored because we can't type check `.get`
-#   properly without optional arguments.
+# This whole test is created manually because our script can't catch a second `codestr`.
+# We ignore the first `codestr` because we type `CheckedDict[T,T].get` as `dynamic`.
+# The `.get` method takes an optional argument, and the type system in our model can't
+# express optional argument.
 
 from __static__ import CheckedDict
-
 class B: pass
 class D(B): pass
 def testfunc():
     x = CheckedDict[B, int]({B():42, D():42})
     return x
 
-assert type(testfunc()) == CheckedDict[B, int]
+def main(test):
+    assert type(test()) == CheckedDict[B,int]
 
+main(testfunc)
 # def test_compile_dict_get(self):
 #     codestr = """
 #         from __static__ import CheckedDict

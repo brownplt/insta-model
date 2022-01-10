@@ -4,7 +4,8 @@
 
 def use(i: object) -> object:
     return i
-# EDIT: we remove `/, `, `*, `, and the optional argument.
+# We edited the next line. `/, ` is removed because we don't support this
+#   kind of argument specification.
 # def outer(x: int, /, y: int, *, z: str = "lol") -> object:
 def outer(x: int, y: int, z: str) -> object:
     def inner() -> None:

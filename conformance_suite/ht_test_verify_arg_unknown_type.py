@@ -1,12 +1,12 @@
 # test_verify_arg_unknown_type.py
 # This should pass.
 
-# EDIT: We added 1 line to import Any
+# We added 1 line to import Any
 from typing import Any
-# EDIT: We edited the next line to use `Any` in place of `foo`
+# We edited the next line to use `Any` in place of `foo`
 # def x(x:foo):
 def x(x:Any):
-    # EDIT: We added 2 lines to declare `b`
+    # We added 2 lines to declare `b`
     def f(): return 42
     b = f()
     return b

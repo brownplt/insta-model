@@ -1,11 +1,11 @@
 # test_assign_dynamic_to_dynamic.py
 # This should pass.
 
-# EDIT: import Any and use it in place of `unknown`
+# We added the next line.
 from typing import Any
 
 def f(C):
-    # EDIT: use `Any`` in place of `unknown`
+    # We edited the next line to use `Any` in place of `unknown`
     # x: unknown = C()
     x: Any = C()
 # def test_assign_dynamic_to_dynamic(self):

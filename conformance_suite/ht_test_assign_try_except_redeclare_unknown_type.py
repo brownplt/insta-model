@@ -1,14 +1,14 @@
 # test_assign_try_except_redeclare_unknown_type.py
 # This should pass.
 
-# EDIT: import Any and use it in place of `UnknownException`
+# We added the next line.
 from typing import Any
 
 def testfunc():
     e: int
     try:
         pass
-    # EDIT: use `Any` in place of `UnknownException`
+    # We edited the next line to use `Any` in place of `UnknownException`
     # except UnknownException as e:
     except Any as e:
         pass

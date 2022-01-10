@@ -4,7 +4,7 @@
 
 from typing import Optional
 class B:
-    # We edited the next line.
+    # We edited the next line because our model can't parse the whole string.
     # def f(self) -> "Optional[B]":
     def f(self) -> Optional["B"]:
         return self

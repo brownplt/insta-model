@@ -439,6 +439,9 @@ def parse_asserts(name, spec):
                     if isinstance(s_as_stmt, ast.For):
                         actions.append(s_as_str)
                         continue
+                    if isinstance(s_as_stmt, ast.Delete):
+                        actions.append(s_as_str)
+                        continue
                     if s_as_str.startswith('with self.assertRaises('):
                         assert isinstance(s_as_stmt, ast.With)
                         assert len(s_as_stmt.items) == 1
@@ -448,7 +451,7 @@ def parse_asserts(name, spec):
                         args = context_expr.args
                         arg0_as_node = args[0]
                         arg0_as_str: str = ast.unparse(arg0_as_node)
-                        if arg0_as_str in {'AssertionError', 'TypeError'}:
+                        if arg0_as_str in {'AssertionError', 'TypeError', 'AttributeError'}:
                             body = s_as_stmt.body
                             assert len(body) == 1
                             s = ast.unparse(body[0])
@@ -470,14 +473,14 @@ def parse_asserts(name, spec):
                         args = context_expr.args
                         arg0_as_node = args[0]
                         arg0_as_str: str = ast.unparse(arg0_as_node)
-                        if arg0_as_str.startswith('TypeError'):
+                        if arg0_as_str in {'AssertionError', 'TypeError', 'AttributeError'}:
                             body = s_as_stmt.body
                             assert len(body) == 1
                             s = ast.unparse(body[0])
                             actions = actions + [
                                 'try:',
                                 '    {}'.format(s),
-                                'except TypeError:',
+                                'except {}:'.format(arg0_as_str),
                                 '    pass',
                                 'else:',
                                 '    raise Exception()'

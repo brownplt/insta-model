@@ -1,11 +1,11 @@
 # test_assign_num_to_dynamic.py
 # This should pass.
 
-# EDIT: import Any and use it in place of `foo`
+# We added the next line.
 from typing import Any
 
 def f():
-    # EDIT: use `Any` in place of `foo`
+    # We edited the next line to use `Any` in place of `foo`
     # x: foo = 42
     x: Any = 42
 # def test_assign_num_to_dynamic(self):
