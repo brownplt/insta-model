@@ -16,6 +16,7 @@
 %% - what are the idiomatic base SP types ... int or Int ?
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
 %% - use ChkDict not ChkList ... avoid confusion
+%%   ... or at least mention both, be clear the focus is Dict b/c older
 %% - do the LESSONS from SP come across clearly? beware making this a "progress report"
 
 %% TODO after submission, before camera-ready
@@ -24,6 +25,7 @@
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\bcinst}[1]{\code{#1}}
 \newcommand{\defeq}{=}
 \newcommand{\mfeq}{=}
 \newcommand{\langmid}{\mid} %% {\mathrel{\mathbf{\Big\vert}}}
@@ -699,8 +701,9 @@ fully-sound types, or leave it as-is for a lower payoff.
 %  \end{itemize}
 %  2022-01-07: might be an interesting figure idea, showing the two options for enforcing a data structure
 %    Q How to enforce data structure without traversing
-%     \=> option 1: Shallow
-%     \=> option 2: Deep
+%     \=> option 1: Shallow; + works for legacy code; - doesn't guarantee full type
+%     \=> option 2: Deep; + guarantees full type; - rejects legacy code
+%     \=> (option 3: traverse/wrrap; + guarantees full type; + works for legacy code; - slow; - complex
 %  \caption{FILL illustrate list boundary and checks}
 %  \label{f:list-boundary}
 %\end{figure}
@@ -812,6 +815,12 @@ several ways.
 Some of these ensure the integrity of types.
 Others use type soundness to generate efficient code.
 
+%% TODO need this para?
+We present these in less detail than the type system highlights because
+we suspect they are less-widely applicable than the type system features.
+Some rely on an optimizing JIT compiler, for example.
+Nevertheless, these highlights are an important part of what makes \SP{} successful.
+
 
 \subsubsection{Bytecode Instructions}
 
@@ -820,32 +829,12 @@ All the standard Python instructions work similarly to Python 3.8;
 in other words, an untyped Python program has the same semantics in
 Cinder as in the standard interpreter.
 The added instructions help either to express runtime checks or to
-quickly perform a statically-determined action.
-
-The two main instructions that express run-time checks are \code{CAST}
-and \code{CHECK\_ARGS}.
-The former checks a value against a type.
-The latter is a special cast for functions and methods;
-it appears at the top of every function and checks that the
-actual parameters match the types of the formal parameters.
-
-A simple optimizing instruction is \code{FAST\_LEN}, which expects
-a built-in value\footnote{Because of subtyping, it does not suffice to check
-the type. All Python lists support \code{FAST\_LEN} but some subclasses
-of the Python list type may not.}
-and quickly computes its length.
-Another is \code{LOAD\_FIELD}, which scans a fixed offset within an object.
-By contrast, the standard Python instruction for loading a field needs to
-search a dictionary~(\code{LOAD\_ATTR}).
-
-In addition to speeding code up, the \SP{} compiler takes care
-to avoid slowing code down.
-It does so by avoiding casts and run-time checks that are certain to succeed.
-For example, calls from a typed context to a typed function are statically
-checked for compatibility.
-There is no need to run \code{CHECK\_ARGS} on typed inputs, so the bytecode
-compiler inserts a special call instruction to skip past the check.
-
+efficiently perform some action.
+For example, the \code{FAST\_LEN} instruction quickly computes the
+length of a built-in value.
+%% TODO is it really undefined
+\SP{} uses type information to decide where this instruction is appropriate
+and applies it as an optimization.
 
 
 \subsubsection{Virtual Method Tables}
@@ -972,17 +961,24 @@ As an alternative, \SP{} programmers may opt in to a \emph{strict module} semant
 Strict modules are immutable, and thus enable type-based compiler optimizations.
 
 
+\subsubsection{Classloader}
+\label{s:classloader}
+
+\SP{} keeps track of typed functions and typed classes with a specialized classloader.
+At runtime, the classloader keeps a registry of typed objects and whether or not they
+are mutable.
+The registry helps the bytecode reference objects and types via their module names.
+The mutability bit lets \SP{} optimize access for immutable data while soundly allowing
+patches to mutable data.
+Overall, it is an essential piece of infrastructure to enable soundness and optimizations.
+
+
 \section{Formal Model}
 \label{s:model}
 %% purpose = types, checks, and optimizations can be formalized and analyzed
 
 %% 2022-01-06 TODO subtyping for classes C ... matters for casts at least ... just add a Gamma, follow chain up one step at a time until refl.
 %% 2022-01-04 KC will look into pbt for nom properties (I don't think there's much to see there!)
-
-%% TODO 2022-01-04 (somewhere) explain that a verified compiler is an entirely separate project,
-%%  need bytecode model, full transformations, memory model / machine etc.
-%%  hence we don't model optimizations, little benefit
-%%  opt. don't tell us about the surface language ... the particular SP opts are changing representations but not results
 
 %% NOTE
 %% - remark: model gives errors of the same kind in SP, but not always the same
@@ -1005,40 +1001,12 @@ The model encompasses two soundness claims:
 \end{enumerate}
 This section explores the first claim in depth by way of a tiny formal model
 that illustrates the \SP{} gradual interaction strategy.
+%% Compared to other gradual languages, these boundaries are quite restrictive---which
+%% partly explains how it is able to perform well in practice~(\cref{s:eval}).
+%% Indeed the boundaries are effectively a subset of those in Nom~\cite{mt-oopsla-2021}.
 The second claim is justified by our Redex development;
 in particular, by its test suite.
 This section describes the Redex development in broad strokes.
-
-
-\subsection{Goals and Non-Goals}
-
-Our Redex model of \SP{} includes the key aspects of its types,
-statements, and values.
-The model has two main goals:
-illustrate the boundaries where typed and dynamic code can mix,
-and show how to soundly protect these boundaries.
-Compared to other gradual languages, these boundaries are quite restrictive---which
-partly explains how it is able to perform well in practice~(\cref{s:eval}).
-Indeed the boundaries are effectively a subset of those in Nom~\cite{mt-oopsla-2021},
-which is a compelling argument for their soundness.
-
-The model intentionally does not cover all of Python.
-Some aspects of \SP{} are left out because they are straightforward to
-handle soundly (e.g. primitive types~\cref{s:c-types} and strict modules~\cref{s:strict-mod}).
-Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
-are also omitted.
-Other Python features are left out because their \SP{} semantics is identical
-to the baseline Python semantics.
-These features include \code{eval}, first-class classes, multiple inheritance, and module-level cells;
-see \cref{s:impl} for further discussion.
-
-Lastly, the model does not include type-directed optimizations.
-Validating the correctness of optimizations is a separate task that requires
-significant components; namely, a model of the \SP{} bytecode and a faithful
-rendering of its type-based transformations.
-Our model establishes soundness as a baseline.
-Future work can use soundness to reason informally about optimizations,
-or even take it as a starting point for compiler verification.
 
 
 \subsection{Surface Syntax and Types}
@@ -1609,40 +1577,64 @@ one another, the \SP{} boundaries impose the same constraints as the Nom
 boundaries.
 
 
-%\begin{theorem}[Optimization Soundness]
-%  If\ \(~\vdash \spexpr_0 : \mftypeF{\sptype_0}\)
-%  then\ \(~\vdash \mfopt{\spexpr_0} : \mftypeF{\sptype_0}\)
-%\end{theorem}
+\subsection{Redex Development, \SP{} Conformance}
+%% pbt for soundness?
 
-%\begin{theorem}[Optimization Effectiveness]
-%  FILL how do we know optimizations are useful rather than trivial?
-%  %% - length of eval(e) vs. eval(opt(e)) might be longer (good) or shorter (bad)
-%  %%   for general heuristic opts.
-%  %% - is [opt(e) != e] true for interesting programs?
-%\end{theorem}
+By contrast to the small model language presented in this section,
+our Redex model covers both the typed--untyped boundaries in \SP{}
+and a large subset of Python.
+Notable Python features include module imports, loops, exception handlers, and
+delete statements (for class members and attributes).
+To ensure that these features are implemented correctly and soundly, the
+model includes hundreds of test programs adapted from the \SP{} test suite.\footnote{
+  Most of the N tests are direct translations of \SP{} conformance tests to
+  the syntax of the model.
+  A program that implements the translation is included with our Redex development.
+  The other N tests are not directly expressible in the model; for these, we
+  translated salient aspects of each test by hand.}
+These tests exercise a variety of Python behaviors, thereby giving us confidence
+that the model is sound for Python.
+Some tests intentionally raise type errors, some raise exceptions, and the rest
+compute a specific result.
+We have additionally verified that the model and \SP{} agree on these end-to-end
+behaviors.
+Thus we believe that \SP{} is sound as well.
+%% ... mention that SP is a large and hard-to-analyze language ... opaque?
+
+The model intentionally does, however, not cover all of Python.
+Some aspects of \SP{} are left out because they are straightforward to
+handle soundly (e.g. primitive types~\cref{s:c-types} and strict modules~\cref{s:strict-mod}).
+Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
+are also omitted.
+Other Python features are left out because their \SP{} semantics is identical
+to the baseline Python semantics.
+These features include \code{eval}, first-class classes, multiple inheritance, and module-level cells;
+see \cref{s:impl} for further discussion.
+Lastly, the model does not include type-directed optimizations.
+Validating the correctness of optimizations is a separate task that requires
+significant components; namely, a model of the \SP{} bytecode and a faithful
+rendering of its type-based transformations.
+Our model establishes soundness as a baseline.
+Future work can use soundness to reason informally about optimizations,
+or even take it as a starting point for compiler verification.
 
 
+\subsection{The Payoff: Issues Reported}
 
-\subsection{Redex Development, Navigation, Integration, Conformance Tests}
+While modelling \SP{}, we found several issues with the language
+and submitted them as bug reports to the \SP{} developers.
+Overall, we reported 25 issues~(listed in \cref{a:github-issues}).
+Four of these were critical soundness issues, one of which resulted in
+a segmentation fault.
+All but one of these soundness issue have been fixed.
+Five issues were relatively minor; these dealt with confusing error messages
+and incorrect tests.
+The remaining 16 issues report bugs in language design and implementation.
 
-FILL
+In addition to these formal issue reports,
+we had several long discussions together (between Brown and Instagram)
+about finer points in the language design.
 
-%% - count tests
-%% - summarize expressions
-%% - 
-%% - pbt?
-
-
-\subsection{Bug Reports}
-
-While formalizing Static Python, we submitted N bug reports to the language developers.
-The developers acknowledged M of these bugs as issues to fix.
-
-\begin{center}
-  %% most filed by KC, a few by Ben
-  %% + Carl https://github.com/facebookincubator/cinder/issues/64
-  \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024}
-\end{center}
 
 
 \section{Scaling to Python}
@@ -1683,21 +1675,108 @@ E.g. what would the TypeScript team need to know before using our model
 to add soundness?
 
 
-\subsection{Python Interaction}
+\subsection{Interactions with Python}
 
 FILL
 
-extend model with Python ... two languages ... boundaries ... argue for soundness
+model with Python ... two languages ... boundaries ... argue for soundness
+
+%% C-types are among the most complex because of casts? no not really complex, perhaps notable
 
 
-\subsection{Bytecode, Optimization}
+\subsection{Bytecode and Optimizations}
 \label{s:optimize}
 
-FILL
+\SP{} can generate more-efficent code than Python because it targets
+the Cinder runtime.
+Cinder extends Python with bytecode instructions to check types at run-time,
+to construct \SP{} data structures, and to perform optimized actions.
+\Cref{t:bytecode} lists a few representative bytecode instructions.
+
+\begin{table}
+  \caption{Cinder bytecode instructions}
+  \label{t:bytecode}
+
+  \begin{tabular}{lll}
+    %% TODO remove _
+    %% TODO pick instructions
+    {Instruction} & {Purpose} & {Description} \\\hline
+    \bcinst{CAST} & Soundness & Assert that a value matches a type \\
+    \bcinst{CHECK\_ARGS} & Soundness & Cast all inputs to a function \\[1ex]
+
+    \bcinst{BUILD\_CHECKED\_MAP} & Constructor & Make a checked dictionary \\
+    %\bcinst{BUILD\_CHECKED\_LIST} & Constructor & Make a checked list \\
+    \bcinst{TP\_ALLOC} & Constructor & Make a \SP{} object \\[1ex]
+
+    \bcinst{INVOKE\_FUNCTION} & Optimization & Execute a direct function call \\
+    \bcinst{INVOKE\_METHOD} & Optimization & Execute a method via the object's vtable \\
+    \bcinst{LOAD\_FIELD} & Optimization & Read an object field \\
+    \bcinst{STORE\_FIELD} & Optimization & Write to an object field \\
+    \bcinst{FAST\_LEN} & Optimization & Get length of a built-in value \\
+    \bcinst{REFINE\_TYPE} & Optimization & Type declaration for the JIT \\
+
+%%% Other bytecodes ... either from Carl's talk or the SP repo
+%CONVERT_PRIMITIVE
+%INT_LOAD_CONST_OLD
+%JUMP_IF_NONZERO_OR_POP
+%JUMP_IF_ZERO_OR_POP
+%LIST_DEL
+%LOAD_ITERABLE_ARG
+%LOAD_LOCAL
+%LOAD_MAPPING_ARG
+%POP_JUMP_IF_NONZERO
+%POP_JUMP_IF_ZERO
+%PRIMITIVE_BINARY_OP
+%PRIMITIVE_BOX
+%PRIMITIVE_COMPARE_OP
+%PRIMITIVE_LOAD_CONST
+%PRIMITIVE_UNARY_OP
+%PRIMITIVE_UNBOX
+%RETURN_PRIMITIVE
+%SEQUENCE_GET
+%SEQUENCE_REPEAT
+%SEQUENCE_SET
+%STORE_LOCAL
+
+  \end{tabular}
+\end{table}
+
+The two instructions that express run-time checks are \code{CAST}
+and \code{CHECK\_ARGS}.
+The former checks a value against a type.
+The latter is for functions and methods; it checks all inputs to a function
+against their declared types.
+
+By convention, a \code{CHECK\_ARGS} instruction always appears on the first
+line of a typed function body.
+The optimizer uses this convention to skip argument checks by jumping
+past them when it is safe to do so; namely, whenever a typed function (or method)
+gets called with well-typed arguments.
+%% TODO ask C&D about materialize for fn calls
+
+\Cref{t:bytecode} presents two instructions that allocate \SP{}-specific data structures.
+The first creates a checked dictionary; the second creates an object with a vtable~(\cref{s:vtable}).
+Cinder comes with a similar instruction to build checked lists.
+The developers will add more instructions along the same lines in the future.
+
+The remaining instructions are for optimization.
+Both \bcinst{INVOKE\_FUNCTION} and \bcinst{INVOKE\_METHOD} are alternatives
+to Python's dynamic call dispatch.
+The former jumps to a statically-determined address;
+the latter uses a v-table lookup to quickly find an address at run-time.
+The load and store instructions for fields improve upon Python's generic attribute lookup.
+In the JIT, these instructions can sometimes be further optimized to a single assembly instruction.
+The \bcinst{FAST\_LEN} instruction gets the length of a built-in datatype directly, instead
+of using the Python \code{\_\_len\_\_} attribute.
+Lastly, the \bcinst{REFINE\_TYPE} instruction tells the JIT about the type of a local value whose
+type is not clear from the context.
 
 
 \subsection{Dynamic Python Features}
 \label{s:dynamic-python}
+
+%% TODO 2022-01-09 be careful here ... the model may handle module vars, but it's
+%% just that they're untyped and (maybe) not tested
 
 \SP{} does not ascribe types to the following Python features.
 These are not covered in our model because the implementation simply
@@ -2101,6 +2180,16 @@ Developer experience is one of the main advantages of \SP{} over mypyc,
 which implements type-directed optimizations for CPython
 by compiling source code to C extension modules.
 
+JS++ is a sound gradual type system for JavaScript~\cite{jspp}.
+By default, it separates JS++ from JavaScript values:
+every value with a type must be defined in JS++ code,
+and every value that may have come from Javascript has
+a special type \code{external} to mark it as such.
+Programmers can manually cast external values to a
+more precise type.
+The casts may fail at runtime, and may create a copy of
+the original value if they succeed (depends on the type).
+%% 2022-01-09 how does JS++ protect arrays sent to JS?
 
 
 \section{Future Work}
@@ -2260,6 +2349,20 @@ FILL
 }
 
 \appendix
+
+\section{GitHub Issues}
+\label{a:github-issues}
+
+FILL if we're going to list issues, might as well report the titles, labels, and open/closed status.
+
+The 25 GitHub issues that we filed during the formalization effort may be found at the following three links:
+
+\begin{itemize}
+  \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024} (N=20)
+  \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/bennn} (N=4)
+  \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/64} (N=1)
+\end{itemize}
+
 
 \section{Pyre Limitations}
 
