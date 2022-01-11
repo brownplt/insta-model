@@ -16,6 +16,7 @@
 %% - use ChkDict not ChkList ... avoid confusion
 %%   ... or at least mention both, be clear the focus is Dict b/c older
 %% - do the LESSONS from SP come across clearly? beware making this a "progress report"
+%% - terms: sound generic / concrete ... aren't people going to forget concrete? better keep as last resort
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -39,6 +40,7 @@
 \newcommand{\sptype}{\typefont{T}}
 \newcommand{\spteval}{\typefont{S}}
 \newcommand{\sptclass}{\typefont{C}}
+\newcommand{\sptX}{\typefont{X}} %% undefined type for an early example
 \newcommand{\sptint}{\typefont{Int}}
 \newcommand{\sptbool}{\typefont{Bool}}
 \newcommand{\sptfloat}{\typefont{Float}}
@@ -490,57 +492,39 @@ notable aspects of the type system:
 \subsubsection{Type Dynamic}
 \label{s:type-dynamic}
 
-%% 2021-12-14:
+%% 2021-12-14 TODO:
 %% - anything to say about Any being a "meta" type in Python typing module?
-
-%% 2021-12-23: TODO
-%% Carl: The behavior of dynamic type in static code should be:
-%%   a) any type can flow to dynamic
-%%   b) dynamic can flow to any type, but it requires the insertion of a runtime cast for soundness
-%%   c) dynamic type should emit the same bytecode for any given operation that non static code would emit
-%%      ... I think differing behavior around (c) is also unlikely — the structure of our
-%%      code generation is that we call methods on type objects to emit byte code for
-%%      various operations on a value of that type, and our dynamic type simply
-%%      forwards all those calls to the default Python compiler, which should always
-%%      result in dynamic type emitting the same byte code that nonstatci code would.
-%%      This isn’t universal, though (i.e. for some operations, e.g. binary ops, we
-%%      might explicitly handle various cases for operand type pairings, not always by
-%%      calling a polymorphic method on each operand type), which could open the door
-%%      to differing behavior here. But I can’t think of or find any such intentional
-%%      cases, and I suspect if any did crop up we’d consider it a bug.
-
+%%   2022-01-10 bg: not sure what the consequences of "meta type" are
 
 Like most gradual languages, \SP{} includes a dynamic type
 that allows untyped expressions within a statically-typed context.
 Whenever an expression or variable lacks a type annotation, \SP{} uses the
-dynamic type as a default and skips most (but not all!) compile-time checks.
+dynamic type as a default and skips most \emph{but not all}\/ compile-time checks.
 Every untyped Python program is thus a well-formed \SP{} program.
-Furthermore, programmers can omit the annotations for specific
-function arguments without losing the benefits of other type checks.
-Freedom to omit annotations helps programmers convert modules to \SP{}
-with little initial refactoring.
+Furthermore, programmers can add annotations to part of a module
+while leaving the rest untyped; the untyped positions receive the dynamic type.
 
 In addition to serving as a default, the dynamic type also replaces any undefined types.
-For example, suppose that the type \code{X} is undefined in \SP{} and that a
-program contains the annotation \code{ChkDict[int, X]}, which describes a
-dictionary with integer keys and \code{X}-typed values.
-\SP{} interprets this annotation as \code{ChkDict[int, dynamic]} and allows any sort
+For example, suppose that the type $\sptX{}$ is undefined in \SP{} and that a
+program contains the annotation $\sptchkdict{\sptint}{\sptX{}}$, which describes a
+dictionary with integer keys and $\sptX{}$-typed values.
+\SP{} interprets this annotation as \sptchkdict{\sptint}{\sptdyn}$ and allows any sort
 of values inside the dictionary at runtime.
 
 At first glance, this behavior might seem odd: why not reject undefined types with an error?
 The reason is to reduce friction with the Pyre annotations that are already
 widely-used at Instagram.
 Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
-efficiently, e.g., the type \code{Union[t1, ..., tn]} of arbitrary-width unions~(\cref{s:idiomatic-types}).
+efficiently, e.g., the type $\sptunion{\sptype_0, \ldots, \sptype_n}$ of arbitrary-width unions~(\cref{s:idiomatic-types}).
 By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
 
 %% intro sentence
 The dynamic type is also different than the flexible dynamic type provided
-by true gradual languages~\cite{svcb-snapl-2015}.
-Replacing part of a type with dynamic can lead to both compile-time errors
-and run-time errors.
-In other words, \SP{} satisfies neither the static nor the dynamic gradual guarantee
-for a standard type precision relation.
+by gradual languages that satisfy the gradual guarantees~\cite{svcb-snapl-2015}.
+Replacing part of a type with dynamic can lead to a compile-time error because
+unlike untyped Python code, the \SP{} compiler does analyze dynamic-typed code.
+Similarly, adding a dynamic type can raise a run-time error because
+\SP{} does not allow interactions among different instantiations of a generic type.
 %% \footnote{We
 %% assume a standard type precision relation. Of course, one could argue that these programs
 %% do not break the gradual guarantees for a type precision relation that is tailored to \SP{}.}
@@ -553,22 +537,6 @@ for a standard type precision relation.
     The subclass definition raises a compile-time error because it attempts to override
     the typed \code{m1} method with another method that returns the dynamic type.
 
-    %% 2021-12-13: TODO NOTE SWALLOW MORE
-    %% I think the fundamental unusual thing we do here is our per-module
-    %% incremental adoption strategy for our compiler. We don’t apply our compiler
-    %% to the entire codebase, using presence or absence of type annotations as
-    %% the sole indicator of whether to compile code with static or dynamic
-    %% behavior. We apply our compiler only to selected opted-in modules, and the
-    %% rest of the codebase is compiled with Python’s default compiler and no
-    %% type-checking (it may of course be checked by Pyre but that’s unrelated to
-    %% compilation.) So this clearly opens the door to differing behavior between
-    %% code that is compiled by our compiler and code that isn’t, even when the
-    %% former has some or many values/expressions typed as dynamic. It also makes
-    %% such differences somewhat more acceptable in practice — since adoption of
-    %% an individual module into our compiler is opt-in, we can swallow more
-    %% behavior difference implied solely by that change.
-
-
   \item
     \Cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
     uses the type \code{ChkDict} for concrete-typed dictionaries (\cref{s:checked-type}).
@@ -577,9 +545,17 @@ for a standard type precision relation.
     At runtime, the function rejects this argument because its type is not an
     exact match.
 \end{itemize}
-These behaviors are a consequence of \SP{} being driven by the needs of an
-existing codebase.
-The literature on gradual types has served only as a guide, not a mandate.
+These behaviors enable efficient run-time checks and additional type-directed
+optimizations.
+Part of the reason \SP{} weighs these benefits more heavily than the costs
+is that programmers have to opt-in to a new feature to risk the errors.
+The static errors come only after enabling the \SP{} compiler on a module.
+The dynamic errors come only after switching to a sound generic type.
+
+More to the point, the \SP{} team has little interest in guarantees about
+\emph{removing an arbitrary annotation}.
+By contrast, there is great interest in making sure that \emph{an untyped
+module compiles with minimal code changes in \SP{}}.
 
 \begin{figure}
   \begin{subfigure}[t]{0.5\columnwidth}
@@ -591,9 +567,9 @@ The literature on gradual types has served only as a guide, not a mandate.
     class B(A):
       def m1(self):
         return 0
-    # Error: type dynamic does not match int
+    # Error: dynamic cannot override int
   \end{verbatim}
-    \caption{Removing a type in \code{B} breaks the static gradual guarantee}
+    \caption{SGG Violation: removing a type in the subclass \code{B} raises a static error}
     \label{f:gg-failure-stat}
   \end{subfigure}
   ~
@@ -608,14 +584,14 @@ The literature on gradual types has served only as a guide, not a mandate.
     f(d)
     # Error: f expected ChkDict[str, dyn]
   \end{verbatim}
-    \caption{Removing part of the type for \code{x} breaks the dynamic gradual guarantee}
+    \caption{DGG Violation: removing part of the type for the parameter \code{x} raises a dynamic error}
     \label{f:gg-failure-dyn}
   \end{subfigure}
-  \caption{\SP{} values performance over the gradual guarantees.}
+  \caption{\SP{} maintains neither the static (SGG) nor the dynamic (DGG) gradual guarantees}
   \label{fig:gg-failure}
 \end{figure}
 
-%% TODO carl 2021-12-24 ... very important to introduce with ChkDict ... GG not necessary only nice-to-have
+%% TODO carl 2021-12-24 ... very important to introduce machine types with ChkDict ... emphasizes that the GG is not necessary, but only nice-to-have
 %% > One area where we definitely violate the gradual guarantee and always will
 %% > is primitive machine types. Unlike Python object types these do not flow to
 %% > dynamic, and dynamic can never flow to them! Effectively they form a
@@ -623,13 +599,6 @@ The literature on gradual types has served only as a guide, not a mandate.
 %% > typing and can never occur in non-static code. So this violates GG because
 %% > there are many examples where removing an annotation of a primitive machine
 %% > type can cause static code to no longer type check.
-%% > 
-%% > We are ok with this violation of the gradual guarantee because the form of
-%% > the gradual guarantee we really care about is not “removing an arbitrary
-%% > annotation” but rather “an untyped module compiles without changes when
-%% > adopted into the SP compiler” — and an untyped module cannot have
-%% > pre-existing uses of the primitive machine types, since those types cannot
-%% > exist outside SP.
 
 
 \subsubsection{Concrete Types and Shallow Types}
@@ -788,7 +757,7 @@ Additional ``C types'' enable aggressive compilation of primitive
 values~(\cref{s:c-types}).
 Union types are well-supported statically and narrow down in accordance
 with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
-but hardly supported at run-time.
+but are hardly supported at run-time.
 Only binary unions of a type and the none value get enforced with a run-time check
 ($\sptunion{\sptype, \sptnone}$, or $\sptoptional{\sptype}$).
 
