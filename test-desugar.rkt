@@ -227,6 +227,162 @@
 ;; conformance_suite/dynamic_as_user-defined_class.py
 (test-match SP-core program (term (desugar-program ((class "C" () (pass)) (function-def "id" (("x" dynamic)) "C" ((return "x")))))))
 
+;; conformance_suite/edited_test_assign_dynamic_to_dynamic.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "Any" (call "C" ()))))))))
+
+;; conformance_suite/edited_test_assign_num_to_dynamic.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "f" () dynamic ((ann-assign "x" "Any" (con 42))))))))
+
+;; conformance_suite/edited_test_assign_try_except_redeclare_unknown_type.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "testfunc" () dynamic ((ann-assign "e" "int") (try-except-else-finally (pass) ((except-handler "Any" "e" (pass))) () ()) (return (con 42))))))))
+
+;; conformance_suite/edited_test_bind_boolop_type.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (function-def "main" () dynamic ((assign ("c") (call "C" ())) (assert (compare (call (attribute "c" "x") ()) ((== (con #f))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t))))))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_call_function_unknown_ret_type.py
+(test-match SP-core program (term (desugar-program ((import-from "__future__" ("annotations")) (import-from "typing" ("Any")) (function-def "g" () "Any" ((return (con 42)))) (function-def "testfunc" () dynamic ((return (call "g" ())))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 42))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_check_args_2.py
+(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))
+
+;; conformance_suite/edited_test_check_args_3.py
+(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))
+
+;; conformance_suite/edited_test_check_args_6.py
+(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "hi"))) ((== (con "hi"))))))) (expr (call "main" ("outer")))))))
+
+;; conformance_suite/edited_test_check_args_7.py
+(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "int") ("z" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))) (expr (call "use" ("z"))))) (return (tuple ((call "use" ("x")) (call "use" ("y")) (call "use" ("z"))))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 3) (con 2) (con "hi"))) ((== (tuple ((con 3) (con 2) (con "hi"))))))))) (expr (call "main" ("outer")))))))
+
+;; conformance_suite/edited_test_checked_dict.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (assign ((subscript "x" (con "abc"))) (con "foo")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (assign ((subscript "x" (con "abc"))) (con 42)) (assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ())) (assign ((subscript "x" (con 42))) (con "abc"))))))
+
+;; conformance_suite/edited_test_checked_dict_bad_ctor.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (try-except-else-finally ((expr (call (subscript "CheckedDict" (tuple ("str" "str"))) ((con None))))) ((except-handler "Exception" None (pass))) ((raise (call "Exception" ((con "Should fail."))))) ())))))
+
+;; conformance_suite/edited_test_checked_dict_clear.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (expr (call (attribute "x" "clear") ())) (assert (compare "x" ((== (dict ())))))))))
+
+;; conformance_suite/edited_test_checked_dict_copy.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (assert (compare (call "type" ("x")) ((== (subscript "CheckedDict" (tuple ("str" "str"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc"))))))))))))
+
+;; conformance_suite/edited_test_checked_dict_errors.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (try-except-else-finally ((expr (call (attribute "x" "get") ((call "as_dyn" ((con 100))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute "x" "get") ((con "x") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
+
+;; conformance_suite/edited_test_checked_dict_fromkeys_bad_types.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((list ((con 2))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc") (call "object" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
+
+;; conformance_suite/edited_test_checked_dict_get.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call (attribute "x" "get") ((con "x"))) ((== (con 2))))) (assert (compare (call (attribute "x" "get") ((con "y") (con 100))) ((== (con 100)))))))))
+
+;; conformance_suite/edited_test_checked_dict_getitem.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call (attribute "x" "__getitem__") ((con "x"))) ((== (con 2)))))))))
+
+;; conformance_suite/edited_test_checked_dict_items.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call "list" ((call (attribute "x" "items") ()))) ((== (list ((tuple ((con "x") (con 2))))))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "items") ()))) ((== (list ((tuple ((con "x") (con 2))) (tuple ((con "y") (con 3)))))))))))))
+
+;; conformance_suite/edited_test_checked_dict_keys.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call "list" ((call (attribute "x" "keys") ()))) ((== (list ((con "x"))))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "keys") ()))) ((== (list ((con "x") (con "y")))))))))))
+
+;; conformance_suite/edited_test_checked_dict_nonoptional.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Any" "Optional")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con None))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con None))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
+
+;; conformance_suite/edited_test_checked_dict_optional.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any" "Optional")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (assign ((subscript "x" (con "abc"))) (con None)) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (assign ((subscript "x" (con None))) (con "abc"))))))
+
+;; conformance_suite/edited_test_checked_dict_pop.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "pop") ((con "x")))) (assert (compare "y" ((== (con 2))))) (try-except-else-finally ((expr (call (attribute "x" "pop") ((con "z"))))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ())))))
+
+;; conformance_suite/edited_test_checked_dict_popitem.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "popitem") ())) (assert (compare "y" ((== (tuple ((con "x") (con 2))))))) (try-except-else-finally ((expr (call (attribute "x" "popitem") ()))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ())))))
+
+;; conformance_suite/edited_test_checked_dict_setdefault.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (expr (call (attribute "x" "setdefault") ((con "abc") (con "foo")))) (assert (compare "x" ((== (dict (((con "abc") (con "foo"))))))))))))
+
+;; conformance_suite/edited_test_checked_dict_setdefault_bad_values.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((con "abc") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((call "as_dyn" ((con 42))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
+
+;; conformance_suite/edited_test_checked_dict_types_enforced.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con 42))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
+
+;; conformance_suite/edited_test_checked_dict_update.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (expr (call (attribute "x" "update") ((dict (((con "y") (con "foo"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")) ((con "y") (con "foo")))))))) (expr (call (attribute "x" "update") ((dict (((con "z") (con "bar"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")) ((con "y") (con "foo")) ((con "z") (con "bar"))))))))))))
+
+;; conformance_suite/edited_test_checked_dict_update_bad_type.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con 24) (con 42)))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
+
+;; conformance_suite/edited_test_checked_dict_values.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "values") ()))) ((== (list ((con 2) (con 3)))))))))))
+
+;; conformance_suite/edited_test_compile_checked_dict_opt_in.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_compile_checked_dict_reversed.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42)) ((call "B" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_compile_checked_dict_shadowcode.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (assign ("test") "testfunc") (for "i" (call "range" ((con 2))) ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))) ())))))
+
+;; conformance_suite/edited_test_compile_checked_dict_type_specified.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_compile_checked_dict_with_annotation.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (dict (((call "B" ()) (con 42))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_compile_dict_get.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_compile_nested_dict.py
+(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))))))))) (expr (call "main" ("testfunc")))))))
+
+;; conformance_suite/edited_test_error_incompat_return.py
+(test-match SP-core program (term (desugar-program ((class "D" () (pass)) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "x")) (con None)))) (function-def "f" (("self" dynamic)) (con "C") ((return (call "D" ()))))))))))
+
+;; conformance_suite/edited_test_if_else_optional_return_two_branches.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "field")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((if (compare "x" ((is (con None)))) ((function-def "f" () dynamic ((return (con 42)))) (assign ("a") (call "f" ())) (if "a" ((return (con 0))) ((return (con 2))))) ()) (return (attribute "x" "field"))))))))
+
+;; conformance_suite/edited_test_if_optional_reassign.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ())))))))
+
+;; conformance_suite/edited_test_invoke_method_non_static_base.py
+(test-match SP-core program (term (desugar-program ((class "C" ("Exception") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))) (function-def "g" (("self" dynamic)) dynamic ((return (call (attribute "self" "f") ())))))) (function-def "main" () dynamic ((assert (compare (call (attribute (call "C" ()) "g") ()) ((== (con 42))))))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_method_prologue_posonly.py
+(test-match SP-core program (term (desugar-program ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
+
+;; conformance_suite/edited_test_method_prologue_shadowcode.py
+(test-match SP-core program (term (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 2))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
+
+;; conformance_suite/edited_test_method_prologue_shadowcode_2.py
+(test-match SP-core program (term (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 10))) ((assert (compare (call "f" ((con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
+
+;; conformance_suite/edited_test_override_override_inherited.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "B" () ((function-def "f" (("self" dynamic)) (subscript "Optional" (con "B")) ((return "self"))))) (class "D" ("B") (pass)) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (function-def "main" (("f" dynamic)) dynamic ((assign ("b") (call "B" ())) (assign ("d") (call "D" ())) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== "d")))) (assign ((attribute "D" "f")) (lambda (("self" dynamic)) (con None))) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== (con None))))))) (expr (call "main" ("f")))))))
+
+;; conformance_suite/edited_test_package_no_parent.py
+(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (function-def "main" () dynamic ((assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 42))))))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_seq_repeat_inexact_list.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))) (class "MyList" ("list") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (function-def "main" () dynamic ((assert (compare (call "f" ((list ((con 1) (con 2))))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call "f" ((call "MyList" ((list ((con 1) (con 2))))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_seq_repeat_inexact_num.py
+(test-match SP-core program (term (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (class "MyInt" ("int") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (function-def "main" () dynamic ((assert (compare (call "f" ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call "f" ((call "MyInt" ((con 2))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_seq_repeat_inexact_tuple.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (class "MyTuple" ("tuple") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (function-def "main" () dynamic ((assert (compare (call "f" ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call "f" ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_strict_module_isinstance.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "foo" (("tval" (subscript "Optional" "object"))) "str" ((if (call "isinstance" ("tval" "str")) ((return "tval")) ()) (return (con "hi"))))))))
+
+;; conformance_suite/edited_test_typed_field_deleted_attr.py
+(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "value"))))) (function-def "main" () dynamic ((assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ()))))))
+
+;; conformance_suite/edited_test_untyped_attr.py
+(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (assign ("x") (call "f" ())) (assign ("y") (attribute "x" "load")) (assign ((attribute "x" "store")) (con 42)) (delete (attribute "x" "delete"))))))
+
+;; conformance_suite/edited_test_verify_arg_unknown_type.py
+(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "x" (("x" "Any")) dynamic ((function-def "f" () dynamic ((return (con 42)))) (assign ("b") (call "f" ())) (return "b"))) (expr (call "x" ((con "abc"))))))))
+
 ;; conformance_suite/empty_program.py
 (test-match SP-core program (term (desugar-program ())))
 
@@ -244,162 +400,6 @@
 
 ;; conformance_suite/for-loop_else_nonbreak.py
 (test-match SP-core program (term (desugar-program ((for "i" (list ((con 2))) (pass) ((assign ("i") (con 3)))) (assert (compare "i" ((is (con 3)))))))))
-
-;; conformance_suite/ht_test_assign_dynamic_to_dynamic.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "f" (("C" dynamic)) dynamic ((ann-assign "x" "Any" (call "C" ()))))))))
-
-;; conformance_suite/ht_test_assign_num_to_dynamic.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "f" () dynamic ((ann-assign "x" "Any" (con 42))))))))
-
-;; conformance_suite/ht_test_assign_try_except_redeclare_unknown_type.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "testfunc" () dynamic ((ann-assign "e" "int") (try-except-else-finally (pass) ((except-handler "Any" "e" (pass))) () ()) (return (con 42))))))))
-
-;; conformance_suite/ht_test_bind_boolop_type.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (function-def "main" () dynamic ((assign ("c") (call "C" ())) (assert (compare (call (attribute "c" "x") ()) ((== (con #f))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t))))))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_call_function_unknown_ret_type.py
-(test-match SP-core program (term (desugar-program ((import-from "__future__" ("annotations")) (import-from "typing" ("Any")) (function-def "g" () "Any" ((return (con 42)))) (function-def "testfunc" () dynamic ((return (call "g" ())))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 42))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_check_args_2.py
-(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))
-
-;; conformance_suite/ht_test_check_args_3.py
-(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (expr (call "use" ("x"))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "yo"))) ((== (con "yo"))))))) (expr (call "main" ("outer")))))))
-
-;; conformance_suite/ht_test_check_args_6.py
-(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("y"))))) (return (call "use" ("y"))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 1) (con "hi"))) ((== (con "hi"))))))) (expr (call "main" ("outer")))))))
-
-;; conformance_suite/ht_test_check_args_7.py
-(test-match SP-core program (term (desugar-program ((function-def "use" (("i" "object")) "object" ((return "i"))) (function-def "outer" (("x" "int") ("y" "int") ("z" "str")) "object" ((function-def "inner" () (con None) ((expr (call "use" ("x"))) (expr (call "use" ("y"))) (expr (call "use" ("z"))))) (return (tuple ((call "use" ("x")) (call "use" ("y")) (call "use" ("z"))))))) (function-def "main" (("outer" dynamic)) dynamic ((assert (compare (call "outer" ((con 3) (con 2) (con "hi"))) ((== (tuple ((con 3) (con 2) (con "hi"))))))))) (expr (call "main" ("outer")))))))
-
-;; conformance_suite/ht_test_checked_dict.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (assign ((subscript "x" (con "abc"))) (con "foo")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (assign ((subscript "x" (con "abc"))) (con 42)) (assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ())) (assign ((subscript "x" (con 42))) (con "abc"))))))
-
-;; conformance_suite/ht_test_checked_dict_bad_ctor.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (try-except-else-finally ((expr (call (subscript "CheckedDict" (tuple ("str" "str"))) ((con None))))) ((except-handler "Exception" None (pass))) ((raise (call "Exception" ((con "Should fail."))))) ())))))
-
-;; conformance_suite/ht_test_checked_dict_clear.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (expr (call (attribute "x" "clear") ())) (assert (compare "x" ((== (dict ())))))))))
-
-;; conformance_suite/ht_test_checked_dict_copy.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (assert (compare (call "type" ("x")) ((== (subscript "CheckedDict" (tuple ("str" "str"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc"))))))))))))
-
-;; conformance_suite/ht_test_checked_dict_errors.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (try-except-else-finally ((expr (call (attribute "x" "get") ((call "as_dyn" ((con 100))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute "x" "get") ((con "x") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
-
-;; conformance_suite/ht_test_checked_dict_fromkeys_bad_types.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((list ((con 2))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc") (call "object" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
-
-;; conformance_suite/ht_test_checked_dict_get.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call (attribute "x" "get") ((con "x"))) ((== (con 2))))) (assert (compare (call (attribute "x" "get") ((con "y") (con 100))) ((== (con 100)))))))))
-
-;; conformance_suite/ht_test_checked_dict_getitem.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call (attribute "x" "__getitem__") ((con "x"))) ((== (con 2)))))))))
-
-;; conformance_suite/ht_test_checked_dict_items.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call "list" ((call (attribute "x" "items") ()))) ((== (list ((tuple ((con "x") (con 2))))))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "items") ()))) ((== (list ((tuple ((con "x") (con 2))) (tuple ((con "y") (con 3)))))))))))))
-
-;; conformance_suite/ht_test_checked_dict_keys.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call "list" ((call (attribute "x" "keys") ()))) ((== (list ((con "x"))))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "keys") ()))) ((== (list ((con "x") (con "y")))))))))))
-
-;; conformance_suite/ht_test_checked_dict_nonoptional.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Any" "Optional")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con None))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con None))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ())))))
-
-;; conformance_suite/ht_test_checked_dict_optional.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any" "Optional")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (assign ((subscript "x" (con "abc"))) (con None)) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (assign ((subscript "x" (con None))) (con "abc"))))))
-
-;; conformance_suite/ht_test_checked_dict_pop.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "pop") ((con "x")))) (assert (compare "y" ((== (con 2))))) (try-except-else-finally ((expr (call (attribute "x" "pop") ((con "z"))))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ())))))
-
-;; conformance_suite/ht_test_checked_dict_popitem.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "popitem") ())) (assert (compare "y" ((== (tuple ((con "x") (con 2))))))) (try-except-else-finally ((expr (call (attribute "x" "popitem") ()))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ())))))
-
-;; conformance_suite/ht_test_checked_dict_setdefault.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (expr (call (attribute "x" "setdefault") ((con "abc") (con "foo")))) (assert (compare "x" ((== (dict (((con "abc") (con "foo"))))))))))))
-
-;; conformance_suite/ht_test_checked_dict_setdefault_bad_values.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((con "abc") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((call "as_dyn" ((con 42))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
-
-;; conformance_suite/ht_test_checked_dict_types_enforced.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con 42))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
-
-;; conformance_suite/ht_test_checked_dict_update.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (expr (call (attribute "x" "update") ((dict (((con "y") (con "foo"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")) ((con "y") (con "foo")))))))) (expr (call (attribute "x" "update") ((dict (((con "z") (con "bar"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")) ((con "y") (con "foo")) ((con "z") (con "bar"))))))))))))
-
-;; conformance_suite/ht_test_checked_dict_update_bad_type.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con 24) (con 42)))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ())))))))))
-
-;; conformance_suite/ht_test_checked_dict_values.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "values") ()))) ((== (list ((con 2) (con 3)))))))))))
-
-;; conformance_suite/ht_test_compile_checked_dict_opt_in.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_compile_checked_dict_reversed.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42)) ((call "B" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_compile_checked_dict_shadowcode.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (assign ("test") "testfunc") (for "i" (call "range" ((con 2))) ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int")))))))) ())))))
-
-;; conformance_suite/ht_test_compile_checked_dict_type_specified.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_compile_checked_dict_with_annotation.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (function-def "testfunc" () dynamic ((ann-assign "x" (subscript "CheckedDict" (tuple ("B" "int"))) (dict (((call "B" ()) (con 42))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_compile_dict_get.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_compile_nested_dict.py
-(test-match SP-core program (term (desugar-program ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (assign ("y") (call (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))) ((dict (((con 42) "x")))))) (return "y"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("int" (subscript "CheckedDict" (tuple ("B" "int")))))))))))) (expr (call "main" ("testfunc")))))))
-
-;; conformance_suite/ht_test_error_incompat_return.py
-(test-match SP-core program (term (desugar-program ((class "D" () (pass)) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "x")) (con None)))) (function-def "f" (("self" dynamic)) (con "C") ((return (call "D" ()))))))))))
-
-;; conformance_suite/ht_test_if_else_optional_return_two_branches.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "field")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((if (compare "x" ((is (con None)))) ((function-def "f" () dynamic ((return (con 42)))) (assign ("a") (call "f" ())) (if "a" ((return (con 0))) ((return (con 2))))) ()) (return (attribute "x" "field"))))))))
-
-;; conformance_suite/ht_test_if_optional_reassign.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "C" () (pass)) (function-def "testfunc" (("abc" (subscript "Optional" "C"))) dynamic ((if (compare "abc" ((is-not (con None)))) ((assign ("abc") (con None))) ())))))))
-
-;; conformance_suite/ht_test_invoke_method_non_static_base.py
-(test-match SP-core program (term (desugar-program ((class "C" ("Exception") ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))) (function-def "g" (("self" dynamic)) dynamic ((return (call (attribute "self" "f") ())))))) (function-def "main" () dynamic ((assert (compare (call (attribute (call "C" ()) "g") ()) ((== (con 42))))))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_method_prologue_posonly.py
-(test-match SP-core program (term (desugar-program ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
-
-;; conformance_suite/ht_test_method_prologue_shadowcode.py
-(test-match SP-core program (term (desugar-program ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 2))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
-
-;; conformance_suite/ht_test_method_prologue_shadowcode_2.py
-(test-match SP-core program (term (desugar-program ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 10))) ((assert (compare (call "f" ((con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f")))))))
-
-;; conformance_suite/ht_test_override_override_inherited.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (class "B" () ((function-def "f" (("self" dynamic)) (subscript "Optional" (con "B")) ((return "self"))))) (class "D" ("B") (pass)) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (function-def "main" (("f" dynamic)) dynamic ((assign ("b") (call "B" ())) (assign ("d") (call "D" ())) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== "d")))) (assign ((attribute "D" "f")) (lambda (("self" dynamic)) (con None))) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== (con None))))))) (expr (call "main" ("f")))))))
-
-;; conformance_suite/ht_test_package_no_parent.py
-(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (function-def "main" () dynamic ((assert (compare (call (attribute (call "C" ()) "f") ()) ((== (con 42))))))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_seq_repeat_inexact_list.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("List")) (function-def "f" (("l" (subscript "List" "int"))) dynamic ((return (bin-op * "l" (con 2))))) (class "MyList" ("list") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (function-def "main" () dynamic ((assert (compare (call "f" ((list ((con 1) (con 2))))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call "f" ((call "MyList" ((list ((con 1) (con 2))))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_seq_repeat_inexact_num.py
-(test-match SP-core program (term (desugar-program ((function-def "f" (("num" "int")) dynamic ((return (bin-op * "num" (list ((con 1) (con 2))))))) (class "MyInt" ("int") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (function-def "main" () dynamic ((assert (compare (call "f" ((con 2))) ((== (list ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call "f" ((call "MyInt" ((con 2))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_seq_repeat_inexact_tuple.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Tuple")) (function-def "f" (("t" (subscript "Tuple" "int"))) dynamic ((return (bin-op * "t" (con 2))))) (class "MyTuple" ("tuple") ((function-def "__mul__" (("self" dynamic) ("other" dynamic)) dynamic ((return (con "RESULT")))))) (function-def "main" () dynamic ((assert (compare (call "f" ((tuple ((con 1) (con 2))))) ((== (tuple ((con 1) (con 2) (con 1) (con 2))))))) (assert (compare (call "f" ((call "MyTuple" ((tuple ((con 1) (con 2))))))) ((== (con "RESULT"))))))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_strict_module_isinstance.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Optional")) (function-def "foo" (("tval" (subscript "Optional" "object"))) "str" ((if (call "isinstance" ("tval" "str")) ((return "tval")) ()) (return (con "hi"))))))))
-
-;; conformance_suite/ht_test_typed_field_deleted_attr.py
-(test-match SP-core program (term (desugar-program ((class "C" () ((function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "value"))))) (function-def "main" () dynamic ((assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ()))))))
-
-;; conformance_suite/ht_test_untyped_attr.py
-(test-match SP-core program (term (desugar-program ((function-def "f" () dynamic ((return (con 42)))) (assign ("x") (call "f" ())) (assign ("y") (attribute "x" "load")) (assign ((attribute "x" "store")) (con 42)) (delete (attribute "x" "delete"))))))
-
-;; conformance_suite/ht_test_verify_arg_unknown_type.py
-(test-match SP-core program (term (desugar-program ((import-from "typing" ("Any")) (function-def "x" (("x" "Any")) dynamic ((function-def "f" () dynamic ((return (con 42)))) (assign ("b") (call "f" ())) (return "b"))) (expr (call "x" ((con "abc"))))))))
 
 ;; conformance_suite/init_checks_arity.py
 (test-match SP-core program (term (desugar-program ((class "Person" () ((function-def "__init__" (("self" dynamic) ("name" "str") ("age" "int")) dynamic (pass)))) (assign ("p1") (call "Person" ((con "Alice") (con 21) (con #f))))))))

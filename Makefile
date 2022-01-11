@@ -9,11 +9,10 @@ python_test_to_redex_test:
 	python3.9 ./scripts/python_tests_to_redex_tests.py
 
 run_redex_tests:
+	racket ./test-grammar.rkt && \
 	racket ./test-desugar.rkt && \
-	# racket ./test-statics.rkt && \
 	racket ./test-compile.rkt && \
-	racket ./test-dynamics.rkt && \
-	echo "All done!"
+	racket ./test-runtime.rkt
 
 statistics:
 	grep 'def test_' ./tests.py | wc -l

@@ -1,6 +1,10 @@
 # insta-model
 
-`tests.py` is fetched on Jan 9, 2022. The commit hash ends with `6d61575`.
+The goal of this project is to model Static Python, a gradually typed variant of Python developped at Instagram. To show that this project models Static Python faithfully, we borrow hundreds of conformance tests from [Static Python's test suite](https://github.com/facebookincubator/cinder/blob/cinder/3.8/Lib/test/test_compiler/test_static/tests.py). This repository includes a copy of the test suite (`tests.py`) fetched on Jan 9, 2022 (commit hash: `6d61575`).
+
+## Conformance Tests
+
+Each file under `./conformance_suite` is a test case. They come from two sources. Files named as `test_*` are extracted from `./tests/py` with a script `./scripts/import_SP_tests.py`. Files named as `ht_test_*` are edited after extraction.
 
 ## The Model
 

@@ -132,7 +132,7 @@ ban_anywhere_in_test = [
 ]
 
 import glob, re
-hand_translated_prefix = './conformance_suite/ht_'
+hand_translated_prefix = './conformance_suite/edited_'
 hand_translated_tests = glob.glob('{}*'.format(hand_translated_prefix))
 hand_translated_tests = [ s[len(hand_translated_prefix):-3] for s in hand_translated_tests ]
 
