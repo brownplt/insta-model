@@ -16,7 +16,9 @@
 %% - use ChkDict not ChkList ... avoid confusion
 %%   ... or at least mention both, be clear the focus is Dict b/c older
 %% - do the LESSONS from SP come across clearly? beware making this a "progress report"
+%%   - emphasize the PAYOFF from modeling early on, don't bury in sec 3
 %% - terms: sound generic / concrete ... aren't people going to forget concrete? better keep as last resort
+%% - perhaps a compatibility story, programmers can work on Python 3.9 until Cinder catches up b/c source code is the same
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -44,13 +46,14 @@
 \newcommand{\sptint}{\typefont{Int}}
 \newcommand{\sptbool}{\typefont{Bool}}
 \newcommand{\sptfloat}{\typefont{Float}}
-\newcommand{\sptdyn}{\typefont{Dynamic}}
+\newcommand{\sptdyn}{\typefont{Dyn}}
 \newcommand{\sptobject}{\typefont{Object}}
 \newcommand{\sptnone}{\typefont{None}}
 \newcommand{\sptinstanceof}[1]{\paramtype{\typefont{Instance}}{#1}}
 \newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
 \newcommand{\sptunion}[1]{\paramtype{\typefont{Union}}{#1}}
 \newcommand{\sptrawpydict}{\typefont{PyDict}}
+\newcommand{\sptrawchkdict}{\typefont{ChkDict}} %% not a real SP type, but useful for TeX
 \newcommand{\sptpydict}[2]{\paramtype{\sptrawpydict}{#1, #2}}
 \newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
 \newcommand{\sptenv}{\typefont{Env}}
@@ -116,7 +119,8 @@
 \makeatother
 %% END
 
-%\usepackage{cleveref}
+\usepackage[framemethod=TikZ]{mdframed}
+\newmdenv[roundcorner=2pt,linewidth=0.4pt,linecolor=Black]{spcodebox}
 \usepackage{amsthm}
 \usepackage{mathpartir}
 \newtheorem{theorem}{Theorem}
@@ -160,8 +164,7 @@
   %% State one or more areas, separated by a comma. (see 2.2)
   %% Please see list of areas in http://programming-journal.org/cfp/
   %% The list is open-ended, so use other areas if yours is/are not listed.
-  area={Database programming, General-purpose programming, Program
-    verification, Programming education},
+  area={General-purpose programming},
   %% License options include: cc-by (default), cc-by-nc
   % license=cc-by,
 }
@@ -241,7 +244,10 @@
 \end{abstract}
 
 
-\section{Typing for Performance}
+\section{Introduction}
+%% alt title:
+%%  {A Staged Gradual Language}
+%%  {Typing for Performance}
 \label{s:intro}
 
 Gradual typing has attracted significant interest as a solution to
@@ -332,20 +338,9 @@ ground theoretical work.
 Other restrictions might be lifted by future research.
 
 
-\section{\SP{} and the Cinder JIT}
+\section{A Programmer's View of \SP{}}
 \label{s:tour}
 %% purpose = SP looks like Pyre, adds soundness to certain types
-
-%% 2022-01-05 Carl:
-%% "All the data I’ve been sharing is from a single codebase, the primary IG web
-%% server monolith. The existence of JITted but not SP modules is mostly just due
-%% to the fact that opting a function into the JIT is semantically transparent and
-%% (unless it reveals a latent bug in the JIT) requires no code changes, so it’s
-%% quite easy to do (the only tradeoff pushing us away from JITting everything is
-%% just how much CPU we spend JIT-compiling and how much memory we spend storing
-%% JIT-compiled code), whereas opting a module into SP requires more work so the
-%% bottleneck is available developer time to do conversions."
-
 
 % {Language Pipeline}
 % \begin{enumerate}
@@ -354,42 +349,61 @@ Other restrictions might be lifted by future research.
 %   \item Custom bytecode, Cinder JIT
 % \end{enumerate}
 
-\SP{} is a type checker and bytecode compiler.
-It validates programs written in ordinary Python syntax
-and generates type-specific instructions for the Cinder runtime.
-The type system can express common Python idioms and is guaranteed
-sound through run-time checks, which in turn enable optimizations.
-The type system also includes a dynamic type as an escape hatch to
-untyped behavior.
-An unannotated variable behaves exactly as it would in Python.
+\SP{} is part of a large codebase that includes a type system, a tailored
+bytecode, and a method-based JIT compiler.
+In essence, it is a new language.
+The interface that it offers to programmers, however, is a familiar one.
+\SP{} can handle all untyped\footnote{Python 3.8 code that uses type
+annotations may, of course, contain type errors.} Python 3.8 programs, and it
+compiles code on-the-fly to give the same workflow and enable the same
+developer tools as standard Python.
 
-Cinder is an extension of CPython 3.8 that adds a method-based
-JIT compiler, virtual method tables, and several bytecode instructions
-to directly express type checks and type-based optimizations.
-These enhancements take full advantage of \SP{} type information.
-They are built on top of CPython so that untyped code runs on
-the platform.
-
-Using \SP{} and Cinder is as easy as installing a new version
-of CPython.
-The main executable compiles programs to bytecode on the fly,
-same as CPython, allowing standard developer tools to work.
-By contrast, the only effective way to get type-directed optimizations
-without changing CPython is to use C extension modules,
-which introduce an extra compilation step and get in the way
-of tooling~(\cref{s:related}).
+Indeed, the advanced features of \SP{} are offered strictly on an opt-in basis.
+Programmers whose decide to use its new APIs---in particular, for the type system
+and the JIT compiler---can usuaally benefit without imposing maintenance costs
+on their co-workers.
 
 \begin{figure}
-  %% TODO replace with a real program
-%  \begin{minipage}[t]{0.5\columnwidth}
-  \begin{verbatim}
-    from __static__ import PyDict
+  \begin{subfigure}[t]{0.22\columnwidth}\begin{spcodebox}\noindent\begin{verbatim}
+def f(x):
+  return x["A"]
 
-    def f(x: PyDict[str, int]):
-      return x["A"]
-
-    f({"A": 1}) # ==> 1
+f({"A": 1})
   \end{verbatim}
+  \end{spcodebox}
+  %\caption{TODO}
+  %\label{f:TODO}
+  \end{subfigure}~\begin{subfigure}[t]{0.36\columnwidth}\begin{spcodebox}\noindent\begin{verbatim}
+from __static__ import PyDict
+def f(x: PyDict[Str, Int]):
+  return x["A"]
+
+f({"A": 1})
+  \end{verbatim}
+  \end{spcodebox}
+  %\caption{TODO}
+  %\label{f:TODO}
+  \end{subfigure}~\begin{subfigure}[t]{0.36\columnwidth}\begin{spcodebox}\noindent\begin{verbatim}
+from __static__ import ChkDict
+def f(x: ChkDict[Str, Int]):
+  return x["A"]
+
+f(chkdict[Str, Int]({"A": 1}))
+  \end{verbatim}
+  \end{spcodebox}
+  %\caption{TODO}
+  %\label{f:TODO}
+  \end{subfigure}
+
+%%
+%%%  \begin{minipage}[t]{0.5\columnwidth}
+%%  \begin{verbatim}
+%%    from __static__ import PyDict
+%%    def f(x: PyDict[str, int]):
+%%      return x["A"]
+%%
+%%    f({"A": 1}) # ==> 1
+%%  \end{verbatim}
 %  \end{minipage}\begin{minipage}[t]{0.5\columnwidth}
 %  \begin{verbatim}
 %    from __static__ import PyDict
@@ -413,57 +427,46 @@ of tooling~(\cref{s:related}).
 %
 %    f(CheckedDict({"A": 1}))
 %  \end{verbatim}
-  \caption{A first \SP{} program}
+  \caption{A first \SP{} program and two migrations}
   \label{fig:sp-example}
 \end{figure}
 
-\Cref{fig:sp-example} presents a first example program.
-It defines a function \code{f} and calls it from typed code.
-The syntax is normal Python with type annotations.
-Only the import statement makes special use of \SP{};
-it imports a type \code{PyDict} that describes Python dictionaries.
-
-Although this program is typed, a different untyped module is free
-to import the function \code{f} and invoke it with any sort of
-argument.
-For this reason, the compiled version of \cref{fig:sp-example} must
-include a few run-time casts:
+\Cref{fig:sp-example} presents a first example program and two modified versions that
+utilize \SP{} types.
+The basic program defines a function \code{f} and calls it with a dictionary
+value.
+\SP{} can run this program as-is, and even JIT-compile the function.
+The other two versions import dictionary types from the \SP{} standard library:
 \begin{itemize}
   \item
-    The function \code{f} must check that its arguments match the \code{PyDict} domain annotation.
-    \SP{} inserts a check that accepts any Python dictionary.
+    The $\sptrawpydict$ type describes normal Python dictionaries.
+    At compile-time, \SP{} uses this type to check the program for logical errors.
+    At run-time, \SP{} enforces the type by checking that all inputs to \code{f} are
+    dictionary values.
+    These checks enable optimizations within the function body.
+
   \item
-    Because the domain check does not validate the elements of an incoming dictionary,
-    the dict access (\code{x["A"]}) must check that its result matches the function codomain.
+    The $\sptrawchkdict$ type describes a dictionary data structure that is new to \SP{}.
+    Unlike Python dictionaries, these checked dictionaries are guaranteed to
+    contain well-typed keys and values even if they escape to untyped code.
+    As the body of \code{f} illustrates, the syntax for using a checked dict is standard.
+    Creating a checked dict, however, requires a parameterized constructor call.
 \end{itemize}
-These checks ensure a \emph{shape-level} notion of type soundness~(\cref{s:model}).
-In short: if an expression has type \code{T} and reduces to a value, then the value
-matches the top-level constructor, or shape, of the type.
-The shape for a Python dictionary is merely \code{dict}.
-Other types have deeper shapes; for example, \SP{} includes a \code{ChkDict}
-type that predicts the keys and values in a special kind of dictionary.
-
-Thanks to these checks, \SP{} can leverage type soundness to generate efficient code.
-Because the call to \code{f} in \cref{fig:sp-example} appears in typed code,
-there is no need to check that it sends type-correct inputs.
-Thus, the compiled call is optimized to use a Cinder bytecode instruction
-that skips the domain check and immediately enters the function body.
-
-The checks and optimizations in this example illustrate the general balancing act
-of \SP{}.
-Type soundness requires run-time checks, but also enables optimizations.
-The gamble is that the optizations help more that the checks hurt.
+These typed versions demonstrate the multi-level nature of the \SP{} interface.
+At one level, there are types that describe standard Python values that can be added
+to a program with little-to-no code changes.
+Beyond that, \SP{} offers special-purpose types with stronger guarantees that impose
+a higher maintenance cost.
 
 
-\subsection{Type System Highlights}
+\subsection{Type System Design Goals}
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
 Nom~\cite{mt-oopsla-2017,mt-oopsla-2021} and PEP 484~[CITE] are two notable sources.
 Relative to these, the \SP{} takes some interesting turns
 because of the engineering context at Instagram.
-The following contextual points are important to bear in mind as we present
-notable aspects of the type system:
+The following contextual points are important to bear in mind:
 \begin{itemize}
   \item
     Performance is the bottom line.
@@ -486,10 +489,35 @@ notable aspects of the type system:
     Developers use Pyre [CITE], an optional type checker for Python,
     to write type annotations and to drive IDE tools (e.g., autocompletion).
 \end{itemize}
+%
+In general, the types that \SP{} implements all enable significant optimizations
+and are simple to validate with run-time checks.
+Types that do meet these criteria can be deferred to Pyre, even if they are widely-used.\footnote{
+At present, the \SP{} team
+has no plans to support all Pyre types. The top priority is to implement
+core types efficiently.}
+
+The core supported types describe basic data (integers, booleans, strings),
+data structures (lists, dicts, promises),
+and nominal classes.
+Union types are well-supported statically and narrow down in accordance
+with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
+but are, for the most part, not supported at run-time.
+Only binary unions of a type and the none value get enforced with a run-time check
+($\sptunion{\sptype, \sptnone}$, or $\sptoptional{\sptype}$).
+
+Three other unsupported types bear special mention.
+There are no first-class class or object types~(\cref{s:inheritance}).
+There are also no types for first-class functions (callables).
+Pyre can check these types instead.
+Third, \SP{} does not support recursive types.
+Neither Pyre nor mypy have recursive types either.
+%% demand seems low ... baffling
+%% mypy = https://github.com/python/mypy/issues/731
+%% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
 
-
-\subsubsection{Type Dynamic}
+\subsection{Type Dynamic}
 \label{s:type-dynamic}
 
 %% 2021-12-14 TODO:
@@ -559,31 +587,35 @@ module compiles with minimal code changes in \SP{}}.
 
 \begin{figure}
   \begin{subfigure}[t]{0.5\columnwidth}
+  \begin{spcodebox}
   \begin{verbatim}
     class A:
-      def m1(self)->int:
+      def m1(self) -> Int:
         return 0
 
     class B(A):
       def m1(self):
         return 0
-    # Error: dynamic cannot override int
+    # Error: Dyn cannot override Int
   \end{verbatim}
+  \end{spcodebox}
     \caption{SGG Violation: removing a type in the subclass \code{B} raises a static error}
     \label{f:gg-failure-stat}
   \end{subfigure}
   ~
   \begin{subfigure}[t]{0.5\columnwidth}
+  \begin{spcodebox}
   \begin{verbatim}
     from __static__ import ChkDict
 
-    def f(x: ChkDict[str, dyn]):
+    def f(x: ChkDict[Str, Dyn]):
       return x["A"]
 
-    d = ChkDict[str, int]({"A": 1})
+    d = ChkDict[Str, Tnt]({"A": 1})
     f(d)
-    # Error: f expected ChkDict[str, dyn]
+    # Error: f expected ChkDict[Str, Dyn]
   \end{verbatim}
+  \end{spcodebox}
     \caption{DGG Violation: removing part of the type for the parameter \code{x} raises a dynamic error}
     \label{f:gg-failure-dyn}
   \end{subfigure}
@@ -601,7 +633,7 @@ module compiles with minimal code changes in \SP{}}.
 %% > type can cause static code to no longer type check.
 
 
-\subsubsection{Concrete Types and Shallow Types}
+\subsection{Concrete Types and Shallow Types}
 \label{s:checked-type}
 
 Every \SP{} type corresponds to a simple run-time check.
@@ -681,7 +713,7 @@ to change \emph{and then} all their clients need to use the concrete type as wel
 \Cref{s:concrete-migration} discusses this migration cost of concrete types further.
 
 
-\subsubsection{Gradual Class Hierarchies}
+\subsection{Gradual Class Hierarchies}
 \label{s:inheritance}
 
 One important feature of \SP{} is that class hierarchies can
@@ -739,56 +771,74 @@ that it computes type-correct results.
 The wrappers are handled efficiently by \SP{}'s vtables~(\cref{s:vtable}).
 
 
-\subsubsection{Tailored Types}
-\label{s:idiomatic-types}
+\subsection{Strict Modules}
+\label{s:strict-mod}
 
-\SP{} is selective about which types to support and which to omit.
-In general, supported types are widely-used and come with an efficient
-implementation.
-Other widely-used types are deferred to Pyre for static checks until
-the day when \SP{} adds support.\footnote{At present, the \SP{} team
-has no plans to support all Pyre types. The top priority is to implement
-core types efficiently.}
-
-The core supported types describe basic data (integers, booleans, strings),
-data structures (lists, dicts, promises),
-and nominal classes.
-Additional ``C types'' enable aggressive compilation of primitive
-values~(\cref{s:c-types}).
-Union types are well-supported statically and narrow down in accordance
-with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
-but are hardly supported at run-time.
-Only binary unions of a type and the none value get enforced with a run-time check
-($\sptunion{\sptype, \sptnone}$, or $\sptoptional{\sptype}$).
-
-Three unsupported types bear special mention.
-There are no first-class class or object types, as noted in \cref{s:inheritance}.
-There are also no types for first-class functions (callables).
-Pyre can check these types instead, to point out clear logical flaws.
-Finally, \SP{} does not support recursive types due to low demand.
-Neither Pyre nor mypy have recursive types either.
-%% demand seems low ... baffling
-%% mypy = https://github.com/python/mypy/issues/731
-%% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
+Python modules are mutable collections of names.
+Names can be added, deleted, and updated at runtime.
+\SP{} accommodates these behaviors in the same manner as standard Python, which
+necessarily limits the benefits of module types.
+As an alternative, \SP{} programmers may opt in to a \emph{strict module} semantics.
+Strict modules are immutable, and thus enable type-based compiler optimizations.
 
 
-\subsection{Runtime System Highlights}
+\subsection{Unboxed Primitive}
+\label{s:c-types}
+
+%% 2021-12-29: TODO
+%% Using the term “ctypes” for these might be confusing, since the Python stdlib
+%% has a “ctypes” module that isn’t related to our primitive types. We do call the
+%% base type for them CType in our compiler, but when discussing them we usually
+%% call them “primitive types” or “machine types” — “C types” could also work but
+%% I wouldn’t combine it into one word :)
+
+For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
+that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
+Cinder implements these types with unboxed C values, which are much simpler and cheaper
+than their Python counterparts.
+\SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives efficiently.
+These are not themselves primitive.
+
+Primitives are carefully limited by the type system.
+Neither a module-level nor a closure-level variable may have a primitive
+type---because untyped code can mutate such variables.
+Primitive types are incompatible with the dynamic type,
+and there are no implicit upcasts from primitives
+to a matching Python type.
+Even a conjunction disallows mixing; for example, the \code{and} operator
+requires either two Python booleans or two primitive booleans.
+The only way for Python values and primitive values to interact
+is through dedicated conversion functions.
+Cinder handles conversions at the boundaries between \SP{} code
+and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere else.
+Within typed code, programmers must satisfy the type checker with
+appropriate conversions.
+
+% For now, programmers have to write and manage primitive types.
+% In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
+
+% https://github.com/facebookincubator/cinder/issues/52
+
+
+
+
+\section{Runtime System Highlights}
+%% alt title: Runtime System Highlights
 %% Non-Highlights:
 %% - shadow frames = JIT feature, lite array to track Python call stack
 
-Cinder, the \SP{} runtime system, extends the standard Python runtime in
-several ways.
-Some of these ensure the integrity of types.
-Others use type soundness to generate efficient code.
+The \SP{} runtime system, formally known as Cinder, extends
+CPython 3.8 in several ways to take full advantage of static types.
+Cinder includes tailored bytecode instructions, virtual method tables, new
+datatypes, a registry of typed modules, and a JIT compiler.
 
-%% TODO need this para?
-We present these in less detail than the type system highlights because
-we suspect they are less-widely applicable than the type system features.
-Some rely on an optimizing JIT compiler, for example.
-Nevertheless, these highlights are an important part of what makes \SP{} successful.
+The key ingredients in Cinder may be of interest to other teams seeking to add
+sound gradual typing to a widely-used language.
+For example, a team of Node developers may wish to fork that runtime system
+and experiment with bytecode instructions that rely on statci types.
 
 
-\subsubsection{Bytecode Instructions}
+\subsection{Bytecode Instructions}
 
 Cinder is a bytecode compiler that extends the Python instruction set.
 All the standard Python instructions work similarly to Python 3.8;
@@ -803,7 +853,7 @@ length of a built-in value.
 and applies it as an optimization.
 
 
-\subsubsection{Virtual Method Tables}
+\subsection{Virtual Method Tables}
 \label{s:vtable}
 
 Cinder adds virtual method tables (vtables) to typed classes.
@@ -836,7 +886,7 @@ JIT compilation can also upgrade vtable lookups to function calls.
 %% > the `INVOKE_METHOD`. -Carl
 
 
-\subsubsection{Checked Data Structures}
+\subsection{Checked Data Structures}
 \label{s:chkdict-impl}
 
 As mentioned above~(\cref{s:checked-type}), the concrete versions of built-in data structures
@@ -870,64 +920,8 @@ In general, other checked datatypes have the same three components:
 a constructor, checked update functions, and a tag.
 
 
-\subsubsection{Unboxed Primitive}
-\label{s:c-types}
 
-%% 2021-12-29: TODO
-%% Using the term “ctypes” for these might be confusing, since the Python stdlib
-%% has a “ctypes” module that isn’t related to our primitive types. We do call the
-%% base type for them CType in our compiler, but when discussing them we usually
-%% call them “primitive types” or “machine types” — “C types” could also work but
-%% I wouldn’t combine it into one word :)
-%%
-%% I just did a very rough grep check and found that we have only 12 modules
-%% currently using primitive types: all int32 and int64 and cbool. So they are
-%% used pretty sparingly, but they are also definitely critical to our ability to
-%% match Cython in a few of the  hottest code paths that used to be Cython.
-
-%% TODO move prim.types up?
-
-
-For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
-that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
-Cinder implements these types with unboxed C values, which are much simpler and cheaper
-than their Python counterparts.
-\SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives efficiently.
-These are not themselves primitive.
-
-Primitives are carefully limited by the type system.
-Neither a module-level nor a closure-level variable may have a primitive
-type---because untyped code can mutate such variables.
-Primitive types are incompatible with the dynamic type,
-and there are no implicit upcasts from primitives
-to a matching Python type.
-Even a conjunction disallows mixing; for example, the \code{and} operator
-requires either two Python booleans or two primitive booleans.
-The only way for Python values and primitive values to interact
-is through dedicated conversion functions.
-Cinder handles conversions at the boundaries between \SP{} code
-and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere else.
-Within typed code, programmers must satisfy the type checker with
-appropriate conversions.
-
-% For now, programmers have to write and manage primitive types.
-% In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
-
-% https://github.com/facebookincubator/cinder/issues/52
-
-
-\subsubsection{Strict Modules}
-\label{s:strict-mod}
-
-Python modules are mutable collections of names.
-Names can be added, deleted, and updated at runtime.
-\SP{} accommodates these behaviors in the same manner as standard Python, which
-necessarily limits the benefits of module types.
-As an alternative, \SP{} programmers may opt in to a \emph{strict module} semantics.
-Strict modules are immutable, and thus enable type-based compiler optimizations.
-
-
-\subsubsection{Classloader}
+\subsection{Classloader}
 \label{s:classloader}
 
 \SP{} keeps track of typed functions and typed classes with a specialized classloader.
@@ -937,6 +931,25 @@ The registry helps the bytecode reference objects and types via their module nam
 The mutability bit lets \SP{} optimize access for immutable data while soundly allowing
 patches to mutable data.
 Overall, it is an essential piece of infrastructure to enable soundness and optimizations.
+
+
+\subsection{Method-at-a-Time JIT}
+
+FILL Cinder includes a JIT compiler for its bytecode.
+The typical way to configure is to supply a list of functions to be JIT compiled.
+Compilation works on any \SP{} function whether or not it is typed
+(thus there is some incentive to use \SP{} even without adding type annotations).
+For the biggest payoff, though, the JIT needs type information.
+
+%% 2022-01-05 Carl:
+%% "All the data I’ve been sharing is from a single codebase, the primary IG web
+%% server monolith. The existence of JITted but not SP modules is mostly just due
+%% to the fact that opting a function into the JIT is semantically transparent and
+%% (unless it reveals a latent bug in the JIT) requires no code changes, so it’s
+%% quite easy to do (the only tradeoff pushing us away from JITting everything is
+%% just how much CPU we spend JIT-compiling and how much memory we spend storing
+%% JIT-compiled code), whereas opting a module into SP requires more work so the
+%% bottleneck is available developer time to do conversions."
 
 
 \section{Model}
@@ -1588,6 +1601,7 @@ or even take it as a starting point for compiler verification.
 
 
 \subsection{The Payoff: Issues Reported}
+%% 2022-01-11 FILL TODO reword, excitement!
 
 While modelling \SP{}, we found several issues with the language
 and submitted them as bug reports to the \SP{} developers.
@@ -1598,6 +1612,7 @@ All but one of these soundness issue have been fixed.
 Five issues were relatively minor; these dealt with confusing error messages
 and incorrect tests.
 The remaining 16 issues report bugs in language design and implementation.
+The \SP{} team has acknowledged these bugs as such via GitHub a label (\code{sp-correctness}).
 
 In addition to these formal issue reports,
 we had several long discussions together (between Brown and Instagram)
@@ -1870,6 +1885,14 @@ we’ve done this it hasn’t required a major rewrite.
 \section{Production Experience}
 \label{s:eval}
 %% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
+
+%% 2022-01-11 TODO how many Checked modules in production?
+%% 2022-01-11 TODO how many strict modules in production?
+%% 2022-01-11 TODO talk about primitive types:
+%% Carl: "I just did a very rough grep check and found that we have only 12 modules
+%% currently using primitive types: all int32 and int64 and cbool. So they are
+%% used pretty sparingly, but they are also definitely critical to our ability to
+%% match Cython in a few of the  hottest code paths that used to be Cython."
 
 %% 2022-01-05 TODO We are currently JITting at least some functions in 873
 %% modules, but we are about to increase this by about an order of magnitude,
@@ -2174,6 +2197,7 @@ mypyc;
 Developer experience is one of the main advantages of \SP{} over mypyc,
 which implements type-directed optimizations for CPython
 by compiling source code to C extension modules.
+\SP{} even used Cython at some point and found the mixed-workflow codebase painful.
 
 JS++ is a sound gradual type system for JavaScript~\cite{jspp}.
 By default, it separates JS++ from JavaScript values:
@@ -2356,6 +2380,7 @@ The 25 GitHub issues that we filed during the formalization effort may be found 
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024} (N=20)
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/bennn} (N=4)
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/64} (N=1)
+  %% extra, can't remember if we inspired Dino or not: https://github.com/facebookincubator/cinder/issues/32
 \end{itemize}
 
 
