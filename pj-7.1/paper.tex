@@ -12,8 +12,6 @@
 %% TODO before submission
 %% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
 %%   helps the static checker find new errors. ChkDict is one example.
-%% - idea: formalism would be a SUBSET of Nom, so our burden of proof is low
-%% - what are the idiomatic base SP types ... int or Int ?
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
 %% - use ChkDict not ChkList ... avoid confusion
 %%   ... or at least mention both, be clear the focus is Dict b/c older
@@ -494,7 +492,6 @@ notable aspects of the type system:
 
 %% 2021-12-14:
 %% - anything to say about Any being a "meta" type in Python typing module?
-%% - 3 classes of code ... how does dynamic differ from untyped?
 
 %% 2021-12-23: TODO
 %% Carl: The behavior of dynamic type in static code should be:
@@ -1716,8 +1713,6 @@ to construct \SP{} data structures, and to perform optimized actions.
   \label{t:bytecode}
 
   \begin{tabular}{lll}
-    %% TODO remove _
-    %% TODO pick instructions
     {Instruction} & {Purpose} & {Description} \\\hline
     \bcinst{CAST} & Soundness & Assert that a value matches a type \\
     \bcinst{CHECK\_ARGS} & Soundness & Cast all inputs to a function \\[1ex]
@@ -1792,7 +1787,7 @@ In other words, the goal is to slow code down as little as possible.
 Part of this goal is met by inserting casts only in positions where the dynamic
 type flows into a static type.
 The materialze rule in the model illustrates this policy.
-Typed functions, however, are compiled with a \bcinst{CHECK\ARGS} instruction
+Typed functions, however, are compiled with a \bcinst{CHECK\_ARGS} instruction
 that casts all arguments.
 By convention, this instruction always appears on the first line of a typed
 function body.
@@ -1806,8 +1801,8 @@ calls benefit from materialize checks at the call-site.
 \subsection{Dynamic Python Features}
 \label{s:dynamic-python}
 
-%% TODO 2022-01-09 be careful here ... the model may handle module vars, but it's
-%% just that they're untyped and (maybe) not tested
+%% TODO 2022-01-09 be careful here ... the model may indeed handle module vars
+%%  the thing is, they're untyped and (maybe) not tested
 
 \SP{} does not ascribe types to the following Python features.
 These are not covered in our model because the implementation simply
