@@ -19,6 +19,7 @@
 %%   - emphasize the PAYOFF from modeling early on, don't bury in sec 3
 %% - terms: sound generic / concrete ... aren't people going to forget concrete? better keep as last resort
 %% - perhaps a compatibility story, programmers can work on Python 3.9 until Cinder catches up b/c source code is the same
+%% - "we" = all authors, NOT JUST BROWN!!!
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -253,6 +254,7 @@
   Other language designers may wish to replicate its approach,
   especially those who maintain unsound type checkers for untyped languages
   such as JavaScript.
+  %% FILL TODO SP is sound, be clearer why this makes sense for unsound people!
 
 \end{abstract}
 
@@ -325,6 +327,9 @@ Python across the board.
     \SP{} can be applied to a codebase with no refactoring and marginal performance overhead.
     After refactoring to sound types, \SP{} performs well on a microbenchmark
     suite and in production.
+    %% FILL SK: Relative to what? Also, reading "Evidence that gradual soundness
+    %%   delivers Python-level performance" feels a bit like mockery, given how slow
+    %%   Python is!
   \item
     A formal description of the \SP{} core language and an analysis of its soundness
     and optimizations.
@@ -786,6 +791,10 @@ The wrappers are handled efficiently by \SP{}'s vtables~(\cref{s:vtable}).
 
 \subsection{Strict Modules}
 \label{s:strict-mod}
+
+%% 2022-01-12 Although the Static Python compiler can technically be
+%% used apart from strict modules, and we do that in tests for faster tests, it’s
+%% not sound and we don’t allow it in prod.
 
 Python modules are mutable collections of names.
 Names can be added, deleted, and updated at runtime.
@@ -1899,6 +1908,30 @@ we’ve done this it hasn’t required a major rewrite.
 \label{s:eval}
 %% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
 
+%% 2022-01-12
+%% We did have some cases where strict semantics caused a problem, but in the
+%% majority of conversions it didn’t (or if it did initially, the fix was
+%% trivial.) There was at least one case where I would have converted more code to
+%% static but couldn’t easily do so because of strictness issues with a larger
+%% framework reliant on metaclasses, and so I instead extracted the hottest code
+%% paths into a new strict/static module and called them. I have a plan to go back
+%% to this and improve the framework itself to be strict so more code can be
+%% converted. I know of at least one other case where we did modify a framework
+%% that relied on side-effecting decorators so that it could be used without the
+%% side effects.
+
+%% 2022-01-12 All SP mods are strict. Although the Static Python compiler can technically be
+%% used apart from strict modules, and we do that in tests for faster tests, it’s
+%% not sound and we don’t allow it in prod. The way a real module gets compiled as
+%% Static Python is in fact via the strict modules import loader, which detects
+%% both `import __strict__` and `import __static__` markers, treating the former
+%% as strict only and the latter as both strict and static. So we don’t provide
+%% any straightforward way (either in IG codebase or generally with Cinder) to
+%% have a module imported as static without also being strict.
+
+%% 2022-01-12 Looks like 3 use CheckedDict and 6 use CheckedList.
+%% 2022-01-12 
+
 %% 2022-01-11 TODO how many Checked modules in production?
 %% 2022-01-11 TODO how many strict modules in production?
 %% 2022-01-11 TODO talk about primitive types:
@@ -2108,6 +2141,18 @@ Six of these address type errors; the other three focus on performance.
     \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
     Static methods can get invoked directly as functions, bypassing the class.
     %% Carl: \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
+
+%% 2022-01-12
+%% I don’t think it was a super common change, but there were some cases where we
+%%     changed a @classmethod that didn’t actually use its cls argument to a
+%%     @staticmethod. It looks like we have 24 static modules using a
+%%     @staticmethod somewhere in the module, but I think in the majority of those
+%%     there just happened to be some pre-existing staticmethods (they aren’t
+%%     uncommon in our codebase); I think a minority were intentional
+%%     optimizations on our part. And the pre-existing ones may or may not be
+%%     meaningfully improving performance. So I’m not sure how valuable it is to
+%%     report this metric.
+
 
   \item
     \ipara{Use primitive types}
