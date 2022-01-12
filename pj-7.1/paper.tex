@@ -177,6 +177,8 @@
 
   \let\paragraph\abstractpart
 
+  \vglue10pt
+
   \paragraph{Context}
   % What is the broad context of the work? What is
   % the importance of the general research area?
@@ -190,6 +192,8 @@
 
   %% TODO acknowlegde the success of new language / tracing JIT approaches
 
+  \vglue10pt
+
   \paragraph{Inquiry}
   % What problem or question does the paper
   % address? How has this problem or question been
@@ -202,13 +206,17 @@
   Transient types are sound in a shallow sense and easier to use; they help
   to bridge the gap between untyped code and typed concrete code.
 
+  \vglue10pt
+
   \paragraph{Approach}
   % What was done that unveiled new knowledge?
-  In collaboration with the \SP{} team, we have evaluated the language
-  as it exists today and developed a model to capture the essence of its
+  We evaluate the language in its current state
+  to develope a model that capture the essence of its
   approach to gradual types.
-  We drew upon personal communications, bug reports, and the \SP{}
-  regression test suite.
+  We draw upon personal communication, bug reports, and the \SP{}
+  regression test suite to develop this model.
+
+  \vglue10pt
 
   \paragraph{Knowledge}
   % What new facts were uncovered? If the
@@ -218,8 +226,11 @@
   arises from a mix of concrete and transient types is an effective
   way to lower the maintenance cost of the concrete approach.
   On a more technical level, this paper contributes two artifacts:
-  a model of \SP{} that passes all relevant tests from the \SP{} codebase
-  and a performance evaluation of \SP{}.
+  a model of \SP{} that passes all relevant tests from the \SP{} codebase,
+  and a performance evaluation of \SP{}. The process of formalization
+  has also found several errors in the implementation, inlcuding fatal errors.
+
+  \vglue10pt
 
   \paragraph{Grounding}
   % What argument, feasibility proof, artifacts,
@@ -231,6 +242,8 @@
   Our performance claims are based on production experience in the Instagram
   web server.
   Thanks to \SP{}, global CPU usage has improved by almost 4\% within a year.
+
+  \vglue10pt
 
   \paragraph{Importance}
   % Why does this work matter?
