@@ -1618,14 +1618,11 @@ handle soundly.
 These include primitive types~\cref{s:c-types} and strict modules~\cref{s:strict-mod}.
 Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
 are also omitted.
-Other Python features are left out because their \SP{} semantics is identical
-to the baseline Python semantics.
-These features include \code{eval}, first-class classes, multiple inheritance, and module-level cells;
-see \cref{s:impl} for further discussion.
-Lastly, the model does not include type-directed optimizations.
-Validating the correctness of optimizations is a separate task that requires
-significant components: a model of the \SP{} bytecode and a faithful
-rendering of its type-based transformations.
+Other Python features are left out either because their \SP{} semantics is identical
+to the baseline Python semantics or because they would entail a separate project~(\cref{s:impl}).
+In particular, modelling type-directed optimization would require substantial
+components: a model of the \SP{} bytecode and a faithful rendering of its
+transformations.
 Our model establishes soundness as a baseline.
 Future work can use soundness as a starting point for compiler verification,
 or informally leverage soundness to reason about possible optimizations.
