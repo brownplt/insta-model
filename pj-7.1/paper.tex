@@ -13,6 +13,7 @@
 %% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
 %%   helps the static checker find new errors. ChkDict is one example.
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
+%%   trying to avoid nonstatic? staticifying?
 %% - use ChkDict not ChkList ... avoid confusion
 %%   ... or at least mention both, be clear the focus is Dict b/c older
 %% - do the LESSONS from SP come across clearly? beware making this a "progress report"
@@ -46,13 +47,16 @@
 \newcommand{\sptclass}{\typefont{C}}
 \newcommand{\sptX}{\typefont{X}} %% undefined type for an early example
 \newcommand{\sptint}{\typefont{Int}}
+\newcommand{\sptstr}{\typefont{Str}}
 \newcommand{\sptbool}{\typefont{Bool}}
 \newcommand{\sptfloat}{\typefont{Float}}
+\newcommand{\sptflout}{\typefont{Flout}}
 \newcommand{\sptdyn}{\typefont{Dyn}}
 \newcommand{\sptobject}{\typefont{Object}}
 \newcommand{\sptnone}{\typefont{None}}
 \newcommand{\sptinstanceof}[1]{\paramtype{\typefont{Instance}}{#1}}
 \newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
+\newcommand{\sptset}[1]{\paramtype{\typefont{Set}}{#1}}
 \newcommand{\sptunion}[1]{\paramtype{\typefont{Union}}{#1}}
 \newcommand{\sptrawpydict}{\typefont{PyDict}}
 \newcommand{\sptrawchkdict}{\typefont{ChkDict}} %% not a real SP type, but useful for TeX
@@ -406,82 +410,40 @@ Others might be useful to adopt in new language designs.
 
 \SP{} is part of a large codebase that includes a type system, a tailored
 bytecode, and a method-based JIT compiler.
-In essence, it is a new language.
-The interface that it offers to programmers, however, is a familiar one.
-\SP{} can handle all untyped\footnote{Python 3.8 code that uses type
-annotations may, of course, contain type errors.} Python 3.8 programs, and it
-compiles code on-the-fly to give the same workflow and enable the same
+In essence, \SP{} is a type system for a new language.
+The interface that it offers to programmers, however, seeks to replicate the
+Python experience.
+\SP{} runs untyped Python 3.8 programs with minimal changes to their behavior,
+and it compiles code on-the-fly to give the same workflow and enable the same
 developer tools as standard Python.
+The advanced features of the \SP{} type system are offered on an opt-in basis
+and arranged so that programmers can begin adding types one module at a time.
 
-Indeed, the advanced features of \SP{} are offered strictly on an opt-in basis.
-Programmers whose decide to use its new APIs---in particular, for the type system
-and the JIT compiler---can usuaally benefit without imposing maintenance costs
-on their co-workers.
-
+%% TODO clean up arrow between subfigs
 \begin{figure}
-  \begin{subfigure}[t]{0.22\columnwidth}\begin{spcodebox}\noindent\begin{verbatim}
+  \begin{subfigure}[t]{0.15\columnwidth}\noindent\begin{lstlisting}
+
 def f(x):
   return x["A"]
 
 f({"A": 1})
-  \end{verbatim}
-  \end{spcodebox}
-  %\caption{TODO}
-  %\label{f:TODO}
-  \end{subfigure}~\begin{subfigure}[t]{0.36\columnwidth}\begin{spcodebox}\noindent\begin{verbatim}
+  \end{lstlisting}
+\end{subfigure}\(~~\rightarrow~~\)\begin{subfigure}[t]{0.32\columnwidth}\noindent\begin{lstlisting}
 from __static__ import PyDict
 def f(x: PyDict[Str, Int]):
   return x["A"]
 
 f({"A": 1})
-  \end{verbatim}
-  \end{spcodebox}
-  %\caption{TODO}
-  %\label{f:TODO}
-  \end{subfigure}~\begin{subfigure}[t]{0.36\columnwidth}\begin{spcodebox}\noindent\begin{verbatim}
+  \end{lstlisting}
+  \end{subfigure}\(~~\rightarrow~~\)\begin{subfigure}[t]{0.34\columnwidth}\noindent\begin{lstlisting}
 from __static__ import ChkDict
 def f(x: ChkDict[Str, Int]):
   return x["A"]
 
 f(chkdict[Str, Int]({"A": 1}))
-  \end{verbatim}
-  \end{spcodebox}
-  %\caption{TODO}
-  %\label{f:TODO}
+  \end{lstlisting}
   \end{subfigure}
 
-%%
-%%%  \begin{minipage}[t]{0.5\columnwidth}
-%%  \begin{verbatim}
-%%    from __static__ import PyDict
-%%    def f(x: PyDict[str, int]):
-%%      return x["A"]
-%%
-%%    f({"A": 1}) # ==> 1
-%%  \end{verbatim}
-%  \end{minipage}\begin{minipage}[t]{0.5\columnwidth}
-%  \begin{verbatim}
-%    from __static__ import PyDict
-%
-%    def f(x: PyDict[str, int]):
-%      check_args(x, PyDict)
-%      return cast(x["A"], int)
-%
-%    invoke_function(f, {"A": 1}) # ==> 1
-%  \end{verbatim}
-%  %  ....
-%  %  CHECK_ARGS
-%  %  ....
-%  %  INVOKE_FUNCTION
-%  \end{minipage}
-%  \begin{verbatim}
-%    from __static__ import CheckedDict
-%
-%    def f(x: CheckedDict[str, int]):
-%      return x["A"]
-%
-%    f(CheckedDict({"A": 1}))
-%  \end{verbatim}
   \caption{A first \SP{} program and two migrations}
   \label{fig:sp-example}
 \end{figure}
@@ -490,18 +452,18 @@ f(chkdict[Str, Int]({"A": 1}))
 utilize \SP{} types.
 The basic program defines a function \code{f} and calls it with a dictionary
 value.
-\SP{} can run this program as-is, and even JIT-compile the function.
+\SP{} can run this program as-is and even JIT-compile the function.
 The other two versions import dictionary types from the \SP{} standard library:
 \begin{itemize}
   \item
-    The $\sptrawpydict$ type describes normal Python dictionaries.
+    The $\sptrawpydict$ type describes normal Python dictionaries in a \emph{shallow} sense.
     At compile-time, \SP{} uses this type to check the program for logical errors.
     At run-time, \SP{} enforces the type by checking that all inputs to \code{f} are
     dictionary values.
     These checks enable optimizations within the function body.
 
   \item
-    The $\sptrawchkdict$ type describes a dictionary data structure that is new to \SP{}.
+    The $\sptrawchkdict$ type describes a \emph{concrete} dictionary data structure provided by \SP{}.
     Unlike Python dictionaries, these checked dictionaries are guaranteed to
     contain well-typed keys and values even if they escape to untyped code.
     As the body of \code{f} illustrates, the syntax for using a checked dict is standard.
@@ -511,46 +473,47 @@ These typed versions demonstrate the multi-level nature of the \SP{} interface.
 At one level, there are types that describe standard Python values that can be added
 to a program with little-to-no code changes.
 Beyond that, \SP{} offers special-purpose types with stronger guarantees that impose
-a higher maintenance cost.
+nonlocal maintenance costs (i.e., on constructor calls).
 
 
-\subsection{Type System Design Goals}
+\subsection{Type System Context and Design Goals}
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
 Nom~\cite{mt-oopsla-2017,mt-oopsla-2021} and PEP 484~[CITE] are two notable sources.
-Relative to these, the \SP{} takes some interesting turns
-because of the engineering context at Instagram.
-The following contextual points are important to bear in mind:
+In addition, \SP{} is strongly influenced by the following engineering constraints:
 \begin{itemize}
   \item
     Performance is the bottom line.
-    Unless \SP{} helps production code run faster, the team will be disbanded
-    and reallocated.
-    %% 2021-12-14: too extreme? and what about soundness?
+    At the end of the day, \SP{} needs to make code run faster in production.
   \item
-    %% Q. why is the python so nominal? style guide? java background?
-    The codebase depends heavily on first-order functions and objects in
-    performance-critical code.
-    Higher-order code is fairly common, but rarely appears on a critical path.
+    Critical code often relies on first-order functions and objects,
+    at least in the Instagram web server.
+    Precise types for higher-order functions and first-class classes
+    are thus a low priority.
   \item
-    Prior to investing in \SP{}, Instagram used Cython to compile
-    performance-critical code to C extension modules.
-    Cython performed well, but mixing pure Python with a few compiled modules
-    made for an awkward developer experience.
-    \SP{} aims to match the Python workflow.
+    The codebase in which \SP{} is being applied makes heavy use of Pyre [CITE]
+    type annotations.
+    \SP{} needs to be compatible with Pyre syntax to reduce the adoption burden.
+    % On the flip side, the existence of Pyre lets \SP{} focus on a small language
+    % of types that enable optimizations.
+    % (\SP{} defers to Pyre the task of statically checking the full Python language.)
   \item
-    The Instagram codebase is already typed.
-    Developers use Pyre [CITE], an optional type checker for Python,
-    to write type annotations and to drive IDE tools (e.g., autocompletion).
+    A module-level granularity is acceptable.
+    Once \SP{} is enabled for a module, it compiles all code in that module
+    including expressions that have the dynamic type~(\cref{s:type-dynamic}).
+    If this behavior is a problem for certain expressions, it is easy enough to move
+    them to an untyped Python module.
 \end{itemize}
 %
 In general, the types that \SP{} implements all enable significant optimizations
-and are simple to validate with run-time checks.
-Types that do meet these criteria can be deferred to Pyre, even if they are widely-used.\footnote{
-At present, the \SP{} team
-has no plans to support all Pyre types. The top priority is to implement
-core types efficiently.}
+and can be validated with constant-time dynamic checks.
+Types that do not meet these criteria are deferred to Pyre, even if they are widely-used.
+
+At present, \SP{} has no plans to support all Pyre types.
+The goal is to implement a small language of types efficiently.
+After all, programmers can always lint their code with Pyre before running
+\SP{}.
 
 The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
@@ -558,16 +521,16 @@ and nominal classes.
 Union types are well-supported statically and narrow down in accordance
 with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
 but are, for the most part, not supported at run-time.
-Only binary unions of a type and the none value get enforced with a run-time check
+Only binary unions of a type and the Python \code{None} value get enforced with a run-time check
 ($\sptunion{\sptype, \sptnone}$, or $\sptoptional{\sptype}$).
 
-Three other unsupported types bear special mention.
-There are no first-class class or object types~(\cref{s:inheritance}).
-There are also no types for first-class functions (callables).
-Pyre can check these types instead.
-Third, \SP{} does not support recursive types.
-Neither Pyre nor mypy have recursive types either.
-%% demand seems low ... baffling
+Three other unsupported types bear special mention:
+first-class class and object types~(\cref{s:inheritance});
+first-class function (callable) types; and
+recursive types.
+Pyre has some support for the first two, but not for recursive types.
+In any event, the demand for all three types is low in our applications
+of \SP{}.
 %% mypy = https://github.com/python/mypy/issues/731
 %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
@@ -582,99 +545,95 @@ Neither Pyre nor mypy have recursive types either.
 Like most gradual languages, \SP{} includes a dynamic type
 that allows untyped expressions within a statically-typed context.
 Whenever an expression or variable lacks a type annotation, \SP{} uses the
-dynamic type as a default and skips most \emph{but not all}\/ compile-time checks.
-Every untyped Python program is thus a well-formed \SP{} program.
-Furthermore, programmers can add annotations to part of a module
-while leaving the rest untyped; the untyped positions receive the dynamic type.
+dynamic type as a default and skips most \emph{but not all}\/ static checks.
+Programmers can thus add annotations to part of a module
+while leaving the rest unannotated.
 
 In addition to serving as a default, the dynamic type also replaces any undefined types.
-For example, suppose that the type $\sptX{}$ is undefined in \SP{} and that a
-program contains the annotation $\sptchkdict{\sptint}{\sptX{}}$, which describes a
-dictionary with integer keys and $\sptX{}$-typed values.
+For example, suppose that the type $\sptflout{}$ is undefined in \SP{}
+(i.e. it is a misspelling of $\sptfloat$) and that a
+program contains the annotation $\sptchkdict{\sptstr}{\sptflout}$, which describes a
+dictionary with integer keys and $\sptflout$-typed values.
 \SP{} interprets this annotation as $\sptchkdict{\sptint}{\sptdyn}$ and allows any sort
 of values inside the dictionary at runtime.
 
 At first glance, this behavior might seem odd: why not reject undefined types with an error?
-The reason is to reduce friction with the Pyre annotations that are already
-widely-used at Instagram.
+The reason is to reduce friction with existing Pyre annotations.
 Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
-efficiently, e.g., the type $\sptunion{\sptype_0, \ldots, \sptype_n}$ of arbitrary-width unions~(\cref{s:idiomatic-types}).
+efficiently, e.g., the type $\sptset{\sptint}$ for sets of integers.
 By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
 
-%% intro sentence
-The dynamic type is also different than the flexible dynamic type provided
-by gradual languages that satisfy the gradual guarantees~\cite{svcb-snapl-2015}.
-Replacing part of a type with dynamic can lead to a compile-time error because
-unlike untyped Python code, the \SP{} compiler does analyze dynamic-typed code.
-Similarly, adding a dynamic type can raise a run-time error because
-\SP{} does not allow interactions among different instantiations of a generic type.
+The \SP{} dynamic type is also different than the flexible dynamic type provided
+by gradual languages that satisfy the gradual
+guarantees~\cite{svcb-snapl-2015}.
+In \SP{}, replacing part of a type with dynamic can lead to a static error when
+the compiler analyzes that part of the module.
+Similarly, the addition of a dynamic type can lead to a run-time error because of the
+strict checks that \SP{} applies to generic types.
+\Cref{fig:gg-failure} presents two examples, one for each kind of failure:
+%% \footnote{Technically, \SP{} does not even
+%% have syntax for the dynamic type. The idiomatic way to ask for dynamic is to
+%% omit a type annotation.}
 %% \footnote{We
 %% assume a standard type precision relation. Of course, one could argue that these programs
 %% do not break the gradual guarantees for a type precision relation that is tailored to \SP{}.}
 %%   %% tailored = describes exactly the migrations that SP allows
-\Cref{fig:gg-failure} presents two examples, one for each kind of failure:
 %% \footnote{In addition, C types~(\cref{s:c-types}) are incompatible with type dynamic.}
 \begin{itemize}
   \item
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
     The subclass definition raises a compile-time error because it attempts to override
-    the typed \code{m1} method with another method that returns the dynamic type.
+    the typed \code{m} method to return the dynamic type.
 
   \item
-    \Cref{f:gg-failure-dyn} presents a variant of \cref{fig:sp-example} that
-    uses the type \code{ChkDict} for concrete-typed dictionaries (\cref{s:checked-type}).
-    It sends a dictionary with integer values to a function that expects
-    dictionaries with dynamic values.
+    \Cref{f:gg-failure-dyn} sends a checked dictionary with integer values to a
+    function that expects dictionaries with dynamic values.
     At runtime, the function rejects this argument because its type is not an
     exact match.
 \end{itemize}
 These behaviors enable efficient run-time checks and additional type-directed
 optimizations.
 Part of the reason \SP{} weighs these benefits more heavily than the costs
-is that programmers have to opt-in to a new feature to risk the errors.
-The static errors come only after enabling the \SP{} compiler on a module.
-The dynamic errors come only after switching to a sound generic type.
+is that programmers have to opt-in to a feature in order to risk the errors.
+The static error above comes only after enabling the \SP{} compiler on a module.
+The dynamic error comes only after adopting a concrete type (for checked dictionaries).
 
-More to the point, the \SP{} team has little interest in guarantees about
+More to the point, \SP{} has little interest in guarantees about
 \emph{removing an arbitrary annotation}.
-By contrast, there is great interest in making sure that \emph{an untyped
-module compiles with minimal code changes in \SP{}}.
+It is, however, very interested in making sure that \emph{an untyped
+module compiles with minimal code changes}.
 
 \begin{figure}
-  \begin{subfigure}[t]{0.5\columnwidth}
-  \begin{spcodebox}
-  \begin{verbatim}
-    class A:
-      def m1(self) -> Int:
-        return 0
+  \begin{subfigure}[t]{0.48\columnwidth}
+    \begin{lstlisting}
+class A:
+  def m(self) -> Int:
+    return 0
 
-    class B(A):
-      def m1(self):
-        return 0
+class B(A):
+  def m(self):
     # Error: Dyn cannot override Int
-  \end{verbatim}
-  \end{spcodebox}
+    return 0
+  \end{lstlisting}
     \caption{SGG Violation: removing a type in the subclass \code{B} raises a static error}
     \label{f:gg-failure-stat}
   \end{subfigure}
-  ~
-  \begin{subfigure}[t]{0.5\columnwidth}
-  \begin{spcodebox}
-  \begin{verbatim}
-    from __static__ import ChkDict
+  \hfill
+  \begin{subfigure}[t]{0.48\columnwidth}
+  \begin{lstlisting}
+from __static__ import ChkDict
 
-    def f(x: ChkDict[Str, Dyn]):
-      return x["A"]
+def f(x: ChkDict[Str, Dyn]):
+  return x["A"]
 
-    d = ChkDict[Str, Tnt]({"A": 1})
-    f(d)
-    # Error: f expected ChkDict[Str, Dyn]
-  \end{verbatim}
-  \end{spcodebox}
+d = ChkDict[Str, Int]({"A": 1})
+f(d)
+# Error: f expected ChkDict[Str, Dyn]
+  \end{lstlisting}
     \caption{DGG Violation: removing part of the type for the parameter \code{x} raises a dynamic error}
     \label{f:gg-failure-dyn}
   \end{subfigure}
-  \caption{\SP{} maintains neither the static (SGG) nor the dynamic (DGG) gradual guarantees}
+  \caption{\SP{} ensures neither the static (SGG) nor the dynamic (DGG) gradual guarantees}
   \label{fig:gg-failure}
 \end{figure}
 
@@ -691,81 +650,87 @@ module compiles with minimal code changes in \SP{}}.
 \subsection{Concrete Types and Shallow Types}
 \label{s:checked-type}
 
-Every \SP{} type corresponds to a simple run-time check.
+Every \SP{} type corresponds to a constant-time dynamic check.
 When an unknown value reaches a boundary to typed code at run-time,
 \SP{} uses these checks to quickly decide whether or not the value
-matches the type.\footnote{In other words, \SP{} provides \emph{immediate accountability}~\cite{mt-oopsla-2017}.}
+matches the type (think: \code{isinstance} checks).
 Unlike structural gradual type systems, \SP{} does not traverse
 incoming values nor does it create wrappers to enforce behavior.
 
-These checks try to faithfully enforce the full type, but some are incomplete.
-We call the incomplete ones \emph{shallow} types; examples follow.
+These dynamic checks try to faithfully enforce a full type, but some are incomplete---especially
+for generic types.
+We call the incomplete ones \emph{shallow} types.
+The \SP{} strategy for fully-sound generics is to package each value with a type
+tag; following the \textsf{StrongScript} authors~\cite{rzv-ecoop-2015}, we call
+these \emph{concrete} types.
 
 First off, for a basic nominally-typed language (think Java 1.4, before
-generics), simple and full checks are easy to implement.
+generics), constant-time checks are easy to implement.
 Every type has a name and every value can carry a tag that corresponds to the
 name of its type.
 
-%% TODO 2022-01-07 List and ChkList are incompatible, need to anticipate somehow ... Chk does not allow any lists!
-Parameterized types (generics) are more difficult to fully enforce without
-changing the language.
-Consider a list datatype \code{List[T]} that is parameterized by the
-e type of its elements.
-If a function expects lists of integers (\code{List[int]}), then a simple check
-for lists is not strong enough to decide whether an incoming value matches the
-type.
-A deeper check is needed to validate the list elements.
-But, the default \code{List} type cannot support such a check because untyped
-code is free to create lists.
+Parameterized types (generics) are more difficult to enforce.
+Consider a dictionary datatype \code{Dict[K,V]} that is parameterized by types
+for its keys and values.
+If a function expects a dict from integers to integers (\code{Dict[Int,Int]}),
+then merely checking for a dict instance is not enough to decide whether an
+incoming value matches the type.
+For example, the incoming value may have been created by untyped code.
 
-The \SP{} solution is to provide two versions of every parameterized type,
-both of which support efficient run-time checks.\footnote{Currently, only a handful
-of built-in data structures provide shallow and concrete versions. User-defined
-classes will soon follow this approach.}
-One version is shallow.
-The other is \emph{concrete}: complete, but new.
-Consider \code{List[T]} as an example:
+The \SP{} solution is to provide two incompatible versions of every parameterized type,
+both of which support efficient run-time checks.\footnote{Currently, only a handful of built-in data structures provide shallow
+and concrete versions. User-defined classes will soon follow this approach.}
+For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
 \begin{enumerate}
   \item
-    \emph{Shallow type \code{List}}.
-    The default type \code{List[T]} gets enforced with a simple check for lists that ignores
-    the elements.
-    Consequently, every static type like \code{List[int]} is merely a promise of \code{List}
-    values at run-time.
+    \emph{Shallow type $\sptrawpydict$}.
+    The default type $\sptrawpydict$ gets enforced with a constant-time check
+    for dict values that ignores the elements inside a dict.
+    Consequently, a parameterized static type such as $\sptpydict{\sptint}{\sptint}$
+    is merely a promise of dict values at run-time; it does not promise anything about
+    dict keys and values.
   \item
-    \emph{Concrete type \code{ChkList[T]}}.
-    \SP{} introduces a new data structure and parameterized type \code{ChkList[T]}
-    for concrete types.
-    The data structure implements the list API and comes with a checked constructor that
-    makes it impossible to create a \code{ChkList[int]} with non-integer elements;
+    \emph{Concrete type $\sptchkdict{\sptype}{\sptype}$}.
+    \SP{} introduces a parameterized type for concrete, checked dictionaries
+    along with a value constructor that records its type constraints.
     \cref{s:chkdict-impl} discusses the implementation further.
 \end{enumerate}
 %
-These options let programmers decide whether to change their code to benefit from
-fully-sound types, or leave it as-is for a lower payoff.
-
-
-%\begin{figure}[t]
-%  How to enforce type \code{List[int]} simply?
-%  \begin{itemize}
-%    \item Checking for \code{List} is simple, but loose. It accepts \code{List[str]} and heterogeneous lists etc.
-%    \item Can't check for \code{List[int]} by itself, the datatype does not support that.
-%    \item Checking for \code{ChkList[int]} is simple, but needs buy-in from users.
-%  \end{itemize}
-%  2022-01-07: might be an interesting figure idea, showing the two options for enforcing a data structure
-%    Q How to enforce data structure without traversing
-%     \=> option 1: Shallow; + works for legacy code; - doesn't guarantee full type
-%     \=> option 2: Deep; + guarantees full type; - rejects legacy code
-%     \=> (option 3: traverse/wrrap; + guarantees full type; + works for legacy code; - slow; - complex
-%  \caption{FILL illustrate list boundary and checks}
-%  \label{f:list-boundary}
-%\end{figure}
-
+These options let programmers decide whether to edit their code to support concrete types
+or leave it as-is with shallow types.
 Often, the shallow types are more attractive because concrete types impose
-a ripple effect throughout the codebase.
+nonlocal changes.
 If one type changes to concrete, then all data constructors that reach this type need
-to change \emph{and then} all their clients need to use the concrete type as well.
-\Cref{s:concrete-migration} discusses this migration cost of concrete types further.
+to change \emph{and} all their clients need to use the concrete type as well.
+
+The upside of concrete types is that they enforce stronger type constraints.
+These constraints can catch bugs and usually lead to more-efficient code.
+Faster performance is not guaranteed, though, because it depends on how the dict
+gets used.
+\Cref{t:shallow-vs-concrete} presents a detailed comparison.
+Shallow types pay a constant-time cost whenever an untyped value enters typed code
+and whenever a typed context reads from a shallow value.\footnote{The predicted
+costs for reads and writes assume that all \SP{} types can be validated with a
+constant-time check.}
+The net cost of reads may be high.
+Concrete types pay a potentially-high cost for constructors,
+a constant-time cost for casts and for writes,
+and zero cost for dereferences.
+If a value is frequently written to and rarely read from, shallow types may actually
+be faster.
+
+\begin{table}[t]
+  \caption{Worst-case costs for shallow and concrete types}
+  \label{t:shallow-vs-concrete}
+
+  \centering
+  \(\begin{array}{lrrrr}
+     & \mbox{Constructor} & \mbox{Cast} & \mbox{Read} & \mbox{Write} \\\hline
+    \sptrawpydict                &           0 & O(1) & O(1) &     0 \\
+    \sptchkdict{\sptype}{\sptype} &        O(N) & O(1) &    0 &  O(1)
+  \end{array}\)
+\end{table}
+
 
 
 \subsection{Gradual Class Hierarchies}
@@ -773,9 +738,9 @@ to change \emph{and then} all their clients need to use the concrete type as wel
 
 One important feature of \SP{} is that class hierarchies can
 mix typed and untyped code.
-An untyped class can inherit from a typed one and vice-versa.
-The point of this feature is to let programmers add types to a single class
-independently of its ancestors and children.
+An untyped class can inherit from a typed one and vice-versa,
+letting programmers add types to a single class independently of its ancestors
+and children.
 
 % st-ecoop-2007 has no inheritance, object is collection of members simple (Abadi--Cardelli)
 
@@ -783,9 +748,10 @@ Gradual class hierarchies are rarely studied in the literature, especially
 for a language where truly untyped classes can enter the mix.\footnote{Two
 languages that provide separate hierarchies for untyped and (gradually) typed
 classes are Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}.}
-The closest related work, for Nom~\cite{mt-oopsla-2017}, is much more flexible.
-\SP{} explores a simpler point in the design space, starting with
-a few restrictions on types and inheritance:
+The closest related work, for Nom~\cite{mt-oopsla-2017}, implements
+a rather flexible point in the design space.
+\SP{} implements a simpler design that places a few restrictions on types and
+inheritance:
 
 \begin{enumerate}
   \item
@@ -802,7 +768,8 @@ a few restrictions on types and inheritance:
     Methods and fields may be overridden in arbitrary ways by untyped code.
     In typed code, however, overrides must be compatible subtypes.
     For example, a method that returns a number cannot be overridden by a method
-    that returns the dynamic type~(example: \cref{f:gg-failure-stat}).
+    that returns the dynamic type; \cref{f:gg-failure-stat} shows the static error
+    that arises from such a static override.
 
     % In fact, \SP{} compiles fields using Python slots
     % declarations (\code{\_\_slots\_\_}).
@@ -812,9 +779,9 @@ a few restrictions on types and inheritance:
 
 \end{enumerate}
 %
-With this context in mind, every class member is either \emph{reliably} typed or untyped.
-In particular, a typed member cannot be overridden by a less-precise one that uses
-type dynamic.
+With this context in mind, \SP{} keeps track of whether each class is typed of untyped.
+Each typed class can furthermore assume that if a method has a precise (non-dynamic)
+type, then all typed overrides are subtypes of this type.
 \SP{} can therefore optimize dispatch from typed callers to typed methods
 and use checked dispatch for other combinations.
 One extra step arises when an untyped class overrides a typed method.
@@ -823,7 +790,7 @@ that it computes type-correct results.
 % Because these wrappers perform a simple first-order check, they
 % are supported by an efficiently implementation that cooperates with
 % \SP{}
-The wrappers are handled efficiently by \SP{}'s vtables~(\cref{s:vtable}).
+The wrappers are handled efficiently by a tailored implementation of vtables~(\cref{s:vtable}).
 
 
 \subsection{Strict Modules}
@@ -854,15 +821,15 @@ Strict modules are immutable, and thus enable type-based compiler optimizations.
 For performance-critical applications, \SP{} includes a set of primitive types
 that describe booleans and sized numbers.
 Example types include \code{int64}, \code{uint64}, \code{double}.
-\SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives efficiently.
+\SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives.
 
 The purpose of these types is to enable unboxed values and arithmetic at
 runtime.
 Consequently, their static semantics is a \emph{progressive}~\cite{pqk-onward-2012}
 refinement over the semantics of basic Python types.
 Primitive types cannot be implicitly cast to non-primitive types,
-including the dynamic type (another violation of the static gradual guarantee).
-Operations such as \code{+} do not accept a mix of primitive and non-primitive data.
+including the dynamic type---another violation of the static gradual guarantee.
+Operations such as \code{and} (boolean conjunction) do not accept a mix of primitive and non-primitive data.
 These restrictions give programmers a static separation between fast-running
 primitives and standard data.
 
@@ -2275,6 +2242,7 @@ A ratio between 0 and 1 means that performance improved thanks to the types.
 \label{s:related}
 
 Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021} are foundational.
+%% \footnote{In other words, \SP{} provides \emph{immediate accountability}~\cite{mt-oopsla-2017}.}
 
 Full Monty~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational for us.
 
@@ -2297,6 +2265,12 @@ Developer experience is one of the main advantages of \SP{} over mypyc,
 which implements type-directed optimizations for CPython
 by compiling source code to C extension modules.
 \SP{} even used Cython at some point and found the mixed-workflow codebase painful.
+%%  \item
+%%    Prior to investing in \SP{}, Instagram used Cython to compile
+%%    performance-critical code to C extension modules.
+%%    Cython performed well, but mixing pure Python with a few compiled modules
+%%    made for an awkward developer experience.
+%%    \SP{} aims to match the Python workflow.
 
 JS++ is a sound gradual type system for JavaScript~\cite{jspp}.
 By default, it separates JS++ from JavaScript values:
