@@ -33,6 +33,7 @@
 \newcommand{\langmid}{\mid} %% {\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
+\newcommand{\numbenchmark}{2}
 
 \newcommand{\spapp}[2]{#1\,(#2)}
 \newcommand{\spann}[2]{#1\!:\!#2}
@@ -173,9 +174,6 @@
 \maketitle
 
 \begin{abstract}
-%  Soundness, migratory typing.
-%  Novel run-time check strategy, combines concrete and transient for ergonomics.
-
   \let\paragraph\abstractpart
 
   \vglue10pt
@@ -184,14 +182,12 @@
   % What is the broad context of the work? What is
   % the importance of the general research area?
   Gradually-typed languages allow typed and untyped code to interoperate,
-  but typically come with some kind of drawback.
+  but typically come with significant drawbacks.
   In some languages, the types are unreliable;
   in others, communication across type boundaries can be extremely expensive;
   and still others allow only limited forms of interoperability.
   The research community is actively seeking a sound, fast, and expressive
   approach to gradual typing.
-
-  %% TODO acknowlegde the success of new language / tracing JIT approaches
 
   \vglue10pt
 
@@ -203,7 +199,8 @@
   that has proven itself sound, fast, and reasonably expressive in production.
   \SP{}'s approach to gradual types is essentially a programmer-tunable combination of
   the \emph{concrete}\/ and \emph{transient}\/ approaches from the literature.
-  Concrete types provide soundness in an efficient but difficult-to-use way.
+  Concrete types provide full soundness and low performance overhead, but impose
+  nonlocal constraints.
   Transient types are sound in a shallow sense and easier to use; they help
   to bridge the gap between untyped code and typed concrete code.
 
@@ -212,7 +209,7 @@
   \paragraph{Approach}
   % What was done that unveiled new knowledge?
   We evaluate the language in its current state
-  to develope a model that capture the essence of its
+  and develop a model that captures the essence of its
   approach to gradual types.
   We draw upon personal communication, bug reports, and the \SP{}
   regression test suite to develop this model.
@@ -226,10 +223,12 @@
   Our main finding is that the \emph{gradual soundness}\/ that
   arises from a mix of concrete and transient types is an effective
   way to lower the maintenance cost of the concrete approach.
+  We also find that method-based JIT technology can eliminate the
+  costs of the transient approach.
   On a more technical level, this paper contributes two artifacts:
-  a model of \SP{} that passes all relevant tests from the \SP{} codebase,
+  a model of \SP{} that passes hundreds of tests from the \SP{} codebase,
   and a performance evaluation of \SP{}. The process of formalization
-  has also found several errors in the implementation, inlcuding fatal errors.
+  found several errors in the implementation, including fatal errors.
 
   \vglue10pt
 
@@ -252,9 +251,8 @@
   to a realistic codebase has consistently improved performance.
   %% Prior work on Nom and Dart 2 showed that concrete types are promising.
   Other language designers may wish to replicate its approach,
-  especially those who maintain unsound type checkers for untyped languages
-  such as JavaScript.
-  %% FILL TODO SP is sound, be clearer why this makes sense for unsound people!
+  especially those who currently maintain unsound gradual languages and are
+  seeking a path to soundness.
 
 \end{abstract}
 
@@ -266,12 +264,12 @@
 \label{s:intro}
 
 Gradual typing has attracted significant interest as a solution to
-the impasse between static and dynamic typing.
+the debate between static and dynamic typing.
 The premise is simple: let programmers introduce types in part of a
 codebase and while leaving the rest untyped.
-Run-time checks can in principle enforce the assumptions that
-typed code makes about untyped components, thereby ensuring that
-the types are sound no matter how the untyped code behaves.
+Run-time checks enforce the critical assumptions that typed code makes about
+untyped components, thereby ensuring that the types are sound no matter how
+untyped code behaves.
 
 Unfortunately, the high run-time cost of sound types has split
 the gradual typing community.
@@ -287,59 +285,96 @@ compiler technology [CITE],
 and even weakened semantics [CITE], but these efforts have not yet
 decisively closed the performance gap.
 The most promising attempt is the \emph{concrete} semantics
-for gradual types [CITE kafka nom etc], but its low performance
-overhead stems from severe restrictions on untyped code.
-%% In other words, concrete types impose low performance costs
-%% but high migration costs.
-%% ... you can have any color as long as it's black -h.ford
-%% ... concrete expresses few programs, but runs them all nicely
-Whether developers can accept these restrictions is unclear;
-indeed, they may prefer a whole-sale migration over an awkward
-gradual transition.\footnote{Successful migrations of untyped codebases
+for gradual types [CITE kafka nom etc], but it imposes nonlocal
+constraints on untyped code.
+In particular, concrete-typed client code is incompatible with
+values created by untyped code.
+Rather than search for a coordinated set of edits to make concrete
+types work, developers may prefer a whole-sale migration to
+a typed language.\footnote{Successful migrations of untyped codebases
 to a typed language are rare, but not unheard of.
-Twitter ported its server-side code from Ruby to Scala
-and Dropbox moved its core sync engine from Python mypy to Rust: see
-\shorturl{http://www.}{artima.com/scalazine/articles/twitter\_on\_scala.html} and
-\shorturl{https://}{dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine}.}
+Twitter ported its server-side code from Ruby to Scala~\cite{twitter-scala}
+and Dropbox moved its core sync engine from Python mypy to Rust~\cite{dropbox-rust}.}
 
 In short, academic researchers are working to close the performance gap
 without overly restricting the promise of gradual typing.
 Industry researchers are sidestepping the problem with unsound types---for the most part.
 
-This paper reports on a remarkable exception to the rule among industry-made gradual type systems.
+This paper reports an exception to the rule among industry-made gradual type systems.
 The \SP{} team at Instagram has developed a \emph{sound} type system for a subset of
 Python along with a runtime system that uses soundness to drive optimizations.
-The language design is a variation of concrete types that eases its restrictions.
-Instead of asking programmers to migrate from untyped code to sound concrete types
-in one leap, \SP{} offers an intermediate step via shallow types that enforce
-only the top-level shape of values.
-Programmers can begin with shallow claims and gradually dial up soundness.
-On a suite of benchmarks and production modules, Static Python out-performs untyped
-Python across the board.
+The language is staged to let programmers choose between easy migrations and
+full-strength optimizations, a design that we call \emph{gradual soundness}.
+To a first approximation, there are three main stages:
+\begin{enumerate}
+  \item
+    \SP{} contains a full language of \emph{shallow types}\/ that describe idiomatic
+    Python code at a coarse granularity.
+    Adapting an untyped module to use shallow types requires at most a few local code
+    changes.
+  \item
+    A small set of \emph{concrete types}\/ describe generic data structures
+    that guarantee the types of their elements.
+    If programmers modify their code to build concrete structures instead of Python
+    ones (a potentially nonlocal change), then \SP{} can speed up reads from these
+    structures.
+  \item
+    Additional types and flags to enable further optimizations.
+    These include \emph{primitive types}\/ that enable unboxed arithmetic
+    and \emph{strict module semantics}\/ that makes modules immutable.
+\end{enumerate}
+
+Over the past year, Instagram has been applying gradual soundness to its
+primary web server monolith.
+The results are very positive.
+Although only a handful of modules use \SP{} types (hundreds among thousands),
+and only a few critical modules rely on concrete types and primitive types (dozens),
+global CPU usage has improved by almost 4\% according to internal profiling tools.
+Type-directed optimizations outweigh the cost of enforcing soundness.
+Consequently, we believe the details of the \SP{} approach are of interest to
+the gradual typing community at large.
 
 
 \paragraph*{Contributions}
+This paper makes two contributions:
 
 \begin{itemize}
   \item
-    Evidence that gradual soundness delivers Python-level performance at a low migration cost
-    and faster performance as programmers gradually incorporate sound types.
-    \SP{} can be applied to a codebase with no refactoring and marginal performance overhead.
-    After refactoring to sound types, \SP{} performs well on a microbenchmark
-    suite and in production.
-    %% FILL SK: Relative to what? Also, reading "Evidence that gradual soundness
-    %%   delivers Python-level performance" feels a bit like mockery, given how slow
-    %%   Python is!
+    \emph{Evidence}.
+    We present evidence that \SP{} improves performance with few code changes.
+    At Instagram, the web server has become significantly more efficient
+    after the application of \SP{} to high-profile modules.
+    Because the server code is closed-source, we additionally present data for
+    \numbenchmark{} public benchmarks.
+    Using only shallow types, \SP{} runs on-par with Python despite the costs of
+    enforcing soundness.
+    With fine-tuned types, \SP{} consistently out-performs the Python baseline.
+
   \item
-    A formal description of the \SP{} core language and an analysis of its soundness
-    and optimizations.
-    Soundness is gradual in the sense that some types are fully sound and others validate
-    only top-level shapes.
-  \item
-    Discussions of the expressiveness limitations in \SP{} relative to
-    idealized gradual type systems, and of the programming discipline that Instagram
-    follows in their gradually-sound codebase.
+    \emph{Mechanization}.
+    To validate the soundness of \SP{}, we mechanized a core language in PLT Redex
+    and ran over 200 tests adapted from the \SP{} regression suite.
+    The model brings across the essence of \SP{} and lends support to the claim
+    that core \SP{} is indeed sound.
+    Perhaps more importantly, the \emph{process} of modeling revealed 20 significant
+    issues in \SP{}.
+    Four of these were critical soundness bugs.
+
 \end{itemize}
+
+\paragraph*{Outline}
+
+This paper begins with an informal description of \SP{} in two parts.
+First, we present a user-oriented tour of the language~(\cref{s:tour}).
+Second, we present the key ingredients of the runtime system, Cinder,
+that supports \SP{}~(\cref{s:runtime}).
+\Cref{s:model} uses a small formal model to introduce our Redex mechanization
+and to convince readers that \SP{} is based on a sound core.
+\Cref{s:impl} notes important aspects of \SP{} that are not covered by the model.
+\Cref{s:eval} evaluates \SP{}; it reports our experience with the language in
+production and on public microbenchmarks.
+The paper concludes with related work~(\cref{s:related}),
+future work~(\cref{s:future}), and a final summary~(\cref{s:conclusion}).
 
 
 \paragraph*{Significance}
@@ -348,15 +383,17 @@ We have written this paper with two audiences in mind.
 First, we want to encourage system-builders to reproduce the
 \SP{} language design.
 In particular, the maintainers of optionally-typed languages
-may find that adding transient and concrete types is a low-overhead
-way to turn types into reliable claims.
-Second, we want to lend focus to researchers.
-Some of the restrictions that \SP{} adopts may be useful to
-ground theoretical work.
-Other restrictions might be lifted by future research.
+may wish to focus on shallow types and JIT compilation as a
+first step toward sound gradual types.
+Second, we want to entice researchers.
+The \SP{} type system has many restrictions that are suprising
+at first glance; for example, functions are supported only by
+shallow types.
+Some of these restrictions might be lifted by future research.
+Others might be useful to adopt in new language designs.
 
 
-\section{A Programmer's View of \SP{}}
+\section{A Tour of \SP{}}
 \label{s:tour}
 %% purpose = SP looks like Pyre, adds soundness to certain types
 
@@ -845,6 +882,7 @@ appropriate conversions.
 
 
 \section{Runtime System Highlights}
+\label{s:runtime}
 %% alt title: Runtime System Highlights
 %% Non-Highlights:
 %% - shadow frames = JIT feature, lite array to track Python call stack
@@ -2326,8 +2364,12 @@ Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_ad
 or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
 
-\section{Conclusion / Lessons / Design Principles}
+\section{The Lessons}
 \label{s:conclusion}
+
+In conclusion, we summarize the
+
+
 
 %% 2022-01-06 TODO multiple dimensions of gradual
 
