@@ -2367,7 +2367,31 @@ or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 \section{The Lessons}
 \label{s:conclusion}
 
-In conclusion, we summarize the
+\SP{} is ambitious in many ways:
+\begin{itemize}
+  \item Type checker and compiler for Python syntax
+  \item Fork of Python 3.8
+  \item Add significant runtime components: vtable, classloader
+  \item Add a method-based JIT
+  \item Aiming for tens of thousands of typed modules (surely not all 45k in the server, but otoh the plan must be to hit other parts of IG too)
+\end{itemize}
+
+But \SP{} is also carefully targeted:
+\begin{itemize}
+  \item
+    Not aiming for an exhaustive type checker.
+    The availability of tools like Pyre already do a fine job.
+    (Don't forget that consequently, it's helpful for undefined types go to dynamic.)
+  \item
+    Shallow types come first in the implementation, then concrete / checked
+    (ditto for adoption)
+  \item
+    Not aiming for the full gradual guarantees.
+    Only really matters for the initial migration, the common case.
+    Indeed, it's important to not have the guarantee for primitives for their performance.
+  \item
+    The type checker is module-at-a-time, not fine-grained.
+\end{itemize}
 
 
 
