@@ -859,26 +859,27 @@ primitives and standard data.
 
 The \SP{} runtime system, formally known as Cinder, extends
 CPython 3.8 in several ways to take full advantage of static types.
-Cinder includes tailored bytecode instructions, virtual method tables, new
-datatypes, a registry of typed modules, and a JIT compiler.
+Cinder includes tailored bytecode instructions, virtual method tables,
+concrete datatypes, a registry of typed modules, and a JIT compiler.
 
-The key ingredients in Cinder may be of interest to other teams seeking to add
-sound gradual typing to a widely-used language.
-For example, a team of Node developers may wish to fork that runtime system
-and experiment with bytecode instructions that rely on statci types.
+These main ingredients of Cinder may be of interest to other teams seeking to
+add sound gradual typing to an existing language.
+For example, Node developers may wish to fork that runtime and experiment with
+bytecode instructions that leverage sound static types.
 
 
 \subsection{Bytecode Instructions}
 
 Cinder is a bytecode compiler that extends the Python instruction set.
 All the standard Python instructions work similarly to Python 3.8;
-in other words, an untyped Python program has the same semantics in
+in other words, an untyped Python program has the same behavior in
 Cinder as in the standard interpreter.
-The added instructions help either to express runtime checks or to
-efficiently perform some action.
-For example, the \code{FAST\_LEN} instruction quickly computes the
-length of a built-in value.
-%% TODO is it really undefined
+The added instructions help with one of three tasks:
+expressing runtime checks,
+initializing concrete-typed values,
+or efficiently performing a standard action.
+As an example of the third kind, the \code{FAST\_LEN} instruction quickly
+computes the length of a built-in value.
 \SP{} uses type information to decide where this instruction is appropriate
 and applies it as an optimization.
 
@@ -889,20 +890,24 @@ and applies it as an optimization.
 Cinder adds virtual method tables (vtables) to typed classes.
 These tables help to speed up method dispatch relative to Python's
 dynamic lookup.
-
-Specifically, calls to static methods that appear in statically-typed
+Calls to static methods that appear in statically-typed
 code use the vtable to find an address for the method.
 If the method is part of a final class, then the call is further optimized
 to a direct function-call jump.
-JIT compilation can also upgrade vtable lookups to function calls.
+(Both vtable lookup and direct jumps are supported by Cinder-specific bytecode
+instructions.)
+Just-in-time compilation~(\cref{s:jit}) can also upgrade vtable lookups to
+function calls.
 
-%% related bytecodes: INVOKE_METHOD INVOKE_FUNCTION
-%%  JIT can upgrade I_METH to I_FUN
-%%  final classes get I_FUN
-%% implementation: built on Python vectorcalls, so it's not totally new
+The implementation of vtables happens to be built on the Python \code{vectorcall}
+protocol; it is not a from-scratch development.
+That being said, Cinder vtables are specialized to check untyped overrides
+of typed methods against their expected return type (instead of using a layer of
+indirection for the check).
+
 %% beware: with vtables, method resolution is different than Python b/c args. get
 %%   resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
-%%
+
 %% > This difference in behavior isn’t so much desired as just a consequence of making
 %% > `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
 %% > the callable is placed on the stack, then the arguments, then there is a
@@ -919,36 +924,35 @@ JIT compilation can also upgrade vtable lookups to function calls.
 \subsection{Checked Data Structures}
 \label{s:chkdict-impl}
 
-As mentioned above~(\cref{s:checked-type}), the concrete versions of built-in data structures
-come with both a type and an implementation.
-The implementation provides the same interface as the built-in,
-but uses the type to reject some uses.
+The concrete versions of built-in data structures come with both a type and an
+implementation.
+The implementation provides the same interface as the built-in but uses a
+type tag to reject certain operations.
 
-For example, the type \code{ChkDict[K, V]} describes a concrete dictionary
-with keys of type \code{K} and values of type \code{V}.
+For example, the type $\sptchkdict{K}{V}$ describes a concrete dictionary
+with keys of type $K$ and values of type $V$.
 The implementation has three main components:
 \begin{itemize}
   \item
-    A constructor that uses a type and a Python dictionary
+    First, the constructor uses a type and a Python dictionary ($\sptrawpydict$)
     to initialize a checked dictionary.
-    The constructor ensures that all values of type \code{ChkDict[K, V]}
+    This constructor ensures that all values of type $\sptchkdict{K}{V}$
     begin with well-typed elements.
   \item
-    Guarded update functions.
+    Second, all write operations check their input.
     Every operation that mutates or extends a checked dictionary must
-    validate untyped arguments.
+    validate any untyped arguments that it receives.
   \item
-    A type tag for boundary checks.
+    Third, the dictionary value stores a type tag to support casts from the dynamic type.
     When a checked dictionary enters typed code from an untyped context,
-    the runtime checks its key and value types for an exact match.
-    For example, a value of type \code{ChkDict[K, V]} matches the type
-    \code{ChkDict[str, dynamic]} only if \code{K} is type \code{str}
-    and \code{V} is dynamic.
+    the runtime checks its type tag to see whether the key and value types are an exact match.
+    For example, type $\sptchkdict{K}{V}$ matches the type
+    $\sptchkdict{\sptstr}{\sptdyn}$ only if $K$ is equal to $\sptstr$
+    and $V$ is equal to $\sptdyn$,
 \end{itemize}
 %
 In general, other checked datatypes have the same three components:
 a constructor, checked update functions, and a tag.
-
 
 
 \subsection{Classloader}
@@ -960,16 +964,16 @@ are mutable.
 The registry helps the bytecode reference objects and types via their module names.
 The mutability bit lets \SP{} optimize access for immutable data while soundly allowing
 patches to mutable data.
-Overall, it is an essential piece of infrastructure to enable soundness and optimizations.
 
 
 \subsection{Method-at-a-Time JIT}
+\label{s:jit}
 
-FILL Cinder includes a JIT compiler for its bytecode.
-The typical way to configure is to supply a list of functions to be JIT compiled.
-Compilation works on any \SP{} function whether or not it is typed
-(thus there is some incentive to use \SP{} even without adding type annotations).
-For the biggest payoff, though, the JIT needs type information.
+Cinder includes a JIT (just-in-time) compiler for its bytecode.
+At the moment, programmers enable the JIT by supplying a list of method names
+to the compiler.
+Any method can be JIT-compiled whether or not it uses \SP{} types,
+though types are needed to enable the most-effective optimizations.
 
 %% 2022-01-05 Carl:
 %% "All the data I’ve been sharing is from a single codebase, the primary IG web
