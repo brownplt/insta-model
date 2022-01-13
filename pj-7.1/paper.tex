@@ -365,7 +365,7 @@ This paper makes two contributions:
 \paragraph*{Outline}
 
 This paper begins with an informal description of \SP{} in two parts.
-First, we present a user-oriented tour of the language~(\cref{s:tour}).
+First, we present a user-oriented summary of the language~(\cref{s:tour}).
 Second, we present the key ingredients of the runtime system, Cinder,
 that supports \SP{}~(\cref{s:runtime}).
 \Cref{s:model} uses a small formal model to introduce our Redex mechanization
@@ -773,7 +773,7 @@ to change \emph{and then} all their clients need to use the concrete type as wel
 
 One important feature of \SP{} is that class hierarchies can
 mix typed and untyped code.
-An untyped class may inherit from a typed one and vice-versa.
+An untyped class can inherit from a typed one and vice-versa.
 The point of this feature is to let programmers add types to a single class
 independently of its ancestors and children.
 
@@ -841,7 +841,7 @@ As an alternative, \SP{} programmers may opt in to a \emph{strict module} semant
 Strict modules are immutable, and thus enable type-based compiler optimizations.
 
 
-\subsection{Unboxed Primitive}
+\subsection{Progressive Primitive Types}
 \label{s:c-types}
 
 %% 2021-12-29: TODO
@@ -851,27 +851,23 @@ Strict modules are immutable, and thus enable type-based compiler optimizations.
 %% call them “primitive types” or “machine types” — “C types” could also work but
 %% I wouldn’t combine it into one word :)
 
-For performance-critical applications, \SP{} includes a \emph{distinct} set of primitive types
-that describe booleans and sized numbers, e.g., \code{int64}, \code{uint64}, \code{double}.
-Cinder implements these types with unboxed C values, which are much simpler and cheaper
-than their Python counterparts.
+For performance-critical applications, \SP{} includes a set of primitive types
+that describe booleans and sized numbers.
+Example types include \code{int64}, \code{uint64}, \code{double}.
 \SP{} also includes two special datatypes, \code{Array} and \code{Vector}, that store primitives efficiently.
-These are not themselves primitive.
 
-Primitives are carefully limited by the type system.
-Neither a module-level nor a closure-level variable may have a primitive
-type---because untyped code can mutate such variables.
-Primitive types are incompatible with the dynamic type,
-and there are no implicit upcasts from primitives
-to a matching Python type.
-Even a conjunction disallows mixing; for example, the \code{and} operator
-requires either two Python booleans or two primitive booleans.
-The only way for Python values and primitive values to interact
-is through dedicated conversion functions.
-Cinder handles conversions at the boundaries between \SP{} code
-and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere else.
-Within typed code, programmers must satisfy the type checker with
-appropriate conversions.
+The purpose of these types is to enable unboxed values and arithmetic at
+runtime.
+Consequently, their static semantics is a \emph{progressive}~\cite{pqk-onward-2012}
+refinement over the semantics of basic Python types.
+Primitive types cannot be implicitly cast to non-primitive types,
+including the dynamic type (another violation of the static gradual guarantee).
+Operations such as \code{+} do not accept a mix of primitive and non-primitive data.
+These restrictions give programmers a static separation between fast-running
+primitives and standard data.
+
+% Neither a module-level nor a closure-level variable may have a primitive
+% type---because untyped code can mutate such variables.
 
 % For now, programmers have to write and manage primitive types.
 % In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
@@ -879,13 +875,20 @@ appropriate conversions.
 % https://github.com/facebookincubator/cinder/issues/52
 
 
-
-
 \section{Runtime System Highlights}
 \label{s:runtime}
 %% alt title: Runtime System Highlights
 %% Non-Highlights:
 %% - shadow frames = JIT feature, lite array to track Python call stack
+
+%% 2022-01-12
+%% Cinder implements primitives with unboxed C values, which are much simpler and cheaper
+%% than their Python counterparts.
+%%
+%% Cinder handles conversions at the boundaries between \SP{} code
+%% and untyped code to avoid a cascade of modify-then-run refactorings, but nowhere else.
+%% Within typed code, programmers must satisfy the type checker with
+%% appropriate conversions.
 
 The \SP{} runtime system, formally known as Cinder, extends
 CPython 3.8 in several ways to take full advantage of static types.
