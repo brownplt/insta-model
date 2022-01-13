@@ -2306,6 +2306,11 @@ The casts may fail at runtime, and may create a copy of
 the original value if they succeed (depends on the type).
 %% 2022-01-09 how does JS++ protect arrays sent to JS?
 
+Gradual soundness in \SP{} bears a strong resemblance to \emph{progressive types} vision
+of a type system that comes in strict and lax forms~\cite{pqk-onward-2012}.
+Primitive types are progressive types (and a little more) for base values.
+Concrete types are essentially a progressive form of shallow types.
+
 
 \section{Future Work}
 \label{s:future}
