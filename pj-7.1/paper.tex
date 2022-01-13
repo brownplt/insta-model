@@ -230,7 +230,7 @@
   We also find that method-based JIT technology can eliminate the
   costs of the transient approach.
   On a more technical level, this paper contributes two artifacts:
-  a model of \SP{} that passes hundreds of tests from the \SP{} codebase,
+  a model of \SP{} that passes property-based tests and hundreds of tests from the \SP{} codebase,
   and a performance evaluation of \SP{}. The process of formalization
   found several errors in the implementation, including fatal errors.
 
@@ -239,8 +239,8 @@
   \paragraph{Grounding}
   % What argument, feasibility proof, artifacts,
   % or results and evaluation support this work?
-  Our model of \SP{} is implemented in PLT Redex and tested against
-  the \SP{} regression suite.
+  Our model of \SP{} is implemented in PLT Redex and tested using
+  property-based soundness tests and the \SP{} regression suite.
   This paper includes a small core of the model to convey the main ideas
   of the \SP{} approach and its soundness.
   Our performance claims are based on production experience in the Instagram
@@ -357,7 +357,7 @@ This paper makes two contributions:
   \item
     \emph{Mechanization}.
     To validate the soundness of \SP{}, we mechanized a core language in PLT Redex
-    and ran over 200 tests adapted from the \SP{} regression suite.
+    and ran both property-based soundness tests and over 200 tests adapted from the \SP{} regression suite.
     The model brings across the essence of \SP{} and lends support to the claim
     that core \SP{} is indeed sound.
     Perhaps more importantly, the \emph{process} of modeling revealed 20 significant
