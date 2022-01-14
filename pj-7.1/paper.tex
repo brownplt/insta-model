@@ -2148,10 +2148,10 @@ Every benchmark version invoked the JIT on the same functions---even the untyped
   \label{t:microbenchmark}
   \begin{tabular}{lrr}
     Name               & Typed / Python & Refined / Python \\\midrule
-    \bmname{deltablue} &            TBD &              TBD \\
-    \bmname{nbody}     &            TBD &              TBD \\
-    \bmname{richards}  &         0.53\% &           0.22\% \\
-    \bmname{fannkuch}  &         1.03\% &           0.46\%
+    \bmname{deltablue} &          TBD &            TBD \\
+    \bmname{nbody}     &          TBD &            TBD \\
+    \bmname{richards}  &         0.53 &           0.22 \\
+    \bmname{fannkuch}  &         1.03 &           0.46
     %% fannkuch typedbasic2 = 0.90
   \end{tabular}
 \end{table}
@@ -2161,7 +2161,7 @@ Python despite the cost of enforcing soundness.
 The one exception is the basic typed version of \bmname{fannkuch}, which sees a minor
 slowdown.
 This benchmark is primarily about number-crunching; and indeed, changing a few simple
-types to primitive types without modifying the code leads to a minor speedup (ratio = $0.90\%$).
+types to primitive types without modifying the code leads to a minor speedup (ratio = $0.90$).
 
 
 \section{Related Work}
