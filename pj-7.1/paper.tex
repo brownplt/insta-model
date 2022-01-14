@@ -1631,7 +1631,6 @@ or informally leverage soundness to reason about possible optimizations.
 
 
 \subsection{The Payoff: Issues Reported}
-%% 2022-01-11 FILL TODO reword, excitement!
 
 While modelling \SP{}, we found several issues with the language
 and submitted them as bug reports to the \SP{} developers.
@@ -1643,6 +1642,34 @@ Five issues were relatively minor; these dealt with confusing error messages
 and incorrect tests.
 The remaining 16 issues report bugs in language design and implementation.
 The \SP{} team has acknowledged these bugs as such by applying a specific GitHub label (\code{sp-correctness}).
+
+For example, we discovered that \SP{} handled the following function incorrectly when
+we tried to model it:
+%% \url{https://github.com/facebookincubator/cinder/issues/62}
+
+\medskip
+\begin{minipage}[t]{0.25\columnwidth}~
+\end{minipage}\begin{minipage}[t]{0.4\columnwidth}
+\begin{lstlisting}
+  from typing import Optional
+
+  def f(x: Optional[str]) -> str:
+    while True:
+      if x is None:
+        break
+      return x
+
+  print(f(None))
+  # None
+\end{lstlisting}
+\end{minipage}
+
+\noindent{}The function expects either a string or the \code{None} value and promises to return a string.
+When called with \code{None}, however, the function breaks out of the \code{while} loop
+and implicitly returns \code{None}---disobeying the return type.
+\SP{} had failed to account for the \code{break} and implicit return.
+More concerningly, the associated test case \emph{expected} the program to type check.
+Creating a formal model helped us catch this specification error.
 
 % In addition to these formal issue reports,
 % we had several long discussions together (between Brown and Instagram)
@@ -2166,6 +2193,8 @@ types to primitive types without modifying the code leads to a minor speedup (ra
 
 \section{Related Work}
 \label{s:related}
+
+Concrete types 
 
 Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021} are foundational.
 %% \footnote{In other words, \SP{} provides \emph{immediate accountability}~\cite{mt-oopsla-2017}.}
