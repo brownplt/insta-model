@@ -500,6 +500,7 @@ In addition, \SP{} is strongly influenced by the following engineering constrain
     \SP{} needs to be compatible with Pyre syntax to reduce the adoption burden.
     % On the flip side, the existence of Pyre lets \SP{} focus on a small language
     % of types that enable optimizations.
+    % depth-first types.
     % (\SP{} defers to Pyre the task of statically checking the full Python language.)
   \item
     A module-level granularity is acceptable.
@@ -2194,75 +2195,94 @@ types to primitive types without modifying the code leads to a minor speedup (ra
 \section{Related Work}
 \label{s:related}
 
-Concrete types 
+Concrete types originated in Thorn~\cite{bloom,wnlov-popl-2010}
+and StrongScript~\cite{rzv-ecoop-2015},
+and play a central role in Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021}.
+It was thanks to Nom that \SP{} acquired concrete types; the impressive performance results
+in the original Nom paper inspired the \SP{} team to pursue an implementation.
 
-Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021} are foundational.
-%% \footnote{In other words, \SP{} provides \emph{immediate accountability}~\cite{mt-oopsla-2017}.}
+In addition to concrete types, Thorn and StrongScript have optional like types.
+The mix of like and concrete types is similar to \SP{}'s mix of concrete and shallow
+types, though like types make no claims about soundness.
 
-Full Monty~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational for us.
+Many aspects of our Redex model for \SP{} are adapted from the Full Monty core calculus
+for Python~\cite{pmmwplck-oopsla-2013}.
+In particular, the Full Monty paper reminded us that booleans \emph{are} integers in Python;
+\SP{} had overlooked this detail.\footnote{Bug report: \url{https://github.com/facebookincubator/cinder/issues/46}}
+%% 2022-01-14 TODO check full monty with KC
 
-Grace nominal transient aint bad at all
+Our production experience with \SP{} suggests that a method-based JIT compiler can
+usually eliminate the costs of shallow types.
+This finding complements prior positive experience with shallow types and JIT
+technology; e.g., in Reticulated with the pypy tracing JIT~\cite{vsc-dls-2019}
+and in Grace with the Graal partial-evaluation-based JIT~\cite{FILL}.
+Similarly, the Pycket team used a tracing JIT to reduce the costs of higher-order
+checks~\cite{bbst-oopsla-2017}.
+It remains to be seen whether a non-tracing JIT is effective for higher-order
+casts.
 
-Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
+\SP{} is one of many type systems for Python.
+Other optional type checkers include Pyre, mypy, and PyType;
+these systems do not ensure safe interactions with untyped Python.
+Another sound type system is Reticulated,
+which enforces structural types (rather than nominal) using its transient
+semantics~\cite{vss-popl-2017,FILL}.
+Other \emph{optimizing} type systems for Python
+include Reticulated and mypyc.
+The latter compiles Python source to C extension modules; unlike \SP{},
+it does not offer a pure-Python developer experience.
 
-PyPy is another runtime for Python
-Pycket is built on PyPy and improves both Typed Racket~\cite{bbst-oopsla-2017}
-and Reticulated Python~\cite{vsc-dls-2019}.
-
-Type systems for Python ...
-mypy pyre pytype;
-Reticulated;
-
-Optimizing type systems for Python ...
-Reticulated;
-mypyc;
-Developer experience is one of the main advantages of \SP{} over mypyc,
-which implements type-directed optimizations for CPython
-by compiling source code to C extension modules.
-\SP{} even used Cython at some point and found the mixed-workflow codebase painful.
-%%  \item
-%%    Prior to investing in \SP{}, Instagram used Cython to compile
-%%    performance-critical code to C extension modules.
-%%    Cython performed well, but mixing pure Python with a few compiled modules
-%%    made for an awkward developer experience.
-%%    \SP{} aims to match the Python workflow.
-
-optimized transient, sp suggests method-at-a-time equally effective as tracing
-
-JS++ is a sound gradual type system for JavaScript~\cite{jspp}.
-By default, it separates JS++ from JavaScript values:
-every value with a type must be defined in JS++ code,
-and every value that may have come from Javascript has
-a special type \code{external} to mark it as such.
-Programmers can manually cast external values to a
-more precise type.
-The casts may fail at runtime, and may create a copy of
-the original value if they succeed (depends on the type).
-%% 2022-01-09 how does JS++ protect arrays sent to JS?
+Although sound gradual type systems are rare in industry, there are at
+least three others besides \SP{}.
+Dart 2 is a nominally-typed language with a dynamic type that is similar
+to the top object type but allows implicit downcasts to every other type~\cite{FILL}.
+C\# includes a dynamic type that defers type checking until runtime~\cite{bmt-ecoop-2010}.
+JS++ is a sound type system for JavaScript that allows untyped values
+using a catch-all \code{external} type~\cite{jspp}.
+%% Programmers can manually cast external values to a more precise type.
+%% The non-immediate casts make copies (how does that work for functions?!)
+%% also, how does JS++ protect arrays sent to JS?
 
 Gradual soundness in \SP{} bears a strong resemblance to \emph{progressive types} vision
 of a type system that comes in strict and lax forms~\cite{pqk-onward-2012}.
-Primitive types are progressive types (and a little more) for base values.
+Primitive types are progressive types for base values.
 Concrete types are essentially a progressive form of shallow types.
 
 
-\section{Future Work}
-\label{s:future}
+%% \section{Future Work}
+%% \label{s:future}
+%% 
+%% %% Immediate future: fix adoption friction points
+%% %% - mocks need manual return_value ... "next half we plan to work on improving the Python mock framework to automatically create mocks of the correct types."
+%% %% - mock calls have to rewrite to expect positional args, not keywords "plan to avoid rewrite if fn is patched"
+%% %% - functions have to expect positionals (can't do keyword only)
+%% %% - @dataclass enum.Enum
+%% %%
+%% %% significant selection bias toward low-hanging fruit
+%% %% model: metaclasses
+%% %% engineering: JIT profiling, instead of hand-requested JIT list
+%% 
+%% Adapt SP ideas to a new setting, test performance takeaways.
+%% 
+%% Improve SP with generic types, structural types (lambda), \ldots.
+%% 
+%% Use confined GT to relax ChkDict ... let programmers decide whether
+%% the type should reject or convert untyped data.
+%% Maybe a ChkDict function could compile to an "overloaded" version with
+%% fast and slow paths for ChkDict vs normal dict.
+%% 
+%% Build an automatic migration tool for Checked data.
+%% 
+%% Build a static analysis that hoists transient annotations to an early, shared point.
+%% Take care to give quality error messages.
+%% 
+%% Optimize Python integer operations (in addition to the c types).
+%% Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
+%% or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
-%% Immediate future: fix adoption friction points
-%% 2021-12-15: WHAT ARE THESE?
-%% - mocks need manual return_value ... "next half we plan to work on improving the Python mock framework to automatically create mocks of the correct types."
-%% - mock calls have to rewrite to expect positional args, not keywords "plan to avoid rewrite if fn is patched"
-%% - functions have to expect positionals (can't do keyword only)
-%% - @dataclass enum.Enum
-%%
-%% significant selection bias
-%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
-%%  because the pay / payoff isn't yet attractive
 
-
-%% engineering: JIT profiling, instead of hand-requested JIT list
-%% model: metaclasses
+\section{The Lessons}
+\label{s:conclusion}
 
 %% 2021-12-30 Whence Nominal GT?
 %%
@@ -2278,33 +2298,12 @@ Concrete types are essentially a progressive form of shallow types.
 %% interesting. KC puts this on a technical footing with his very astute comment,
 %% which to me can be summarized as "every nominal language that has Object is
 %% already gradual" [leaving aside the boring non-Object base type distinction].
-       So the entire remaining game is one of making the programming interface
+%%     So the entire remaining game is one of making the programming interface
 %% as painless as possible. Some of that is just a trivial matter of
 %% syntactic defaults; some of it is making the type-checker more forgiving
 %% and replacing static checks with dynamic checks. There doesn't seem to
 %% be much else left.
 
-Adapt SP ideas to a new setting, test performance takeaways.
-
-Improve SP with generic types, structural types (lambda), \ldots.
-
-Use confined GT to relax ChkDict ... let programmers decide whether
-the type should reject or convert untyped data.
-Maybe a ChkDict function could compile to an "overloaded" version with
-fast and slow paths for ChkDict vs normal dict.
-
-Build an automatic migration tool for Checked data.
-
-Build a static analysis that hoists transient annotations to an early, shared point.
-Take care to give quality error messages.
-
-Optimize Python integer operations (in addition to the c types).
-Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
-or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
-
-
-\section{The Lessons}
-\label{s:conclusion}
 
 %% TODO conclusions about SP? threats to validity?
 
@@ -2338,70 +2337,6 @@ or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
 %% 2022-01-06 TODO multiple dimensions of gradual
 
-\subsection{Nominal, Checked Types}
-\label{s:concrete-migration}
-
-CheckedDict enables strong type checks and optimizations, but is painful to use.
-It is painful even though ChkDict supports the full dict API
-(any context that uses a Python dict can use a ChkDict without code changes).
-
-The problem is that the ChkDict type rejects all Python values.
-It accepts only ChkDict values, built through a special constructor
-that installs a tag for type tests and guards writes.
-Suppose that \code{f} is an untyped dict function.
-As is, it can process ChkDict but gets no benefit from type checks nor from optimizations.
-Adding a ChkDict domain type enables optimizations within \code{f} but raises a non-local
-problem: all callers of \code{f} must be sure to create a ChkDict.
-These ChkDicts must also be monomorphic to match whatever type \code{f} chose.
-It can take many edits to get a program running again after adding a ChkDict type.
-
-Lessons:
-\begin{itemize}
-  \item
-    Nominal types are not compatible with structual values, such as Python values.
-    Programmers are forced to edit old code to use such types ... unless the recent Nom work has a better idea~\cite{mt-oopsla-2021}
-  \item
-    Monomorphic nominal types are even worse.
-    Editing old code to fit their rigid constraints may not be feasible.
-
-\end{itemize}
-
-Enabling checked types has a huge ripple effect.
-The worst case is changing an annotation to a expect a checked data structure:
-\begin{enumerate}
-  \item all callers must create a checked value by invoking the right constructor, and
-  \item all clients of those callers can no longer expect an unchecked type.
-\end{enumerate}
-Programmers have to trace the annotation back to value-creation points, and then
-ensure that all uses of those values are compatible.
-
-
-\subsection{Pyre Compatibility}
-
-Many decisions in \SP{} are influenced by the widespread use of Pyre at Instagram.
-\begin{itemize}
-  \item
-    To minimize changes needed to adapt Pyre-annotated programs
-    to \SP{}, the syntax of \SP{} is compatible with Pyre.
-    Pyre can run useful checks on every \SP{} program.
-  \item
-    Because Pyre is a mature type checker, the \SP{} team has taken a
-    depth-first approach to development.
-    The language implements a small set of sound types efficiently and ignores
-    other types.
-    Of course, programmers who use advanced Pyre types can still use Pyre to
-    get compile-time feedback.
-  \item
-    The fact that \SP{} interprets unknown Pyre types as type dynamic changes
-    users' expectations about what the dynamic type should mean.
-    It is not necessarily a label for untyped Python code; dynamic code
-    can be analyzed to catch static bugs.
-    %% FILL what are the checks?
-\end{itemize}
-
-
-\subsection{Conclusion}
-
 Sound types in Static Python give programmers a way to improve performance.
 The change is not forced, not intrusive;
 programmers can keep using unsound types when working toward a deadline.
@@ -2409,14 +2344,6 @@ programmers can keep using unsound types when working toward a deadline.
 Conjecture that soundness will find bugs too, and lead to more reliable products.
 Too soon to say.
 
-
-\subsection{Communication}
-
-How did we communicate effectively?
-Starting point was GT survey [CITE].
-Moved forward with example programs, see emails and github issues.
-Our formalism had to cover their unit tests.
-FILL
 
 %\acks{
 %  Thanks to
@@ -2427,7 +2354,6 @@ FILL
 %  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
 %}
 
-
 {\sloppy
 \printbibliography
 }
@@ -2436,8 +2362,6 @@ FILL
 
 \section{GitHub Issues}
 \label{a:github-issues}
-
-FILL if we're going to list issues, might as well report the titles, labels, and open/closed status.
 
 The 25 GitHub issues that we filed during the formalization effort may be found at the following three links:
 
@@ -2583,5 +2507,9 @@ FILL condense the email thread in comment (see source)
 % 
 % Carl
 
+
+\section{Fine-Grained Benchmark Data}
+
+FILL
 
 \end{document}
