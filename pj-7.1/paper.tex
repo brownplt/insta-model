@@ -1892,56 +1892,11 @@ preferable over attempting to type eval.
 
 \section{Production Experience}
 \label{s:eval}
-%% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
-
-%% 2022-01-12
-%% We did have some cases where strict semantics caused a problem, but in the
-%% majority of conversions it didn’t (or if it did initially, the fix was
-%% trivial.) There was at least one case where I would have converted more code to
-%% static but couldn’t easily do so because of strictness issues with a larger
-%% framework reliant on metaclasses, and so I instead extracted the hottest code
-%% paths into a new strict/static module and called them. I have a plan to go back
-%% to this and improve the framework itself to be strict so more code can be
-%% converted. I know of at least one other case where we did modify a framework
-%% that relied on side-effecting decorators so that it could be used without the
-%% side effects.
-
-%% 2022-01-12 All SP mods are strict. Although the Static Python compiler can technically be
-%% used apart from strict modules, and we do that in tests for faster tests, it’s
-%% not sound and we don’t allow it in prod. The way a real module gets compiled as
-%% Static Python is in fact via the strict modules import loader, which detects
-%% both `import __strict__` and `import __static__` markers, treating the former
-%% as strict only and the latter as both strict and static. So we don’t provide
-%% any straightforward way (either in IG codebase or generally with Cinder) to
-%% have a module imported as static without also being strict.
-
-%% 2022-01-12 Looks like 3 use CheckedDict and 6 use CheckedList.
-%% 2022-01-12 
-
-%% 2022-01-11 TODO how many Checked modules in production?
-%% 2022-01-11 TODO how many strict modules in production?
-%% 2022-01-11 TODO talk about primitive types:
-%% Carl: "I just did a very rough grep check and found that we have only 12 modules
-%% currently using primitive types: all int32 and int64 and cbool. So they are
-%% used pretty sparingly, but they are also definitely critical to our ability to
-%% match Cython in a few of the  hottest code paths that used to be Cython."
-
-%% 2022-01-05 TODO We are currently JITting at least some functions in 873
-%% modules, but we are about to increase this by about an order of magnitude,
-%% independent of Static Python.
 
 %% 2022-01-04 TODO have no evidence that "any module" typing works out ... team
 %% tried hard to get network effects ... "We explicitly aimed for converting
 %% related modules like this to improve network effects and get better
 %% performance."
-
-%% 2022-01-04 TODO ask C&D how many teams have adopted SP ... get sense of adoption
-
-% "The workload for those rough percentage numbers is “Instagram web server
-%  production.” We have pretty extensive production profiling that lets us
-%  identify CPU savings with good granularity when a change lands in prod, and the
-%  observed CPU savings for a variety of staticification changes we’ve landed over
-%  the last half sum up to 2% of total IG prod CPU usage." --Carl
 
 %% TODO 2021-12-29 Carl
 %% We definitely did find some regressions (especially when converting Cython, but
@@ -1952,109 +1907,92 @@ preferable over attempting to type eval.
 %% “we forgot to enable the JIT for an important function” and just rectifying
 %% that took care of it.)
 
-%% TODO think about it 2021-12-29 Ben
-%% > + Is there any sense in which the 530 converted modules are a big
-%% > sample? Maybe not, since as you say 530 is tiny for the codebase as a
-%% > whole. But do they exercise all sorts of behavior? Do they form a big
-%% > sample of certain parts of the Instagram codebase?
-
-
 The Instagram web server has been running \SP{} in production since April 2021.
 Overall, the results are very encouraging.
 Instagram's internal profiling tools, which continuously monitor
 performance, attribute a 3.7\% improvement in global CPU to \SP{} conversions.
 \Cref{t:prod-stat} reports a few other production statistics.
 Over 500 modules have been converted thus far.
-None of the converted modules have gotten slower because of \SP{}
-
-
-\subsection{Migration Path}
-
-\SP{} first entered the Instagram web server as a replacement for Cython,
-which Instagram had been using to speed up critical modules.
-Cython performed well, but its partial adoption led to an awkward workflow
-because unlike standard Python, Cython is a compiled language.
-Replacing these modules with \SP{} let developers return to a conventional
-Python workflow.
-\SP{} (combined with Cinder) did not slow down any of these
-performance-critical modules, and even sped a few up.
-The net improvement was a 0.7\% reduction in global CPU usage.
-
-Later \SP{} migrations have been led by profiling to find frequently-executed code.
-The goal of these opportunistic migrations was to test whether \SP{} could
-improve typical modules without slowing down their neighbors.
-As a point of comparison, Typed Racket can improve individual Racket
-modules but the type checks that it requires on module boundaries
-can lead to huge slowdowns~\cite{tfgnvf-popl-2016,gtnffvf-jfp-2019}.
-\SP{} does not appear to suffer in the same way.
-
-During the first half of 2021, the \SP{} team identified critical
-modules and proposed types to the maintainers of these modules.
-Often, the types came with small code changes.
-The accepted types and changes resulted in a 1\% improvement
-in global CPU usage.
-During the second half of 2021, the \SP{} team applied the same
-process at a larger scale.
-They also changed a code-generating module to output \SP{} code instead
-of untyped Python code;
-this one change brought over four hundred generated modules into the \SP{} fold.
-Overall, these changes resulted in a 2\% global CPU improvement.
-
-As of December 2021, the \SP{} team has converted 541 modules.
-Most of these came from the tool (417); the rest
-are from hand conversions (124).
-These modules are well-mixed with untyped modules in the codebase.
-All together, over thirty thousand identifiers cross a type boundary
-at compile-time by either entering or leaving a \SP{} module.
-Two-thirds of these crossings are exports from \SP{} modules
-to untyped modules;
-in other words, the typed identifiers are widely used throughout the Instagram web server.
-%% data in src/static-python-imports-analysis
-%% 2022-01-06 TODO gen-code is configuration system / access control ... what are stats omitting these?!
-
-In a typical week, the team adds types to four additional modules.
-These modules have seen speedups ranging from 0\% to 25\% depending
-on their nature.
-Regressions have not been an issue.
-The only cause for alarm is when a module gets only a small improvement
-without code changes.
-%% - rough measure: 0 to 25% per module
-%%   ... but depends on nature of module
-%%   ... doesn't measure the cooperative effect of static-to-static cross-module calls
-%% 2022-01-06 FILL team did significant work to fight regressions
+Despite some initial regressions, none of the converted modules
+ran slower after small rewrites and enabling the JIT on certain functions.
 
 \begin{table}
   \caption{Overview: \SP{} in production}
   \label{t:prod-stat}
-  \begin{tabular}{l@{~~}ll@{~~}l}
-    8     & months in production & 3.7\% & global CPU improvement \\
-    530   & modules converted  &  0 & performance regressions
-    %% TODO 530 / ???? how much of codebase?
+  \begin{tabular}{l@{~~}l@{\qquad}l@{~~}l}
+    %% 541 modules out of ~45000 total
+    8     & months in production   & 541   & typed, strict modules \\
+    3.7\% & global CPU improvement &   9   & using concrete types \\
+    0     & net regressions        &  12   & using primitive types \\
+    %% all prims are int32 and int64 and cbool
+    %% 873 modules use JIT for some functions (about to increase by OOM)
   \end{tabular}
 \end{table}
 
 
+\subsection{Migration Path}
+
+\SP{} first entered the web server codebase as a replacement for a
+few critical Cython modules.
+Cython had improved performance by compiling these modules to C,
+but its partial adoption had led to an awkward workflow (with a
+few compiled modules spread across an interpreted codebase).
+Replacing these modules with \SP{} let programmers return to a conventional
+Python workflow.
+Furthermore, \SP{} types combined with Cinder resulted in a
+0.7\% reduction in global CPU usage.
+Primitive types~(\cref{s:c-types}) were essential for matching Cython.
+
+Later \SP{} migrations have been directed by profiling to find frequently-executed code.
+During the first half of 2021, the \SP{} team identified critical
+modules and proposed types plus small code changes to the maintainers of these modules.
+The accepted proposals resulted in a 1\% improvement in global CPU usage.
+During the second half of 2021, the \SP{} team applied the same
+process at a larger scale.
+They also modified a code-generating module to output \SP{} code;
+this one change brought over four hundred generated modules into the typed fold.
+Overall, the second-half changes added a 2\% global CPU improvement.
+
+As of December 2021, the \SP{} team has converted 541 modules.
+Most of these came from the code-generating tool (417); the rest
+are from hand conversions (124).
+These modules are well-mixed with untyped modules in the codebase.
+According to an analysis of identifiers that cross module-dependence
+boundaries, over 30,000 identifiers go between typed and untyped code.
+Two-thirds of these crossings are exports from \SP{} modules
+to untyped modules; in other words, typed identifiers are widely used
+throughout the web server.
+%% data in src/static-python-imports-analysis
+%% TODO gotta compare to TR etc.
+
+% In a typical week, the team adds types to four additional modules.
+% These modules have seen speedups ranging from 0\% to 25\% depending
+% on their nature.
+% Regressions have not been an issue.
+% The only cause for alarm is when a module gets only a small improvement
+% without code changes.
+
+
 \subsection{Analyzing Code Changes}
-%% TODO boring unclear writing
 
-Because the \SP{} team has been changing code as well as types
-during its migrations, the question arises as to whether the code changes
-raise any threats to validity.
+Because the \SP{} team has been changing code as well as types during its
+migrations, the question arises as to whether the code changes raise any
+threats to validity.
 It could be that the \SP{} approach to gradual typing only pays off
-after significant modifications, or only for a restrictive style of programming.
+after significant modifications.
+%% Carl: "I reviewed the ~30 conversion diffs"
+We therefore reviewed the $\sim 30$ conversion diffs that significantly improved
+performance.
 
-To understand the code changes, we reviewed approximately 30 patches that
-significantly improved performance.
 In general, the patches have minor code changes and most of these changes
 affect tests rather than production code.
-Digging deeper, there are nine common kinds of changes.
-Six of these address type errors; the other three focus on performance.
+Digging deeper, there are nine common kinds of changes: six address
+type errors and the other three are for performance.
 
 %% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
 %%  removes an extra call layer
 %%  helps with (timing [ context managers / decorators ])
 
-%% TODO section formatting looks good?
 \subsubsection{Code Changes for the Type Checker}
 
     %% X bg: lookup the dino email about mocks
@@ -2073,11 +2011,11 @@ Six of these address type errors; the other three focus on performance.
 \begin{enumerate}
   \item
     \ipara{Fix type errors due to mock wrappers}
-    When test code introduces a mock wrapper, it may change the return type of
-    a function.
+    When test code introduces a mock wrapper, it may inadvertantly change the
+    return type of a function.
     For example, the wrapped version of a function that returns \code{None}
     will return a \code{MagicMock} object unless the programmer explicitly
-    specifies a return value.
+    specifies \code{None} as the desired return value.
     %% Carl: This is an inherent and desired
     %% incompatibility; next half we plan to work on improving the Python mock
     %% framework to automatically create mocks of the correct types.
@@ -2085,14 +2023,13 @@ Six of these address type errors; the other three focus on performance.
   \item
     \ipara{Change mocked function to expect positional arguments}
     \SP{} currently rewrites all function calls to use positional arguments.
-    Mock-wrapped functions therefore need to positional arguments instead of keywords.
+    Mock-wrapped functions therefore need to use positional arguments instead of keywords.
     %% Carl: we plan to fix this incompatibility by falling back to the original call
     %% arguments when we detect the target function has been patched.
 
   \item
     \ipara{Change functions to accept positional arguments}
     Functions that expect only keyword arguments cannot yet be called from \SP{} contexts.
-    These functions need to change.
     %% Carl: We plan to support this next half.
 
   \item
@@ -2108,13 +2045,13 @@ Six of these address type errors; the other three focus on performance.
     \ipara{Move \code{@dataclass} and \code{Enum} classes}
     \SP{} does not support classes decorated with \code{@dataclass}
     and classes that are enums.
-    Programmers have to move these classes to a different module for now.
+    For now, programmers have to move these classes to an untyped module.
     %% Carl: We have work in progress on supporting some Enum types, and plan to add a @dataclass intrinsic soon.
 
   \item
     \ipara{Remove unsupported Python features}
     Occurrences of the dynamic Python features listed in \cref{s:dynamic-python} must be rewritten or moved.
-    According to the \SP{} team, these changes have not required any major rewrites.
+    %% According to the \SP{} team, these changes have not required any major rewrites.
 
 \end{enumerate}
 
@@ -2124,96 +2061,105 @@ Six of these address type errors; the other three focus on performance.
 
 \begin{enumerate}
   \item
-    \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
-    Static methods can get invoked directly as functions, bypassing the class.
-    %% Carl: \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
-
-%% 2022-01-12
-%% I don’t think it was a super common change, but there were some cases where we
-%%     changed a @classmethod that didn’t actually use its cls argument to a
-%%     @staticmethod. It looks like we have 24 static modules using a
-%%     @staticmethod somewhere in the module, but I think in the majority of those
-%%     there just happened to be some pre-existing staticmethods (they aren’t
-%%     uncommon in our codebase); I think a minority were intentional
-%%     optimizations on our part. And the pre-existing ones may or may not be
-%%     meaningfully improving performance. So I’m not sure how valuable it is to
-%%     report this metric.
-
-
-  \item
     \ipara{Use primitive types}
     Any Python integers and booleans in hot code paths are better as
     \SP{} primitive values~(\cref{s:c-types}).
+    As noted above, primitives were required for \SP{} to match the performance of
+    Cython.
+    Twelve modules currently use primitives.
     %% - bg: focus on block, convert, no problem?
 
   \item
-    \ipara{Use Checked Types}
-    Occasionally, converting a Python dictionary or Python list to a
-    checked type has a big impact on performance.
-    As noted in \cref{s:checked-type}, these conversions affect all downstream
-    clients of the data structure.
+    \ipara{Use concrete types}
+    Three modules currently use a concrete dictionary type
+    (of the form $\sptchkdict{\sptype}{\sptype}$)
+    and six modules use a checked list type.
     %% - bg: how occasional? worried about power of the "gradual soundness" claim
 
+  \item
+    \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
+    Static methods can get invoked directly as functions, bypassing the class vtable.
+    Twenty-four modules use static methods, though many of these uses pre-date \SP{}.
+    %% 2022-01-12 Carl:
+    %% I don’t think it was a super common change, but there were some cases where we
+    %% changed a @classmethod that didn’t actually use its cls argument to a
+    %% @staticmethod. It looks like we have 24 static modules using a
+    %% @staticmethod somewhere in the module, but I think in the majority of those
+    %% there just happened to be some pre-existing staticmethods (they aren’t
+    %% uncommon in our codebase); I think a minority were intentional
+    %% optimizations on our part. And the pre-existing ones may or may not be
+    %% meaningfully improving performance. So I’m not sure how valuable it is to
+    %% report this metric.
+
+
 \end{enumerate}
+
+%% More Migration Notes
+
+%% 2022-01-12 Carl:
+%% We did have some cases where strict semantics caused a problem, but in the
+%% majority of conversions it didn’t (or if it did initially, the fix was
+%% trivial.) There was at least one case where I would have converted more code to
+%% static but couldn’t easily do so because of strictness issues with a larger
+%% framework reliant on metaclasses, and so I instead extracted the hottest code
+%% paths into a new strict/static module and called them. I have a plan to go back
+%% to this and improve the framework itself to be strict so more code can be
+%% converted. I know of at least one other case where we did modify a framework
+%% that relied on side-effecting decorators so that it could be used without the
+%% side effects.
 
 
 \subsubsection{Developer Experience}
 
-For the most part, developers at Instagram have been happy adopting \SP{}.
-The transition from Pyre to \SP{} has thus far delivered performance benefits
+For the most part, programmers have been happy adopting \SP{}.
+The transition from Pyre to \SP{} has delivered performance benefits
 that outweigh the cost of code changes.
+Even the use of strict modules has been acceptable; only two modules
+required non-trivial rewrites to avoid mutation.
 
 One significant pushback dealt with multiple inheritance.
-The \SP{} team proposed a rewrite from multiple inheritance to single inheritance
-to improve performance and static checks.
-But the code maintainers preferred to keep multiple inheritance.
-Because \SP{} defaults to Python behavior, the maintainers were able
-to keep multiple inheritance alongside \SP{} code.
-
-%% any more?
+The \SP{} team proposed a rewrite from multiple inheritance to single inheritance,
+but the code maintainers preferred to keep the design as-is.
 
 
 \subsection{Microbenchmarks}
 %% https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks
+%% https://docs.google.com/spreadsheets/d/1IO25bL_8LwDqx3ciQTj9dMetsFnZFdiQIyjFvgYWIpI/edit?usp=sharing
 
-%% TODO jit vs nojit
+\Cref{t:microbenchmark} compares \SP{} to Python on public microbenchmarks.
+These microbenchmarks are admittedly small and quite different than typical application code,
+but they provide an auditable and reproducible way to measure performance.
+Each row presents two ratios.
+The first compares a simply-typed version of the benchmark to untyped Python code.
+The second compares a hand-refined benchmark to untyped Python.
+The refinements are modest, mostly adding primitive types to hot loops;
+they do not require siginificant expertise to reproduce.
 
-%% 2021-12-23: TODO decide whether to ask for typed benchmarks to report ratios
-%%  Carl: we could commit to typed 2--3 more, but pystone etc (?!) are notoriously bad
-
-%% Somehow though, we ought to have public code available.
-
-Prior to deploying \SP{} in production, the team used microbenchmarks to study performance.
-These microbenchmarks are admittedly small and quite different than typical application code.
-That said, their use gave the team a coarse idea of whether \SP{} was on track during development.
-We include these microbenchmarks to offer reproducible performance numbers;
-unlike the Instagram web server, the benchmark code is public.
-
-\Cref{t:microbenchmark} reports current microbenchmark results.
-Each row gives the ratio of two running times: fully-typed \SP{} code versus
-unannotated \SP{} code.
-A ratio between 0 and 1 means that performance improved thanks to the types.
-[FILL] numbers.
+All runtimes for this table came from a 64-bit CentOS Linux system using a build
+of \SP{} and Cinder compiled with default settings.
+Each benchmark version ran 11 times total: once to warm up the JIT and 10 times to
+compute an average runtime (using the \code{time} utility).
+Every benchmark version invoked the JIT on the same functions---even the untyped versions.
 
 \begin{table}[t]
-  \caption{Microbenchmark Performance Ratios}
+  \caption{Microbenchmark performance ratios. NB: data for deltablue and nbody is pending.}
   \label{t:microbenchmark}
-  %% show untyped Python time?
-  %% transpose?
-  \begin{tabular}{ll}
-    Name               & Typed / Dynamic \\\midrule
-    \bmname{deltablue} &             0\% \\
-    \bmname{fannkuch}  &             0\% \\
-    \bmname{nbody}     &             0\% \\
-    \bmname{nqueens}   &             0\% \\
-    \bmname{pystone}   &             0\% \\
-    \bmname{richards}  &         0.125\% \\
+  \begin{tabular}{lrr}
+    Name               & Typed / Python & Refined / Python \\\midrule
+    \bmname{deltablue} &            TBD &              TBD \\
+    \bmname{nbody}     &            TBD &              TBD \\
+    \bmname{richards}  &         0.53\% &           0.22\% \\
+    \bmname{fannkuch}  &         1.03\% &           0.46\%
+    %% fannkuch typedbasic2 = 0.90
   \end{tabular}
 \end{table}
 
-
-%% TODO conclusions? threats?
-
+Almost all ratios are less than one, showing that \SP{} achieves a speedup over
+Python despite the cost of enforcing soundness.
+The one exception is the basic typed version of \bmname{fannkuch}, which sees a minor
+slowdown.
+This benchmark is primarily about number-crunching; and indeed, changing a few simple
+types to primitive types without modifying the code leads to a minor speedup (ratio = $0.90\%$).
 
 
 \section{Related Work}
@@ -2329,6 +2275,8 @@ or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 \section{The Lessons}
 \label{s:conclusion}
 
+%% TODO conclusions about SP? threats to validity?
+
 \SP{} is ambitious in many ways:
 \begin{itemize}
   \item Type checker and compiler for Python syntax
@@ -2338,7 +2286,7 @@ or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
   \item Aiming for tens of thousands of typed modules (surely not all 45k in the server, but otoh the plan must be to hit other parts of IG too)
 \end{itemize}
 
-But \SP{} is also carefully targeted:
+\noindent{}But \SP{} is also carefully targeted:
 \begin{itemize}
   \item
     Not aiming for an exhaustive type checker.
@@ -2355,7 +2303,7 @@ But \SP{} is also carefully targeted:
     The type checker is module-at-a-time, not fine-grained.
 \end{itemize}
 
-
+\noindent{}Lesson: the migration works, with a dedicated support team.
 
 %% 2022-01-06 TODO multiple dimensions of gradual
 
