@@ -34,7 +34,9 @@
 \newcommand{\langmid}{\mid} %% {\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
+
 \newcommand{\numbenchmark}{2}
+\newcommand{\CPUchange}{3.7\%}
 
 \newcommand{\spapp}[2]{#1\,(#2)}
 \newcommand{\spann}[2]{#1\!:\!#2}
@@ -246,7 +248,7 @@
   of the \SP{} approach and its soundness.
   Our performance claims are based on production experience in the Instagram
   web server.
-  Thanks to \SP{}, global CPU usage has improved by almost 4\% within a year.
+  Thanks to \SP{}, global CPU usage has improved by \CPUchange{} within a year.
 
   \vglue10pt
 
@@ -334,7 +336,7 @@ primary web server monolith.
 The results are very positive.
 Although only a handful of modules use \SP{} types (hundreds among thousands),
 and only a few critical modules rely on concrete types and primitive types (dozens),
-global CPU usage has improved by almost 4\% according to internal profiling tools.
+global CPU usage has improved by \CPUchange{} according to internal profiling tools.
 Type-directed optimizations outweigh the cost of enforcing soundness.
 Consequently, we believe the details of the \SP{} approach are of interest to
 the gradual typing community at large.
@@ -1910,7 +1912,7 @@ preferable over attempting to type eval.
 The Instagram web server has been running \SP{} in production since April 2021.
 Overall, the results are very encouraging.
 Instagram's internal profiling tools, which continuously monitor
-performance, attribute a 3.7\% improvement in global CPU to \SP{} conversions.
+performance, attribute a \CPUchange{} improvement in global CPU to \SP{} conversions.
 \Cref{t:prod-stat} reports a few other production statistics.
 Over 500 modules have been converted thus far.
 Despite some initial regressions, none of the converted modules
@@ -1922,7 +1924,7 @@ ran slower after small rewrites and enabling the JIT on certain functions.
   \begin{tabular}{l@{~~}l@{\qquad}l@{~~}l}
     %% 541 modules out of ~45000 total
     8     & months in production   & 541   & typed, strict modules \\
-    3.7\% & global CPU improvement &   9   & using concrete types \\
+    \CPUchange{} & global CPU improvement &   9   & using concrete types \\
     0     & net regressions        &  12   & using primitive types \\
     %% all prims are int32 and int64 and cbool
     %% 873 modules use JIT for some functions (about to increase by OOM)
