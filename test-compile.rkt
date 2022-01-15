@@ -397,11 +397,11 @@
 ;; conformance_suite/for-loop_basic.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((function-def "fact" (("n" "int")) "int" ((ann-assign "o" "int" (con 1)) (for "i" (call "range" ("n")) ((aug-assign "o" * (bin-op + "i" (con 1)))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120))))))))))))
 
-;; conformance_suite/for-loop_else_break.py
-(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((for "i" (list ((con 2))) (break) ((assign ("i") (con 3)))) (assert (compare "i" ((is (con 2))))))))))))
-
-;; conformance_suite/for-loop_else_nonbreak.py
+;; conformance_suite/for-loop_else_normal_exit.py
 (check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((for "i" (list ((con 2))) (pass) ((assign ("i") (con 3)))) (assert (compare "i" ((is (con 3))))))))))))
+
+;; conformance_suite/for-loop_else_raise_exit.py
+(check-not-exn (lambda () (test-match SP-compiled program- (term (compile-program (desugar-program ((try-except-else-finally ((for "i" (list ((con 2))) ((raise (call "Exception" ()))) ((assign ("i") (con 3))))) ((except-handler "Exception" None (pass))) () ()) (assert (compare "i" ((is (con 2))))))))))))
 
 ;; conformance_suite/init_checks_arity.py
 (check-exn exn:fail:redex? (lambda () (term (compile-program (desugar-program ((class "Person" () ((function-def "__init__" (("self" dynamic) ("name" "str") ("age" "int")) dynamic (pass)))) (assign ("p1") (call "Person" ((con "Alice") (con 21) (con #f))))))))))

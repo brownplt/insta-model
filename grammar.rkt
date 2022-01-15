@@ -58,8 +58,8 @@
       (if e+ (s+ ...) (s+ ...))
       (while e+ (s+ ...) (s+ ...))
       (for a-target e+ (s+ ...) (s+ ...))
-      break
-      continue
+    ;   break
+    ;   continue
       (delete d-target)
       (ann-assign aa-target t+)
       (ann-assign aa-target t+ e+)

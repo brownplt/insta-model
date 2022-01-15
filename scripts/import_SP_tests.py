@@ -13,7 +13,7 @@ input_file = "./tests.py"
 skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
 output_path_prefix = "./conformance_suite/"
-skipped_tests_path_prefix = "./skipped_tests/"
+# skipped_tests_path_prefix = "./skipped_tests/"
 cannot_parse_path_prefix = "./cannot_parse/"
 # Ignore a test if it contains one of the following word
 ban_anywhere_in_test = [
@@ -129,18 +129,16 @@ ban_anywhere_in_test = [
     # These tests are wrong. So our model don't support them.
     'test_break_condition',
     'test_assert_narrowing_optimized',
+
+    # We don't model static methods and @property
+    '@staticmethod',
+    '@property',
 ]
 
 import glob, re
 hand_translated_prefix = './conformance_suite/edited_'
 hand_translated_tests = glob.glob('{}*'.format(hand_translated_prefix))
 hand_translated_tests = [ s[len(hand_translated_prefix):-3] for s in hand_translated_tests ]
-
-skip_anywhere_in_test = [
-    # We don't model static methods. 
-    '@staticmethod',
-    '@property',
-]
 
 def read_tests(file_path):
     f = open(file_path, 'r')
@@ -307,8 +305,8 @@ def translate_self_type_error_test(name, test):
     func_value = func.value
     func_attr = func.attr
     assert isinstance(func_value, ast.Name)
-    assert str(func_value.id) is "self"
-    assert func_attr is "type_error"
+    assert str(func_value.id) == "self"
+    assert func_attr == "type_error"
 
     content = '\n'.join([
         '# {}.py'.format(name),
@@ -486,21 +484,17 @@ def parse_asserts(name, spec):
                                 '    raise Exception()'
                             ]
                             continue
-                    print("#1 ")
-                    print(s_as_str)
-                    print(s_as_stmt)
+                    print("Internal error 1")
                     exit(1)
                 return
 
-        print(name)    
-        print(ast.unparse(node))
-        print(node)
+        print("Internal error 2")
         exit(1)
     
     try:
         rec(spec)
     except Exception as e:
-        print(e)
+        print("Internal error 3")
         exit(1)
     
     if all(isinstance(s, str) for s in actions):
@@ -511,7 +505,7 @@ def parse_asserts(name, spec):
             'main({})'.format(', '.join(source for source, target in imports))
         ])
     else:
-        print(actions)
+        print("Internal error 4")
         exit(1)
 
 
@@ -595,17 +589,13 @@ def translate_optimization_test(name, test):
 reason_count = {}
 
 
-def record_skipped_test(name, test, reason):
-    reason_count[reason] = reason_count.get(reason, 0) + 1
-    print('/' + '-' * 10 + '\\')
-    print("SKIPPED", name)
-    print(test)
-    print('\\' + '-' * 10 + '/')
-    skipped_tests_path = skipped_tests_path_prefix + name + ".py"
-    skipped_tests_file = open(skipped_tests_path, 'w')
-    skipped_tests_file.write("# Reason: {}\n".format(reason))
-    skipped_tests_file.write(test)
-    return
+# def record_skipped_test(name, test, reason):
+#     reason_count[reason] = reason_count.get(reason, 0) + 1
+#     skipped_tests_path = skipped_tests_path_prefix + name + ".py"
+#     skipped_tests_file = open(skipped_tests_path, 'w')
+#     skipped_tests_file.write("# Reason: {}\n".format(reason))
+#     skipped_tests_file.write(test)
+#     return
 
 
 def main():
@@ -625,24 +615,14 @@ def main():
         try:
             name = get_name(test)
         except Exception as e:
-            print("<SKIPPED begin")
-            print(test)
-            print("<SKIPPED end")
-            record_skipped_test("imparsable_test_{}".format(
-                imparsable_counter), test, "Format too complicated")
+            # print("<SKIPPED begin")
+            # print(test)
+            # print("<SKIPPED end")
+            # record_skipped_test("imparsable_test_{}".format(imparsable_counter), test, "Format too complicated")
             imparsable_counter += 1
             continue
         
         if name in hand_translated_tests:
-            continue
-
-        skipped = False
-        for word in skip_anywhere_in_test:
-            if word in test:
-                skipped = True
-                record_skipped_test(name, test, "Hitted a skipped word ({})".format(word))
-                break
-        if skipped:
             continue
 
         translators = [
@@ -663,14 +643,13 @@ def main():
                 translated = True
                 break
             except Exception as e:
-                print("WHAT?", repr(e))
                 continue
         if not translated:
-            record_skipped_test(
-                name, test, "Can't be translated by any of the three translator")
+            # record_skipped_test(name, test, "Can't be translated by any of the three translator")
+            pass
 
 
 main()
-reason_count = list(sorted([(v, k)
-                    for k, v in reason_count.items()], reverse=True))
-print(json.dumps(reason_count, indent=2))
+# reason_count = list(sorted([(v, k)
+#                     for k, v in reason_count.items()], reverse=True))
+# print(json.dumps(reason_count, indent=2))

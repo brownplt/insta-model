@@ -8,7 +8,7 @@
 (define-extended-language SP-compiled SP-core
 
   ;; program
-  (program- level-)
+  (program- [Ψ (x ...) s-])
 
   ;; global names (labels) of global thingcs
   ;;   we will extend l when we reach dynamics.rkt
@@ -272,7 +272,7 @@
       ["__lt__" (-> (dynamic (subof "int")) dynamic)]
       ["__le__" (-> (dynamic (subof "int")) dynamic)]
       ["__ge__" (-> (dynamic (subof "int")) dynamic)]
-      ["__neg__" (-> (dynamic dynamic) dynamic)]
+      ; ["__neg__" (-> (dynamic dynamic) dynamic)]
       ["__add__" (-> (dynamic dynamic) dynamic)]
       ["__sub__" (-> (dynamic dynamic) dynamic)]
       ["__mul__" (-> (dynamic dynamic) dynamic)]
@@ -283,7 +283,7 @@
       ["__lt__" (method "int" "__lt__")]
       ["__le__" (method "int" "__le__")]
       ["__ge__" (method "int" "__ge__")]
-      ["__neg__" (method "int" "__neg__")]
+      ; ["__neg__" (method "int" "__neg__")]
       ["__add__" (method "int" "__add__")]
       ["__sub__" (method "int" "__sub__")]
       ["__mul__" (method "int" "__mul__")]
@@ -489,13 +489,27 @@
 (define-judgment-form SP-compiled
   #:mode (Ψ⊢l I I)
   #:contract (Ψ⊢l Ψ l)
-  [(where Γ_cls (flatten #t Ψ l))
+  [(where #t (acyclic Ψ () l))
+   (where Γ_cls (flatten #t Ψ l))
    (where Γ_ins (flatten #f Ψ l))
    (class-Ψ⊢Γ Ψ Γ_cls)
    (class-Ψ⊢Γ Ψ Γ_ins)
    (where #t (disjoint (keysof Γ_cls) (keysof Γ_ins)))
    ------------------------------
    (Ψ⊢l Ψ l)])
+(define-metafunction SP-compiled
+  acyclic : Ψ (l ...) l -> boolean
+  [(acyclic Ψ (l_visited ...) l_current)
+   #f
+   (judgment-holds (member l_current (l_visited ...)))]
+  [(acyclic Ψ (l_visited ...) "object")
+   #t]
+  [(acyclic Ψ (l_visited ...) l_current)
+   (acyclic Ψ (l_current l_visited ...) l_next)
+   (where (class (l_next) Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_current))]
+  [(acyclic Ψ (l_visited ...) l_current)
+   #t
+   (where (class dynamic Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_current))])
 (module+ test
   (test-equal (term #t) (term (disjoint ("a" "b") ("c"))))
   (test-equal (term #f) (term (disjoint ("a" "b") ("c" "a")))))
@@ -1371,7 +1385,8 @@
    continue]
   ;; delete x
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (delete x))
-   (delete x)]
+   (delete x)
+   (where T (lookup Γ_lcl x))]
   ;; delete attribute
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (delete (attribute e x)))
    (delete (attribute mode e- x))
@@ -1422,7 +1437,7 @@
             (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_fnl))]
   ;; raise
   [(compile-s Ψ Γ_dcl Γ_lcl T+☠ (raise e))
-   (raise (as-dyn (compile-e Ψ Γ_dcl Γ_lcl e)))])
+   (raise (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e) (subof "Exception")))])
 (define-metafunction SP-compiled
   compile-m* : Ψ Γ x m ... -> [([x_cmem T_cmem s-_cinit] ...)
                                ([x_imem T_imem] ...)]
@@ -1748,8 +1763,9 @@
 (define-metafunction SP-compiled
   compile-program : program -> program-
   [(compile-program (local ([x d] ...) s))
-   (local (x ...)
-     (compile-s Ψ_global Γ_global Γ_global ☠ s))
+   [Ψ_global
+    (x ...)
+    (compile-s Ψ_global Γ_global Γ_global ☠ s)]
    (where #f (some-duplicates x ...))
    (where ([x_imp d_imp] ...) (gather-import [x d] ...))
    (where ([x_cls d_cls] ...) (gather-class [x d] ...))

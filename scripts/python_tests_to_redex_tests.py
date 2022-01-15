@@ -356,7 +356,7 @@ def python_file_to_sexp(test_file):
 
 
 def parse_python_file(test_file):
-    print("Working on " + test_file)
+    # print("Working on " + test_file)
     name = test_file
     lines = open(test_file).readlines()
     prog = python_file_to_sexp(test_file)
@@ -540,7 +540,7 @@ def main():
     test_files = [os.path.join(d, f) for d, _, files in os.walk(
         path_to_conformance_suite) for f in files if f.endswith('.py')]
     test_files.sort()
-    print(test_files)
+    # print(test_files)
     parsed_test_files = [parse_python_file(x) for x in test_files]
     # output test_grammar.rkt
     with open(path_to_test_grammar, 'w') as f:

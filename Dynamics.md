@@ -217,8 +217,8 @@ Basic use.
 
 The `else` lines are executed "if the loop finishes normally" [Python ast.For](https://docs.python.org/3/library/ast.html#ast.For)
 
-- [for-loop_else_break.py](conformance_suite/for-loop_else_break.py)
-- [for-loop_else_nonbreak.py](conformance_suite/for-loop_else_nonbreak.py)
+- [for-loop_else_raise_exit.py](conformance_suite/for-loop_else_raise_exit.py)
+- [for-loop_else_normal_exit.py](conformance_suite/for-loop_else_normal_exit.py)
 
 ## For loop and base types
 
