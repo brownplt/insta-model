@@ -44,16 +44,19 @@
   (void))
 
 (define (printN+ v**)
-  (if (<= (length (car v**)) 15)
-    (printN v**)
-    (let ()
-      (define-values [fst* rst*]
-        (for/lists (_1 _2)
-                   ((v* (in-list v**)))
-          (split-at v* 15)))
-      (printN fst*)
-      (newline)
-      (printN+ rst*))))
+  (define max-cols 6)
+  (let loop ((v** v**))
+    (cond
+      [(<= (length (car v**)) max-cols)
+       (printN v**)]
+      [else
+       (define-values [fst* rst*]
+         (for/lists (_1 _2)
+                    ((v* (in-list v**)))
+           (split-at v* max-cols)))
+       (printN fst*)
+       (newline)
+       (loop rst*)])))
 
 (define (printN v**)
   (printf "\\begin{tabular}{~a}~n" (make-string (length (car v**)) #\r))
@@ -103,7 +106,7 @@
   (case str
     (("Typed") "T-Max")
     (("TypedBasic") "T-Min")
-    (("TypedBasic2") "T-Min2")
+    (("TypedBasic2") "T-Min-2")
     (("Original") "Orig")
     (else (raise-argument-error 'simpl "Carl-name" str))))
 
