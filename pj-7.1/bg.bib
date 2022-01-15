@@ -226,6 +226,34 @@
   url={https://www.typescriptlang.org/docs/handbook/2/keyof-types.html}
 }
 
+@phdthesis{v-thesis-2019,
+ author = {Vitousek, Michael M.},
+ title = {Gradual Typing for Python, Unguarded},
+ school = {{I}ndiana {U}niversity},
+ year = {2019},
+}
+
+@phdthesis{g-dissertation-1998,
+  author    = {Benedict R. Gaster},
+  title     = {Records, variants and qualified types},
+  school    = {University of Nottingham, {UK}},
+  year      = {1998}
+}
+
+@phdthesis{s-dissertation-2021,
+  title={Query Strategies for Directed Graphical Models and their Application to Adaptive Testing},
+  author={Sam Saarinen},
+  year={2021},
+  school={{Brown University}}
+}
+
+@phdthesis{m-dissertation-2013,
+  title={Missing Data in the Relational Model},
+  author={Marion R. Morrissett},
+  year={2013},
+  school={{University of Virginia}}
+}
+
 @phdthesis{v-dissertation-2016,
   title={{Liquid Haskell}: {Haskell} as a theorem prover},
   author={Vazou, Niki},
@@ -521,13 +549,6 @@ pages = {24–26}
   year      = {1989}
 }
 
-@phdthesis{g-dissertation-1998,
-  author    = {Benedict R. Gaster},
-  title     = {Records, variants and qualified types},
-  school    = {University of Nottingham, {UK}},
-  year      = {1998}
-}
-
 @inproceedings{hp-popl-1991,
   author    = {Robert Harper and
                Pierce, Benjamin C.},
@@ -795,13 +816,6 @@ pages = {177–210}
   year      = {2019}
 }
 
-@phdthesis{s-dissertation-2021,
-  title={Query Strategies for Directed Graphical Models and their Application to Adaptive Testing},
-  author={Sam Saarinen},
-  year={2021},
-  school={{Brown University}}
-}
-
 @book{v-book-1993,
   title={What Engineers Know and How They Know It},
   author={Vincenti, Walter G.},
@@ -918,13 +932,6 @@ pages = {177–210}
   title     = {Relational database writings: 1985-1989},
   publisher = {Addison-Wesley},
   year      = {1990}
-}
-
-@phdthesis{m-dissertation-2013,
-  title={Missing Data in the Relational Model},
-  author={Marion R. Morrissett},
-  year={2013},
-  school={{University of Virginia}}
 }
 
 @book{c-rmdb-1990,
@@ -1734,7 +1741,7 @@ year = {1986}
 }
 
 @article{cvgrl-oopsla-2017,
-  author="Avik Chaudhuri and Panagiotis Vekris and Sam Goldman and Marshall Roch and Gabriel Levy",
+  author={Avik Chaudhuri and Panagiotis Vekris and Sam Goldman and Marshall Roch and Gabriel Levy},
   title={Fast and Precise Type Checking for {JavaScript}},
   journal=pacmpl,
   volume={1},
@@ -1980,6 +1987,55 @@ year = {2010}
   note={Accessed 2022-01-12}
 }
 
+@online{typeshed,
+  author={Python Contributors},
+  title={Typeshed},
+  url={https://github.com/python/typeshed},
+  note={Accessed 2022-01-15}
+}
+
+@online{mypy,
+  author={Mypy Team},
+  title={Mypy Language},
+  url={http://www.mypy-lang.org},
+  note={Accessed 2022-01-15}
+}
+
+@online{pytype,
+  author={Google},
+  title={Pytype Language},
+  url={https://pypi.org/project/pytype},
+  note={Accessed 2022-01-15}
+}
+
+@online{hack,
+  author={Meta},
+  title={Hack Language},
+  url={https://hacklang.org},
+  note={Accessed 2022-01-15}
+}
+
+@online{pyre,
+  author={Meta},
+  title={Pyre Language},
+  url={https://pyre-check.org},
+  note={Accessed 2022-01-15}
+}
+
+@online{pep484,
+  author={{van Rossum}, Guido and Jukka Lehtosalo and \L{}ukasz Langa},
+  title={{PEP 484} Type Hints},
+  url={https://www.python.org/dev/peps/pep-0484},
+  note={Accessed 2022-01-15}
+}
+
+@online{dart-types,
+  title={The {Dart} type system},
+  author={Dart Team},
+  url={https://dart.dev/guides/language/type-system},
+  note={Accessed 2022-01-15}
+}
+
 @techreport{kf-sfp-2009,
   title={Randomized Testing in {PLT Redex}},
   author={Casey Klein and Findler, Robert Bruce},
@@ -1994,5 +2050,106 @@ year = {2010}
   booktitle=ecoop,
   pages={76--100},
   year=2010
+}
+
+@inproceedings{rch-popl-2012,
+  author    = {Aseem Rastogi and Avik Chaudhuri and Basil Hosmer},
+  title     = {The ins and outs of gradual type inference},
+  booktitle = popl,
+  pages     = {481--494},
+  year      = {2012}
+}
+
+@inproceedings{kas-pldi-2019,
+  author={Andre Kuhlenschmidt and Deyaaeldeen Almahallawi and Siek, Jeremy G.},
+  title={Toward Efficient Gradual Typing for Structural Types via Coercions},
+  booktitle=pldi,
+  pages={517--532},
+  year={2019}
+}
+
+@article{fgsfs-oopsla-2018,
+ author = {Daniel Feltey and Ben Greenman and Christophe Scholliers and Robert Bruce Findler and Vincent St-Amour},
+ title = {Collapsible Contracts: Fixing a Pathology of Gradual Typing},
+ journal = pacmpl,
+ volume = {2},
+ number = oopsla,
+ pages = {133:1--133:27},
+ year={2018}
+}
+
+@article{glfd-pj-2022,
+  author={Ben Greenman and Lukas Lazarek and Christos Dimoulas and Matthias Felleisen},
+  title={A Transient Semantics for {Typed Racket}},
+  journal={Programming},
+  volume={6},
+  number={2},
+  pages={1--25},
+  year={2022}
+}
+
+@article{gi-scp-2020,
+  author    = {Gualandi, Hugo Musso and Roberto Ierusalimschy},
+  title     = {{Pallene}: a companion language for {Lua}},
+  journal = scp,
+  volume = {189},
+  number = {102393},
+  pages     = {1--15},
+  year      = {2020}
+}
+
+@article{nla-popl-2019,
+  author={New, Max S. and Licata, Daniel R. and Ahmed, Amal},
+  title={Gradual Type Theory},
+  journal=pacmpl,
+  volume={3},
+  number=popl,
+  pages={15:1--15:31},
+  year=2019
+}
+
+@article{sgt-jfp-2016,
+  author    = {Felipe Ba{\~{n}}ados Schwerter and Ronald Garcia and {\'{E}}ric Tanter},
+  title     = {Gradual Type-and-Effect Systems},
+  journal   = jfp,
+  volume    = {26},
+  pages     = {e19},
+  doi       = {10.1017/S0956796816000162},
+  year      = {2016}
+}
+
+@inproceedings{rmhn-ecoop-2019,
+  author={Richard Roberts and Stefan Marr and Michael Homer and James Noble},
+  title={Transient Typechecks are (Almost) Free},
+  booktitle=ecoop,
+  pages="15:1--15:29",
+  year=2019
+}
+
+@inproceedings{grmhn-vmil-2019,
+  title = {Which of My Transient Type Checks Are Not (Almost) Free?},
+  author = {Gariano, Isaac Oscar and Roberts, Richard and Marr, Stefan and Homer, Michael and Noble, James},
+  booktitle = vmil,
+  pages = {58--66},
+  year = {2019}
+}
+
+@inproceedings{mms-dls-2016,
+ author = {Mezzetti, Gianluca and M{\o}ller, Anders and Strocco, Fabio},
+ title = {Type Unsoundness in Practice: An Empirical Study of Dart},
+ booktitle = dls,
+ pages={13--24},
+ year = {2016},
+} 
+
+@article{mgt-oopsla-2021,
+  author    = {Stefan Malewski and Michael Greenberg and {\'{E}}ric Tanter},
+  title     = {Gradually Structured Data},
+  journal   = pacmpl,
+  volume    = {5},
+  number    = {{OOPSLA}},
+  pages     = {1--29},
+  doi       = {10.1145/3485503},
+  year      = {2021}
 }
 

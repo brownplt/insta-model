@@ -10,17 +10,10 @@
 % > be making it work -- Shriram 2021-09-30
 
 %% TODO before submission
-%% - look out for PROGRESSIVE TYPES~\cite{pqk-onward-2012}, where changing annotations
-%%   helps the static checker find new errors. ChkDict is one example.
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
 %%   trying to avoid nonstatic? staticifying?
-%% - use ChkDict not ChkList ... avoid confusion
-%%   ... or at least mention both, be clear the focus is Dict b/c older
-%% - do the LESSONS from SP come across clearly? beware making this a "progress report"
-%%   - emphasize the PAYOFF from modeling early on, don't bury in sec 3
 %% - terms: sound generic / concrete ... aren't people going to forget concrete? better keep as last resort
 %% - perhaps a compatibility story, programmers can work on Python 3.9 until Cinder catches up b/c source code is the same
-%% - "we" = all authors, NOT JUST BROWN!!!
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -282,18 +275,20 @@ untyped code behaves.
 Unfortunately, the high run-time cost of sound types has split
 the gradual typing community.
 Industry teams have developed innovative type systems that accommodate
-untyped designs, but are unsound [CITE].
+untyped designs, but are unsound~\cite{bat-ecoop-2014,rch-popl-2012,cvgrl-oopsla-2017}.
 These systems intentionally check nothing at run-time when untyped values enter
 typed code.
 Academic teams have primarily focused on the theory of sound
-gradual types, formulating correctness properties and studying ever-more-descriptive types [CITE].
+gradual types, formulating correctness properties and studying ever-more-descriptive
+types~(e.g.~\cite{sgt-jfp-2016,clps-popl-2019,nla-popl-2019,mgt-oopsla-2021})
 A few academics have studied the cost of run-time checks
-in detail [CITE] and proposed implementation methods [CITE],
-compiler technology [CITE],
-and even weakened semantics [CITE], but these efforts have not yet
-decisively closed the performance gap.
+in detail~\cite{tfgnvf-popl-2016,gtnffvf-jfp-2019}
+and proposed implementation methods~\cite{kas-pldi-2019,bbst-oopsla-2017},
+compiler technology~\cite{vsc-dls-2019,fgsfs-oopsla-2018},
+and even weakened semantics~\cite{glfd-pj-2022,vss-popl-2017,gi-scp-2020},
+but these efforts have not yet decisively closed the performance gap.
 The most promising attempt is the \emph{concrete} semantics
-for gradual types [CITE kafka nom etc], but it imposes nonlocal
+for gradual types~\cite{clzv-ecoop-2018,mt-oopsla-2017,wzlov-popl-2010}, but it imposes nonlocal
 constraints on untyped code.
 In particular, concrete-typed client code is incompatible with
 values created by untyped code.
@@ -381,8 +376,8 @@ and to convince readers that \SP{} is based on a sound core.
 \Cref{s:impl} notes important aspects of \SP{} that are not covered by the model.
 \Cref{s:eval} evaluates \SP{}; it reports our experience with the language in
 production and on public microbenchmarks.
-The paper concludes with related work~(\cref{s:related}),
-future work~(\cref{s:future}), and a final summary~(\cref{s:conclusion}).
+The paper concludes with related work~(\cref{s:related})
+and a final summary~(\cref{s:conclusion}).
 
 
 \paragraph*{Significance}
@@ -486,7 +481,7 @@ nonlocal maintenance costs (i.e., on constructor calls).
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
-Nom~\cite{mt-oopsla-2017,mt-oopsla-2021} and PEP 484~[CITE] are two notable sources.
+Nom~\cite{mt-oopsla-2017,mt-oopsla-2021} and PEP 484~\cite{pep484} are two notable sources.
 In addition, \SP{} is strongly influenced by the following engineering constraints:
 \begin{itemize}
   \item
@@ -498,7 +493,7 @@ In addition, \SP{} is strongly influenced by the following engineering constrain
     Precise types for higher-order functions and first-class classes
     are thus a low priority.
   \item
-    The codebase in which \SP{} is being applied makes heavy use of Pyre [CITE]
+    The codebase in which \SP{} is being applied makes heavy use of Pyre~\cite{pyre}
     type annotations.
     \SP{} needs to be compatible with Pyre syntax to reduce the adoption burden.
     % On the flip side, the existence of Pyre lets \SP{} focus on a small language
@@ -996,9 +991,46 @@ though types are needed to enable the most-effective optimizations.
 \section{Model}
 \label{s:model}
 
-%% TODO 2021-12-28
-%% - while True break another example of modeling helping out
-%%   it's a second implementation, helpful to find bugs
+%% test suite is for counterex, not proof
+%% 
+%% (as opposed mech CONFUSSING let each sec explain purpose)
+%% 
+%% keep none None & explain why, ambiguity in stx
+%% 
+%% fully-sound weird, kill phrase ... say whats happening .... surface t is linter
+%% ignore WF checker
+%% 
+%% check para may be red.
+%% "The strict cast for checked dictionaries ...."
+%% 
+%% soundness, 1st para garbled don't need such a long reminder
+%% 
+%% Notable py **that we handle**
+%% soundly => correctly
+%% 
+%% addl -> additionally (4.4)
+%% 
+%% "is triue" missing word
+%% 
+%% move 4.5 up to 4.1, start with the payoff --- found soundness bugs in a tool that's running in prod at instagram
+%% 
+%% rename 4.3 to "boundry type soundness" satate a lemma instead of full TS keep the focus, don't jump up
+%% - make the proof case via Nom keep it short they have "detailed" proof
+%% - "interested reader" can follow another direct path (edit current para2)
+%% 
+%% 4.0 put less emphasis on part2 of the soundness. ... it's not a threat its a boring swept-under-rug part ... maybe 4.5 is the new 4.0???
+%% 
+%% 4.4 redex = since no formalization of py + sp .. follow well-established path of using test suite to check conformance with **reality**
+%% - cite Py \Js Jan paper, Politz getter-setter, Gardner js
+%% 
+%% 4.4 redex += everything in 4.1--4.3 is captured in redex, done 3 steps
+%%  1 human verification, carefully spot-check python faithful, boundaries vs 4.1--4.3
+%%  2 run againt SP tests .. indeed part of the reason for getting so much python is to run against an actual test suite
+%%  3 b/c in redex, use pbt to verify conventional soundness
+%% 
+%% cut "soundness as baseline" final 2 sentences of 4.4(?) they're too weak, end with the compiler verification out-of-scope part
+
+
 
 To validate the design of \SP{}, we have developed a model of the language in PLT
 Redex~\cite{kcdeffmrtf-popl-2012}.
@@ -2303,7 +2335,7 @@ Our production experience with \SP{} suggests that a method-based JIT compiler c
 usually eliminate the costs of shallow types.
 This finding complements prior positive experience with shallow types and JIT
 technology; e.g., in Reticulated with the pypy tracing JIT~\cite{vsc-dls-2019}
-and in Grace with the Graal partial-evaluation-based JIT~\cite{FILL}.
+and in Grace with the Graal partial-evaluation-based JIT~\cite{rmhn-ecoop-2019,grmhn-vmil-2019}.
 Similarly, the Pycket team used a tracing JIT to reduce the costs of higher-order
 checks~\cite{bbst-oopsla-2017}.
 It remains to be seen whether a non-tracing JIT is effective for higher-order
@@ -2314,7 +2346,7 @@ Other optional type checkers include Pyre, mypy, and PyType;
 these systems do not ensure safe interactions with untyped Python.
 Another sound type system is Reticulated,
 which enforces structural types (rather than nominal) using its transient
-semantics~\cite{vss-popl-2017,FILL}.
+semantics~\cite{vss-popl-2017,v-thesis-2019}.
 Other \emph{optimizing} type systems for Python
 include Reticulated and mypyc.
 The latter compiles Python source to C extension modules; unlike \SP{},
@@ -2323,7 +2355,7 @@ it does not offer a pure-Python developer experience.
 Although sound gradual type systems are rare in industry, there are at
 least three others besides \SP{}.
 Dart 2 is a nominally-typed language with a dynamic type that is similar
-to the top object type but allows implicit downcasts to every other type~\cite{FILL}.
+to the top object type but allows implicit downcasts to every other type~\cite{dart-types}.
 C\# includes a dynamic type that defers type checking until runtime~\cite{bmt-ecoop-2010}.
 JS++ is a sound type system for JavaScript that allows untyped values
 using a catch-all \code{external} type~\cite{jspp}.
@@ -2405,7 +2437,7 @@ for its implementors and for adopters:
 \begin{itemize}
   \item
     The syntax of sound static types is relatively small compared
-    to Pyre~\cite{pyre} and other types-for-Python proposals~\cite{FILL}.
+    to Pyre~\cite{pyre} and other types-for-Python proposals~\cite{mypy,pytype}.
     Higher-order types are absent.
     The focus is instead on first-order class types, base types, and standard data structures.
   \item
@@ -2437,7 +2469,7 @@ is a viable way to incrementally add types to a production codebase.
 Determining whether this conjecture holds more broadly is a critical
 question that calls for research on two fronts.
 First, \SP{} must be applied to additional projects in a module-at-a-time manner.
-A exhaustive performance evaluation~\cite{FILL} of a few small projects would be
+A exhaustive performance evaluation~\cite{gtnffvf-jfp-2019} of a few small projects would be
 especially useful.
 Second, the \SP{} approach should be adapted to other languages.
 An optionally-typed language such as TypeScript would be an ideal starting
@@ -2498,13 +2530,13 @@ we list common reasons for such bugs below:
     \begin{itemize}
       \item
         The standard \code{typeshed} repo of Python type annotations declares
-        that a weak reference has the dynamic type~\cite{FILL}.
+        that a weak reference has the dynamic type~\cite{typeshed}.
         This declaration is easy to use because it does not force programmers
         to handle the case where their weakly-held object has been collected,
         but it is also a potential source of bugs.
       \item
         Mutable class attributes are covariant in Pyre and other
-        Python type checkers, including mypy~\cite{FILL}.
+        Python type checkers, including mypy~\cite{mypy}.
       \item
         The meta-type \code{Type} is unsoundly covariant as well in Pyre
         and others.
@@ -2557,7 +2589,7 @@ benchmark.
 Benchmarks run on the following commit:
 
 \smallskip
-{\centering\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}}
+{\centering\footnotesize\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}}
 
 Fannkuch in particular is very numeric-heavy, so using unboxed primitive
 integers in the typed version can be a big win. For this to work maximally
