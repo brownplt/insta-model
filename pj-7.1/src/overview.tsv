@@ -1,0 +1,37 @@
+Benchmark	Command
+Typed Richards (SP, JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards_static.py 100
+Typed Richards (SP, JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static.txt -X jit-enable-jit-list-wildcards -X install-strict-loader Tools/benchmarks/richards_static.py 100
+Typed Richards (SP)	time ./python -X install-strict-loader Tools/benchmarks/richards_static.py 100
+Typed Richards (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/richards_static.py 100
+Typed Richards (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/richards_static.py 100
+Typed Richards ()	time ./python Tools/benchmarks/richards_static.py 100
+TypedBasic Richards (SP, JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static_basic.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards_static_basic.py 100
+TypedBasic Richards (SP, JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static_basic.txt -X jit-enable-jit-list-wildcards -X install-strict-loader Tools/benchmarks/richards_static_basic.py 100
+TypedBasic Richards (SP)	time ./python -X install-strict-loader Tools/benchmarks/richards_static_basic.py 100
+TypedBasic Richards (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static_basic.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/richards_static_basic.py 100
+TypedBasic Richards (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_richards_static_basic.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/richards_static_basic.py 100
+TypedBasic Richards ()	time ./python Tools/benchmarks/richards_static_basic.py 100
+Original Richards (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_main.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/richards.py 100
+Original Richards (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_main.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/richards.py 100
+Original Richards ()	time ./python Tools/benchmarks/richards.py 100
+Typed Fannkuch (SP, JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch_static.py 5
+Typed Fannkuch (SP, JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static.txt -X jit-enable-jit-list-wildcards -X install-strict-loader Tools/benchmarks/fannkuch_static.py 5
+Typed Fannkuch (SP)	time ./python -X install-strict-loader Tools/benchmarks/fannkuch_static.py 5
+Typed Fannkuch (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/fannkuch_static.py 5
+Typed Fannkuch (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/fannkuch_static.py 5
+Typed Fannkuch ()	time ./python Tools/benchmarks/fannkuch_static.py 5
+TypedBasic Fannkuch (SP, JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch_static_basic.py 5
+TypedBasic Fannkuch (SP, JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic.txt -X jit-enable-jit-list-wildcards -X install-strict-loader Tools/benchmarks/fannkuch_static_basic.py 5
+TypedBasic Fannkuch (SP)	time ./python -X install-strict-loader Tools/benchmarks/fannkuch_static_basic.py 5
+TypedBasic Fannkuch (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/fannkuch_static_basic.py 5
+TypedBasic Fannkuch (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/fannkuch_static_basic.py 5
+TypedBasic Fannkuch ()	time ./python Tools/benchmarks/fannkuch_static_basic.py 5
+TypedBasic2 Fannkuch (SP, JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic2.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch_static_basic2.py 5
+TypedBasic2 Fannkuch (SP, JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic2.txt -X jit-enable-jit-list-wildcards -X install-strict-loader Tools/benchmarks/fannkuch_static_basic2.py 5
+TypedBasic2 Fannkuch (SP)	time ./python -X install-strict-loader Tools/benchmarks/fannkuch_static_basic2.py 5
+TypedBasic2 Fannkuch (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic2.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/fannkuch_static_basic2.py 5
+TypedBasic2 Fannkuch (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_fannkuch_static_basic2.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/fannkuch_static_basic2.py 5
+TypedBasic2 Fannkuch ()	time ./python Tools/benchmarks/fannkuch_static_basic2.py 5
+Original Fannkuch (JIT, SF)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_main.txt -X jit-enable-jit-list-wildcards -X jit-shadow-frame Tools/benchmarks/fannkuch.py 5
+Original Fannkuch (JIT)	time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist_main.txt -X jit-enable-jit-list-wildcards Tools/benchmarks/fannkuch.py 5
+Original Fannkuch ()	time ./python Tools/benchmarks/fannkuch.py 5

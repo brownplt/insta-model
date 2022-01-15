@@ -34,7 +34,9 @@
 \newcommand{\langmid}{\mid} %% {\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
+
 \newcommand{\numbenchmark}{2}
+\newcommand{\CPUchange}{3.7\%}
 
 \newcommand{\spapp}[2]{#1\,(#2)}
 \newcommand{\spann}[2]{#1\!:\!#2}
@@ -126,6 +128,7 @@
 \makeatother
 %% END
 
+\usepackage{lscape}
 \usepackage[framemethod=TikZ]{mdframed}
 \newmdenv[roundcorner=2pt,linewidth=0.4pt,linecolor=Black]{spcodebox}
 \usepackage{amsthm}
@@ -246,7 +249,7 @@
   of the \SP{} approach and its soundness.
   Our performance claims are based on production experience in the Instagram
   web server.
-  Thanks to \SP{}, global CPU usage has improved by almost 4\% within a year.
+  Thanks to \SP{}, global CPU usage has improved by \CPUchange{} within a year.
 
   \vglue10pt
 
@@ -334,7 +337,7 @@ primary web server monolith.
 The results are very positive.
 Although only a handful of modules use \SP{} types (hundreds among thousands),
 and only a few critical modules rely on concrete types and primitive types (dozens),
-global CPU usage has improved by almost 4\% according to internal profiling tools.
+global CPU usage has improved by \CPUchange{} according to internal profiling tools.
 Type-directed optimizations outweigh the cost of enforcing soundness.
 Consequently, we believe the details of the \SP{} approach are of interest to
 the gradual typing community at large.
@@ -498,6 +501,7 @@ In addition, \SP{} is strongly influenced by the following engineering constrain
     \SP{} needs to be compatible with Pyre syntax to reduce the adoption burden.
     % On the flip side, the existence of Pyre lets \SP{} focus on a small language
     % of types that enable optimizations.
+    % depth-first types.
     % (\SP{} defers to Pyre the task of statically checking the full Python language.)
   \item
     A module-level granularity is acceptable.
@@ -546,7 +550,7 @@ of \SP{}.
 Like most gradual languages, \SP{} includes a dynamic type
 that allows untyped expressions within a statically-typed context.
 Whenever an expression or variable lacks a type annotation, \SP{} uses the
-dynamic type as a default and skips most \emph{but not all}\/ static checks.
+dynamic type as a default and skips most \emph{but not all\/} static checks.
 Programmers can thus add annotations to part of a module
 while leaving the rest unannotated.
 
@@ -780,7 +784,7 @@ inheritance:
 
 \end{enumerate}
 %
-With this context in mind, \SP{} keeps track of whether each class is typed of untyped.
+With this context in mind, \SP{} keeps track of whether each class is typed or untyped.
 Each typed class can furthermore assume that if a method has a precise (non-dynamic)
 type, then all typed overrides are subtypes of this type.
 \SP{} can therefore optimize dispatch from typed callers to typed methods
@@ -1618,21 +1622,17 @@ handle soundly.
 These include primitive types~\cref{s:c-types} and strict modules~\cref{s:strict-mod}.
 Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
 are also omitted.
-Other Python features are left out because their \SP{} semantics is identical
-to the baseline Python semantics.
-These features include \code{eval}, first-class classes, multiple inheritance, and module-level cells;
-see \cref{s:impl} for further discussion.
-Lastly, the model does not include type-directed optimizations.
-Validating the correctness of optimizations is a separate task that requires
-significant components: a model of the \SP{} bytecode and a faithful
-rendering of its type-based transformations.
+Other Python features are left out either because their \SP{} semantics is identical
+to the baseline Python semantics or because they would entail a separate project~(\cref{s:impl}).
+In particular, modelling type-directed optimization would require substantial
+components: a model of the \SP{} bytecode and a faithful rendering of its
+transformations.
 Our model establishes soundness as a baseline.
 Future work can use soundness as a starting point for compiler verification,
 or informally leverage soundness to reason about possible optimizations.
 
 
 \subsection{The Payoff: Issues Reported}
-%% 2022-01-11 FILL TODO reword, excitement!
 
 While modelling \SP{}, we found several issues with the language
 and submitted them as bug reports to the \SP{} developers.
@@ -1645,6 +1645,34 @@ and incorrect tests.
 The remaining 16 issues report bugs in language design and implementation.
 The \SP{} team has acknowledged these bugs as such by applying a specific GitHub label (\code{sp-correctness}).
 
+For example, we discovered that \SP{} handled the following function incorrectly when
+we tried to model it:
+%% \url{https://github.com/facebookincubator/cinder/issues/62}
+
+\medskip
+\begin{minipage}[t]{0.25\columnwidth}~
+\end{minipage}\begin{minipage}[t]{0.4\columnwidth}
+\begin{lstlisting}
+  from typing import Optional
+
+  def f(x: Optional[str]) -> str:
+    while True:
+      if x is None:
+        break
+      return x
+
+  print(f(None))
+  # None
+\end{lstlisting}
+\end{minipage}
+
+\noindent{}The function expects either a string or the \code{None} value and promises to return a string.
+When called with \code{None}, however, the function breaks out of the \code{while} loop
+and implicitly returns \code{None}---disobeying the return type.
+\SP{} had failed to account for the \code{break} and implicit return.
+More concerningly, the associated test case \emph{expected} the program to type check.
+Creating a formal model helped us catch this specification error.
+
 % In addition to these formal issue reports,
 % we had several long discussions together (between Brown and Instagram)
 % about finer points in the language design.
@@ -1654,77 +1682,60 @@ The \SP{} team has acknowledged these bugs as such by applying a specific GitHub
 \section{Scaling to Python}
 \label{s:impl}
 
-%% TODO unions tracked statically in SP, erased to dyn unless narrowed
-
 %% TODO SP side channels:
 %% ?? eval,
 %% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
 %% and mutable closure cells.
 
-%% TODO built-in vs. user defined ... 
-%% Carl: I don't think this is quite true the way it's phrased here? in general
-%%   for SP classes we wrap non-static subclass override methods at runtime (in our
-%%   vtable implementation) to enforce correct return type, so that we don't need
-%%   exact types, we can trust that Liskov is not broken.
-%%     The cases where we tend to be limited to exact types is in optimizing
-%%   operations on builtin types, where they aren't really static types and
-%%   methods called on them aren't going through SP vtables, so we don't have
-%%   the vtable wrappers to enforce LSP, we just know the behavior of the exact
-%%   builtin type
-
-
 This section explains significant aspects of \SP{} that lie outside the
 scope of our model.
-These aspects include sound interactions with Python code,
+These include sound interactions with Python code,
 the bytecode language and optimizations, and dynamic Python features
-that \SP{} does not yet ascribe types to.
+that \SP{} does not type.
 
 
-\subsection{Open-World Python Interactions}
+\subsection{Interactions with Open-World Python Code}
 
 Although \SP{} is technically a new language, it is designed for gradual adoption.
-Python programmers should be able to add types one module at a time to an
+Python programmers should be able to add types module-by-module to an
 existing codebase.
 Consequently, \SP{} supports interactions with Python modules in the only viable
-way: by letting the Python code run with minimal constraints.
-After all, if programmers need to fix every module in a codebase before they can
-run tests after typing a first module, then the gradual story is lost.
+way: by letting the Python code run with zero static constraints and minimal
+dynamic constraints.
 
-Interactions with open-world~\cite{vss-popl-2017} Python code pose a minor
-threat to soundness.
-Typed functions (and methods) cannot assume that their arguments are
-well-typed.
-Arguments from typed contexts can be validated by either static checks
-or materialization casts, but arguments from untyped contexts are unchecked.
-For this reason, \SP{} compiles every typed function to check its inputs.
-\Cref{s:optimize} explains how the optimizer avoids some of these checks.
-%% 2022-01-09 worth mentioning primitive types? they get cast like anything else
-%% ... I guess the trick is that primitives don't materialize in typed code
-
-FILL sound generics / checked types also need to guard their writes
-
-There are two cases, however, where new \SP{} types do add constraints to
-existing Python code.
-First, sound generic types (e.g. $\sptchkdict{\sptype_0}{\sptype_1}$)
-force value-suppliers to use a checked constructor.
-Existing code can \emph{use}\/ a checked generic via the same API as on
-un-checked one, but can create new values only using the \SP{} constructors.
+There are two case in which \SP{} types add dynamic constraints to Python code.
+First, concrete generic types (e.g. $\sptchkdict{\sptype}{\sptype}$)
+reject inputs that were not created via a checked contructor.
+If a client of a Python module decides to impose concrete types, the Python module
+may need to change.
 Second, the strict setting for modules prevents updates to module-level variables.
-If existing code happens to mutate a member of a newly-strict module, a run-time
-error will occur.
+If existing code mutates a binding in a strict module, a run-time error will
+occur.
+
+Interactions with \emph{open-world}~\cite{vss-popl-2017} Python code pose a minor
+threat to soundness because
+typed functions (and methods) cannot assume that their arguments are
+well-typed.
+All arguments sent from typed contexts get validated either statically or
+via materialization casts, but arguments from untyped contexts are unchecked.
+For this reason, \SP{} compiles every typed function to check its inputs.
+Similarly, concrete types such as $\sptchkdict{\sptype}{\sptype}$ also
+check their writes.
+%% 2022-01-09 worth mentioning primitive types? they get cast like anything else (they don't materiazize)
+%% 2022-01-13 don't think so --- leave prims alone, we don't want to frighten reviews with unsoundness
 
 
 \subsection{Bytecode and Optimizations}
 \label{s:optimize}
 
-\SP{} can generate more-efficent code than Python because it targets
+\SP{} can generate efficient code because it targets
 the Cinder runtime.
-Cinder extends Python with bytecode instructions to check types at run-time,
-to construct \SP{} data structures, and to perform optimized actions.
-\Cref{t:bytecode} lists a few representative bytecode instructions.
+Cinder extends the Python 3.8 bytecode with instructions to check types at run-time,
+to construct \SP{} data structures, and to perform actions in a way that benefits from
+static information..
 
 \begin{table}
-  \caption{Representative bytecode instructions}
+  \caption{Representative Cinder bytecode instructions}
   \label{t:bytecode}
 
   \begin{tabular}{lll}
@@ -1769,22 +1780,23 @@ to construct \SP{} data structures, and to perform optimized actions.
   \end{tabular}
 \end{table}
 
+\Cref{t:bytecode} lists a few representative bytecode instructions.
 The two instructions that express run-time checks are \code{CAST}
 and \code{CHECK\_ARGS}.
 The former checks a value against a type.
 The latter is for functions and methods; it checks all inputs to a function
 against their declared types.
 
-\Cref{t:bytecode} presents two instructions that allocate \SP{}-specific data structures.
+Two of the listed instructions allocate \SP{}-specific data structures.
 The first creates a checked dictionary; the second creates an object with a vtable~(\cref{s:vtable}).
 Cinder comes with a similar instruction to build checked lists.
-The developers will add more instructions along the same lines in the future.
+%% The developers will add more instructions along the same lines in the future.
 
 The remaining instructions are for optimization.
 Both \bcinst{INVOKE\_FUNCTION} and \bcinst{INVOKE\_METHOD} are alternatives
 to Python's dynamic call dispatch.
 The former jumps to a statically-determined address;
-the latter uses a v-table lookup to quickly find an address at run-time.
+the latter uses a vtable lookup to quickly find an address at run-time.
 The load and store instructions for fields improve upon Python's generic attribute lookup.
 In the JIT, these instructions can sometimes be further optimized to a single assembly instruction.
 The \bcinst{FAST\_LEN} instruction gets the length of a built-in datatype directly, instead
@@ -1801,16 +1813,14 @@ In other words, the goal is to slow code down as little as possible.
 
 Part of this goal is met by inserting casts only in positions where the dynamic
 type flows into a static type.
-The materialze rule in the model illustrates this policy.
+The materialize rule in the model illustrates this policy.
 Typed functions, however, are compiled with a \bcinst{CHECK\_ARGS} instruction
-that casts all arguments.
+that defensively casts all arguments.
 By convention, this instruction always appears on the first line of a typed
 function body.
 The optimizer uses this convention to skip argument checks by jumping past them
-when it is safe to do so; namely, whenever a typed function (or method) gets
+when it is safe to do so; namely, whenever a typed function or method gets
 called in a typed context.
-In this way, all untyped calls get the necessary argument check and all typed
-calls benefit from materialize checks at the call-site.
 
 
 \subsection{Dynamic Python Features}
@@ -1823,14 +1833,14 @@ calls benefit from materialize checks at the call-site.
 These are not covered in our model because the implementation simply
 assigns the dynamic type and lets the runtime treat them as untyped
 Python code.
-For each, we claim that the dynamic type is a reasonable choice;
-accurate static types would be difficult to maintain.
+For each, the dynamic type is a very reasonable choice;
+accurate static types would be burdensome to maintain.
 
 
 \paragraph{First-Class Classes}
 
 \SP{} does not attempt to type first-class classes: partly because they have
-yet to appear in performance-critical code at Instagram and partly because it
+yet to appear in performance-critical code and partly because it
 is unclear how to incorporate them into the nominal type system.
 The straightforward but restrictive approach is to force code that uses a
 first-class class to expect subtypes of a particular named static class.
@@ -1838,7 +1848,7 @@ Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifical
 but it requires a second layer of \emph{interface types} atop the nominal hierarchy.
 MonNom~\cite{mt-oopsla-2021} uses interfaces in a similar way to accommodate
 structural objects.
-Adding an interface layer to \SP{} is an open question.
+How best to add an interface layer in \SP{} is an open question.
 
 % in particular , Python's multiple inheritance would complicate the mixin story.
 % Classic mixins rely on structural types~\cite{bc-oopsla-1990}.
@@ -1862,109 +1872,145 @@ Adding an interface layer to \SP{} is an open question.
 %% TODO check Dino email, confirm with C&D that layout conflict is unrelated to vtables
 
 Python allows classes to inherit from a list of parents.
-When resolving a method call to such a class, Python
+To resolve method calls to such a class, Python
 dynamically traverses the parent list in a fixed order
 seeking a first match.
 
 Due to the dynamic method resolution order (MRO),
 \SP{} does not track types for classes with multiple parents.
 Method calls to these classes execute the same way as
-in Python, with no type-directed optimizations to speed up dispatch.
+in Python, with no type-directed optimizations to improve dispatch.
 
 
 \paragraph{Dynamic Execution}
-%% TODO is eval a side channel, or safe?
-%% TODO check that eval/exec args really are unoptimized / sound etc.
+
+%% 2022-01-13: __setattr__ is along the same lines
+%%Carl: Removing the use of super-dynamic Python features like
+%%\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
+%%we’ve done this it hasn’t required a major rewrite.
+
 Results computed by calls to \code{eval} and \code{exec}
 have the dynamic type.
-Their inputs run without being rewritten
-by the optimizer.
+Their inputs run without being rewritten by the optimizer.
 
 Studies of JavaScript and R have shown that many uses of dynamic execution
 can be removed through simple adjustments~\cite{rhbv-ecoop-2011,gdkkv-oopsla-2021,mrmv-esop-2012}.
-Assuming these findings carry over to Python, we recommend either similar
-adjustments or the introduction of semantically-descriptive replacements
-over attempting to type eval.
+Assuming these findings carry over to Python, similar adjustments would
+preferable over attempting to type eval.
 
 
-\paragraph{Module-Level Variables}
 
-Any Python module can read and write to the module-level variables of another module.
-When compiling a module, \SP{} therefore assumes that its module-level variables
-may be modified by untyped code and assigns the dynamic type.
+%% 2022-01-13 covered pretty well earlier
+%%\paragraph{Module-Level Variables}
+%%
+%%Any Python module can read and write to the module-level variables of another module.
+%%When compiling a module, \SP{} therefore assumes that its module-level variables
+%%may be modified by untyped code and assigns the dynamic type.
+%%
+%%Strict modules as an alternative to the Python
+%%semantics.\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
+%%If a programmer chooses to declare a module as strict, then its module-level varibles
+%%are immutable and thus typeable.
+%%
+%%Another potential solution is for the Cinder runtime to check that writes to module-level variables
+%%preserve their types.
+%%There are two downsides to this idea:
+%%it will add some performance overhead,
+%%and it will force developers to rewrite untyped code in order to fix any errors that arise.
+%%%% Because of the latter concern, type dynamic is a very reasonable default.
 
-Cinder offers \emph{strict modules} as an alternative to the Python
-semantics.\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
-If a programmer chooses to declare a module as strict, then its module-level varibles
-are immutable and thus typeable.
-
-Another potential solution is for the Cinder runtime to check that writes to module-level variables
-preserve their types.
-There are two downsides to this idea:
-it will add some performance overhead,
-and it will force developers to rewrite untyped code in order to fix any errors that arise.
-%% Because of the latter concern, type dynamic is a very reasonable default.
-
-
-\paragraph{Set attribute}
-
-Carl: Removing the use of super-dynamic Python features like
-\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
-we’ve done this it hasn’t required a major rewrite.
 
 
 \section{Production Experience}
 \label{s:eval}
-%% 2021-12-15: C&D may have an SP off/on switch soon to measure totals
 
-%% 2022-01-12
-%% We did have some cases where strict semantics caused a problem, but in the
-%% majority of conversions it didn’t (or if it did initially, the fix was
-%% trivial.) There was at least one case where I would have converted more code to
-%% static but couldn’t easily do so because of strictness issues with a larger
-%% framework reliant on metaclasses, and so I instead extracted the hottest code
-%% paths into a new strict/static module and called them. I have a plan to go back
-%% to this and improve the framework itself to be strict so more code can be
-%% converted. I know of at least one other case where we did modify a framework
-%% that relied on side-effecting decorators so that it could be used without the
-%% side effects.
+%% 2022-01-14 TODO re 3.7%
+%% That percentage represents the aggregate CPU improvement observed from all of
+%% our individual diffs that converted modules to Static Python over the past
+%% year. In a sizable number of cases a conversion to Static Python did mean that
+%% functions in that module started being JITted that previously were not JITted,
+%% because for most of the half we had a policy in place that all Static Python
+%% modules are always JITted. (We’ve now decoupled these things for future
+%% conversions, so opting functions into the JIT is now orthogonal to opting them
+%% into SP.)
+%% 
+%% So the 3.7% does not include any CPU wins that Cinder or the JIT provide in any
+%% non-static modules, it only includes improvements observed from specifically
+%% converting a module from nonstatic to static. But it does in some cases include
+%% the effects of going from nonstatic + no-JIT to SP+JIT for a given module. In
+%% other cases a conversion may have gone from nonstatic+JIT to SP+JIT.
+%% Unfortunately we don’t have any way to go back and tease apart these cases for
+%% each individual module conversion.
+%% 
+%% What we are doing now is an experiment where we turn off SP in a set of hosts
+%% and observe them relative to the rest of prod, without changing the JIT list.
+%% This will show some % regression, which we expect to be some number <3.7%, and
+%% that will give a solid figure for the benefit we are getting specifically from
+%% SP across all static modules, totally independent of the JIT. Unfortunately
+%% there have been some hiccups in this experiment and we don’t have that number
+%% ready yet, but we hope to have it in the next week or so.
 
-%% 2022-01-12 All SP mods are strict. Although the Static Python compiler can technically be
-%% used apart from strict modules, and we do that in tests for faster tests, it’s
-%% not sound and we don’t allow it in prod. The way a real module gets compiled as
-%% Static Python is in fact via the strict modules import loader, which detects
-%% both `import __strict__` and `import __static__` markers, treating the former
-%% as strict only and the latter as both strict and static. So we don’t provide
-%% any straightforward way (either in IG codebase or generally with Cinder) to
-%% have a module imported as static without also being strict.
-
-%% 2022-01-12 Looks like 3 use CheckedDict and 6 use CheckedList.
-%% 2022-01-12 
-
-%% 2022-01-11 TODO how many Checked modules in production?
-%% 2022-01-11 TODO how many strict modules in production?
-%% 2022-01-11 TODO talk about primitive types:
-%% Carl: "I just did a very rough grep check and found that we have only 12 modules
-%% currently using primitive types: all int32 and int64 and cbool. So they are
-%% used pretty sparingly, but they are also definitely critical to our ability to
-%% match Cython in a few of the  hottest code paths that used to be Cython."
-
-%% 2022-01-05 TODO We are currently JITting at least some functions in 873
-%% modules, but we are about to increase this by about an order of magnitude,
-%% independent of Static Python.
+%% 2022-01-14 FILL TODO 
+%% > I still have trouble understanding the CPU number. There must be many
+%% > servers running many workloads and some statistics to merge them. Do
+%% > you have a blog post or something that explains the profiling in more
+%% > detail?
+%% 
+%% I don’t know of anything reasonably current in terms of blog posts. For IG web
+%% prod, there are not “many workloads” — there is no specialization in the IG web
+%% tier. There are many thousands of hosts, all running the exact same workload —
+%% all those hosts are handling an undifferentiated random selection from a single
+%% giant pool of incoming IG requests. So for all intents and purposes we can
+%% consider them identical. (There are in practice some differences in the hosts
+%% themselves — e.g. different generations of CPU hardware — that we do have to
+%% take into account when running the experiments below.)
+%% 
+%% The details of how we measure a CPU regression or improvement are interesting,
+%% though. What we do is we take a set of hosts that we want to measure (typically
+%% an experiment group and a control group, where the control group is identical
+%% to the rest of production and the experiment group has some change made to its
+%% code or configuration whose effect we want to measure), and we slowly increase
+%% the traffic to those hosts until they are at max CPU utilization — they cannot
+%% handle any more traffic without falling over. Then we measure the
+%% requests-per-second handled by each set of hosts; if the experiment group is
+%% able to handle 2% more requests per second than the control group, while both
+%% are at max CPU utilization, this effect is considered a 2% global CPU win.
+%% 
+%% This metric has the advantage that it is highly holistic and results-oriented;
+%% it is a measure of our actual capacity to serve more requests with fewer hosts,
+%% and thus it can subsume and account for, and give apples-to-apples comparison
+%% of, many different possible reasons for an increase or decrease in a host’s
+%% efficiency in serving requests.
+%% 
+%% The disadvantage of the metric is that the raw number it measures (requests per
+%% second) is also highly dependent on the product code and client behavior at
+%% that moment in time, and is not stable over time, because the average cost in
+%% CPU cycles of “one request” is not stable over time. If the behavior of the IG
+%% iOS or Android app changes so that it is sending more heavy requests and fewer
+%% lightweight requests, RPS across the fleet will naturally decrease even though
+%% the efficiency of the servers has not changed. Therefore, this metric is really
+%% good for saying “at X point in time, Y change has a Z% overall effect on our
+%% CPU efficiency” but it cannot be used to compare raw numbers from two different
+%% points in time; we cannot use it to say “between X1 point in time and X2 point
+%% in time, RPS increased Z%, therefore our efficiency has increased by Z%.”
+%% 
+%% So the 3.7% number we gave you is an aggregate win from doing many such
+%% individual experiments over the course of the past year, where each experiment
+%% was measuring the effect of converting X module (or small set of modules) from
+%% nonstatic to static (where in some cases it was nonstatic+JIT to SP+JIT, and in
+%% other cases it was nonstatic noJIT to SP+JIT.) And the updated number we hope
+%% to get you soon is an overall measure from a single experiment, today, of the
+%% effect of disabling SP everywhere, while leaving the JIT list untouched. We
+%% expect the latter number to be smaller than 3.7% because it will remove the JIT
+%% factor entirely, but there’s also an unknown factor (which could net positive
+%% or negative) of how the behavior of long-ago-converted SP modules has changed,
+%% or the capabilities of SP has changed, since their conversion, which changes
+%% the net win of SP on those modules since the time when we converted them.
 
 %% 2022-01-04 TODO have no evidence that "any module" typing works out ... team
 %% tried hard to get network effects ... "We explicitly aimed for converting
 %% related modules like this to improve network effects and get better
 %% performance."
-
-%% 2022-01-04 TODO ask C&D how many teams have adopted SP ... get sense of adoption
-
-% "The workload for those rough percentage numbers is “Instagram web server
-%  production.” We have pretty extensive production profiling that lets us
-%  identify CPU savings with good granularity when a change lands in prod, and the
-%  observed CPU savings for a variety of staticification changes we’ve landed over
-%  the last half sum up to 2% of total IG prod CPU usage." --Carl
 
 %% TODO 2021-12-29 Carl
 %% We definitely did find some regressions (especially when converting Cython, but
@@ -1975,109 +2021,92 @@ we’ve done this it hasn’t required a major rewrite.
 %% “we forgot to enable the JIT for an important function” and just rectifying
 %% that took care of it.)
 
-%% TODO think about it 2021-12-29 Ben
-%% > + Is there any sense in which the 530 converted modules are a big
-%% > sample? Maybe not, since as you say 530 is tiny for the codebase as a
-%% > whole. But do they exercise all sorts of behavior? Do they form a big
-%% > sample of certain parts of the Instagram codebase?
-
+The Instagram web server has been running \SP{} in production since April 2021.
+Overall, the results are very encouraging.
+Instagram's internal profiling tools, which continuously monitor
+performance, attribute a \CPUchange{} improvement in global CPU to \SP{} conversions.
+\Cref{t:prod-stat} reports a few other production statistics.
+Over 500 modules have been converted thus far.
+Despite some initial regressions, none of the converted modules
+ran slower after small rewrites and enabling the JIT on certain functions.
 
 \begin{table}
   \caption{Overview: \SP{} in production}
   \label{t:prod-stat}
-  \begin{tabular}{l@{~~}ll@{~~}l}
-    8     & months in production & 3.7\% & global CPU improvement \\
-    530   & modules converted  &  0 & performance regressions
-    %% TODO 530 / ???? how much of codebase?
+  \begin{tabular}{l@{~~}l@{\qquad}l@{~~}l}
+    %% 541 modules out of ~45000 total
+    8     & months in production   & 541   & typed, strict modules \\
+    \CPUchange{} & global CPU improvement &   9   & using concrete types \\
+    0     & net regressions        &  12   & using primitive types \\
+    %% all prims are int32 and int64 and cbool
+    %% 873 modules use JIT for some functions (about to increase by OOM)
   \end{tabular}
 \end{table}
-
-The Instagram web server has been running \SP{} in production since April 2021.
-Overall, the results are very encouraging.
-Instagram's internal profiling tools, which continuously monitor
-performance, attribute a 3.7\% improvement in global CPU to \SP{} conversions.
-\Cref{t:prod-stat} reports a few other production statistics.
-Over 500 modules have been converted thus far.
-None of the converted modules have gotten slower because of \SP{}
 
 
 \subsection{Migration Path}
 
-\SP{} first entered the Instagram web server as a replacement for Cython,
-which Instagram had been using to speed up critical modules.
-Cython performed well, but its partial adoption led to an awkward workflow
-because unlike standard Python, Cython is a compiled language.
-Replacing these modules with \SP{} let developers return to a conventional
+\SP{} first entered the web server codebase as a replacement for a
+few critical Cython modules.
+Cython had improved performance by compiling these modules to C,
+but its partial adoption had led to an awkward workflow (with a
+few compiled modules spread across an interpreted codebase).
+Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
-\SP{} (combined with Cinder) did not slow down any of these
-performance-critical modules, and even sped a few up.
-The net improvement was a 0.7\% reduction in global CPU usage.
+Furthermore, \SP{} types combined with Cinder resulted in a
+0.7\% reduction in global CPU usage.
+Primitive types~(\cref{s:c-types}) were essential for matching Cython.
 
-Later \SP{} migrations have been led by profiling to find frequently-executed code.
-The goal of these opportunistic migrations was to test whether \SP{} could
-improve typical modules without slowing down their neighbors.
-As a point of comparison, Typed Racket can improve individual Racket
-modules but the type checks that it requires on module boundaries
-can lead to huge slowdowns~\cite{tfgnvf-popl-2016,gtnffvf-jfp-2019}.
-\SP{} does not appear to suffer in the same way.
-
+Later \SP{} migrations have been directed by profiling to find frequently-executed code.
 During the first half of 2021, the \SP{} team identified critical
-modules and proposed types to the maintainers of these modules.
-Often, the types came with small code changes.
-The accepted types and changes resulted in a 1\% improvement
-in global CPU usage.
+modules and proposed types plus small code changes to the maintainers of these modules.
+The accepted proposals resulted in a 1\% improvement in global CPU usage.
 During the second half of 2021, the \SP{} team applied the same
 process at a larger scale.
-They also changed a code-generating module to output \SP{} code instead
-of untyped Python code;
-this one change brought over four hundred generated modules into the \SP{} fold.
-Overall, these changes resulted in a 2\% global CPU improvement.
+They also modified a code-generating module to output \SP{} code;
+this one change brought over four hundred generated modules into the typed fold.
+Overall, the second-half changes added a 2\% global CPU improvement.
 
 As of December 2021, the \SP{} team has converted 541 modules.
-Most of these came from the tool (417); the rest
+Most of these came from the code-generating tool (417); the rest
 are from hand conversions (124).
 These modules are well-mixed with untyped modules in the codebase.
-All together, over thirty thousand identifiers cross a type boundary
-at compile-time by either entering or leaving a \SP{} module.
+According to an analysis of identifiers that cross module-dependence
+boundaries, over 30,000 identifiers go between typed and untyped code.
 Two-thirds of these crossings are exports from \SP{} modules
-to untyped modules;
-in other words, the typed identifiers are widely used throughout the Instagram web server.
+to untyped modules; in other words, typed identifiers are widely used
+throughout the web server.
 %% data in src/static-python-imports-analysis
-%% 2022-01-06 TODO gen-code is configuration system / access control ... what are stats omitting these?!
+%% TODO gotta compare to TR etc.
 
-In a typical week, the team adds types to four additional modules.
-These modules have seen speedups ranging from 0\% to 25\% depending
-on their nature.
-Regressions have not been an issue.
-The only cause for alarm is when a module gets only a small improvement
-without code changes.
-%% - rough measure: 0 to 25% per module
-%%   ... but depends on nature of module
-%%   ... doesn't measure the cooperative effect of static-to-static cross-module calls
-%% 2022-01-06 FILL team did significant work to fight regressions
+% In a typical week, the team adds types to four additional modules.
+% These modules have seen speedups ranging from 0\% to 25\% depending
+% on their nature.
+% Regressions have not been an issue.
+% The only cause for alarm is when a module gets only a small improvement
+% without code changes.
 
 
 \subsection{Analyzing Code Changes}
-%% TODO boring unclear writing
 
-Because the \SP{} team has been changing code as well as types
-during its migrations, the question arises as to whether the code changes
-raise any threats to validity.
+Because the \SP{} team has been changing code as well as types during its
+migrations, the question arises as to whether the code changes raise any
+threats to validity.
 It could be that the \SP{} approach to gradual typing only pays off
-after significant modifications, or only for a restrictive style of programming.
+after significant modifications.
+%% Carl: "I reviewed the ~30 conversion diffs"
+We therefore reviewed the $\sim 30$ conversion diffs that significantly improved
+performance.
 
-To understand the code changes, we reviewed approximately 30 patches that
-significantly improved performance.
 In general, the patches have minor code changes and most of these changes
 affect tests rather than production code.
-Digging deeper, there are nine common kinds of changes.
-Six of these address type errors; the other three focus on performance.
+Digging deeper, there are nine common kinds of changes: six address
+type errors and the other three are for performance.
 
 %% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
 %%  removes an extra call layer
 %%  helps with (timing [ context managers / decorators ])
 
-%% TODO section formatting looks good?
 \subsubsection{Code Changes for the Type Checker}
 
     %% X bg: lookup the dino email about mocks
@@ -2096,11 +2125,11 @@ Six of these address type errors; the other three focus on performance.
 \begin{enumerate}
   \item
     \ipara{Fix type errors due to mock wrappers}
-    When test code introduces a mock wrapper, it may change the return type of
-    a function.
+    When test code introduces a mock wrapper, it may inadvertantly change the
+    return type of a function.
     For example, the wrapped version of a function that returns \code{None}
     will return a \code{MagicMock} object unless the programmer explicitly
-    specifies a return value.
+    specifies \code{None} as the desired return value.
     %% Carl: This is an inherent and desired
     %% incompatibility; next half we plan to work on improving the Python mock
     %% framework to automatically create mocks of the correct types.
@@ -2108,14 +2137,13 @@ Six of these address type errors; the other three focus on performance.
   \item
     \ipara{Change mocked function to expect positional arguments}
     \SP{} currently rewrites all function calls to use positional arguments.
-    Mock-wrapped functions therefore need to positional arguments instead of keywords.
+    Mock-wrapped functions therefore need to use positional arguments instead of keywords.
     %% Carl: we plan to fix this incompatibility by falling back to the original call
     %% arguments when we detect the target function has been patched.
 
   \item
     \ipara{Change functions to accept positional arguments}
     Functions that expect only keyword arguments cannot yet be called from \SP{} contexts.
-    These functions need to change.
     %% Carl: We plan to support this next half.
 
   \item
@@ -2131,13 +2159,13 @@ Six of these address type errors; the other three focus on performance.
     \ipara{Move \code{@dataclass} and \code{Enum} classes}
     \SP{} does not support classes decorated with \code{@dataclass}
     and classes that are enums.
-    Programmers have to move these classes to a different module for now.
+    For now, programmers have to move these classes to an untyped module.
     %% Carl: We have work in progress on supporting some Enum types, and plan to add a @dataclass intrinsic soon.
 
   \item
     \ipara{Remove unsupported Python features}
     Occurrences of the dynamic Python features listed in \cref{s:dynamic-python} must be rewritten or moved.
-    According to the \SP{} team, these changes have not required any major rewrites.
+    %% According to the \SP{} team, these changes have not required any major rewrites.
 
 \end{enumerate}
 
@@ -2147,168 +2175,199 @@ Six of these address type errors; the other three focus on performance.
 
 \begin{enumerate}
   \item
-    \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
-    Static methods can get invoked directly as functions, bypassing the class.
-    %% Carl: \code{INVOKE\_FUNCTION} instead of \code{INVOKE\_METHOD}
-
-%% 2022-01-12
-%% I don’t think it was a super common change, but there were some cases where we
-%%     changed a @classmethod that didn’t actually use its cls argument to a
-%%     @staticmethod. It looks like we have 24 static modules using a
-%%     @staticmethod somewhere in the module, but I think in the majority of those
-%%     there just happened to be some pre-existing staticmethods (they aren’t
-%%     uncommon in our codebase); I think a minority were intentional
-%%     optimizations on our part. And the pre-existing ones may or may not be
-%%     meaningfully improving performance. So I’m not sure how valuable it is to
-%%     report this metric.
-
-
-  \item
     \ipara{Use primitive types}
     Any Python integers and booleans in hot code paths are better as
     \SP{} primitive values~(\cref{s:c-types}).
+    As noted above, primitives were required for \SP{} to match the performance of
+    Cython.
+    Twelve modules currently use primitives.
     %% - bg: focus on block, convert, no problem?
 
   \item
-    \ipara{Use Checked Types}
-    Occasionally, converting a Python dictionary or Python list to a
-    checked type has a big impact on performance.
-    As noted in \cref{s:checked-type}, these conversions affect all downstream
-    clients of the data structure.
+    \ipara{Use concrete types}
+    Three modules currently use a concrete dictionary type
+    (of the form $\sptchkdict{\sptype}{\sptype}$)
+    and six modules use a checked list type.
     %% - bg: how occasional? worried about power of the "gradual soundness" claim
 
+  \item
+    \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
+    Static methods can get invoked directly as functions, bypassing the class vtable.
+    Twenty-four modules use static methods, though many of these uses pre-date \SP{}.
+    %% 2022-01-12 Carl:
+    %% I don’t think it was a super common change, but there were some cases where we
+    %% changed a @classmethod that didn’t actually use its cls argument to a
+    %% @staticmethod. It looks like we have 24 static modules using a
+    %% @staticmethod somewhere in the module, but I think in the majority of those
+    %% there just happened to be some pre-existing staticmethods (they aren’t
+    %% uncommon in our codebase); I think a minority were intentional
+    %% optimizations on our part. And the pre-existing ones may or may not be
+    %% meaningfully improving performance. So I’m not sure how valuable it is to
+    %% report this metric.
+
+
 \end{enumerate}
+
+%% More Migration Notes
+
+%% 2022-01-12 Carl:
+%% We did have some cases where strict semantics caused a problem, but in the
+%% majority of conversions it didn’t (or if it did initially, the fix was
+%% trivial.) There was at least one case where I would have converted more code to
+%% static but couldn’t easily do so because of strictness issues with a larger
+%% framework reliant on metaclasses, and so I instead extracted the hottest code
+%% paths into a new strict/static module and called them. I have a plan to go back
+%% to this and improve the framework itself to be strict so more code can be
+%% converted. I know of at least one other case where we did modify a framework
+%% that relied on side-effecting decorators so that it could be used without the
+%% side effects.
 
 
 \subsubsection{Developer Experience}
 
-For the most part, developers at Instagram have been happy adopting \SP{}.
-The transition from Pyre to \SP{} has thus far delivered performance benefits
+For the most part, programmers have been happy adopting \SP{}.
+The transition from Pyre to \SP{} has delivered performance benefits
 that outweigh the cost of code changes.
+Even the use of strict modules has been acceptable; only two modules
+required non-trivial rewrites to avoid mutation.
 
 One significant pushback dealt with multiple inheritance.
-The \SP{} team proposed a rewrite from multiple inheritance to single inheritance
-to improve performance and static checks.
-But the code maintainers preferred to keep multiple inheritance.
-Because \SP{} defaults to Python behavior, the maintainers were able
-to keep multiple inheritance alongside \SP{} code.
-
-%% any more?
+The \SP{} team proposed a rewrite from multiple inheritance to single inheritance,
+but the code maintainers preferred to keep the design as-is.
 
 
 \subsection{Microbenchmarks}
 %% https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks
+%% https://docs.google.com/spreadsheets/d/1IO25bL_8LwDqx3ciQTj9dMetsFnZFdiQIyjFvgYWIpI/edit?usp=sharing
 
-%% TODO jit vs nojit
+\Cref{t:microbenchmark} compares \SP{} to Python on public microbenchmarks.
+These microbenchmarks are admittedly small and quite different than typical application code,
+but they provide an auditable and reproducible way to measure performance.
+Each row presents two ratios.
+The first compares a simply-typed version of the benchmark to untyped Python code.
+The second compares a hand-refined benchmark to untyped Python.
+The refinements are modest, mostly adding primitive types to hot loops;
+they do not require siginificant expertise to reproduce.
 
-%% 2021-12-23: TODO decide whether to ask for typed benchmarks to report ratios
-%%  Carl: we could commit to typed 2--3 more, but pystone etc (?!) are notoriously bad
-
-%% Somehow though, we ought to have public code available.
-
-Prior to deploying \SP{} in production, the team used microbenchmarks to study performance.
-These microbenchmarks are admittedly small and quite different than typical application code.
-That said, their use gave the team a coarse idea of whether \SP{} was on track during development.
-We include these microbenchmarks to offer reproducible performance numbers;
-unlike the Instagram web server, the benchmark code is public.
-
-\Cref{t:microbenchmark} reports current microbenchmark results.
-Each row gives the ratio of two running times: fully-typed \SP{} code versus
-unannotated \SP{} code.
-A ratio between 0 and 1 means that performance improved thanks to the types.
-[FILL] numbers.
+All runtimes for this table came from a 64-bit CentOS Linux system using a build
+of \SP{} and Cinder compiled with default settings
+(commit \href{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}{\code{d0d071a}}).
+Each benchmark version ran 11 times total: once to warm up the JIT and 10 times to
+compute an average runtime (using the \code{time} utility).
+Every benchmark version invoked the JIT on the same functions---even the untyped versions.
 
 \begin{table}[t]
-  \caption{Microbenchmark Performance Ratios}
+  \caption{Microbenchmark performance ratios. NB: data for deltablue and nbody is pending.}
   \label{t:microbenchmark}
-  %% show untyped Python time?
-  %% transpose?
-  \begin{tabular}{ll}
-    Name               & Typed / Dynamic \\\midrule
-    \bmname{deltablue} &             0\% \\
-    \bmname{fannkuch}  &             0\% \\
-    \bmname{nbody}     &             0\% \\
-    \bmname{nqueens}   &             0\% \\
-    \bmname{pystone}   &             0\% \\
-    \bmname{richards}  &         0.125\% \\
+  \begin{tabular}{lrr}
+    Name               & Typed / Python & Refined / Python \\\midrule
+    \bmname{deltablue} &          TBD &            TBD \\
+    \bmname{nbody}     &          TBD &            TBD \\
+    \bmname{richards}  &         0.53 &           0.22 \\
+    \bmname{fannkuch}  &         1.03 &           0.46
+    %% fannkuch typedbasic2 = 0.90
   \end{tabular}
 \end{table}
 
-
-%% TODO conclusions? threats?
-
+Almost all ratios are less than one, showing that \SP{} achieves a speedup over
+Python despite the cost of enforcing soundness.
+The one exception is the basic typed version of \bmname{fannkuch}, which sees a minor
+slowdown.
+This benchmark is primarily about number-crunching; and indeed, changing a few simple
+types to primitive types without modifying the code leads to a minor speedup (ratio = $0.90$).
 
 
 \section{Related Work}
 \label{s:related}
 
-Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021} are foundational.
-%% \footnote{In other words, \SP{} provides \emph{immediate accountability}~\cite{mt-oopsla-2017}.}
+Concrete types originated in Thorn~\cite{bloom,wnlov-popl-2010}
+and StrongScript~\cite{rzv-ecoop-2015},
+and play a central role in Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021}.
+It was thanks to Nom that \SP{} acquired concrete types; the impressive performance results
+in the original Nom paper inspired the \SP{} team to pursue an implementation.
 
-Full Monty~\cite{pmmwplck-oopsla-2013} core calculus for Python language, foundational for us.
+In addition to concrete types, Thorn and StrongScript have optional like types.
+The mix of like and concrete types is similar to \SP{}'s mix of concrete and shallow
+types, though like types make no claims about soundness.
 
-Grace nominal transient aint bad at all
+Many aspects of our Redex model for \SP{} are adapted from the Full Monty core calculus
+for Python~\cite{pmmwplck-oopsla-2013}.
+In particular, the Full Monty paper reminded us that booleans \emph{are} integers in Python;
+\SP{} had overlooked this detail.\footnote{Bug report: \url{https://github.com/facebookincubator/cinder/issues/46}}
+%% 2022-01-14 TODO check full monty with KC
 
-Thorn~\cite{wnlov-popl-2010} and StrongScript~\cite{rzv-ecoop-2015} are related.
+Our production experience with \SP{} suggests that a method-based JIT compiler can
+usually eliminate the costs of shallow types.
+This finding complements prior positive experience with shallow types and JIT
+technology; e.g., in Reticulated with the pypy tracing JIT~\cite{vsc-dls-2019}
+and in Grace with the Graal partial-evaluation-based JIT~\cite{FILL}.
+Similarly, the Pycket team used a tracing JIT to reduce the costs of higher-order
+checks~\cite{bbst-oopsla-2017}.
+It remains to be seen whether a non-tracing JIT is effective for higher-order
+casts.
 
-PyPy is another runtime for Python
-Pycket is built on PyPy and improves both Typed Racket~\cite{bbst-oopsla-2017}
-and Reticulated Python~\cite{vsc-dls-2019}.
+\SP{} is one of many type systems for Python.
+Other optional type checkers include Pyre, mypy, and PyType;
+these systems do not ensure safe interactions with untyped Python.
+Another sound type system is Reticulated,
+which enforces structural types (rather than nominal) using its transient
+semantics~\cite{vss-popl-2017,FILL}.
+Other \emph{optimizing} type systems for Python
+include Reticulated and mypyc.
+The latter compiles Python source to C extension modules; unlike \SP{},
+it does not offer a pure-Python developer experience.
 
-Type systems for Python ...
-mypy pyre pytype;
-Reticulated;
-
-Optimizing type systems for Python ...
-Reticulated;
-mypyc;
-Developer experience is one of the main advantages of \SP{} over mypyc,
-which implements type-directed optimizations for CPython
-by compiling source code to C extension modules.
-\SP{} even used Cython at some point and found the mixed-workflow codebase painful.
-%%  \item
-%%    Prior to investing in \SP{}, Instagram used Cython to compile
-%%    performance-critical code to C extension modules.
-%%    Cython performed well, but mixing pure Python with a few compiled modules
-%%    made for an awkward developer experience.
-%%    \SP{} aims to match the Python workflow.
-
-optimized transient, sp suggests method-at-a-time equally effective as tracing
-
-JS++ is a sound gradual type system for JavaScript~\cite{jspp}.
-By default, it separates JS++ from JavaScript values:
-every value with a type must be defined in JS++ code,
-and every value that may have come from Javascript has
-a special type \code{external} to mark it as such.
-Programmers can manually cast external values to a
-more precise type.
-The casts may fail at runtime, and may create a copy of
-the original value if they succeed (depends on the type).
-%% 2022-01-09 how does JS++ protect arrays sent to JS?
+Although sound gradual type systems are rare in industry, there are at
+least three others besides \SP{}.
+Dart 2 is a nominally-typed language with a dynamic type that is similar
+to the top object type but allows implicit downcasts to every other type~\cite{FILL}.
+C\# includes a dynamic type that defers type checking until runtime~\cite{bmt-ecoop-2010}.
+JS++ is a sound type system for JavaScript that allows untyped values
+using a catch-all \code{external} type~\cite{jspp}.
+%% Programmers can manually cast external values to a more precise type.
+%% The non-immediate casts make copies (how does that work for functions?!)
+%% also, how does JS++ protect arrays sent to JS?
 
 Gradual soundness in \SP{} bears a strong resemblance to \emph{progressive types} vision
 of a type system that comes in strict and lax forms~\cite{pqk-onward-2012}.
-Primitive types are progressive types (and a little more) for base values.
+Primitive types are progressive types for base values.
 Concrete types are essentially a progressive form of shallow types.
 
 
-\section{Future Work}
-\label{s:future}
+%% \section{Future Work}
+%% \label{s:future}
+%% 
+%% %% Immediate future: fix adoption friction points
+%% %% - mocks need manual return_value ... "next half we plan to work on improving the Python mock framework to automatically create mocks of the correct types."
+%% %% - mock calls have to rewrite to expect positional args, not keywords "plan to avoid rewrite if fn is patched"
+%% %% - functions have to expect positionals (can't do keyword only)
+%% %% - @dataclass enum.Enum
+%% %%
+%% %% significant selection bias toward low-hanging fruit
+%% %% model: metaclasses
+%% %% engineering: JIT profiling, instead of hand-requested JIT list
+%% 
+%% Adapt SP ideas to a new setting, test performance takeaways.
+%% 
+%% Improve SP with generic types, structural types (lambda), \ldots.
+%% 
+%% Use confined GT to relax ChkDict ... let programmers decide whether
+%% the type should reject or convert untyped data.
+%% Maybe a ChkDict function could compile to an "overloaded" version with
+%% fast and slow paths for ChkDict vs normal dict.
+%% 
+%% Build an automatic migration tool for Checked data.
+%% 
+%% Build a static analysis that hoists transient annotations to an early, shared point.
+%% Take care to give quality error messages.
+%% 
+%% Optimize Python integer operations (in addition to the c types).
+%% Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
+%% or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
 
-%% Immediate future: fix adoption friction points
-%% 2021-12-15: WHAT ARE THESE?
-%% - mocks need manual return_value ... "next half we plan to work on improving the Python mock framework to automatically create mocks of the correct types."
-%% - mock calls have to rewrite to expect positional args, not keywords "plan to avoid rewrite if fn is patched"
-%% - functions have to expect positionals (can't do keyword only)
-%% - @dataclass enum.Enum
-%%
-%% significant selection bias
-%% all of this is the low-hanging fruit, haven't tackled uses of metaclasses even though looks promising
-%%  because the pay / payoff isn't yet attractive
 
-
-%% engineering: JIT profiling, instead of hand-requested JIT list
-%% model: metaclasses
+\section{Lessons}
+\label{s:conclusion}
 
 %% 2021-12-30 Whence Nominal GT?
 %%
@@ -2324,143 +2383,63 @@ Concrete types are essentially a progressive form of shallow types.
 %% interesting. KC puts this on a technical footing with his very astute comment,
 %% which to me can be summarized as "every nominal language that has Object is
 %% already gradual" [leaving aside the boring non-Object base type distinction].
-       So the entire remaining game is one of making the programming interface
+%%     So the entire remaining game is one of making the programming interface
 %% as painless as possible. Some of that is just a trivial matter of
 %% syntactic defaults; some of it is making the type-checker more forgiving
 %% and replacing static checks with dynamic checks. There doesn't seem to
 %% be much else left.
 
-Adapt SP ideas to a new setting, test performance takeaways.
+\SP{} is an ambitious undertaking.
+Its developers are maintaining a fork of the Python 3.8 runtime,
+a type checker,
+an optimizing ahead-of-time compiler,
+and a method-based JIT compiler.
+The team has converted hundreds of untyped modules to \SP{}
+and plans to convert thousands more in the future.
 
-Improve SP with generic types, structural types (lambda), \ldots.
-
-Use confined GT to relax ChkDict ... let programmers decide whether
-the type should reject or convert untyped data.
-Maybe a ChkDict function could compile to an "overloaded" version with
-fast and slow paths for ChkDict vs normal dict.
-
-Build an automatic migration tool for Checked data.
-
-Build a static analysis that hoists transient annotations to an early, shared point.
-Take care to give quality error messages.
-
-Optimize Python integer operations (in addition to the c types).
-Hard because syntax like \code{a + b} may be the result of either \code{a.\_\_add\_\_(b)}
-or \code{b.\_\_radd\_\_(a)} depending on runtime types and behavior.
-
-
-\section{The Lessons}
-\label{s:conclusion}
-
-\SP{} is ambitious in many ways:
-\begin{itemize}
-  \item Type checker and compiler for Python syntax
-  \item Fork of Python 3.8
-  \item Add significant runtime components: vtable, classloader
-  \item Add a method-based JIT
-  \item Aiming for tens of thousands of typed modules (surely not all 45k in the server, but otoh the plan must be to hit other parts of IG too)
-\end{itemize}
-
-But \SP{} is also carefully targeted:
+And yet, \SP{} is carefully restricted to set attainable goals
+for its implementors and for adopters:
 \begin{itemize}
   \item
-    Not aiming for an exhaustive type checker.
-    The availability of tools like Pyre already do a fine job.
-    (Don't forget that consequently, it's helpful for undefined types go to dynamic.)
+    The syntax of sound static types is relatively small compared
+    to Pyre~\cite{pyre} and other types-for-Python proposals~\cite{FILL}.
+    Higher-order types are absent.
+    The focus is instead on first-order class types, base types, and standard data structures.
   \item
-    Shallow types come first in the implementation, then concrete / checked
-    (ditto for adoption)
+    The type checker operates at a module-level granularity rather
+    than at the level of statements or expressions.
   \item
-    Not aiming for the full gradual guarantees.
-    Only really matters for the initial migration, the common case.
-    Indeed, it's important to not have the guarantee for primitives for their performance.
+    Gradual class hierarchies are permitted, but restricted to single inheritance.
+    Furthermore, static-to-static method overrides cannot reduce the precision of types---a restriction
+    that enables optimizations but breaks the static gradual guarantee.
   \item
-    The type checker is module-at-a-time, not fine-grained.
+    Shallow types such as $\sptrawpydict$ accommodate Python code but offer coarse
+    soundness guarantees.
+    These types have been the top priority for \SP{}.
+    Concrete types support full soundness, but impose nonlocal maintenace costs.
+    \SP{} supports few concrete types at the moment and plans to add more.
+  \item
+    Progressive primitive types are available to help developers maximize performance.
+    These types are intentionally incompatible with the dynamic type to help programmers
+    avoid casts at run-time.
 \end{itemize}
+%
+Many of these restrictions go against the grain of the mainstream
+research community, but they have been effective in practice.
+The current \CPUchange{} increase in CPU usage is a huge improvement
+at the scale of the Instagram web server.
 
+In conclusion, we conjecture that the \SP{} approach to gradual typing
+is a viable way to incrementally add types to a production codebase.
+Determining whether this conjecture holds more broadly is a critical
+question that calls for research on two fronts.
+First, \SP{} must be applied to additional projects in a module-at-a-time manner.
+A exhaustive performance evaluation~\cite{FILL} of a few small projects would be
+especially useful.
+Second, the \SP{} approach should be adapted to other languages.
+An optionally-typed language such as TypeScript would be an ideal starting
+point for such an experiment.
 
-
-%% 2022-01-06 TODO multiple dimensions of gradual
-
-\subsection{Nominal, Checked Types}
-\label{s:concrete-migration}
-
-CheckedDict enables strong type checks and optimizations, but is painful to use.
-It is painful even though ChkDict supports the full dict API
-(any context that uses a Python dict can use a ChkDict without code changes).
-
-The problem is that the ChkDict type rejects all Python values.
-It accepts only ChkDict values, built through a special constructor
-that installs a tag for type tests and guards writes.
-Suppose that \code{f} is an untyped dict function.
-As is, it can process ChkDict but gets no benefit from type checks nor from optimizations.
-Adding a ChkDict domain type enables optimizations within \code{f} but raises a non-local
-problem: all callers of \code{f} must be sure to create a ChkDict.
-These ChkDicts must also be monomorphic to match whatever type \code{f} chose.
-It can take many edits to get a program running again after adding a ChkDict type.
-
-Lessons:
-\begin{itemize}
-  \item
-    Nominal types are not compatible with structual values, such as Python values.
-    Programmers are forced to edit old code to use such types ... unless the recent Nom work has a better idea~\cite{mt-oopsla-2021}
-  \item
-    Monomorphic nominal types are even worse.
-    Editing old code to fit their rigid constraints may not be feasible.
-
-\end{itemize}
-
-Enabling checked types has a huge ripple effect.
-The worst case is changing an annotation to a expect a checked data structure:
-\begin{enumerate}
-  \item all callers must create a checked value by invoking the right constructor, and
-  \item all clients of those callers can no longer expect an unchecked type.
-\end{enumerate}
-Programmers have to trace the annotation back to value-creation points, and then
-ensure that all uses of those values are compatible.
-
-
-\subsection{Pyre Compatibility}
-
-Many decisions in \SP{} are influenced by the widespread use of Pyre at Instagram.
-\begin{itemize}
-  \item
-    To minimize changes needed to adapt Pyre-annotated programs
-    to \SP{}, the syntax of \SP{} is compatible with Pyre.
-    Pyre can run useful checks on every \SP{} program.
-  \item
-    Because Pyre is a mature type checker, the \SP{} team has taken a
-    depth-first approach to development.
-    The language implements a small set of sound types efficiently and ignores
-    other types.
-    Of course, programmers who use advanced Pyre types can still use Pyre to
-    get compile-time feedback.
-  \item
-    The fact that \SP{} interprets unknown Pyre types as type dynamic changes
-    users' expectations about what the dynamic type should mean.
-    It is not necessarily a label for untyped Python code; dynamic code
-    can be analyzed to catch static bugs.
-    %% FILL what are the checks?
-\end{itemize}
-
-
-\subsection{Conclusion}
-
-Sound types in Static Python give programmers a way to improve performance.
-The change is not forced, not intrusive;
-programmers can keep using unsound types when working toward a deadline.
-
-Conjecture that soundness will find bugs too, and lead to more reliable products.
-Too soon to say.
-
-
-\subsection{Communication}
-
-How did we communicate effectively?
-Starting point was GT survey [CITE].
-Moved forward with example programs, see emails and github issues.
-Our formalism had to cover their unit tests.
-FILL
 
 %\acks{
 %  Thanks to
@@ -2471,7 +2450,6 @@ FILL
 %  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
 %}
 
-
 {\sloppy
 \printbibliography
 }
@@ -2481,9 +2459,7 @@ FILL
 \section{GitHub Issues}
 \label{a:github-issues}
 
-FILL if we're going to list issues, might as well report the titles, labels, and open/closed status.
-
-The 25 GitHub issues that we filed during the formalization effort may be found at the following three links:
+The 25 GitHub issues that arose from our work may be found at the following three links:
 
 \begin{itemize}
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024} (N=20)
@@ -2493,139 +2469,272 @@ The 25 GitHub issues that we filed during the formalization effort may be found 
 \end{itemize}
 
 
-\section{Pyre Limitations}
+\section{On Migrations from Pyre to \SP{}}
 
-FILL condense the email thread in comment (see source)
+Although the Instagram web server has extensive Pyre annotations,
+these annotations are not always enough to satisfy \SP{}.
+In fact, code may have latent bugs that Pyre did not catch;
+we list common reasons for such bugs below:
 
-% Pyre limitations
-% 4 messages
-% Ben Greenman <benjaminlgreenman@gmail.com>	Fri, Sep 24, 2021 at 11:18 AM
-% To: Carl Meyer <carljm@fb.com>
-% Cc: Dino Viehland <dinoviehland@fb.com>, "Lu, Kuang-Chen" <kuang-chen_lu@brown.edu>, Shriram Krishnamurthi <shriram@gmail.com>
-% >>> When we “add types” to a function (by adopting its module into Static
-% >>> Python, meaning Static Python now cares about the type annotations on that
-% >>> function), there may be other code calling that function with types that
-% >>> don’t match what it is annotated to receive. This then causes new runtime
-% >>> type errors for those calls once the module is made static. So sometimes we
-% >>> do have to fix those – we consider that to be fixing pre-existing type
-% >>> errors that Pyre missed. We probably see a lot less of that because the
-% >>> codebase is already type annotated and statically checked by Pyre, than we
-% >>> would if we were adopting Static Python into a previously-not-type-checked
-% >>> codebase.
-% >>
-% >> I'm surprised that you see any errors like this. Is Pyre unsound at
-% >> these pre-existing spots?
-% >
-% > Yes, Pyre is unsound in various ways (as a purely static checker of a
-% > gradually typed language must inherently be):
-% >
-% > 1. Some code just isn’t covered or checked by Pyre, because Pyre’s gradual
-% > adoption strategy is to only check functions that have annotations in their
-% > signature, or in extreme cases because the “code” that’s calling into Python
-% > isn’t Python code at all, but rather Python C extension code or Cython code.
-% > So Pyre has no visibility into calls from code it isn’t even checking.
-% > 2. Any code with annotations involving the `Any` type (or missing
-% > annotations) will have values that Pyre types as `Any`, and Pyre will
-% > silently allow you to do anything with those values. (It has no other
-% > choice, this is the only way that static-only gradual typing can work and
-% > actually be gradual.) So anything typed as `Any` by Pyre is a potential
-% > unsoundness. And although I say our codebase is largely type annotated,
-% > given that lots of it is pre-typing code that can’t be accurately statically
-% > annotated without rewriting it, there are plenty of Any annotations
-% > (especially `Dict[str, Any]` annotations) floating around.
-% > 3. People can (and do) just silence Pyre by adding a `# pyre-fixme` comment
-% > that silences a type error on the following line, if they are doing some
-% > mass adoption of types or otherwise just don’t feel up to fixing a type
-% > error for whatever reason. This tends to happen most often in cases where an
-% > annotation is just overly restrictive (e.g. claims to require `str` but in
-% > fact the method handles `None` just fine, and the argument really should be
-% > annotated as `str | None`.) So we have to fix the annotation to actually
-% > match the runtime behavior, and then we also are able to remove the
-% > pyre-fixme comments; everyone wins :)
-% > 4. If the entire codebase and all its type annotations and type stubs agree
-% > to lie about some dynamic wrinkle, Pyre will be satisfied that everything is
-% > good (and will have no way to know otherwise). A particular case of this we
-% > hit recently is that lots of values annotated as `str` in our codebase can
-% > actually at runtime be `Promise` objects that dynamically behave like a
-% > `str` if you treat them as one, and implement lazy translation of that
-% > string to the current user’s language. So as we adopt such code into Static
-% > Python, we have to correct those annotations from `str` to `str | Promise`
-% > and handle the fallout. A similar case is the `weakref` module in the Python
-% > standard library, which allows you to create “weak references” to objects
-% > that will not keep them alive in the garbage collector, but will just
-% > resolve to None if the object dies. There’s a `weakref.proxy` that creates a
-% > transparent weak-reference proxy to any object, and sometimes methods will
-% > return one of those but be annotated as returning the proxied type. This is
-% > fine for Pyre, as long as the proxy is sufficiently transparent at the level
-% > of Python semantics, but it doesn’t work for Static Python.
-% 
-% Points 1, 2, and 3 make sense.
-% 
-% I'm wondering if there are ways to write a fully-typed Pyre program (that
-% doesn't use those escape hatches) but is still unsound.* It sounds like
-% point 4 might be on this track ... but also that unchecked code (points 1,2)
-% might be involved.
-% 
-% For the weakrefs case, would Pyre approve a function like this one:
-% 
-% ```
-%   def f()->C:
-%     return weakref.proxy(C())
-% ```
-% 
-% If so, is that because Pyre comes with a builtin annotation for
-% `weakrefs.proxy` that lets it return the Any type?
-% 
-% 
-% * For comparison, TypeScript is unsound by design in a few ways. Any computed
-% string can index any object. And all object properties are covariant, despite
-% being mutable. I wonder if Pyre has similar "static unsoundness" by design.
-% Lu, Kuang-Chen <kuang-chen_lu@brown.edu>	Fri, Sep 24, 2021 at 11:50 AM
-% To: Ben Greenman <benjaminlgreenman@gmail.com>
-% Cc: Shriram Krishnamurthi <shriram@gmail.com>
-% (Internal discussion)
-% 
-% I think point 4, especially the `str` example, comes from the lack of structural typing. Interfaces can partially solve this problem. But with Nom-style interfaces, they have to define an interface and annotate the classes involved.
-% [Quoted text hidden]
-% Carl Meyer <carljm@fb.com>	Fri, Sep 24, 2021 at 12:37 PM
-% To: Ben Greenman <benjaminlgreenman@gmail.com>
-% Cc: Dino Viehland <dinoviehland@fb.com>, "Lu, Kuang-Chen" <kuang-chen_lu@brown.edu>, Shriram Krishnamurthi <shriram@gmail.com>
-% [Quoted text hidden]
-% I think it could be reasonable to define “fully-typed” as to inherently exclude all four points above! This would also exclude most real-world Python programs, but might still be an interesting definition, because even then there are some unsoundnesses remaining (that I didn’t cover above because they are not usually a problem for us in practice; in most cases I think because they involve parts of the type system we don’t even pretend to support yet in Static Python.) I’ll list some of these known unsoundnesses within the type system below.
-% 
-% In practice the Python language and standard library include features that are considered too painful to use if fully typed, generally because sound typing would require typing things as `object` (the top type), requiring `isinstance` checks everywhere to keep the static checker happy, so an unsound `Any` is preferred for usability reasons. Weakref proxies are just one example of this; there are many others.
-% 
-% https://github.com/python/typeshed is the shared repository of type stubs for the Python standard library and popular third-party packages (used by all the static checkers: Pyre, mypy, pyright, pytype…). You can search it for `Any` to find many many more examples.
-% 
-% 
-% > For the weakrefs case, would Pyre approve a function like this one:
-% >
-% > ```
-% >  def f()->C:
-% >    return weakref.proxy(C())
-% > ```
-% >
-% > If so, is that because Pyre comes with a builtin annotation for
-% > `weakrefs.proxy` that lets it return the Any type?
-% 
-% Yes, exactly, this is in the shared “typeshed” repository: https://github.com/python/typeshed/blob/master/stdlib/_weakref.pyi#L33
-% 
-% >
-% > * For comparison, TypeScript is unsound by design in a few ways. Any computed
-% > string can index any object. And all object properties are covariant, despite
-% > being mutable. I wonder if Pyre has similar "static unsoundness" by design.
-% 
-% Right, and the Python type system has some similar unsound-by-design choices. A few that I’m aware of:
-% 
-% - Mutable attributes ought to be invariant (because they are in effect both getters and setters, thus appearing in both covariant and contravariant position), thus subclasses should not be allowed to change the type of a base class attribute. But in practice all Python type checkers permit a subclass to narrow the type of a base class attribute. Now that `Final[]` annotations are available on attributes (which would make them soundly covariant), it might be more reasonable to close this hole, here’s discussion on the mypy bug tracker: https://github.com/python/mypy/issues/3208. We are currently sound here in Static Python, but in an odd way; we should error on the subclass attribute type override itself, but instead we ignore it and continue to use the base class attribute type for the subclass also.
-% 
-% - There are some issues with `typing.Type[]` types (these are the types of class objects themselves) and the fact that they are covariant (which is widely relied on.) This is unsound because incompatible constructor signature overriding is allowed in subclasses (which is also widely used). It’s also unsound because the type of the `self` argument to any overridden method will be Parent on the parent method and Child on the child method, which is the opposite of the normal requirement that method arguments (appearing in a contravariant position) must only be widened on subclass overrides. This means that if some function accepts a type and calls an unbound method on it, providing the `self` arg explicitly, the covariance of `Type` is unsound. On these we are currently OK only because we don’t yet support `Type[]` annotations.
-% 
-% - Type checking argument splatting in calls is unsound. If we have a dynamic list `l` or dict `d` and we have a call like `foo(*l)` or `foo(**d)`, unless foo accepts `(*args, **kwds)` it is impossible to statically type check the call. Making this sound would have to either require the callee to accept (*args, **kwds) or require that the list or dict is a statically known literal; the latter totally defeats the purpose of argument splatting, the former is more conceivable but still makes it a lot less useful, so in practice type checkers just allow these calls. This one is OK in Static Python because we simply fallback to dynamic calls (and thus runtime argument type checks in the callee) for these calls (I mean it’s OK in that it doesn’t result in cascading unsoundness — it still means runtime error rather than static one for the call itself.)
-% 
-% There are more cases than just these, but I think the others are more esoteric.
-% 
-% Carl
+\begin{itemize}
+  \item
+    Pyre misses some bugs because it does not monitor run-time interactions
+    with untyped code.
+
+  \item
+    Similarly, some uses of the Pyre dynamic type (\code{Any}) end up
+    raising errors when \SP{} monitors their interactions with precisely-typed code.
+
+  \item
+    Occurrences of the special comment \lstinline$# pyre-fixme$ disable Pyre checks.
+
+  \item
+    Some annotations intentionally lie to reduce the work of maintaining types.
+    For example:
+
+    \begin{itemize}
+      \item
+        The standard \code{typeshed} repo of Python type annotations declares
+        that a weak reference has the dynamic type~\cite{FILL}.
+        This declaration is easy to use because it does not force programmers
+        to handle the case where their weakly-held object has been collected,
+        but it is also a potential source of bugs.
+      \item
+        Mutable class attributes are covariant in Pyre and other
+        Python type checkers, including mypy~\cite{FILL}.
+      \item
+        The meta-type \code{Type} is unsoundly covariant as well in Pyre
+        and others.
+      \item
+        Argument splatting, i.e. applying a function that expects positional
+        arguments to a list (\code{f(*lst)}), is not statically checked
+        either.
+    \end{itemize}
+
+\end{itemize}
+
+None of these issues are problems with Pyre.
+Quite naturally, it cannot find bugs in code that it does not analyze!
+Our point is simply that optional type systems can miss a variety of issues.
+
+
+\section{Fine-Grained Benchmark Data}
+
+\newcommand{\colname}[1]{\textbf{#1}}
+
+The tables in this section present fine-grained data for the microbenchmark programs.
+Each benchmark has several versions of its code that accomplish the same work:
+the original untyped version (\colname{Orig}) and a typed version (\colname{T-Max}) converted for maximum
+performance under Static Python and the JIT.
+Some benchmarks have a basic typed version (\colname{T-Min}) that adds only
+type annotations and necessary casts to the original code,
+without using any more advanced Static Python
+features such as primitive types or otherwise optimizing the code for Static
+Python.
+Fannkuch has a second basic version (\colname{T-Min2}) that uses just a few primitive integers
+where it can be done without significant changes to the code.
+
+The other axes of our test matrix are \colname{SP} (whether the Static Python compiler is
+used), \colname{JIT} (whether the Cinder JIT is enabled), and \colname{SF} (whether the JIT
+shadow-frame mode is enabled, which reduces Python frame allocation costs.) The
+matrix is not complete, since using the Static Python compiler on untyped code
+has no noticeable effect, and shadow-frame mode is only relevant under the JIT.
+
+Benchmarks are run on a 64-bit CentOS Linux system, using a build of Cinder
+compiled with default configure settings. Overall process user time is measured
+via the \code{time} utility. Each benchmark/configuration is run 10 times (after an
+initial warmup run to ensure there is an up-to-date bytecode cache file and
+compilation time will not be included), and all individual data points are
+recorded. All data points are in seconds.
+
+JIT runs use a JIT list that includes only the benchmark code itself, to
+minimize overhead of compiling unrelated standard library code not used in the
+benchmark.
+
+Benchmarks run on the following commit:
+
+\smallskip
+{\centering\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}}
+
+Fannkuch in particular is very numeric-heavy, so using unboxed primitive
+integers in the typed version can be a big win. For this to work maximally
+efficiently, we also need to avoid operations that don't yet support primitives
+and thus would require expensive boxing. In typed-and-optimized Fannkuch (\colname{T-Max}), these changes move
+a lot of the work out of heavily-optimized C builtin methods (for list
+slice/insert/pop) and into simple Python code doing the equivalent operations
+manually with simple iteration and indexing. In the short run this is a massive
+pessimization for non-static Python (or even SP without the JIT, since
+currently we always use boxed integers in the interpreter loop.) In the long
+run it suggests that Static Python + JIT could make it feasible to implement
+many more of these core datastructure operations in pure Python rather than in
+C.
+
+Because of this subtlety, we include benchmark results for both typed and
+untyped versions of each benchmark. In the short term, perhaps the most
+relevant comparison is the performance of Static Python on the typed benchmark
+vs the performance of nonstatic Python on the untyped benchmark; this gives a
+fair picture of expected perf gains converting code to Static Python with some
+willingness to optimize.
+
+We also observe significant untapped opportunity to improve Static Python's
+performance; for example, $20\%$ of Typed Fannkuch SP+JIT time is spent on
+bounds-checking array accesses; most of this runtime bounds-checking cost could
+be eliminated if the Static Python compiler tracks known array sizes and
+integer values more thoroughly. And it would also be possible to support list
+slicing, list pop, and list insert with primitive arguments, thus avoiding the
+need to rewrite these operations in Python for maximum efficiency.
+
+\colname{T-Min} Fannkuch without the JIT is slow because of a known issue where we
+don't cache function lookups for \code{INVOKE\_FUNCTION} in the interpreter loop,
+making the calls to \code{list.insert} and \code{list.pop} slower; this is fixable.
+
+\begin{landscape}
+
+\begin{table}[tph]
+  \caption{Richards microbenchmark data}
+  \label{t:mb:richards}
+  \footnotesize
+
+  \begin{tabular}{rrrrrrrrrrrrrrr}
+  \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{Orig} & \colname{Orig} & \colname{Orig} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () & (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () \\\hline
+  $0.57$ & $1.29$ & $7.86$ & $8.36$ & $10.24$ & $16$ & $1.41$ & $2.68$ & $7.67$ & $5.58$ & $7.97$ & $13.32$ & $2.6$ & $3.88$ & $10.17$ \\
+  $0.59$ & $1.32$ & $7.92$ & $8.84$ & $9.97$ & $15.73$ & $1.38$ & $2.6$ & $7.9$ & $5.92$ & $7.25$ & $13.59$ & $2.6$ & $4.01$ & $10.18$ \\
+  $0.58$ & $1.33$ & $7.89$ & $8.9$ & $10.57$ & $16.2$ & $1.39$ & $2.64$ & $7.74$ & $5.54$ & $7.64$ & $13.83$ & $2.61$ & $4.17$ & $10.73$ \\
+  $0.58$ & $1.33$ & $7.92$ & $8.53$ & $10.71$ & $16.71$ & $1.38$ & $2.65$ & $7.8$ & $6.06$ & $7.24$ & $13.95$ & $2.9$ & $3.92$ & $9.96$ \\
+  $0.56$ & $1.33$ & $7.83$ & $9.15$ & $9.89$ & $16.62$ & $1.37$ & $2.62$ & $7.68$ & $5.52$ & $7.2$ & $13.5$ & $2.63$ & $3.79$ & $10.04$ \\
+  $0.56$ & $1.33$ & $7.97$ & $8.25$ & $10.44$ & $15.65$ & $1.39$ & $2.58$ & $7.8$ & $5.63$ & $7.27$ & $13.52$ & $2.64$ & $3.95$ & $9.99$ \\
+  $0.55$ & $1.32$ & $8.18$ & $8.78$ & $10.07$ & $16.22$ & $1.36$ & $2.65$ & $7.79$ & $5.74$ & $7.17$ & $13.34$ & $2.62$ & $3.9$ & $10.16$ \\
+  $0.55$ & $1.31$ & $7.85$ & $8.67$ & $10.07$ & $15.73$ & $1.43$ & $2.66$ & $7.82$ & $5.56$ & $7.54$ & $13.68$ & $2.6$ & $3.84$ & $9.69$ \\
+  $0.56$ & $1.31$ & $7.96$ & $8.52$ & $10.14$ & $15.82$ & $1.53$ & $2.63$ & $7.9$ & $5.59$ & $6.89$ & $13.79$ & $2.6$ & $4.04$ & $9.82$ \\
+  $0.57$ & $1.32$ & $8$ & $8.35$ & $10.57$ & $16.66$ & $1.37$ & $2.71$ & $7.95$ & $5.74$ & $6.91$ & $13.5$ & $2.62$ & $3.85$ & $9.85$ \\
+\end{tabular}
+
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[tph]
+  \caption{Fannkuch microbenchmark data}
+  \label{t:mb:fannkuch}
+  \footnotesize
+
+  \begin{tabular}{rrrrrrrrrrrrrrr}
+  \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min2} & \colname{T-Min2} & \colname{T-Min2} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () & (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () & (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) \\\hline
+  $1.27$ & $1.39$ & $34.69$ & $40.74$ & $41$ & $48.23$ & $2.77$ & $2.83$ & $6.18$ & $2.89$ & $2.86$ & $4.07$ & $2.48$ & $2.52$ & $7.28$ \\
+  $1.32$ & $1.25$ & $34.35$ & $40.23$ & $40.94$ & $49.03$ & $2.85$ & $2.8$ & $6.12$ & $2.94$ & $2.9$ & $4.06$ & $2.52$ & $2.48$ & $7.28$ \\
+  $1.28$ & $1.26$ & $34.67$ & $40.74$ & $40.65$ & $49.42$ & $2.79$ & $2.77$ & $6.38$ & $2.87$ & $2.86$ & $4.1$ & $2.47$ & $2.53$ & $7.24$ \\
+  $1.23$ & $1.31$ & $35.71$ & $40.94$ & $39.7$ & $49.35$ & $2.87$ & $2.81$ & $6.23$ & $2.87$ & $2.85$ & $4.29$ & $2.48$ & $2.57$ & $7.35$ \\
+  $1.28$ & $1.38$ & $34.85$ & $39.59$ & $40.46$ & $49.18$ & $2.85$ & $2.84$ & $6.17$ & $2.92$ & $2.81$ & $4.14$ & $2.5$ & $2.56$ & $7.34$ \\
+  $1.26$ & $1.34$ & $33.96$ & $40.45$ & $39.99$ & $47.79$ & $2.87$ & $2.8$ & $6.21$ & $2.94$ & $2.8$ & $4.06$ & $2.43$ & $2.47$ & $7.17$ \\
+  $1.26$ & $1.23$ & $34.65$ & $40.78$ & $40.97$ & $49.7$ & $2.92$ & $2.76$ & $6.04$ & $3.11$ & $3.05$ & $4.08$ & $2.47$ & $2.69$ & $7.18$ \\
+  $1.27$ & $1.35$ & $33.83$ & $40.96$ & $41.78$ & $47.92$ & $2.78$ & $2.76$ & $6.13$ & $3.1$ & $2.86$ & $4.19$ & $2.47$ & $2.45$ & $7.14$ \\
+  $1.23$ & $1.4$ & $36.23$ & $40.49$ & $40.29$ & $48.68$ & $2.84$ & $2.76$ & $6.13$ & $2.87$ & $2.96$ & $4.31$ & $2.43$ & $2.55$ & $7.23$ \\
+  $1.23$ & $1.27$ & $36.05$ & $40.72$ & $40.11$ & $48.29$ & $2.92$ & $2.79$ & $6.17$ & $2.91$ & $2.96$ & $4.1$ & $2.52$ & $2.49$ & $7.2$ \\
+\end{tabular}
+
+\begin{tabular}{rrrrrr}
+  \colname{T-Min2} & \colname{T-Min2} & \colname{T-Min2} & \colname{Orig} & \colname{Orig} & \colname{Orig} \\
+  (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () \\\hline
+  $3.16$ & $3.08$ & $4.59$ & $2.81$ & $2.94$ & $4.02$ \\
+  $3.26$ & $3.08$ & $4.51$ & $2.66$ & $2.85$ & $4.22$ \\
+  $3.11$ & $3.18$ & $4.59$ & $2.69$ & $2.78$ & $4.01$ \\
+  $3.18$ & $3.14$ & $4.73$ & $2.75$ & $2.8$ & $4.01$ \\
+  $3.14$ & $3.12$ & $4.63$ & $2.75$ & $2.92$ & $4.07$ \\
+  $3.23$ & $3.09$ & $4.53$ & $2.78$ & $2.83$ & $4.36$ \\
+  $3.41$ & $3.21$ & $4.48$ & $2.84$ & $2.81$ & $4.19$ \\
+  $3.43$ & $3.14$ & $4.53$ & $2.7$ & $2.86$ & $4.25$ \\
+  $3.08$ & $3.24$ & $4.53$ & $2.76$ & $2.78$ & $4.08$ \\
+  $3.16$ & $3.18$ & $4.45$ & $2.89$ & $2.76$ & $4.16$ \\
+\end{tabular}
+\end{table}
+
+\end{landscape}
+
+\begin{table}[tph]
+  \caption{Exact commands to invoke each benchmark}
+  \label{t:mb:commands}
+  \tiny
+
+  \begin{tabular}{ll}
+  \colname{Benchmark} & \colname{Command} \\\hline
+  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
+  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{SP} \colname{JIT}) & \texttt{ -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
+  Richards \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
+  (\colname{SP}) &  \\
+  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame Tools/benchmarks/richards\_static.py 100} \\
+  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{JIT}) & \texttt{ Tools/benchmarks/richards\_static.py 100} \\
+  Richards \colname{T-Max} & \texttt{time ./python Tools/benchmarks/richards\_static.py 100} \\
+  () &  \\
+  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
+  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{SP} \colname{JIT}) & \texttt{dcards -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
+  Richards \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
+  (\colname{SP}) &  \\
+  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame Tools/benchmarks/richards\_static\_basic.py 100} \\
+  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{JIT}) & \texttt{dcards Tools/benchmarks/richards\_static\_basic.py 100} \\
+  Richards \colname{T-Min} & \texttt{time ./python Tools/benchmarks/richards\_static\_basic.py 100} \\
+  () &  \\
+  Richards \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
+  (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/richards.py 100} \\
+  Richards \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
+  (\colname{JIT}) & \texttt{hmarks/richards.py 100} \\
+  Richards \colname{Orig} & \texttt{time ./python Tools/benchmarks/richards.py 100} \\
+  () &  \\
+  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
+  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{SP} \colname{JIT}) & \texttt{ -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
+  Fannkuch \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
+  (\colname{SP}) &  \\
+  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame Tools/benchmarks/fannkuch\_static.py 5} \\
+  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+  (\colname{JIT}) & \texttt{ Tools/benchmarks/fannkuch\_static.py 5} \\
+  Fannkuch \colname{T-Max} & \texttt{time ./python Tools/benchmarks/fannkuch\_static.py 5} \\
+  () &  \\
+  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{SP} \colname{JIT}) & \texttt{dcards -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+  Fannkuch \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+  (\colname{SP}) &  \\
+  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+  (\colname{JIT}) & \texttt{dcards Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+  Fannkuch \colname{T-Min} & \texttt{time ./python Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+  () &  \\
+  Fannkuch \colname{T-Min2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+  Fannkuch \colname{T-Min2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+  (\colname{SP} \colname{JIT}) & \texttt{ldcards -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+  Fannkuch \colname{T-Min2} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+  (\colname{SP}) &  \\
+  Fannkuch \colname{T-Min2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+  (\colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+  Fannkuch \colname{T-Min2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+  (\colname{JIT}) & \texttt{ldcards Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+  Fannkuch \colname{T-Min2} & \texttt{time ./python Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+  () &  \\
+  Fannkuch \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
+  (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/fannkuch.py 5} \\
+  Fannkuch \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
+  (\colname{JIT}) & \texttt{hmarks/fannkuch.py 5} \\
+  Fannkuch \colname{Orig} & \texttt{time ./python Tools/benchmarks/fannkuch.py 5} \\
+  () &  \\
+\end{tabular}
+
+\end{table}
+
 
 
 \end{document}
