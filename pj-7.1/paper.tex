@@ -395,8 +395,10 @@ may wish to focus on shallow types and JIT compilation as a
 first step toward sound gradual types.
 Second, we want to entice researchers.
 The \SP{} type system has many restrictions that are suprising
-at first glance; for example, functions are supported only by
-shallow types.
+at first glance.
+For example, functions are supported only by shallow types
+and method overrides that use the dynamic type are more constrained
+than overrides in untyped code.
 Some of these restrictions might be lifted by future research.
 Others might be useful to adopt in new language designs.
 
@@ -1703,7 +1705,7 @@ Consequently, \SP{} supports interactions with Python modules in the only viable
 way: by letting the Python code run with zero static constraints and minimal
 dynamic constraints.
 
-There are two case in which \SP{} types add dynamic constraints to Python code.
+There are two case in which \SP{} types impose constraints on untyped Python code.
 First, concrete generic types (e.g. $\sptchkdict{\sptype}{\sptype}$)
 reject inputs that were not created via a checked contructor.
 If a client of a Python module decides to impose concrete types, the Python module
@@ -1840,10 +1842,11 @@ accurate static types would be burdensome to maintain.
 \paragraph{First-Class Classes}
 
 \SP{} does not attempt to type first-class classes: partly because they have
-yet to appear in performance-critical code and partly because it
-is unclear how to incorporate them into the nominal type system.
-The straightforward but restrictive approach is to force code that uses a
-first-class class to expect subtypes of a particular named static class.
+yet to appear in performance-critical code in the Instagram web server
+and partly because they do not fit well with a nominal type system.
+The straightforward but restrictive approach for first-class nominal class types
+is to force code that uses a first-class class to expect subtypes of a
+particular named static class.
 Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifically for mixins)
 but it requires a second layer of \emph{interface types} atop the nominal hierarchy.
 MonNom~\cite{mt-oopsla-2021} uses interfaces in a similar way to accommodate
