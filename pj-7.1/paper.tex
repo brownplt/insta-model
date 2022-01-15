@@ -24,9 +24,11 @@
 \newcommand{\bcinst}[1]{\code{#1}}
 \newcommand{\defeq}{=}
 \newcommand{\mfeq}{=}
-\newcommand{\langmid}{\mid} %% {\mathrel{\mathbf{\Big\vert}}}
+\newcommand{\langmid}{~\mid~} %% {\mathrel{\mathbf{\Big\vert}}}
 \newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
+\newcommand{\nnum}[1]{$N=#1$}
+\newcommand{\totalnum}[1]{$#1$ total}
 
 \newcommand{\numbenchmark}{2}
 \newcommand{\CPUchange}{3.7\%}
@@ -126,6 +128,7 @@
 \usepackage{amsthm}
 \usepackage{mathpartir}
 \newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
 \newtheorem{definition}{Definition}
 \usepackage[backend=biber]{biblatex}
 \addbibresource{bg.bib}
@@ -990,68 +993,95 @@ though types are needed to enable the most-effective optimizations.
 \section{Model}
 \label{s:model}
 
-%% test suite is for counterex, not proof
-%% 
-%% (as opposed mech CONFUSSING let each sec explain purpose)
-%% 
-%% keep none None & explain why, ambiguity in stx
-%% 
-%% fully-sound weird, kill phrase ... say whats happening .... surface t is linter
-%% ignore WF checker
-%% 
-%% check para may be red.
-%% "The strict cast for checked dictionaries ...."
-%% 
-%% soundness, 1st para garbled don't need such a long reminder
-%% 
-%% Notable py **that we handle**
-%% soundly => correctly
-%% 
-%% addl -> additionally (4.4)
-%% 
-%% "is triue" missing word
-%% 
-%% move 4.5 up to 4.1, start with the payoff --- found soundness bugs in a tool that's running in prod at instagram
-%% 
-%% rename 4.3 to "boundry type soundness" satate a lemma instead of full TS keep the focus, don't jump up
-%% - make the proof case via Nom keep it short they have "detailed" proof
-%% - "interested reader" can follow another direct path (edit current para2)
-%% 
-%% 4.0 put less emphasis on part2 of the soundness. ... it's not a threat its a boring swept-under-rug part ... maybe 4.5 is the new 4.0???
-%% 
-%% 4.4 redex = since no formalization of py + sp .. follow well-established path of using test suite to check conformance with **reality**
-%% - cite Py \Js Jan paper, Politz getter-setter, Gardner js
-%% 
-%% 4.4 redex += everything in 4.1--4.3 is captured in redex, done 3 steps
-%%  1 human verification, carefully spot-check python faithful, boundaries vs 4.1--4.3
-%%  2 run againt SP tests .. indeed part of the reason for getting so much python is to run against an actual test suite
-%%  3 b/c in redex, use pbt to verify conventional soundness
-%% 
-%% cut "soundness as baseline" final 2 sentences of 4.4(?) they're too weak, end with the compiler verification out-of-scope part
-
-
-
-To validate the design of \SP{}, we have developed a model of the language in PLT
+To validate the design of \SP{}, we developed a model of the language in PLT
 Redex~\cite{kcdeffmrtf-popl-2012}.
-The model encompasses two soundness claims:
-%% addresses two soundness concerns?
-\begin{enumerate}
-  \item
-    \SP{}'s overall approach to gradual interactions is sound; in particular,
-    interactions with untyped code do not undermine the validity of types.
-  \item
-    The typed half of \SP{} is a sound type system for Python.
-\end{enumerate}
-This section explores the first claim in depth by way of a small formalization
-(as opposed to the Redex \emph{mechanization})
-that illustrates the \SP{} gradual interaction strategy.
-%% Compared to other gradual languages, these boundaries are quite restrictive---which
-%% partly explains how it is able to perform well in practice~(\cref{s:eval}).
-%% Indeed the boundaries are effectively a subset of those in Nom~\cite{mt-oopsla-2021}.
-The second claim is justified by our Redex development and its test suite~(\cref{s:redex}).
+The model covers a substantial part of the Python language, including
+module imports, loops, exception handlers, and delete statements.
+The model follows \SP{}'s approach to typing these features.
+
+Because there is no prior formalization of Python and \SP{}, we cannot
+\emph{verify} that the model matches reality.
+Instead, we have applied the well-established method of testing end-to-end
+conformance~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}
+with a test suite.
+In particular, we translated 214 tests from the \SP{} regression suite to the
+syntax of the model and confirmed that the results
+do match,\footnote{For most of the 214 tests, the translation is automatic.
+  A few tests required hand-pruning to remove features that the model
+  does not handle (\totalnum{52}).}
+which suggests that the model conforms to actual \SP{}.
+
+Beyond the conformance suite, we have applied two further tests for correctness.
+First, we used Redex's random testing tools~\cite{kf-sfp-2009} to check
+type soundness on thousands of example programs (\totalnum{\mbox{FILL}}).
+%% FILL how many programs exactly?
+%% FILL what bugs did testing catch?
+Second, we have manually inspected the model to convince ourselves
+of its soundness.
+Though not a proof, the inspection gives us confidence that the model,
+and by extension \SP{}, is essentially sound.
+
+
+\paragraph{The Payoff: Issues Reported}
+
+The modelling process helped uncover several critical issues with the
+implementation of \SP{}.
+This is a very important payoff given that \SP{} is running in production at
+Instagram.
+Overall, we reported 25 bug reports to the \SP{} team via GitHub~(listed in
+\cref{a:github-issues}).
+Four of these were soundness issues, one of which could be easily exploited to raise
+a segmentation fault.
+All but one of these soundness bugs have been fixed.
+Five issues were relatively minor; these dealt with confusing error messages
+and incorrect tests.
+The remaining 16 issues report bugs in language design and implementation.
+The \SP{} team has acknowledged these bugs as such by applying a specific GitHub label: \lstinline{sp-correctness}.
+
+To give one example issue, \SP{} accepted the following program whereas our model
+reported a type error:
+%% \url{https://github.com/facebookincubator/cinder/issues/62}
+
+\medskip
+\begin{minipage}[t]{0.25\columnwidth}~
+\end{minipage}\begin{minipage}[t]{0.4\columnwidth}
+\begin{lstlisting}
+  from typing import Optional
+
+  def f(x: Optional[str]) -> str:
+    while True:
+      if x is None:
+        break
+      return x
+
+  print(f(None))
+  # None
+\end{lstlisting}
+\end{minipage}
+
+\noindent{}The function \code{f} expects either a string or the \code{None} value and promises to return a string.
+When called with \code{None}, however, the function breaks out of the \code{while} loop
+and implicitly returns \code{None}---disobeying the return type.
+\SP{} had failed to account for the \code{break} and implicit return.
+More concerningly, the associated test case \emph{expected} the program to type check.
+Creating a formal model helped us catch this specification error.
+
+% In addition to these formal issue reports,
+% we had several long discussions together (between Brown and Instagram)
+% about finer points in the language design.
+
+\paragraph{Section Outline}
+
+The rest of this section illustrates core aspects of our Redex model by way of
+a small formalization.
+\Cref{s:surface} presents a surface syntax to highlight the boundaries between
+typed and untyped code.
+\Cref{s:eval-types} explains how types get enforced at run-time.
+\Cref{s:ts} argues that the overall approach toward boundaries is sound.
 
 
 \subsection{Surface Syntax and Types}
+\label{s:surface}
 
 \begin{figure}[t]
   \begin{langarray}
@@ -1060,17 +1090,17 @@ The second claim is justified by our Redex development and its test suite~(\cref
   \\
     \spstmt & \defeq &
       \spvardef{\spx}{\sptype}{\spexpr} \langmid
-  \\ & &
       \spfundef{\spf}{\spann{\spx}{\sptype}}{\sptype}{\spexpr} \langmid
   \\ & &
       \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
   \\
     \spexpr & \defeq &
       \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spfloat \langmid \spobject \langmid
+  \\ & &
       \sppydict{\spx: \spexpr, \ldots} \langmid
       \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
   \\ & &
-      \spapp{\spx}{\spexpr} \langmid
+      \spapp{\spf}{\spexpr} \langmid
       \spdictref{\spexpr}{\spexpr} \langmid
       \spdictset{\spexpr}{\spexpr}{\spexpr} \langmid
       \spobjref{\spc}{\spx} \langmid
@@ -1112,15 +1142,20 @@ a statement defines a variable, function, or class.
 These definitions may only appear on the top level
 and they all require full type annotations.
 Functions must have one positional argument.
-Classes must declare one parent (perhaps $\spobject$), one field, and one method.
+Classes must declare one parent (either $\spobject$ or another class), one field, and one method.
 Expressions describe values and simple computations.
 The basic values consist of the following: the none value, integers,
-booleans (which are the integers \code{0} and \code{1}), floating point numbers, and the top object.\footnote{By contrast to
-Python, in which \code{int} is a type and \code{None} is a value, our formalization uses lowercase names for
-values and capitalized names for types.}
+booleans (which are the integers \code{0} and \code{1}), floating point numbers, and the top object.
 There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
 The remaining forms express function calls, dictionary reads and writes, object field reads and writes,
 and method calls.
+
+In Python, the syntax for expressions overlaps with the syntax of types.
+The Python name \code{None}, for example, is both an expression and a type.
+By contrast, \cref{f:surface-types} keeps the two syntaxes distinct.
+Expressions use lowercase names (e.g. \code{none}) and types uses capitalized
+names (\code{None}).
+
 Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
 user-defined class, and union types.
 We assume that all unions are written in a tidy normal form, e.g., that
@@ -1128,11 +1163,10 @@ $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be flattened and nor
 There is no function type in the model, or in \SP{} for that matter.
 The only way to define a higher-order function is to use the dynamic type.
 
-The surface types are meant to describe programs, but they are not designed
-to be fully sound.
-For this reason, we omit the surface typing judgment, which scans for
-logical errors, and merely present the declarative syntax of surface types.
-We also omit a well-formedness judgment that checks for circular definitions.
+\SP{} does not enforce all surface types against untyped code, only the evaluation
+types presented in the next subsection~(\cref{s:eval-types}).
+For this reason, we omit the surface typing judgment, which is a kind of linter
+that merely scans typed code for logical errors.
 
 Relative to \SP{} and our Redex mechanization, the formalization in \cref{f:surface-types} omits
 many details of Python including class variables, imports, conditionals, and exception handlers.
@@ -1143,6 +1177,7 @@ None of the omitted features give substantially new ways for typed code to inter
 
 
 \subsection{Evaluation Types, Casts, and Typing Judgment}
+\label{s:eval-types}
 
 \begin{figure}[t]
   \begin{langarray}
@@ -1219,16 +1254,17 @@ casts either succeed or fail immediately.
 %% In other words, \SP{} provides \emph{immediate
 %% accountability}~\cite{mt-oopsla-2017} for cast errors.
 
-The strict cast for checked dictionaries greatly simplifies type compatibility for \SP{}.
-Values that are partly-dynamic are simply incompatible with static types.
-For example, suppose that a function expects a list of numbers.
-In a typical gradual language, a list of dynamic values would be a valid input to the function.
-In \SP{}, a list of dynamic values is not a valid input.
-Consequently, \SP{} can use an ahead-of-time strategy to enforce soundness.
-Any position where the dynamic type meets a static type needs a cast.
-Other meetings between types can be resolved statically.
-\SP{} does not need to worry that a list of dynamic values might be masquerading
-under a fully-static type.
+%% 2022-01-15: unclear if this is helpful or redundant, hiding for now
+%The strict cast for checked dictionaries greatly simplifies type compatibility for \SP{}.
+%Values that are partly-dynamic are simply incompatible with static types.
+%For example, suppose that a function expects a list of numbers.
+%In a typical gradual language, a list of dynamic values would be a valid input to the function.
+%In \SP{}, a list of dynamic values is not a valid input.
+%Consequently, \SP{} can use an ahead-of-time strategy to enforce soundness.
+%Any position where the dynamic type meets a static type needs a cast.
+%Other meetings between types can be resolved statically.
+%\SP{} does not need to worry that a list of dynamic values might be masquerading
+%under a fully-static type.
 
 \begin{table}[t]
   \caption{How to Enforce the Evaluation Types}
@@ -1570,164 +1606,58 @@ of these checks.
 %\end{figure}
 
 
-\subsection{Type Soundness}
+\subsection{Type Boundary Soundness}
+\label{s:ts}
 
-The central question for the model is whether \SP{}'s approach to gradual typing
-is sound.
-No matter how an expression mixes typed and untyped code, its static
-\emph{evaluation type} should be an accurate prediction about the results
-of evaluation.
-Using the metavariable $\spvalue$ to represent heap-allocated Python values
-and $\sprred$ as the evaluation relation (which would need to maintain a heap),
-an approximate soundness theorem is as follows:
+The soundness of our model is easily seen by reduction to Nom, a gradual
+language that allows fine-grained interactions with untyped code and comes with
+a detailed proof of soundness~\cite{mt-oopsla-2017,mt-oopsla-2021}.
+Given a program written in the syntax of \cref{f:surface-types}, one can derive
+a Nom program with the same type boundaries by replacing every checked
+dict instance with a fresh class type.
+Because distinct checked dict types are incompatible, the
+original boundaries impose the same constraints as the translated Nom ones.
 
-\begin{theorem}[Type Soundness]
-  If\ \(~\vdash \spexpr : \sptype\)
-  then one of the following holds:
-  \begin{itemize}
-    \item
-      \(\spexpr \sprred \spvalue
-        \mbox{ and }
-        \vdash \spvalue : \mftypeF{\sptype}
-      \)
-    \item
-      \(\spexpr\) reduces to an allowed error
-    \item
-      \(\spexpr\) diverges
-  \end{itemize}
-\end{theorem}
-
-As mentioned above, our argument for soundness has two parts
-The question at hand is whether the boundaries to type dynamic
-are adequately protected with run-time checks.
-The Redex mechanization's comprehensive test suite provides the other half of the
-argument; namely, that \SP{} is a sound type system for Python.
-
-The direct path to boundary soundness involves two observations.
-First, every evaluation type can be enforced with a decidable cast.
-This is clearly the case for basic values such as floats.
-It true for parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$
-because of their strict semantics.
-Second, all boundaries relate the dynamic type to an evaluation type.
-There are no significant boundaries that relate a partially static type
-to an evaluation type.
+For interested readers, we offer the following direct argument as well.
+Boundaries to less-typed code would be \emph{unsound} if an untyped
+(or partially-untyped) value could enter a typed context without
+a validating check.
+The question is thus whether all boundaries are properly guarded.
+Our answer has two parts.
+First, observe that every evaluation type comes with a decidable
+cast~(\cref{t:cast}).
+For basic types such as floats, a tag check clearly suffices.
+For parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$,
+the exact-match semantics also provides a decidable, though strict, test.
+Second, observe that boundaries can only relate the dynamic type to an
+evaluation type; there are no significant boundaries that relate a partially
+static type to an evaluation type.
 This is due to the strict semantics for checked types and the fact that
 $\sptoptional{\sptdyn}$ normalizes to the dynamic type.
-
-Alternatively, observe that the boundaries in \SP{} are a subset
-of the possible boundaries in Nom, a gradual language that comes with a detailed
-proof of soundness~\cite{mt-oopsla-2017,mt-oopsla-2021}.
-Given an \SP{} program, we can derive a Nom program with
-the same type boundaries by replacing every checked dict instance
-with a fresh class type.
-Because distinct checked dict instantiations are incompatible,
-the \SP{} boundaries impose the same constraints as the translated Nom
-boundaries.
-
-
-\subsection{Redex Development, \SP{} Conformance}
-\label{s:redex}
-%% pbt for soundness?
-
-By contrast to the small formalization presented in this section,
-our Redex mechanization covers both type boundaries and a large subset of Python.
-Notable Python features include module imports, loops, exception handlers, and
-delete statements (for class members and attributes).
-To ensure that these features are implemented correctly and soundly, the
-model includes hundreds of test programs adapted from the \SP{} test suite.\footnote{
-  Most of the 214 tests are direct translations of \SP{} conformance tests to
-  the syntax of the model.
-  A program that implements the translation is included with our Redex development.
-  The other 52 tests are not directly expressible in the model; for these, we
-  translated salient aspects of each test by hand.}
-These tests exercise a variety of Python behaviors, thereby giving us confidence
-that the model is sound for Python.
-Some tests intentionally raise type errors, some raise exceptions, and the rest
-compute a specific result; \SP{} agrees on these end-to-end behaviors.
-We have additional applied Redex's random testing tools~\cite{kf-sfp-2009}
-to validate soundness.
-%% FILL how many random tests?
-%% FILL what bugs did random catch?
-
-The model intentionally does not cover all of Python.
-Some aspects of \SP{} are left out because they are straightforward to
-handle soundly.
-These include primitive types~\cref{s:c-types} and strict modules~\cref{s:strict-mod}.
-Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
-are also omitted.
-Other Python features are left out either because their \SP{} semantics is identical
-to the baseline Python semantics or because they would entail a separate project~(\cref{s:impl}).
-In particular, modelling type-directed optimization would require substantial
-components: a model of the \SP{} bytecode and a faithful rendering of its
-transformations.
-Our model establishes soundness as a baseline.
-Future work can use soundness as a starting point for compiler verification,
-or informally leverage soundness to reason about possible optimizations.
-
-
-\subsection{The Payoff: Issues Reported}
-
-While modelling \SP{}, we found several issues with the language
-and submitted them as bug reports to the \SP{} developers.
-Overall, we reported 25 issues~(listed in \cref{a:github-issues}).
-Four of these were critical soundness issues, one of which resulted in
-a segmentation fault.
-All but one of these soundness issue have been fixed.
-Five issues were relatively minor; these dealt with confusing error messages
-and incorrect tests.
-The remaining 16 issues report bugs in language design and implementation.
-The \SP{} team has acknowledged these bugs as such by applying a specific GitHub label (\code{sp-correctness}).
-
-For example, we discovered that \SP{} handled the following function incorrectly when
-we tried to model it:
-%% \url{https://github.com/facebookincubator/cinder/issues/62}
-
-\medskip
-\begin{minipage}[t]{0.25\columnwidth}~
-\end{minipage}\begin{minipage}[t]{0.4\columnwidth}
-\begin{lstlisting}
-  from typing import Optional
-
-  def f(x: Optional[str]) -> str:
-    while True:
-      if x is None:
-        break
-      return x
-
-  print(f(None))
-  # None
-\end{lstlisting}
-\end{minipage}
-
-\noindent{}The function expects either a string or the \code{None} value and promises to return a string.
-When called with \code{None}, however, the function breaks out of the \code{while} loop
-and implicitly returns \code{None}---disobeying the return type.
-\SP{} had failed to account for the \code{break} and implicit return.
-More concerningly, the associated test case \emph{expected} the program to type check.
-Creating a formal model helped us catch this specification error.
-
-% In addition to these formal issue reports,
-% we had several long discussions together (between Brown and Instagram)
-% about finer points in the language design.
-
+Therefore casts at static occurrences of the materialization rule are
+enough to protect all boundaries.
 
 
 \section{Scaling to Python}
 \label{s:impl}
 
-%% TODO SP side channels:
-%% ?? eval,
-%% the locals and globals dicts (the latter can be accessed through frame objects at the moment),
-%% and mutable closure cells.
-
-This section explains significant aspects of \SP{} that lie outside the
-scope of our model.
-These include sound interactions with Python code,
-the bytecode language and optimizations, and dynamic Python features
-that \SP{} does not type.
+The model intentionally does not cover all of Python.
+Some aspects of \SP{} are left out because they are straightforward to
+handle.
+These include primitive types~\cref{s:c-types} strict modules~\cref{s:strict-mod},
+and the boundary to untyped Python~(\cref{s:py-boundary}).
+%% Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
+%% are also omitted.
+Other Python features are left out because their \SP{} semantics is identical
+to standard Python~(\cref{s:py-boundary}).
+Our model also does not cover the type-directed optimizer~(\cref{s:optimize}).
+Modelling type-directed optimization would require substantial additional
+components: a model of the \SP{} bytecode and a faithful rendering of its
+transformations.
 
 
 \subsection{Interactions with Open-World Python Code}
+\label{s:py-boundary}
 
 Although \SP{} is technically a new language, it is designed for gradual adoption.
 Python programmers should be able to add types module-by-module to an
@@ -1745,7 +1675,7 @@ Second, the strict setting for modules prevents updates to module-level variable
 If existing code mutates a binding in a strict module, a run-time error will
 occur.
 
-Interactions with \emph{open-world}~\cite{vss-popl-2017} Python code pose a minor
+Interactions with {open-world}~\cite{vss-popl-2017} Python code pose a minor
 threat to soundness because
 typed functions (and methods) cannot assume that their arguments are
 well-typed.
@@ -1756,6 +1686,103 @@ Similarly, concrete types such as $\sptchkdict{\sptype}{\sptype}$ also
 check their writes.
 %% 2022-01-09 worth mentioning primitive types? they get cast like anything else (they don't materiazize)
 %% 2022-01-13 don't think so --- leave prims alone, we don't want to frighten reviews with unsoundness
+
+
+\subsection{Dynamic Python Features}
+\label{s:dynamic-python}
+
+%% TODO 2022-01-09 be careful here ... the model may indeed handle module vars
+%%  the thing is, they're untyped and (maybe) not tested
+
+\SP{} does not ascribe types to the following Python features.
+These are not covered in our model because the implementation simply
+assigns the dynamic type and lets the runtime treat them as untyped
+Python code.
+For each, the dynamic type is a very reasonable choice;
+accurate static types would be burdensome to maintain.
+
+
+\paragraph{First-Class Classes}
+
+\SP{} does not attempt to type first-class classes: partly because they have
+yet to appear in performance-critical code in the Instagram web server
+and partly because they do not fit well with a nominal type system.
+The straightforward but restrictive approach for first-class nominal class types
+is to force code that uses a first-class class to expect subtypes of a
+particular named static class.
+Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifically for mixins)
+but it requires a second layer of \emph{interface types} atop the nominal hierarchy.
+MonNom~\cite{mt-oopsla-2021} uses interfaces in a similar way to accommodate
+structural objects.
+How best to add an interface layer in \SP{} is an open question.
+
+% in particular , Python's multiple inheritance would complicate the mixin story.
+% Classic mixins rely on structural types~\cite{bc-oopsla-1990}.
+
+%Notes on first-class classes being untyped:
+%- mixin-based code tends to structrural types
+%- nominality overly restrictive, get forced into <: hierarchy
+%- but don't have NO IDEA for wat to do
+%  + classes and mixins paper shows one idea,
+%    ... need complicated mixin study??? (many sub objects)
+%    built new type system to be mixin-aware, layered atop java
+%    unsure if such extension works for SP
+%    furthermore, class-and-mixins depends on Java single inheritance
+%  + bracha cook mixin pattern
+%  + tate muehlboeck structural object + interfaces
+
+
+\paragraph{Multiple Inheritance}
+
+%% https://docs.python.org/3/reference/datamodel.html
+%% TODO check Dino email, confirm with C&D that layout conflict is unrelated to vtables
+
+Python allows classes to inherit from a list of parents.
+To resolve method calls to such a class, Python
+dynamically traverses the parent list in a fixed order
+seeking a first match.
+
+Due to the dynamic method resolution order (MRO),
+\SP{} does not track types for classes with multiple parents.
+Method calls to these classes execute the same way as
+in Python, with no type-directed optimizations to improve dispatch.
+
+
+\paragraph{Dynamic Execution}
+
+%% 2022-01-13: __setattr__ is along the same lines
+%%Carl: Removing the use of super-dynamic Python features like
+%%\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
+%%we’ve done this it hasn’t required a major rewrite.
+
+Results computed by calls to \code{eval} and \code{exec}
+have the dynamic type.
+Their inputs run without being rewritten by the optimizer.
+
+Studies of JavaScript and R have shown that many uses of dynamic execution
+can be removed through simple adjustments~\cite{rhbv-ecoop-2011,gdkkv-oopsla-2021,mrmv-esop-2012}.
+Assuming these findings carry over to Python, similar adjustments would
+preferable over attempting to type eval.
+
+
+%% 2022-01-13 covered pretty well earlier
+%%\paragraph{Module-Level Variables}
+%%
+%%Any Python module can read and write to the module-level variables of another module.
+%%When compiling a module, \SP{} therefore assumes that its module-level variables
+%%may be modified by untyped code and assigns the dynamic type.
+%%
+%%Strict modules as an alternative to the Python
+%%semantics.\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
+%%If a programmer chooses to declare a module as strict, then its module-level varibles
+%%are immutable and thus typeable.
+%%
+%%Another potential solution is for the Cinder runtime to check that writes to module-level variables
+%%preserve their types.
+%%There are two downsides to this idea:
+%%it will add some performance overhead,
+%%and it will force developers to rewrite untyped code in order to fix any errors that arise.
+%%%% Because of the latter concern, type dynamic is a very reasonable default.
 
 
 \subsection{Bytecode and Optimizations}
@@ -1854,105 +1881,6 @@ function body.
 The optimizer uses this convention to skip argument checks by jumping past them
 when it is safe to do so; namely, whenever a typed function or method gets
 called in a typed context.
-
-
-\subsection{Dynamic Python Features}
-\label{s:dynamic-python}
-
-%% TODO 2022-01-09 be careful here ... the model may indeed handle module vars
-%%  the thing is, they're untyped and (maybe) not tested
-
-\SP{} does not ascribe types to the following Python features.
-These are not covered in our model because the implementation simply
-assigns the dynamic type and lets the runtime treat them as untyped
-Python code.
-For each, the dynamic type is a very reasonable choice;
-accurate static types would be burdensome to maintain.
-
-
-\paragraph{First-Class Classes}
-
-\SP{} does not attempt to type first-class classes: partly because they have
-yet to appear in performance-critical code in the Instagram web server
-and partly because they do not fit well with a nominal type system.
-The straightforward but restrictive approach for first-class nominal class types
-is to force code that uses a first-class class to expect subtypes of a
-particular named static class.
-Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifically for mixins)
-but it requires a second layer of \emph{interface types} atop the nominal hierarchy.
-MonNom~\cite{mt-oopsla-2021} uses interfaces in a similar way to accommodate
-structural objects.
-How best to add an interface layer in \SP{} is an open question.
-
-% in particular , Python's multiple inheritance would complicate the mixin story.
-% Classic mixins rely on structural types~\cite{bc-oopsla-1990}.
-
-%Notes on first-class classes being untyped:
-%- mixin-based code tends to structrural types
-%- nominality overly restrictive, get forced into <: hierarchy
-%- but don't have NO IDEA for wat to do
-%  + classes and mixins paper shows one idea,
-%    ... need complicated mixin study??? (many sub objects)
-%    built new type system to be mixin-aware, layered atop java
-%    unsure if such extension works for SP
-%    furthermore, class-and-mixins depends on Java single inheritance
-%  + bracha cook mixin pattern
-%  + tate muehlboeck structural object + interfaces
-
-
-\paragraph{Multiple Inheritance}
-
-%% https://docs.python.org/3/reference/datamodel.html
-%% TODO check Dino email, confirm with C&D that layout conflict is unrelated to vtables
-
-Python allows classes to inherit from a list of parents.
-To resolve method calls to such a class, Python
-dynamically traverses the parent list in a fixed order
-seeking a first match.
-
-Due to the dynamic method resolution order (MRO),
-\SP{} does not track types for classes with multiple parents.
-Method calls to these classes execute the same way as
-in Python, with no type-directed optimizations to improve dispatch.
-
-
-\paragraph{Dynamic Execution}
-
-%% 2022-01-13: __setattr__ is along the same lines
-%%Carl: Removing the use of super-dynamic Python features like
-%%\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
-%%we’ve done this it hasn’t required a major rewrite.
-
-Results computed by calls to \code{eval} and \code{exec}
-have the dynamic type.
-Their inputs run without being rewritten by the optimizer.
-
-Studies of JavaScript and R have shown that many uses of dynamic execution
-can be removed through simple adjustments~\cite{rhbv-ecoop-2011,gdkkv-oopsla-2021,mrmv-esop-2012}.
-Assuming these findings carry over to Python, similar adjustments would
-preferable over attempting to type eval.
-
-
-
-%% 2022-01-13 covered pretty well earlier
-%%\paragraph{Module-Level Variables}
-%%
-%%Any Python module can read and write to the module-level variables of another module.
-%%When compiling a module, \SP{} therefore assumes that its module-level variables
-%%may be modified by untyped code and assigns the dynamic type.
-%%
-%%Strict modules as an alternative to the Python
-%%semantics.\footnote{https://instagram-engineering.com/python-at-scale-strict-modules-c0bb9245c834}
-%%If a programmer chooses to declare a module as strict, then its module-level varibles
-%%are immutable and thus typeable.
-%%
-%%Another potential solution is for the Cinder runtime to check that writes to module-level variables
-%%preserve their types.
-%%There are two downsides to this idea:
-%%it will add some performance overhead,
-%%and it will force developers to rewrite untyped code in order to fix any errors that arise.
-%%%% Because of the latter concern, type dynamic is a very reasonable default.
-
 
 
 \section{Production Experience}
