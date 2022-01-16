@@ -493,7 +493,8 @@ In addition, \SP{} is strongly influenced by the following engineering constrain
     Critical code often relies on first-order functions and objects,
     at least in the Instagram web server.
     Precise types for higher-order functions and first-class classes
-    are thus a low priority.
+    are thus a low priority; instead, the dynamic type is available as a coarse
+    approximation.
   \item
     The codebase in which \SP{} is being applied makes heavy use of Pyre~\cite{pyre}
     type annotations.
@@ -769,11 +770,11 @@ inheritance:
     This restriction comes from Python.
 
   \item
-    Methods and fields may be overridden in arbitrary ways by untyped code.
+    Non-final methods and fields may be overridden in arbitrary ways by untyped code.
     In typed code, however, overrides must be compatible subtypes.
     For example, a method that returns a number cannot be overridden by a method
     that returns the dynamic type; \cref{f:gg-failure-stat} shows the static error
-    that arises from such a static override.
+    that arises from such an override.
 
     % In fact, \SP{} compiles fields using Python slots
     % declarations (\code{\_\_slots\_\_}).
@@ -905,9 +906,10 @@ function calls.
 
 The implementation of vtables happens to be built on the Python \code{vectorcall}
 protocol; it is not a from-scratch development.
-That being said, Cinder vtables are specialized to check untyped overrides
+Additionally, however, Cinder vtables are specialized to check untyped overrides
 of typed methods against their expected return type (instead of using a layer of
-indirection for the check).
+indirection for the check, as found languages that enforce types with higher-order
+wrappers~\cite{clzv-ecoop-2018,gf-icfp-2018}).
 
 %% beware: with vtables, method resolution is different than Python b/c args. get
 %%   resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
@@ -925,7 +927,7 @@ indirection for the check).
 %% > the `INVOKE_METHOD`. -Carl
 
 
-\subsection{Checked Data Structures}
+\subsection{Concrete Data Structures}
 \label{s:chkdict-impl}
 
 The concrete versions of built-in data structures come with both a type and an
@@ -938,21 +940,21 @@ with keys of type $K$ and values of type $V$.
 The implementation has three main components:
 \begin{itemize}
   \item
-    First, the constructor uses a type and a Python dictionary ($\sptrawpydict$)
-    to initialize a checked dictionary.
-    This constructor ensures that all values of type $\sptchkdict{K}{V}$
-    begin with well-typed elements.
+    The constructor requires two type parameters and a Python dictionary ($\sptrawpydict$).
+    It checks that the elements of the dictionary match the key and value types.
   \item
-    Second, all write operations check their input.
+    All write operations check their input.
     Every operation that mutates or extends a checked dictionary must
     validate any untyped arguments that it receives.
   \item
-    Third, the dictionary value stores a type tag to support casts from the dynamic type.
-    When a checked dictionary enters typed code from an untyped context,
-    the runtime checks its type tag to see whether the key and value types are an exact match.
+    The dictionary value stores a compound type tag 
+    (e.g. one token representing a three-part type $\sptchkdict{K}{V}$)
+    to support casts from the dynamic type.
+    When a concrete dictionary enters typed code from an untyped context,
+    its tag must match the expected type exactly.
     For example, type $\sptchkdict{K}{V}$ matches the type
     $\sptchkdict{\sptstr}{\sptdyn}$ only if $K$ is equal to $\sptstr$
-    and $V$ is equal to $\sptdyn$,
+    and $V$ is equal to $\sptdyn$.
 \end{itemize}
 %
 In general, other checked datatypes have the same three components:
@@ -997,7 +999,11 @@ To validate the design of \SP{}, we developed a model of the language in PLT
 Redex~\cite{kcdeffmrtf-popl-2012}.
 The model covers a substantial part of the Python language, including
 module imports, loops, exception handlers, and delete statements.
-The model follows \SP{}'s approach to typing these features.
+It follows \SP{}'s approach to typing these features.
+The model is available at the following URL:
+
+\smallskip
+{\centering\url{https://github.com/brownplt/insta-model}}
 
 Because there is no prior formalization of Python and \SP{}, we cannot
 \emph{verify} that the model matches reality.
@@ -1136,7 +1142,7 @@ typed and untyped code.
   \label{f:surface-types}
 \end{figure}
 
-\Cref{f:surface-types} illustrates key aspects of the \SP{} syntax and types.
+\Cref{f:surface-types} presents a core surface syntax for model programs.
 A program is a sequence of statements;
 a statement defines a variable, function, or class.
 These definitions may only appear on the top level
@@ -1160,8 +1166,6 @@ Types $\sptype$ include the dynamic type, types for the basic values, one type $
 user-defined class, and union types.
 We assume that all unions are written in a tidy normal form, e.g., that
 $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be flattened and normalized to $\sptdyn$.
-There is no function type in the model, or in \SP{} for that matter.
-The only way to define a higher-order function is to use the dynamic type.
 
 \SP{} does not enforce all surface types against untyped code, only the evaluation
 types presented in the next subsection~(\cref{s:eval-types}).
@@ -1249,7 +1253,7 @@ or $\spteval_1$ is the dynamic type.
 As promised, all casts run in constant time.
 No cast requires traversing a data structure.
 Similarly, no cast allocates a wrapper to check higher-order behaviors in a delayed fashion.
-This latter property means that blame-tracking is trivial because
+This latter property means that blame-tracking~\cite{ff-icfp-2002} is trivial because
 casts either succeed or fail immediately.
 %% In other words, \SP{} provides \emph{immediate
 %% accountability}~\cite{mt-oopsla-2017} for cast errors.
@@ -1277,7 +1281,7 @@ casts either succeed or fail immediately.
     \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries parameterized by $\spteval_0$ and $\spteval_1$} \\
     %% \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries with the same key and value types (${\spteval_0, \spteval_1}$)} \\
     \sptdyn & \mbox{No check needed, accepts any value} \\
-    \sptobject & \mbox{Accepts any value (except primitives,~\cref{s:c-types})} \\
+    \sptobject & \mbox{Accepts any value, except primitives~(\cref{s:c-types})} \\
     \sptclass_0 & \mbox{Accepts instances of class $\sptclass_0$} \\
     \sptnone & \mbox{Accepts the Python none value} \\
     \sptint & \mbox{Accepts integers} \\
@@ -1293,7 +1297,7 @@ To better show where \SP{} needs to insert casts, we present a selection of typi
 Recall that a program declares variables, functions, and classes~(\cref{f:surface-types}).
 These statements come with types and fill an environment ($\sptenv$).
 Relative to the current environment, the expressions within each statement must
-satisfy the typing judgment in~\cref{f:eval-types} 
+satisfy the typing judgment in~\cref{f:eval-types}.
 
 The first two rules are for function application.
 A typed function may be applied to an argument that matches its domain type,
@@ -1351,7 +1355,7 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptfloat$ using two m
   \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
 \end{mathpar}
 \medskip
-Consequently, this type derivation calls for two casts at run-time.
+Consequently, this derivation calls for two casts to match the \trule{Matr} applications.
 
 We end here, with materialization, rather than present a semantics
 for the formalization.
@@ -1359,24 +1363,25 @@ After all, the main benefit of a full formal semantics is to validate
 the behavior of complex expressions---and this job is
 better left to the Redex mechanization.
 
-Furthermore, our casts-via-materialization rule is more aggressive
-than what \SP{} actually does to insert casts.
-Because \SP{} supports interactions with unanalyzed Python modules, it inserts
-casts in an overapproximate way:
+Furthermore, our casts-via-materialization rule assumes that the
+type checker has access to the whole program.
+In practice, \SP{} approximates our ideal casts in two steps
+to support interactions with unanalyzed Python modules.
+First, \SP{} inserts casts in an overapproximate way:
 \begin{itemize}
   \item
     typed functions and methods begin by checking all their arguments;
   \item
     typed classes check all field writes;
   \item
-    checked dictionaries check all writes; and
+    concrete-typed dictionaries check all writes; and
   \item
     typed code checks the results of function calls, references, and other elimination forms
     whenever there is a materialization from the dynamic type.
 \end{itemize}
-\Cref{s:impl} explains
-how the type-directed optimizer helps avoid some
-of these checks.
+Second, the type-directed optimizer skips casts wherever a well-typed context
+interacts with a typed value.
+\Cref{s:impl} explains the optimizer in more detail.
 
 \begin{figure}[p]
   \fbox{$\sptenv \wtexpr \spexpr : \spteval$}~selected rules
@@ -1628,11 +1633,11 @@ First, observe that every evaluation type comes with a decidable
 cast~(\cref{t:cast}).
 For basic types such as floats, a tag check clearly suffices.
 For parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$,
-the exact-match semantics also provides a decidable, though strict, test.
+the exact-match semantics also provides a decidable test.
 Second, observe that boundaries can only relate the dynamic type to an
 evaluation type; there are no significant boundaries that relate a partially
 static type to an evaluation type.
-This is due to the strict semantics for checked types and the fact that
+This is due to the exact-match semantics for checked types and the fact that
 $\sptoptional{\sptdyn}$ normalizes to the dynamic type.
 Therefore casts at static occurrences of the materialization rule are
 enough to protect all boundaries.
@@ -1650,8 +1655,8 @@ and the boundary to untyped Python~(\cref{s:py-boundary}).
 %% are also omitted.
 Other Python features are left out because their \SP{} semantics is identical
 to standard Python~(\cref{s:py-boundary}).
-Our model also does not cover the type-directed optimizer~(\cref{s:optimize}).
-Modelling type-directed optimization would require substantial additional
+Our model also does not cover the optimizer~(\cref{s:optimize}) because
+a formal account of type-directed optimization would require substantial additional
 components: a model of the \SP{} bytecode and a faithful rendering of its
 transformations.
 
