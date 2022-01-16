@@ -31,6 +31,7 @@
 \newcommand{\totalnum}[1]{$#1$ total}
 
 \newcommand{\numbenchmark}{2}
+\newcommand{\numSPtest}{214}
 \newcommand{\CPUchange}{3.7\%}
 
 \newcommand{\spapp}[2]{#1\,(#2)}
@@ -142,17 +143,17 @@
 %\titlerunning{short title}
 
 \author[a]{Kuang-Chen Lu}
-\authorinfo{(\email{LuKuangchen1024@gmail.com}) is a PhD student at Brown University.}
+\authorinfo{(\email{LuKuangchen1024@gmail.com}) } %% { is a PhD student at Brown University.}
 \affiliation[a]{Brown University, Providence, RI, USA}
 \author[a]{Ben Greenman}
-\authorinfo{(\email{benjamin.l.greenman@gmail.com}) is a PLT member and a postdoc at Brown University.}
+\authorinfo{(\email{benjamin.l.greenman@gmail.com}) } %% {is a PLT member and a postdoc at Brown University.}
 \author[b]{Carl Meyer}
-\authorinfo{(\email{carljm@fb.com}) FILL}
+\authorinfo{(\email{carljm@fb.com}) } %% FILL
 \affiliation[b]{Meta, Menlo Park, CA, USA}
 \author[b]{Dino Viehland}
-\authorinfo{(\email{dinoviehland@fb.com}) FILL}
+\authorinfo{(\email{dinoviehland@fb.com}) } %% FILL
 \author[a]{Shriram Krishnamurthi}
-\authorinfo{(\email{shriram@brown.edu}) is the Vice President of Programming Languages (no, not really) at Brown University.}
+\authorinfo{(\email{shriram@brown.edu}) } %% {is the Vice President of Programming Languages (no, not really) at Brown University.}
 
 %\authorrunning{K-C. Lu, B. Greenman, C. Meyer, D. Viehland, S. Krishnamurthi}
 
@@ -228,9 +229,8 @@
   way to lower the maintenance cost of the concrete approach.
   We also find that method-based JIT technology can eliminate the
   costs of the transient approach.
-  On a more technical level, this paper contributes two artifacts:
-  a model of \SP{} that passes property-based tests and hundreds of tests from the \SP{} codebase,
-  and a performance evaluation of \SP{}. The process of formalization
+  On a more technical level, this paper describes two contributions: a model of
+  \SP{} and a performance evaluation of \SP{}. The process of formalization
   found several errors in the implementation, including fatal errors.
 
   \vglue10pt
@@ -239,12 +239,13 @@
   % What argument, feasibility proof, artifacts,
   % or results and evaluation support this work?
   Our model of \SP{} is implemented in PLT Redex and tested using
-  property-based soundness tests and the \SP{} regression suite.
+  property-based soundness tests and \numSPtest{} tests from the \SP{} regression suite.
   This paper includes a small core of the model to convey the main ideas
   of the \SP{} approach and its soundness.
   Our performance claims are based on production experience in the Instagram
   web server.
-  Thanks to \SP{}, global CPU usage has improved by \CPUchange{} within a year.
+  Converting modules to \SP{} over the past year has led to a \CPUchange{}
+  improvement in CPU usage in the web server.
 
   \vglue10pt
 
@@ -294,12 +295,6 @@ for gradual types~\cite{clzv-ecoop-2018,mt-oopsla-2017,wzlov-popl-2010}, but it 
 constraints on untyped code.
 In particular, concrete-typed client code is incompatible with
 values created by untyped code.
-Rather than search for a coordinated set of edits to make concrete
-types work, developers may prefer a whole-sale migration to
-a typed language.\footnote{Successful migrations of untyped codebases
-to a typed language are rare, but not unheard of.
-Twitter ported its server-side code from Ruby to Scala~\cite{twitter-scala}
-and Dropbox moved its core sync engine from Python mypy to Rust~\cite{dropbox-rust}.}
 
 In short, academic researchers are working to close the performance gap
 without overly restricting the promise of gradual typing.
@@ -665,7 +660,7 @@ incoming values nor does it create wrappers to enforce behavior.
 These dynamic checks try to faithfully enforce a full type, but some are incomplete---especially
 for generic types.
 We call the incomplete ones \emph{shallow} types.
-The \SP{} strategy for fully-sound generics is to package each value with a type
+The \SP{} strategy for sound generics is to package each value with a type
 tag; following the \textsf{StrongScript} authors~\cite{rzv-ecoop-2015}, we call
 these \emph{concrete} types.
 
@@ -675,30 +670,26 @@ Every type has a name and every value can carry a tag that corresponds to the
 name of its type.
 
 Parameterized types (generics) are more difficult to enforce.
-Consider a dictionary datatype \code{Dict[K,V]} that is parameterized by types
-for its keys and values.
-If a function expects a dict from integers to integers (\code{Dict[Int,Int]}),
-then merely checking for a dict instance is not enough to decide whether an
-incoming value matches the type.
-For example, the incoming value may have been created by untyped code.
-
+For example, suppose that a typed function expects inputs that match
+the type \code{Dict[Int,Int]}; that is, dictionaries with integer keys and
+integer values.
+A constant-time check for dictionaries is not enough to protect the typed
+function because it fails to validate the elements inside a dictionary.
 The \SP{} solution is to provide two incompatible versions of every parameterized type,
 both of which support efficient run-time checks.\footnote{Currently, only a handful of built-in data structures provide shallow
 and concrete versions. User-defined classes will soon follow this approach.}
 For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
 \begin{enumerate}
   \item
-    \emph{Shallow type $\sptrawpydict$}.
-    The default type $\sptrawpydict$ gets enforced with a constant-time check
+    The \emph{shallow} type $\sptrawpydict$ gets enforced with a constant-time check
     for dict values that ignores the elements inside a dict.
-    Consequently, a parameterized static type such as $\sptpydict{\sptint}{\sptint}$
+    Consequently, a parameterized surface type such as $\sptpydict{\sptint}{\sptint}$
     is merely a promise of dict values at run-time; it does not promise anything about
     dict keys and values.
   \item
-    \emph{Concrete type $\sptchkdict{\sptype}{\sptype}$}.
-    \SP{} introduces a parameterized type for concrete, checked dictionaries
-    along with a value constructor that records its type constraints.
-    \cref{s:chkdict-impl} discusses the implementation further.
+    The \emph{concrete} type $\sptchkdict{K}{V}$ guarantees well-typed
+    keys and values, but is incompatible with built-in Python dictionaries.
+    Programmers must use a type-annotated contructor to make a concrete-typed checked dict.
 \end{enumerate}
 %
 These options let programmers decide whether to edit their code to support concrete types
@@ -1010,9 +1001,9 @@ Because there is no prior formalization of Python and \SP{}, we cannot
 Instead, we have applied the well-established method of testing end-to-end
 conformance~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}
 with a test suite.
-In particular, we translated 214 tests from the \SP{} regression suite to the
+In particular, we translated \numSPtest{} tests from the \SP{} regression suite to the
 syntax of the model and confirmed that the results
-do match,\footnote{For most of the 214 tests, the translation is automatic.
+do match,\footnote{For most of the \numSPtest{} tests, the translation is automatic.
   A few tests required hand-pruning to remove features that the model
   does not handle (\totalnum{52}).}
 which suggests that the model conforms to actual \SP{}.
@@ -2406,6 +2397,8 @@ especially useful.
 Second, the \SP{} approach should be adapted to other languages.
 An optionally-typed language such as TypeScript would be an ideal starting
 point for such an experiment.
+Gradual, progressive soundness may prove itself to be an effective general strategy for
+gradual types in practice.
 
 
 %\acks{
