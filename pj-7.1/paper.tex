@@ -329,7 +329,7 @@ primary web server monolith.
 The results are very positive.
 Although only a handful of modules use \SP{} types (hundreds among thousands),
 and only a few critical modules rely on concrete types and primitive types (dozens),
-global CPU usage has improved by \CPUchange{} according to internal profiling tools.
+web server CPU usage has improved by \CPUchange{} according to internal profiling tools.
 Type-directed optimizations outweigh the cost of enforcing soundness.
 Consequently, we believe the details of the \SP{} approach are of interest to
 the gradual typing community at large.
@@ -1982,7 +1982,7 @@ called in a typed context.
 The Instagram web server has been running \SP{} in production since April 2021.
 Overall, the results are very encouraging.
 Instagram's internal profiling tools, which continuously monitor
-performance, attribute a \CPUchange{} improvement in global CPU to \SP{} conversions.
+performance, attribute a \CPUchange{} improvement in web server CPU usage to \SP{} conversions.
 \Cref{t:prod-stat} reports a few other production statistics.
 Over 500 modules have been converted thus far.
 Despite some initial regressions, none of the converted modules
@@ -1994,7 +1994,7 @@ ran slower after small rewrites and enabling the JIT on certain functions.
   \begin{tabular}{l@{~~}l@{\qquad}l@{~~}l}
     %% 541 modules out of ~45000 total
     8     & months in production   & 541   & typed, strict modules \\
-    \CPUchange{} & global CPU improvement &   9   & using concrete types \\
+    \CPUchange{} & web server CPU improvement &   9   & using concrete types \\
     0     & net regressions        &  12   & using primitive types \\
     %% all prims are int32 and int64 and cbool
     %% 873 modules use JIT for some functions (about to increase by OOM)
@@ -2012,18 +2012,18 @@ few compiled modules spread across an interpreted codebase).
 Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
 Furthermore, \SP{} types combined with Cinder resulted in a
-0.7\% reduction in global CPU usage.
+0.7\% reduction in web server CPU usage.
 Primitive types~(\cref{s:c-types}) were essential for matching Cython.
 
 Later \SP{} migrations have been directed by profiling to find frequently-executed code.
 During the first half of 2021, the \SP{} team identified critical
 modules and proposed types plus small code changes to the maintainers of these modules.
-The accepted proposals resulted in a 1\% improvement in global CPU usage.
+The accepted proposals resulted in a 1\% improvement in web server CPU usage.
 During the second half of 2021, the \SP{} team applied the same
 process at a larger scale.
 They also modified a code-generating module to output \SP{} code;
 this one change brought over four hundred generated modules into the typed fold.
-Overall, the second-half changes added a 2\% global CPU improvement.
+Overall, the second-half changes added a 2\% web server CPU improvement.
 
 As of December 2021, the \SP{} team has converted 541 modules.
 Most of these came from the code-generating tool (417); the rest
@@ -2475,7 +2475,7 @@ we list common reasons for such bugs below:
 
 None of these issues are problems with Pyre.
 Quite naturally, it cannot find bugs in code that it does not analyze!
-Our point is simply that optional type systems can miss a variety of issues.
+The takeaway is simply that optional type systems can miss a variety of issues.
 
 
 \section{Fine-Grained Benchmark Data}
