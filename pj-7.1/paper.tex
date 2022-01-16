@@ -244,8 +244,8 @@
   of the \SP{} approach and its soundness.
   Our performance claims are based on production experience in the Instagram
   web server.
-  Converting modules to \SP{} over the past year has led to a \CPUchange{}
-  improvement in CPU usage in the web server.
+  Migrations to \SP{} in the server have caused a \CPUchange{} increase in
+  requests handled per second at max CPU utilization.
 
   \vglue10pt
 
@@ -329,7 +329,8 @@ primary web server monolith.
 The results are very positive.
 Although only a handful of modules use \SP{} types (hundreds among thousands),
 and only a few critical modules rely on concrete types and primitive types (dozens),
-web server CPU usage has improved by \CPUchange{} according to internal profiling tools.
+these migrations have resulted in a \CPUchange{} increase in production requests handled
+per second for servers at max CPU utilization.
 Type-directed optimizations outweigh the cost of enforcing soundness.
 Consequently, we believe the details of the \SP{} approach are of interest to
 the gradual typing community at large.
@@ -971,16 +972,6 @@ At the moment, programmers enable the JIT by supplying a list of method names
 to the compiler.
 Any method can be JIT-compiled whether or not it uses \SP{} types,
 though types are needed to enable the most-effective optimizations.
-
-%% 2022-01-05 Carl:
-%% "All the data I’ve been sharing is from a single codebase, the primary IG web
-%% server monolith. The existence of JITted but not SP modules is mostly just due
-%% to the fact that opting a function into the JIT is semantically transparent and
-%% (unless it reveals a latent bug in the JIT) requires no code changes, so it’s
-%% quite easy to do (the only tradeoff pushing us away from JITting everything is
-%% just how much CPU we spend JIT-compiling and how much memory we spend storing
-%% JIT-compiled code), whereas opting a module into SP requires more work so the
-%% bottleneck is available developer time to do conversions."
 
 
 \section{Model}
@@ -1882,88 +1873,6 @@ called in a typed context.
 \section{Production Experience}
 \label{s:eval}
 
-%% 2022-01-14 TODO re 3.7%
-%% That percentage represents the aggregate CPU improvement observed from all of
-%% our individual diffs that converted modules to Static Python over the past
-%% year. In a sizable number of cases a conversion to Static Python did mean that
-%% functions in that module started being JITted that previously were not JITted,
-%% because for most of the half we had a policy in place that all Static Python
-%% modules are always JITted. (We’ve now decoupled these things for future
-%% conversions, so opting functions into the JIT is now orthogonal to opting them
-%% into SP.)
-%% 
-%% So the 3.7% does not include any CPU wins that Cinder or the JIT provide in any
-%% non-static modules, it only includes improvements observed from specifically
-%% converting a module from nonstatic to static. But it does in some cases include
-%% the effects of going from nonstatic + no-JIT to SP+JIT for a given module. In
-%% other cases a conversion may have gone from nonstatic+JIT to SP+JIT.
-%% Unfortunately we don’t have any way to go back and tease apart these cases for
-%% each individual module conversion.
-%% 
-%% What we are doing now is an experiment where we turn off SP in a set of hosts
-%% and observe them relative to the rest of prod, without changing the JIT list.
-%% This will show some % regression, which we expect to be some number <3.7%, and
-%% that will give a solid figure for the benefit we are getting specifically from
-%% SP across all static modules, totally independent of the JIT. Unfortunately
-%% there have been some hiccups in this experiment and we don’t have that number
-%% ready yet, but we hope to have it in the next week or so.
-
-%% 2022-01-14 FILL TODO 
-%% > I still have trouble understanding the CPU number. There must be many
-%% > servers running many workloads and some statistics to merge them. Do
-%% > you have a blog post or something that explains the profiling in more
-%% > detail?
-%% 
-%% I don’t know of anything reasonably current in terms of blog posts. For IG web
-%% prod, there are not “many workloads” — there is no specialization in the IG web
-%% tier. There are many thousands of hosts, all running the exact same workload —
-%% all those hosts are handling an undifferentiated random selection from a single
-%% giant pool of incoming IG requests. So for all intents and purposes we can
-%% consider them identical. (There are in practice some differences in the hosts
-%% themselves — e.g. different generations of CPU hardware — that we do have to
-%% take into account when running the experiments below.)
-%% 
-%% The details of how we measure a CPU regression or improvement are interesting,
-%% though. What we do is we take a set of hosts that we want to measure (typically
-%% an experiment group and a control group, where the control group is identical
-%% to the rest of production and the experiment group has some change made to its
-%% code or configuration whose effect we want to measure), and we slowly increase
-%% the traffic to those hosts until they are at max CPU utilization — they cannot
-%% handle any more traffic without falling over. Then we measure the
-%% requests-per-second handled by each set of hosts; if the experiment group is
-%% able to handle 2% more requests per second than the control group, while both
-%% are at max CPU utilization, this effect is considered a 2% global CPU win.
-%% 
-%% This metric has the advantage that it is highly holistic and results-oriented;
-%% it is a measure of our actual capacity to serve more requests with fewer hosts,
-%% and thus it can subsume and account for, and give apples-to-apples comparison
-%% of, many different possible reasons for an increase or decrease in a host’s
-%% efficiency in serving requests.
-%% 
-%% The disadvantage of the metric is that the raw number it measures (requests per
-%% second) is also highly dependent on the product code and client behavior at
-%% that moment in time, and is not stable over time, because the average cost in
-%% CPU cycles of “one request” is not stable over time. If the behavior of the IG
-%% iOS or Android app changes so that it is sending more heavy requests and fewer
-%% lightweight requests, RPS across the fleet will naturally decrease even though
-%% the efficiency of the servers has not changed. Therefore, this metric is really
-%% good for saying “at X point in time, Y change has a Z% overall effect on our
-%% CPU efficiency” but it cannot be used to compare raw numbers from two different
-%% points in time; we cannot use it to say “between X1 point in time and X2 point
-%% in time, RPS increased Z%, therefore our efficiency has increased by Z%.”
-%% 
-%% So the 3.7% number we gave you is an aggregate win from doing many such
-%% individual experiments over the course of the past year, where each experiment
-%% was measuring the effect of converting X module (or small set of modules) from
-%% nonstatic to static (where in some cases it was nonstatic+JIT to SP+JIT, and in
-%% other cases it was nonstatic noJIT to SP+JIT.) And the updated number we hope
-%% to get you soon is an overall measure from a single experiment, today, of the
-%% effect of disabling SP everywhere, while leaving the JIT list untouched. We
-%% expect the latter number to be smaller than 3.7% because it will remove the JIT
-%% factor entirely, but there’s also an unknown factor (which could net positive
-%% or negative) of how the behavior of long-ago-converted SP modules has changed,
-%% or the capabilities of SP has changed, since their conversion, which changes
-%% the net win of SP on those modules since the time when we converted them.
 
 %% 2022-01-04 TODO have no evidence that "any module" typing works out ... team
 %% tried hard to get network effects ... "We explicitly aimed for converting
@@ -1981,32 +1890,59 @@ called in a typed context.
 
 The Instagram web server has been running \SP{} in production since April 2021.
 Overall, the results are very encouraging.
-Instagram's internal profiling tools, which continuously monitor
-performance, attribute a \CPUchange{} improvement in web server CPU usage to \SP{} conversions.
-\Cref{t:prod-stat} reports a few other production statistics.
-Over 500 modules have been converted thus far.
-Despite some initial regressions, none of the converted modules
-ran slower after small rewrites and enabling the JIT on certain functions.
+Instagram's internal profiling tools attribute a \CPUchange{} improvement
+in CPU utilization~(\cref{s:what-is-cpu}) to \SP{} conversions~(\cref{s:migration-path}).
+This is a big improvement at Instagram scale.
 
-\begin{table}
-  \caption{Overview: \SP{} in production}
-  \label{t:prod-stat}
-  \begin{tabular}{l@{~~}l@{\qquad}l@{~~}l}
-    %% 541 modules out of ~45000 total
-    8     & months in production   & 541   & typed, strict modules \\
-    \CPUchange{} & web server CPU improvement &   9   & using concrete types \\
-    0     & net regressions        &  12   & using primitive types \\
-    %% all prims are int32 and int64 and cbool
-    %% 873 modules use JIT for some functions (about to increase by OOM)
-  \end{tabular}
-\end{table}
+Developers have converted 541 modules to \SP{} thus far.
+Despite some initial regressions, none of the converted modules
+ran slower after small rewrites~(\cref{s:code-changes})
+and/or enabling the JIT on certain functions.
+Only 9 modules use concrete types and only 12 modules use primitive types,
+but these features delivered critical performance in key modules.
+
+%% all prims are int32 and int64 and cbool
+%% 541 modules out of ~45000 total
+%% 873 modules use JIT for some functions (about to increase by OOM)
+
+
+\subsection{How to Interpret the CPU Utilization Result}
+\label{s:what-is-cpu}
+
+The Instagram web server code runs on a large number of host machines, each of
+which continuously handles requests from a common pool.
+Improvements to the server codebase should make these machines more efficient
+as they handle arbitrary requests.
+
+To measure the effect of a code change on these hosts, profiling tools select
+two representative sets of machines to run as experimental and control groups.
+The experimental groups gets the latest version of the server code;
+the control group gets the previous version.
+Next, the profiling tools slowly increase the number of requests that these
+machines receive until each is running at max CPU utilization.
+Once the machines are fully allocated, the tools measure how many requests
+per second each group is able to handle.
+If the experimental group can serve more requests per second, then the change
+is recorded as a success.
+Assuming that the experimental and control groups have equivalent hardware
+capabilities, and assuming that both groups receive a representative sample
+of requests, then the results of an experiment (increase/decrease in CPU utilization)
+should predict actual performance.
+
+The main threat to validity is that this CPU utilization number depends on
+product code and on client behavior.
+Over time, the size of the average request may increase and thereby increase
+the CPU cost of serving one request.
+Nevertheless, CPU utilization is the primary metric that Instagram
+uses for production changes.
 
 
 \subsection{Migration Path}
+\label{s:migration-path}
 
 \SP{} first entered the web server codebase as a replacement for a
 few critical Cython modules.
-Cython had improved performance by compiling these modules to C,
+Cython improved performance by compiling these modules to C,
 but its partial adoption had led to an awkward workflow (with a
 few compiled modules spread across an interpreted codebase).
 Replacing these modules with \SP{} let programmers return to a conventional
@@ -2046,6 +1982,7 @@ throughout the web server.
 
 
 \subsection{Analyzing Code Changes}
+\label{s:code-changes}
 
 Because the \SP{} team has been changing code as well as types during its
 migrations, the question arises as to whether the code changes raise any
@@ -2128,7 +2065,6 @@ type errors and the other three are for performance.
 \end{enumerate}
 
 
-%% TODO section formatting looks good?
 \subsubsection{Code Changes for Performance}
 
 \begin{enumerate}
@@ -2195,6 +2131,7 @@ but the code maintainers preferred to keep the design as-is.
 
 
 \subsection{Microbenchmarks}
+\label{s:microbenchmarks}
 %% https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks
 %% https://docs.google.com/spreadsheets/d/1IO25bL_8LwDqx3ciQTj9dMetsFnZFdiQIyjFvgYWIpI/edit?usp=sharing
 
