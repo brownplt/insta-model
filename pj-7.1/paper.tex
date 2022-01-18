@@ -884,6 +884,29 @@ computes the length of a built-in value.
 \SP{} uses type information to decide where this instruction is appropriate
 and applies it as an optimization.
 
+%% TODO 2022-01-16 clarify why fast_len is interesting at all:
+%% Carl: Two parts to the answer here. In the early days of Static Python we were
+%% focused on matching Cython in some very hot code paths, and a couple of those
+%% did take length of containers. So we implemented some things like FAST_LEN that
+%% may not be broadly applicable but we needed to be as fast as possible in those
+%% few Cython conversions. But since then we also implemented a general
+%% optimization for iteration of loops where the container is known to be an exact
+%% list (or array or tuple IIRC): when we see e.g. `for item in mylist` and we
+%% know statically that `mylist` is an exact list/tuple/array, instead of
+%% generating the usual bytecode that goes through the dynamic iterator protocol,
+%% we will generate more efficient bytecode that uses `FAST_LEN` to get the length
+%% and then uses an incremented (primitive) index counter and our optimized
+%% `SEQUENCE_GET` opcode (without bounds checking since in this case we can
+%% guarantee the index counter can never be out of bounds). The visible semantics
+%% remain the same but under the hood we use numeric indexing instead of the
+%% iterator protocol. So this optimization is much more generally applicable, and
+%% relies on FAST_LEN.
+%%
+%% Also I think FAST_LEN is a convenient example optimization for explication
+%% purposes, because it is simple and easy to understand but it’s reasonably
+%% representative of the general approach.
+
+
 
 \subsection{Virtual Method Tables}
 \label{s:vtable}
