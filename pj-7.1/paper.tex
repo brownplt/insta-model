@@ -986,14 +986,20 @@ Redex~\cite{kcdeffmrtf-popl-2012}.
 The model covers a substantial part of the Python language, including
 module imports, loops, exception handlers, and delete statements.
 It follows \SP{}'s approach to typing these features.
-The model is available at the following URL:
-
-\smallskip
-{\centering\url{https://github.com/brownplt/insta-model}}
-
-Because there is no prior formalization of Python and \SP{}, we cannot
-\emph{verify} that the model matches reality.
-Instead, we have applied the well-established method of testing end-to-end
+The model is available at:
+\begin{center}
+  \url{https://github.com/brownplt/insta-model}
+\end{center}
+Because there is no prior formalization of (all of) Python and of \SP{}, we cannot
+\emph{verify} that the model matches them. Instead, we have applied
+three methods to give confidence that our model matches reality.
+First, we manually reviewed the model in depth---using our
+own expertise---to look for non-conformance.  Second, 
+we used Redex's random testing tools~\cite{kf-sfp-2009} to check
+type soundness on thousands of example programs (\totalnum{\mbox{FILL}}).
+%% FILL how many programs exactly?
+%% FILL what bugs did testing catch?
+Finally, we employed the well-established method of testing end-to-end
 conformance~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}
 with a test suite.
 In particular, we translated \numSPtest{} tests from the \SP{} regression suite to the
@@ -1002,17 +1008,6 @@ do match,\footnote{For most of the \numSPtest{} tests, the translation is automa
   A few tests required hand-pruning to remove features that the model
   does not handle (\totalnum{52}).}
 which suggests that the model conforms to actual \SP{}.
-
-Beyond the conformance suite, we have applied two further tests for correctness.
-First, we used Redex's random testing tools~\cite{kf-sfp-2009} to check
-type soundness on thousands of example programs (\totalnum{\mbox{FILL}}).
-%% FILL how many programs exactly?
-%% FILL what bugs did testing catch?
-Second, we have manually inspected the model to convince ourselves
-of its soundness.
-Though not a proof, the inspection gives us confidence that the model,
-and by extension \SP{}, is essentially sound.
-
 
 \paragraph{The Payoff: Issues Reported}
 
