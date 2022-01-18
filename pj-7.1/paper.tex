@@ -32,6 +32,8 @@
 
 \newcommand{\numbenchmark}{2}
 \newcommand{\numSPtest}{214}
+\newcommand{\numSPtotal}{802} %% SP commit 6d61575 from Jan 9
+\newcommand{\numSPdiff}{588} %% (\numSPtotal - \numSPtest)
 \newcommand{\CPUchange}{3.7\%}
 
 \newcommand{\spapp}[2]{#1\,(#2)}
@@ -480,9 +482,11 @@ nonlocal maintenance costs (i.e., on constructor calls).
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
-Pyre~\cite{pyre}, Nom~\cite{mt-oopsla-2017,mt-oopsla-2021}, and PEP
-484~\cite{pep484} are three notable sources.
-In addition, \SP{} is strongly influenced by the following engineering constraints:
+Pyre~\cite{pyre}, an optional type checker developed by Facebook,
+greatly influenced the syntax and types of \SP{}.
+Nom~\cite{mt-oopsla-2017,mt-oopsla-2021}, a research language with compelling
+performance results, set the basic strategy for run-time checks.
+\SP{}'s novelty comes from the following engineering constraints:
 \begin{itemize}
   \item
     Performance is the bottom line.
@@ -496,11 +500,9 @@ In addition, \SP{} is strongly influenced by the following engineering constrain
   \item
     The codebase in which \SP{} is being applied makes heavy use of Pyre
     type annotations.
-    \SP{} needs to be compatible with Pyre syntax to reduce the adoption burden.
-    % On the flip side, the existence of Pyre lets \SP{} focus on a small language
-    % of types that enable optimizations.
-    % depth-first types.
-    % (\SP{} defers to Pyre the task of statically checking the full Python language.)
+    \SP{} is therefore compatible with Pyre syntax to reduce the
+    adoption burden on its target users.
+    %% depth-first approach? (the alternatives are not very clear ... depth vs breadth?)
   \item
     A module-level granularity is acceptable.
     Once \SP{} is enabled for a module, it compiles all code in that module
@@ -1029,7 +1031,12 @@ In particular, we translated \numSPtest{} tests from the \SP{} regression suite 
 syntax of the model and confirmed that the results
 do match,\footnote{For most of the \numSPtest{} tests, the translation is automatic.
   A few tests required hand-pruning to remove features that the model
-  does not handle (\totalnum{52}).}
+  does not handle (\totalnum{52}).
+  \SP{} has \numSPdiff{} other tests (\numSPtotal{} total) that we did not use
+  because they fall outside the scope of the model.
+  \Cref{s:impl} summarizes the out-of-scope features;
+  \cref{a:banned-test} gives a detailed categorization.
+  }
 which suggests that the model conforms to actual \SP{}.
 
 \paragraph{The Payoff: Issues Reported}
@@ -2441,7 +2448,21 @@ Quite naturally, it cannot find bugs in code that it does not analyze!
 The takeaway is simply that optional type systems can miss a variety of issues.
 
 
+\section{Skipped \SP{} Regression Tests}
+\label{a:banned-test}
+
+As of January 9 (commit \href{https://github.com/facebookincubator/cinder/commit/6d61575e28b2d1f31a197f883486c5f012de98c1}{6d61575}),
+the \SP{} test suite contains \numSPtotal{} tests.
+We use \numSPtest{} of these tests for the model.
+The remaining \numSPdiff{} tests are skipped for the following reasons:
+
+\begin{itemize}
+  \item TBD need categories
+\end{itemize}
+
+
 \section{Fine-Grained Benchmark Data}
+\label{a:microbench-detail}
 
 \newcommand{\colname}[1]{\textbf{#1}}
 
@@ -2476,8 +2497,9 @@ benchmark.
 
 Benchmarks run on the following commit:
 
-\smallskip
-{\centering\footnotesize\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}}
+\begin{center}
+\footnotesize\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}
+\end{center}
 
 Fannkuch in particular is very numeric-heavy, so using unboxed primitive
 integers in the typed version can be a big win. For this to work maximally
