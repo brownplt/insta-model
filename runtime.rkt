@@ -190,6 +190,7 @@
    (method "tuple" "__eq__")
    (method "tuple" "__getitem__")
    (method "tuple" "__mul__")
+   (method "set" "__contains__")
    (method "dict" "__init__")
    (method "dict" "__getitem__")
    (method "dict" "__setitem__")
@@ -609,6 +610,8 @@
    (delta-list-getitem Σ v ...)]
   [(delta Σ (method "list" "__setitem__") (v ...))
    (delta-list-setitem Σ v ...)]
+  [(delta Σ (method "set" "__contains__") (v ...))
+   (delta-set-contains Σ v ...)]
   [(delta Σ (method "tuple" "__getitem__") (v ...))
    (delta-tuple-getitem Σ v ...)]
   [(delta Σ (method "list" "append") (v ...))
@@ -990,6 +993,14 @@
    (where Σ_1 (update Σ_0 [l_obj (obj l_cls (list (v_ret ...)) ρ)]))]
   [(delta-list-setitem Σ v ...)
    [Σ (raise (new "Exception" ((ref (con "list-setitem")))))]])
+(define-metafunction SP-dynamics
+  delta-set-contains : Σ v ... -> [Σ e-]
+  [(delta-set-contains Σ (ref l_obj) v_arg)
+   [Σ (ref (con boolean))]
+   (where (obj l_cls (set (v_elm ...)) ρ) (lookup-Σ Σ l_obj))
+   (where boolean (member v_arg (v_elm ...)))]
+  [(delta-set-contains Σ v ...)
+   [Σ (raise (new "Exception" ((ref (con "set-contains")))))]])
 (define-metafunction SP-dynamics
   delta-list-getitem : Σ v ... -> [Σ e-]
   [(delta-list-getitem Σ (ref l_obj) (ref (con number)))

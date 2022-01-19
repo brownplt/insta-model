@@ -10,6 +10,20 @@
 (define-extended-language SP-conjecture
   SP-dynamics)
 
+(define (inc ctr)
+  (set-box! ctr (add1 (unbox ctr))))
+
+(define (reduce-to-v gas state)
+  (cond
+    [(or (zero? gas) (redex-match? SP-conjecture [Σ l (expr v)] state))
+     state]
+    [else
+     (match (apply-reduction-relation red-p state)
+       [(list next-state)
+        (reduce-to-v (sub1 gas) next-state)]
+       [(list)
+        state])]))
+
 (define (reduce gas state)
   (cond
     [(zero? gas) state]
@@ -93,61 +107,127 @@
   [(observable-T (-> (T_arg ...) T_ret)) dynamic]
   [(observable-T T) T])
 
+
+(define expr-well-typed-counter (box 0))
+(define expr-terminate-counter (box 0))
+(define expr-nonterminate-counter (box 0))
 (define-metafunction SP-conjecture
-  compile-implies-terminate-implies-well-typed-e : e+ -> boolean
-  [(compile-implies-terminate-implies-well-typed-e e+)
-   (terminate-implies-well-typed-e e- T)
+  redex-maybe-compile-expr : e+ -> any
+  [(redex-maybe-compile-expr e+)
+   [e- T]
    (judgment-holds (ΨΓΓ⊢e+↝e-:T (base-Ψ)
                                 (base-Γ)
                                 (base-Γ)
                                 e+
                                 e-
                                 T))]
-  [(compile-implies-terminate-implies-well-typed-e e+)
-   #t])
+  [(redex-maybe-compile-expr e+)
+   #f])
+(define (maybe-compile-expr e+)
+  (term (redex-maybe-compile-expr ,e+)))
+
 (define-metafunction SP-conjecture
-  terminate-implies-well-typed-e : e- T -> boolean
-  [(terminate-implies-well-typed-e e- T)
-   (Σ⊢v:T Σ v T)
-   (judgment-holds (-->ⁿ (load [() () (expr e-)])
-                         10000
-                         [Σ l (expr v)]))]
-  [(terminate-implies-well-typed-e e- T)
-   #t])
+  redex-maybe-get-Σv : p -> any
+  [(redex-maybe-get-Σv [Σ l (expr v)])
+   [Σ v]]
+  [(redex-maybe-get-Σv p)
+   #f])
+(define (maybe-get-Σv p)
+  (term (redex-maybe-get-Σv ,p)))
+(define (racket-compile-implies-terminate-implies-well-typed-e e+)
+  (let* ([e-T (maybe-compile-expr e+)])
+    (implies e-T
+             (match-let ([(list e- T) e-T])
+               (inc expr-well-typed-counter)
+               (let* ([p (reduce-to-v 1000 (term (load [() () (expr ,e-)])))]
+                      [Σv? (maybe-get-Σv p)])
+                 (if Σv?
+                     (begin
+                       (inc expr-terminate-counter)
+                       (match-let ([(list Σ v) Σv?])
+                         (term (Σ⊢v:T ,Σ ,v ,T))))
+                     (begin
+                       (inc expr-nonterminate-counter)
+                       #t)))))))
+(define-metafunction SP-conjecture
+  compile-implies-terminate-implies-well-typed-e : e+ -> boolean
+  [(compile-implies-terminate-implies-well-typed-e e+)
+   ,(racket-compile-implies-terminate-implies-well-typed-e (term e+))])
 ;; safety of e+
 (redex-check SP-conjecture
              e+
              (term (compile-implies-terminate-implies-well-typed-e e+))
              #:attempts 10000)
+(define expression-well-typed (unbox expr-well-typed-counter))
+(define expression-terminate (unbox expr-terminate-counter))
+(define expression-nonterminate (unbox expr-nonterminate-counter))
+(when (not (= (+ expression-terminate expression-nonterminate) expression-well-typed))
+  (raise (format "testing expressions. ~a ≠ ~a + ~a"
+                 expression-well-typed
+                 expression-terminate
+                 expression-nonterminate)))
+(printf "found ~a well-typed expressions.\n" expression-well-typed)
+(printf "~a of them reduce to a value.\n" expression-terminate)
+(printf "~a of them don't reduce to a value within the step limit.\n" expression-nonterminate)
 
-(define terminate-counter (box 0))
-(define nonterminate-counter (box 0))
-(define (inc ctr)
-  (set-box! ctr (add1 (unbox ctr))))
+(define prog-well-typed-counter (box 0))
+(define prog-terminate-counter (box 0))
+(define prog-nonterminate-counter (box 0))
+(define prog-else-counter (box 0))
+
+(define-metafunction SP-conjecture
+  redex-maybe-compile : program+ -> any
+  [(redex-maybe-compile program+)
+   program-
+   (judgment-holds (⊢program+↝program- program+ program-))]
+  [(redex-maybe-compile program+) #f])
+(define (maybe-compile program+)
+  (term (redex-maybe-compile ,program+)))
+
+(define-metafunction SP-conjecture
+  redex-maybe-reduce : program- -> any
+  [(redex-maybe-reduce program-)
+   p
+   (judgment-holds (-->ⁿ (load program-) 1000 p))]
+  [(redex-maybe-reduce program-)
+   #f])
+(define (maybe-reduce program-)
+  (term (redex-maybe-reduce ,program-)))
 
 (define-metafunction SP-conjecture
   well-typed-implies-only-stuck-at-good-state : program+ -> boolean
   [(well-typed-implies-only-stuck-at-good-state program+)
-   (only-stuck-at-good-state program-)
-   (judgment-holds (⊢program+↝program- program+ program-))]
-  [(well-typed-implies-only-stuck-at-good-state program+)
-   #t])
-(define-metafunction SP-conjecture
-  only-stuck-at-good-state : program- -> boolean
-  [(only-stuck-at-good-state program-)
-   ,(begin (inc terminate-counter) #t)
-   (judgment-holds (-->ⁿ (load program-) 1000 p))
-   (where #t (terminate-or-error p))]
-  [(only-stuck-at-good-state program-)
-   ,(begin (inc nonterminate-counter) #t)
-   (judgment-holds (-->ⁿ (load program-) 1000 p))
-   (where #t (reducible p))]
-  [(only-stuck-at-good-state program-)
-   #f])
+   ,(racket-well-typed-implies-only-stuck-at-good-state (term program+))])
+(define (racket-well-typed-implies-only-stuck-at-good-state program+)
+  (let* ([program-? (maybe-compile program+)])
+    ;; compile iff well-typed
+    ;; We test whether well-typed-ness implies safety
+    (implies program-?
+             (begin
+               (inc prog-well-typed-counter)
+               (let* ([p (maybe-reduce program-?)])
+                 (if (term (terminate-or-error ,p))
+                     (begin
+                       (inc prog-terminate-counter)
+                       #t)
+                     (begin
+                       (inc prog-nonterminate-counter)
+                       (term (reducible ,p)))))))))
+(define program-total 100000)
 ;; safety of program+
 (redex-check SP-conjecture
              program+
              (term (well-typed-implies-only-stuck-at-good-state program+))
-             #:attempts 100000)
-(printf "found ~a terminating programs\n" (unbox terminate-counter))
-(printf "found ~a nonterminating programs\n" (unbox nonterminate-counter))
+             #:attempts program-total)
+(define program-well-typed (unbox prog-well-typed-counter))
+(define program-terminate (unbox prog-terminate-counter))
+(define program-nonterminate (unbox prog-nonterminate-counter))
+(when (not (= (+ program-terminate program-nonterminate) program-well-typed))
+  (println (unbox prog-else-counter))
+  (raise (format "~a ≠ ~a + ~a"
+                 program-well-typed
+                 program-terminate
+                 program-nonterminate)))
+(printf "found ~a well-typed programs.\n" program-well-typed)
+(printf "~a of them terminate.\n" program-terminate)
+(printf "~a of them don't terminate within the step limit.\n" program-nonterminate)
