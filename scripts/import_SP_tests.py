@@ -610,9 +610,7 @@ reason_count = {}
 
 
 def main():
-    skipped_tests = {}
-    banned_counter = 0
-    imparsable_counter = 0
+    left_out_tests = {}
     for test in read_tests(input_file):
         name = get_name(test)
 
@@ -621,9 +619,9 @@ def main():
             row[category] = int(any(word in test for word in words))
         if any(i == 1 for i in row.values()):
             row['atypical_format'] = 0
-            while name in skipped_tests.keys():
+            while name in left_out_tests.keys():
                 name = name + ' (again)'
-            skipped_tests[name] = row
+            left_out_tests[name] = row
             continue
 
         if name in hand_translated_tests:
@@ -650,16 +648,16 @@ def main():
                 continue
         if not translated:
             row['atypical_format'] = 0
-            while name in skipped_tests.keys():
+            while name in left_out_tests.keys():
                 name = name + ' (again)'
-            skipped_tests[name] = row
+            left_out_tests[name] = row
             continue
     import csv
-    with open('banned_reasons.csv', 'w') as csvfile:
+    with open('left-out_reason.csv', 'w') as csvfile:
         fieldnames = ['test_name'] + [ c for c, w in ban_anywhere_in_test ] + ['atypical_format']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for name, row in skipped_tests.items():
+        for name, row in left_out_tests.items():
             row['test_name'] = name
             writer.writerow(row)
     return
