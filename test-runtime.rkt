@@ -399,9 +399,6 @@
 ;; conformance_suite/test_assert_narrowing_debug.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con 1))) ((== (con 2))))) (try-except-else-finally ((expr (call "foo" ((con "a"))))) ((except-handler "AssertionError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("foo")))))))))))
 
-;; conformance_suite/test_assert_narrowing_not_isinstance_optimized.py
-(check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (unary-op not (call "isinstance" ("x" "int")))) (return "x"))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con "abc"))) ((== (con "abc"))))))) (expr (call "main" ("foo")))))))))))
-
 ;; conformance_suite/test_aug_assign.py
 (check-not-exn (lambda () (test-match SP-dynamics (terminate) (term (calc (compile-program (desugar-program ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (function-def "main" (("f" dynamic)) dynamic ((assign ("l") (list ((con 1)))) (expr (call "f" ("l"))) (assert (compare (subscript "l" (con 0)) ((== (con 2))))))) (expr (call "main" ("f")))))))))))
 

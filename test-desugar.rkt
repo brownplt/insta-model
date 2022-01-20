@@ -602,9 +602,6 @@
 ;; conformance_suite/test_assert_narrowing_debug.py
 (test-match SP-core program (term (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con 1))) ((== (con 2))))) (try-except-else-finally ((expr (call "foo" ((con "a"))))) ((except-handler "AssertionError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("foo")))))))
 
-;; conformance_suite/test_assert_narrowing_not_isinstance_optimized.py
-(test-match SP-core program (term (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (unary-op not (call "isinstance" ("x" "int")))) (return "x"))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con "abc"))) ((== (con "abc"))))))) (expr (call "main" ("foo")))))))
-
 ;; conformance_suite/test_assert_narrowing_type_error.py
 (test-match SP-core program (term (desugar-program ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (call "isinstance" ("x" "int"))) (return "x")))))))
 

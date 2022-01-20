@@ -3,6 +3,7 @@ This program processes tests.py, which is the official conformance suite of
 Static Python. It generates tests written in our format and put them in 
 ./conformance_suite and ./skipped_tests.
 """
+import glob
 import json
 import ast
 from os import stat
@@ -16,129 +17,157 @@ output_path_prefix = "./conformance_suite/"
 # skipped_tests_path_prefix = "./skipped_tests/"
 cannot_parse_path_prefix = "./cannot_parse/"
 # Ignore a test if it contains one of the following word
-ban_anywhere_in_test = [
+ban_anywhere_in_test = list({
     # We don't model floats.
     #   float are fairly broken. it is not a super class of int
     #   many systems consider float a super type, but in fact it is not
     #   because .is_integer is not in int.
-    'float',
+    'float': ['float'],
     # We don't model Python's weird scoping rules.
-    'nonlocal',
-    'global',
+    'python_scope': ['nonlocal',
+                     'global', ],
     # We don't model C types.
-    'double',
-    'int8',
-    'int32',
-    'int64',
-    'box',
-    'cbool',
-    'ssize_t',
-    'Array',
+    'C_types': ['double',
+                'int8',
+                'int32',
+                'int64',
+                'box',
+                'cbool',
+                'ssize_t',
+                'Array',
+                ],
     # We don't model complicated argument specifications.
-    '*args',
-    'stararg',
-    'default_arg',
-    'dstararg',
-    '_kw',
-    'mixed_args',
-    'vararg',
-    #   These tests uses keyword argument
-    'test_compile_checked_dict_from_dict_call',
-    'test_inline_bare_return',
-    'test_inline_func_default',
-    'test_compile_checked_dict_bad_annotation',
-    #   These tests uses default argument
-    'test_verify_lambda_keyword_only',
-    'test_default_type_error',
-    'test_check_args_4',
-    'test_check_args_5',
-    # We don't model asynchronized methods.
-    'await',
-    'async',
-    # We don't model byte strings.
-    'b"',
-    "b'",
+    'fancy_args': [
+        '*args',
+        'stararg',
+        'default_arg',
+        'dstararg',
+        '_kw',
+        'mixed_args',
+        'vararg',
+        #   These tests uses keyword argument
+        'test_compile_checked_dict_from_dict_call',
+        'test_inline_bare_return',
+        'test_inline_func_default',
+        'test_compile_checked_dict_bad_annotation',
+        #   These tests uses default argument
+        'test_verify_lambda_keyword_only',
+        'test_default_type_error',
+        'test_check_args_4',
+        'test_check_args_5',
+    ],
+    'async_methods': [
+        # We don't model asynchronized methods.
+        'await',
+        'async',
+    ],
+    'byte_strings': [
+        # We don't model byte strings.
+        'b"',
+        "b'",
+    ],
     # We don't model format strings.
-    'f"',
-    "f'",
-    # We don't model features that are not even implemented in Static Python
-    "@skipIf(True, \"this isn't implemented yet\")",
-    # We don't model nested classes.
-    #   The SP team wants to ban them too.
-    'nested_class',
-    # We don't model decorators
-    'decorator',
+    'format_strings': [
+        'f"',
+        "f'",
+    ],
+    'not_implemented': [
+        # We don't model features that are not even implemented in Static Python
+        "@skipIf(True, \"this isn't implemented yet\")",
+    ],
+    'nested_class': [
+        # We don't model nested classes.
+        #   The SP team wants to ban them too.
+        'nested_class',
+    ],
+    'decorator': [
+        # We don't model decorators
+        'decorator'
+    ],
     # We don't model list/dict/tuple/generator comprehensions.
-    '_comprehension',
-    '_comprehension_',
-    '_comprehensions_',
-    'test_compile_checked_dict_wrong_unknown_type', # dict
-    'test_for_iter_list(',  # list
-    'test_for_iter_sequence_orelse(',  # list
-    'test_for_iter_sequence_return(',  # list
-    'test_nested_for_iter_sequence(',  # list
-    'test_nested_for_iter_sequence_return(',  # list
-    'test_for_iter_tuple(',  # list
-    # We don't model memory management.
-    'test_max_stability',
-    'test_min_stability',
-    '__del__',
-    # We don't model function types that include argument names.
-    'test_incompat_override_method_arg_name',
-    # We don't model code flag.
-    'test_code_flags',
-    # We don't model this special case of redeclaration.
-    #   Redeclaration is generally banned. We don't want to allow this
-    #   special case.
-    'test_assign_try_except_typing_redeclared_after',
-    # We don't model slicing syntax.
-    'test_for_iter_list_modified(',
+    'comprehension_syntax': [
+        '_comprehension',
+        '_comprehension_',
+        '_comprehensions_',
+        'test_compile_checked_dict_wrong_unknown_type',  # dict
+        'test_for_iter_list(',  # list
+        'test_for_iter_sequence_orelse(',  # list
+        'test_for_iter_sequence_return(',  # list
+        'test_nested_for_iter_sequence(',  # list
+        'test_nested_for_iter_sequence_return(',  # list
+        'test_for_iter_tuple(',  # list
+    ],
+    'memory_management': [
+        # We don't model memory management.
+        'test_max_stability',
+        'test_min_stability',
+        '__del__',
+    ],
+    'fancy_function_type': [
+        # We don't model function types that include argument names.
+        'test_incompat_override_method_arg_name',
+    ],
+    'code_flag': [
+        # We don't model code flag.
+        'test_code_flags',
+    ],
+    'try_except_redeclare': [
+        # We don't model this special case of redeclaration.
+        #   Redeclaration is generally banned. We don't want to allow this
+        #   special case.
+        'test_assign_try_except_typing_redeclared_after'
+    ],
+    'slicing_syntax': [
+        # We don't model slicing syntax.
+        'test_for_iter_list_modified('
+    ],
     # We don't model constants.
-    'Final',
-    'Final[',
-    # We don't model finalized classes.
-    '@final',
-    # We don't model break and continue.
-    #   The challenges lie in the occurrance typing, not at runtime.
-    #   Our runtime does support break and continue. In fact, we desugar for-loops
-    #   to while-loops that involve break and continue.
-    'break', 'continue',
-    # We don't model type variables.
-    'TypeVar',
+    'immutable_variables': [
+        'Final',
+        'Final['
+    ],
+    'final_classes': [
+        # We don't model finalized classes.
+        '@final'
+    ],
+    'break_and_continue': [
+        # We don't model break and continue.
+        #   The challenges lie in the occurrance typing, not at runtime.
+        #   Our runtime does support break and continue. In fact, we desugar for-loops
+        #   to while-loops that involve break and continue.
+        'break', 'continue'
+    ],
+    'TypeVar': [
+        # We don't model type variables.
+        'TypeVar'
+    ],
     # We don't model these things as well.
-    '...',
-    'NamedTuple',
-    'with_traceback',
-    'sys.modules',
-    'Protocol',
-    'prod_assert',
-    'sorted',
-    'from __static__.compiler_flags import shadow_frame',
-    '__setattr__',
-    '__slots__',
-    'reveal_type',
-    'xxclassloader',
-    'weakref',
-    '@_donotcompile',
+    '...': ['...'],
+    'NamedTuple': ['NamedTuple'],
+    'with_traceback': ['with_traceback'],
+    'sys.modules': ['sys.modules'],
+    'Protocol': ['Protocol'],
+    'prod_assert': ['prod_assert'],
+    'sorted': ['sorted'],
+    'shadow_frame': ['shadow_frame'],
+    '__setattr__': ['__setattr__'],
+    '__slots__': ['__slots__'],
+    'reveal_type': ['reveal_type'],
+    'xxclassloader': ['xxclassloader'],
+    'weakref': ['weakref'],
+    '@_donotcompile': ['@_donotcompile'],
+    '@staticmethod': ['@staticmethod'],
+    '@property': ['@property'],
+    'bad_tests': ['test_break_condition'],
+    'nonexpressible_tests': ['test_override_bad_ret'],
+    'optimize=1': ['optimize=1']
+}.items())
 
-    # This test inherite static class in a dynamic module,
-    #   which is impossible to simulate in a static module without
-    #   nested classes. We banned nested classes.
-    'test_override_bad_ret',
-
-    # These tests are wrong. So our model don't support them.
-    'test_break_condition',
-    'test_assert_narrowing_optimized',
-
-    # We don't model static methods and @property
-    '@staticmethod',
-    '@property',
-]
-
-import glob, re
 hand_translated_prefix = './conformance_suite/edited_'
 hand_translated_tests = glob.glob('{}*'.format(hand_translated_prefix))
-hand_translated_tests = [ s[len(hand_translated_prefix):-3] for s in hand_translated_tests ]
+hand_translated_tests = [s[len(hand_translated_prefix):-3]
+                         for s in hand_translated_tests]
+
 
 def read_tests(file_path):
     f = open(file_path, 'r')
@@ -267,6 +296,7 @@ def translate_simple_pass_compile_test(name, test):
     content += commented_src + '\n'
     return content
 
+
 def translate_simple_fail_compile_test(name, test):
     # This group is good. It only translates compilation tests.
     # And we keep all information about compilation tests.
@@ -356,19 +386,23 @@ def translate_with_compile_test(name, test):
     content += commented_src + '\n'
     return content
 
+
 def split_items(matched_string):
     import ast
     m = ast.parse('({})'.format(matched_string))
     e1, e2 = m.body[0].value.elts
     return ast.unparse(e1), ast.unparse(e2)
 
+
 def parse_asserts(name, spec):
     imports = []
     actions = []
+
     def preprocess(e: str):
         e = e.replace('chkdict', 'CheckedDict')
         e = e.replace('mod.', '')
         return e
+
     def rec(node):
         nonlocal actions, imports
         if isinstance(node, list):
@@ -411,7 +445,8 @@ def parse_asserts(name, spec):
                         assert isinstance(value, ast.Call)
                         lft = ast.unparse(value.args[0])
                         rht = ast.unparse(value.args[1])
-                        actions.append("assert {} == {}".format(preprocess(lft), preprocess(rht)))
+                        actions.append("assert {} == {}".format(
+                            preprocess(lft), preprocess(rht)))
                         continue
                     if isinstance(s_as_stmt, ast.Assign):
                         targets = s_as_stmt.targets
@@ -426,7 +461,8 @@ def parse_asserts(name, spec):
                         else:
                             source = preprocess(source)
                             if target != source:
-                                actions.append("{} = {}".format( target, source))
+                                actions.append(
+                                    "{} = {}".format(target, source))
                             continue
                     if isinstance(s_as_stmt, ast.ClassDef):
                         actions += s_as_str.split('\n')
@@ -484,23 +520,21 @@ def parse_asserts(name, spec):
                                 '    raise Exception()'
                             ]
                             continue
+                    print(name)
                     print("Internal error 1")
-                    exit(1)
+                    assert False
                 return
-
+        print(name)
         print("Internal error 2")
-        exit(1)
-    
-    try:
-        rec(spec)
-    except Exception as e:
-        print("Internal error 3")
-        exit(1)
-    
+        assert False
+
+    rec(spec)
+
     if all(isinstance(s, str) for s in actions):
         body = '\n'.join(['    {}'.format(s) for s in actions]) + '\n'
         return '\n'.join([
-            'def main({}):'.format(', '.join(target for source, target in imports)),
+            'def main({}):'.format(
+                ', '.join(target for source, target in imports)),
             body,
             'main({})'.format(', '.join(source for source, target in imports))
         ])
@@ -518,33 +552,8 @@ def translate_all_assert_tests(name, test):
     ]
     assert any(word in test for word in asserts)
 
-    # if 'f = mod.testfunc' in test:
-    #     code += '\n' + 'f = testfunc'
-    # if 'test = mod.testfunc' in test:
-    #     code += '\n' + 'test = testfunc'
-    # if 'f = mod.func' in test:
-    #     code += '\n' + 'f = func'
-    # if 'c = C()' in test:
-    #     code += '\n' + 'c = C()'
-
-    # import re
-    # pattern = 'self\\.assertEqual\\((.*)\\)\n'
-    # assertEqual_matches = re.findall(pattern, test)
-    # for matched_string in assertEqual_matches:
-    #     matched_string: str = matched_string.replace('chkdict', 'CheckedDict')
-    #     try:
-    #         lft_e, rht_e = split_items(matched_string)
-    #         if lft_e.startswith('mod.'):
-    #             lft_e = lft_e[len('mod.'):]
-    #         code += '\n' + 'assert {} == {}'.format(lft_e, rht_e)
-    #     except Exception:
-    #         code += '\n' + '# self.assertEqual({})'.format(matched_string)
-
-    # code += '\n'
-
     actions = parse_asserts(name, spec)
-    # actions = ""
-    
+
     content = '\n'.join([
         '# {}.py'.format(name),
         '# This should pass.',
@@ -556,6 +565,7 @@ def translate_all_assert_tests(name, test):
     commented_src = '\n' + '\n'.join('# ' + line for line in test.splitlines())
     content += commented_src + '\n'
     return content
+
 
 def translate_optimization_test(name, test):
     code, spec = parse_simple_test(test)
@@ -586,6 +596,7 @@ def translate_optimization_test(name, test):
     content += commented_src + '\n'
     return content
 
+
 reason_count = {}
 
 
@@ -599,29 +610,22 @@ reason_count = {}
 
 
 def main():
+    skipped_tests = {}
     banned_counter = 0
     imparsable_counter = 0
     for test in read_tests(input_file):
-        banned = None
-        for word in ban_anywhere_in_test:
-            if word in test:
-                banned = word
-                break
-        if banned is not None:
-            # record_skipped_test("banned_test_{}".format(banned_counter), test, "Test hitted a banned word {}".format(banned))
-            banned_counter += 1
+        name = get_name(test)
+
+        row = {}
+        for category, words in ban_anywhere_in_test:
+            row[category] = int(any(word in test for word in words))
+        if any(i == 1 for i in row.values()):
+            row['atypical_format'] = 0
+            while name in skipped_tests.keys():
+                name = name + ' (again)'
+            skipped_tests[name] = row
             continue
 
-        try:
-            name = get_name(test)
-        except Exception as e:
-            # print("<SKIPPED begin")
-            # print(test)
-            # print("<SKIPPED end")
-            # record_skipped_test("imparsable_test_{}".format(imparsable_counter), test, "Format too complicated")
-            imparsable_counter += 1
-            continue
-        
         if name in hand_translated_tests:
             continue
 
@@ -645,11 +649,20 @@ def main():
             except Exception as e:
                 continue
         if not translated:
-            # record_skipped_test(name, test, "Can't be translated by any of the three translator")
-            pass
+            row['atypical_format'] = 0
+            while name in skipped_tests.keys():
+                name = name + ' (again)'
+            skipped_tests[name] = row
+            continue
+    import csv
+    with open('banned_reasons.csv', 'w') as csvfile:
+        fieldnames = ['test_name'] + [ c for c, w in ban_anywhere_in_test ] + ['atypical_format']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for name, row in skipped_tests.items():
+            row['test_name'] = name
+            writer.writerow(row)
+    return
 
 
 main()
-# reason_count = list(sorted([(v, k)
-#                     for k, v in reason_count.items()], reverse=True))
-# print(json.dumps(reason_count, indent=2))

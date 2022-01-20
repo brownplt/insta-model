@@ -1,16 +1,16 @@
-everything: import make_model_tests run_model_tests
+everything: import_tests redex_tests check_model
 
-import:
+import_tests:
 	echo "Importing tests from Static Python's test suite."
 	rm -f ./skipped_tests/*
 	rm -f ./conformance_suite/test_*
 	python3.9 ./scripts/import_SP_tests.py
 
-make_model_tests:
+redex_tests:
 	echo "Translating Python files to tests of the model."
 	python3.9 ./scripts/python_tests_to_redex_tests.py
 
-run_model_tests:
+check_model:
 	echo "Testing the model." && \
 	echo "Testing the grammar." && \
 	racket ./test-grammar.rkt && \
