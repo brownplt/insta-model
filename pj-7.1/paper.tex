@@ -94,6 +94,7 @@
 \newcommand{\spnone}{\code{none}}
 \newcommand{\spint}{\codefont{int}}
 \newcommand{\spbool}{\codefont{bool}}
+\newcommand{\spstr}{\typefont{str}}
 \newcommand{\spfloat}{\codefont{float}}
 \newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
 \newcommand{\spchkdict}[3]{\spapp{\paramtype{\code{chkdict}}{#1, #2}}{#3}}
@@ -494,9 +495,9 @@ performance results, set the basic strategy for run-time checks.
   \item
     Critical code often relies on first-order functions and objects,
     at least in the Instagram web server.
-    Precise types for higher-order functions and first-class classes
-    are thus a low priority; instead, the dynamic type is available as a coarse
-    approximation.
+    Precise types for higher-order functions, for first-class classes, and even for
+    locally-defined functions and classes are thus a low priority; instead, the
+    dynamic type is available as a coarse approximation.
   \item
     The codebase in which \SP{} is being applied makes heavy use of Pyre
     type annotations.
@@ -642,7 +643,7 @@ f(d)
     \caption{DGG Violation: removing part of the type for the parameter \code{x} raises a dynamic error}
     \label{f:gg-failure-dyn}
   \end{subfigure}
-  \caption{\SP{} ensures neither the static (SGG) nor the dynamic (DGG) gradual guarantees}
+  \caption{\SP{} provides neither the static (SGG) nor the dynamic (DGG) gradual guarantees (assuming a standard type-precision relation)}
   \label{fig:gg-failure}
 \end{figure}
 
@@ -772,7 +773,7 @@ inheritance:
 
   \item
     Non-final methods and fields may be overridden in arbitrary ways by untyped code.
-    In typed code, however, overrides must be compatible subtypes.
+    In typed code, however, overrides cannot use less-precise types.
     For example, a method that returns a number cannot be overridden by a method
     that returns the dynamic type; \cref{f:gg-failure-stat} shows the static error
     that arises from such an override.
@@ -1012,7 +1013,7 @@ though types are needed to enable the most-effective optimizations.
 To validate the design of \SP{}, we developed a model of the language in PLT
 Redex~\cite{kcdeffmrtf-popl-2012}.
 The model covers a substantial part of the Python language, including
-module imports, loops, exception handlers, and delete statements.
+assertions, loops, exception handlers, and delete statements.
 It follows \SP{}'s approach to typing these features.
 The model is available at:
 \begin{center}
@@ -1104,7 +1105,7 @@ Creating a formal model helped us catch this specification error.
 
 \paragraph{Section Outline}
 
-The rest of this section illustrates core aspects of our Redex model by way of
+The rest of this section illustrates our Redex model using
 a small formalization.
 \Cref{s:surface} presents a surface syntax to highlight the boundaries between
 typed and untyped code.
@@ -1127,7 +1128,7 @@ typed and untyped code.
       \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
   \\
     \spexpr & \defeq &
-      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spfloat \langmid \spobject \langmid
+      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid \spobject \langmid
   \\ & &
       \sppydict{\spx: \spexpr, \ldots} \langmid
       \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
@@ -1144,7 +1145,7 @@ typed and untyped code.
       \sptnone \langmid
       \sptint \langmid
       \sptbool \langmid
-      \sptfloat \langmid
+      \sptstr \langmid
       \sptobject \langmid
       \sptclass \langmid
   \\ & &
@@ -1177,7 +1178,7 @@ Functions must have one positional argument.
 Classes must declare one parent (either $\spobject$ or another class), one field, and one method.
 Expressions describe values and simple computations.
 The basic values consist of the following: the none value, integers,
-booleans (which are the integers \code{0} and \code{1}), floating point numbers, and the top object.
+booleans (which are the integers \code{0} and \code{1}), strings, and the top object.
 There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
 The remaining forms express function calls, dictionary reads and writes, object field reads and writes,
 and method calls.
@@ -1190,8 +1191,8 @@ names (\code{None}).
 
 Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
 user-defined class, and union types.
-We assume that all unions are written in a tidy normal form, e.g., that
-$\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be flattened and normalized to $\sptdyn$.
+We assume that all unions are written in a flat and simplified form, e.g., that
+$\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
 \SP{} does not enforce all surface types against untyped code, only the evaluation
 types presented in the next subsection~(\cref{s:eval-types}).
@@ -1216,7 +1217,7 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptnone \langmid
       \sptint \langmid
       \sptbool \langmid
-      \sptfloat \langmid
+      \sptstr \langmid
       \sptobject \langmid
       \sptclass \langmid
     \\ & &
@@ -1312,7 +1313,7 @@ casts either succeed or fail immediately.
     \sptnone & \mbox{Accepts the Python none value} \\
     \sptint & \mbox{Accepts integers} \\
     \sptbool & \mbox{Accepts booleans (the integers \code{0} and \code{1})} \\
-    \sptfloat & \mbox{Accepts floats}
+    \sptstr & \mbox{Accepts strings}
   \end{array}\)
 \end{table}
 
@@ -1356,7 +1357,7 @@ Combined with the typing rule, however, materialization is a concise way to find
 where a well-typed program needs casts to ensure soundness.
 For example, suppose that $\spf$ is a function from integers to the dynamic
 type and that $\spx$ is a variable with the dynamic type.
-An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptfloat$ using two materializations:
+An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two materializations:
 
 \medskip
 \begin{mathpar}
@@ -1373,9 +1374,9 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptfloat$ using two m
       \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptdyn
     }
     \quad
-    \sptdyn \spmatr \sptfloat
+    \sptdyn \spmatr \sptstr
   }{
-    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptfloat
+    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptstr
   }
 
   \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
@@ -1657,9 +1658,10 @@ The question is thus whether all boundaries are properly guarded.
 Our answer has two parts.
 First, observe that every evaluation type comes with a decidable
 cast~(\cref{t:cast}).
-For basic types such as floats, a tag check clearly suffices.
+For basic types such as strings, a tag check clearly suffices.
 For parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$,
-the exact-match semantics also provides a decidable test.
+the exact-match semantics is also decidable (and also implemented with
+tag checks).
 Second, observe that boundaries can only relate the dynamic type to an
 evaluation type; there are no significant boundaries that relate a partially
 static type to an evaluation type.
@@ -2049,19 +2051,6 @@ type errors and the other three are for performance.
 \subsubsection{Code Changes for the Type Checker}
 \label{s:behavior-changes}
 
-    %% X bg: lookup the dino email about mocks
-    %% And we do go through great lengths to make monkey patching work.  Because
-    %% we need to enforce return types it ends up being not quite as flexible as
-    %% normal Python.  For example one common pattern is to use Python’s mock
-    %% library and we currently end up throwing lots of TypeError’s when a
-    %% function which returns None is mocked and starts returning a MagicMock
-    %% object instead.  But it’s an easy fix in that you can specify the return
-    %% value to be compatible.  There may be more complex cases where you want to
-    %% return a mock for an actual class.  For example in our code base there’s
-    %% frequent mocking of the HttpRequest object and we have a MockReqeust object
-    %% which is a subclass of HttpRequest so that these can still be mocked
-    %% (luckily this actually pre-dated our static conversion work).
-
 \begin{enumerate}
   \item
     \ipara{Fix type errors due to mock wrappers}
@@ -2359,12 +2348,12 @@ for its implementors and for adopters:
     Shallow types such as $\sptrawpydict$ accommodate Python code but offer coarse
     soundness guarantees.
     These types have been the top priority for \SP{}.
-    Concrete types support full soundness, but impose nonlocal maintenace costs.
+    Concrete types support full soundness, but impose nonlocal maintenance costs.
     \SP{} supports few concrete types at the moment and plans to add more.
   \item
     Progressive primitive types are available to help developers maximize performance.
     These types are intentionally incompatible with the dynamic type to help programmers
-    avoid casts at run-time.
+    avoid casts.
 \end{itemize}
 %
 Many of these restrictions go against the grain of the mainstream
