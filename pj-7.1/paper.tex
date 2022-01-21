@@ -555,6 +555,9 @@ dynamic type as a default and skips most \emph{but not all\/} static checks.
 Programmers can thus add annotations to part of a module
 while leaving the rest unannotated.
 
+%% TODO confirm with C&D 
+%%  KC points out that variables and types are not too different so issue 50 may apply https://github.com/facebookincubator/cinder/issues/50
+%%  perhaps every type should have an import; that's not a burden for Pyre users
 In addition to serving as a default, the dynamic type also replaces any undefined types.
 For example, suppose that the type $\sptflout{}$ is undefined in \SP{}
 (i.e., it is a misspelling of $\sptfloat$) and that a
@@ -1021,12 +1024,12 @@ three methods to give confidence that our model matches reality.
 First, we manually reviewed the model in depth---using our
 own expertise---to look for non-conformance.  Second, 
 we used Redex's random testing tools~\cite{kf-sfp-2009} to check
-type soundness on thousands of example programs (\totalnum{\mbox{FILL}}).
-%% FILL how many programs exactly?
-%% FILL what bugs did testing catch?
+type soundness on thousands of examples (1,600 expressions and 11,000
+programs).
+% \footnote{Random testing helped us find and fix several issues in the
+% model.  None of issues had implications for \SP{}'s soundness.}
 Finally, we employed the well-established method of testing end-to-end
-conformance~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}
-with a test suite.
+conformance with a test suite~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}.
 In particular, we translated \numSPtest{} tests from the \SP{} regression suite to the
 syntax of the model and confirmed that the results
 do match,\footnote{For most of the \numSPtest{} tests, the translation is automatic.
@@ -1038,6 +1041,18 @@ do match,\footnote{For most of the \numSPtest{} tests, the translation is automa
   \cref{a:banned-test} gives a detailed categorization.
   }
 which suggests that the model conforms to actual \SP{}.
+
+%% 2022-01-20 redex-check details
+%% 1 no counterexamples in 10000 attempts
+%%   found 1636 well-typed expressions.
+%%   1278 of them reduce to a value.
+%%   358 of them don't reduce to a value within the step limit.
+%%
+%% 2 no counterexamples in 100000 attempts
+%%   found 11963 well-typed programs.
+%%   11924 of them terminate.
+%%   39 of them don't terminate within the step limit.
+
 
 \paragraph{The Payoff: Issues Reported}
 
@@ -2457,7 +2472,7 @@ We use \numSPtest{} of these tests for the model.
 The remaining \numSPdiff{} tests are skipped for the following reasons:
 
 \begin{itemize}
-  \item TBD need categories
+  \item TBD need categories, expect about 40 of these.
 \end{itemize}
 
 
