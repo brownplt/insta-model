@@ -423,9 +423,13 @@
   [(make-cond ([e_thn s_thn] [e_rst s_rst] ...) s_els)
    (if e_thn s_thn (make-cond ([e_rst s_rst] ...) s_els))])
 (define-metafunction SP-core
+  desugar-e+None : e++None -> e
+  [(desugar-e+None None) (ref "Exception")]
+  [(desugar-e+None e+) (desugar-e e+)])
+(define-metafunction SP-core
   desugar-h : h+ -> [e x s]
-  [(desugar-h (except-handler e+ x+None (s+ ...)))
-   [(desugar-e e+)
+  [(desugar-h (except-handler e++None x+None (s+ ...)))
+   [(desugar-e+None e++None)
     (desugar-x+None x+None)
     (make-begin (desugar-s s+) ...)]])
 (define-metafunction SP-core

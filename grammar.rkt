@@ -41,8 +41,7 @@
       (attribute e+ x)
       (call e+ (e+ ...))
       (subscript e+ e+)
-      (lambda ([x t+] ...) e+)
-      (list-comp e+ (g+ ...)))
+      (lambda ([x t+] ...) e+))
 
   ;; generator (comprehension node)
   (g+ [a-target e+ (e+ ...)])
@@ -73,8 +72,9 @@
       (raise e+))
 
   ;; except-handlers
-  (h+ (except-handler e+ x+None (s+ ...)))
+  (h+ (except-handler e++None x+None (s+ ...)))
   (x+None x None)
+  (e++None e+ None)
 
   ;; targets of assignment,
   ;;   which is a subset of e+

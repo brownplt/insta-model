@@ -38,7 +38,7 @@ ban_anywhere_in_test = list({
                 ],
     # We don't model complicated argument specifications.
     'fancy_args': [
-        '*args',
+        '\\*args',
         'stararg',
         'default_arg',
         'dstararg',
@@ -62,18 +62,16 @@ ban_anywhere_in_test = list({
         'async',
     ],
     'byte_strings': [
-        # We don't model byte strings.
-        'b"',
-        "b'",
+        "bytes"
     ],
     # We don't model format strings.
     'format_strings': [
-        'f"',
-        "f'",
+        'f"[^\\"]*"',
+        "f'[^\\']*'",
     ],
     'not_implemented': [
         # We don't model features that are not even implemented in Static Python
-        "@skipIf(True, \"this isn't implemented yet\")",
+        "@skipIf\\(True, \"this isn't implemented yet\"\\)",
     ],
     'nested_class': [
         # We don't model nested classes.
@@ -90,12 +88,13 @@ ban_anywhere_in_test = list({
         '_comprehension_',
         '_comprehensions_',
         'test_compile_checked_dict_wrong_unknown_type',  # dict
-        'test_for_iter_list(',  # list
-        'test_for_iter_sequence_orelse(',  # list
-        'test_for_iter_sequence_return(',  # list
-        'test_nested_for_iter_sequence(',  # list
-        'test_nested_for_iter_sequence_return(',  # list
-        'test_for_iter_tuple(',  # list
+        'test_for_iter_list\\(',  # list
+        'test_for_iter_sequence_orelse\\(',  # list
+        'test_for_iter_sequence_return\\(',  # list
+        'test_nested_for_iter_sequence\\(',  # list
+        'test_nested_for_iter_sequence_return\\(',  # list
+        'test_for_iter_tuple\\(',  # list
+        'test_invoke_with_cell',  # list
     ],
     'memory_management': [
         # We don't model memory management.
@@ -119,33 +118,37 @@ ban_anywhere_in_test = list({
     ],
     'slicing_syntax': [
         # We don't model slicing syntax.
-        'test_for_iter_list_modified('
+        'test_for_iter_list_modified\\('
     ],
     # We don't model constants.
     'immutable_variables': [
         'Final',
-        'Final['
+        'Final\\['
     ],
     'final_classes': [
         # We don't model finalized classes.
         '@final'
     ],
-    'break_and_continue': [
+    'advanced_occurrance_typing': [
         # We don't model break and continue.
         #   The challenges lie in the occurrance typing, not at runtime.
         #   Our runtime does support break and continue. In fact, we desugar for-loops
         #   to while-loops that involve break and continue.
-        'break', 'continue'
+        'break',
+        'continue',
+        # This test uses `return` in a the body of a while-loop, which also makes the
+        #   occurrance typing problem more challenging.
+        'test_assign_while_returns_but_assigns_first'
     ],
     'TypeVar': [
         # We don't model type variables.
         'TypeVar'
     ],
     # We don't model these things as well.
-    '...': ['...'],
+    '...': ['\\.\\.\\.'],
     'NamedTuple': ['NamedTuple'],
     'with_traceback': ['with_traceback'],
-    'sys.modules': ['sys.modules'],
+    'sys.modules': ['sys\\.modules'],
     'Protocol': ['Protocol'],
     'prod_assert': ['prod_assert'],
     'sorted': ['sorted'],
@@ -158,9 +161,13 @@ ban_anywhere_in_test = list({
     '@_donotcompile': ['@_donotcompile'],
     '@staticmethod': ['@staticmethod'],
     '@property': ['@property'],
+    'optimize=1': ['optimize=1'],
+    '__call__': ['__call__'],
     'bad_tests': ['test_break_condition'],
-    'nonexpressible_tests': ['test_override_bad_ret'],
-    'optimize=1': ['optimize=1']
+    'nonexpressible_tests': [
+        'test_override_bad_ret\(',
+        'test_invoke_dict_override\('
+    ],
 }.items())
 
 hand_translated_prefix = './conformance_suite/edited_'
@@ -471,7 +478,8 @@ def parse_asserts(name, spec):
                         actions.append(s_as_str)
                         continue
                     if isinstance(s_as_stmt, ast.For):
-                        actions.append(s_as_str)
+                        # actions.append(s_as_str)
+                        rec(s_as_stmt.body)
                         continue
                     if isinstance(s_as_stmt, ast.Delete):
                         actions.append(s_as_str)
@@ -520,12 +528,8 @@ def parse_asserts(name, spec):
                                 '    raise Exception()'
                             ]
                             continue
-                    print(name)
-                    print("Internal error 1")
                     assert False
                 return
-        print(name)
-        print("Internal error 2")
         assert False
 
     rec(spec)
@@ -615,10 +619,18 @@ def main():
         name = get_name(test)
 
         row = {}
+        import re
         for category, words in ban_anywhere_in_test:
-            row[category] = int(any(word in test for word in words))
+            try:
+                row[category] = int(
+                    any(re.search(word, test) is not None for word in words))
+            except Exception as e:
+                print(e)
+                print(category)
+                print(words)
+                exit(1)
         if any(i == 1 for i in row.values()):
-            row['atypical_format'] = 0
+            row['model_could_not_parse'] = 0
             while name in left_out_tests.keys():
                 name = name + ' (again)'
             left_out_tests[name] = row
@@ -647,14 +659,15 @@ def main():
             except Exception as e:
                 continue
         if not translated:
-            row['atypical_format'] = 0
+            row['model_could_not_parse'] = 0
             while name in left_out_tests.keys():
                 name = name + ' (again)'
             left_out_tests[name] = row
             continue
     import csv
     with open('left-out_reason.csv', 'w') as csvfile:
-        fieldnames = ['test_name'] + [ c for c, w in ban_anywhere_in_test ] + ['atypical_format']
+        fieldnames = ['test_name'] + [c for c,
+                                      w in ban_anywhere_in_test] + ['model_could_not_parse']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for name, row in left_out_tests.items():

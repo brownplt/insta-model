@@ -145,8 +145,7 @@
       (assign x hole)
       (assign (attribute mode hole x) e-)
       (assign (attribute mode v x) hole)
-      (raise hole)
-      (loop hole s-))
+      (raise hole))
   ;; in expression bubble up exception
   (ex (tuple (v ... hole e- ...))
       (list (v ... hole e- ...))
@@ -176,6 +175,7 @@
    (method "int" "__mul__")
    (method "int" "__div__")
    (method "int" "__lt__")
+   (method "int" "__le__")
    (method "int" "bit_length")
    (method "str" "__iter__")
    (method "str" "split")
@@ -567,6 +567,22 @@
   [(delta-int-div Σ (con c) l)
    [Σ (call-function (attribute safe (ref l) "__div__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
+  delta-int-le : Σ l ... -> [Σ e-]
+  [(delta-int-le Σ (con c_1) (con c_2))
+   [Σ (ref (con ,(<= (term number_1) (term number_2))))]
+   (where number_1 (number-of-c c_1))
+   (where number_2 (number-of-c c_2))]
+  [(delta-int-le Σ (con c) l)
+   [Σ (call-function (attribute safe (ref l) "__le__") ((ref (con c))))]])
+(define-metafunction SP-dynamics
+  delta-int-lt : Σ l ... -> [Σ e-]
+  [(delta-int-lt Σ (con c_1) (con c_2))
+   [Σ (ref (con ,(< (term number_1) (term number_2))))]
+   (where number_1 (number-of-c c_1))
+   (where number_2 (number-of-c c_2))]
+  [(delta-int-lt Σ (con c) l)
+   [Σ (call-function (attribute safe (ref l) "__lt__") ((ref (con c))))]])
+(define-metafunction SP-dynamics
   delta-int-init : Σ l ... -> [Σ e-]
   [(delta-int-init Σ_0 l_obj (con number))
    [Σ_1 (ref (con None))]
@@ -588,8 +604,10 @@
    (delta-int-mul Σ l_arg ...)]
   [(delta Σ (method "int" "__div__") ((ref l_arg) ...))
    (delta-int-div Σ l_arg ...)]
-  [(delta Σ (method "int" "__lt__") ((ref (con number_1)) (ref (con number_2))))
-   [Σ (ref (con ,(< (term number_1) (term number_2))))]]
+  [(delta Σ (method "int" "__le__") ((ref l_arg) ...))
+   (delta-int-le Σ l_arg ...)]
+  [(delta Σ (method "int" "__lt__") ((ref l_arg) ...))
+   (delta-int-lt Σ l_arg ...)]
   [(delta Σ (method "int" "__eq__") ((ref (con number_1)) (ref (con number_2))))
    [Σ (ref (con ,(= (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "bit_length") (v ...))
@@ -693,6 +711,8 @@
                    o))))]
   [(delta-str-split Σ (ref (con string)) (ref (con None)) v_rst ...)
    (delta-str-split Σ (ref (con string)) (ref (con " ")) v_rst ...)]
+  [(delta-str-split Σ (ref (con string)))
+   (delta-str-split Σ (ref (con string)) (ref (con " ")))]
   [(delta-str-split Σ (ref (con string_1)) (ref (con string_2)))
    (delta-str-split Σ (ref (con string_1)) (ref (con string_2)) (ref (con -1)))])
 (define-metafunction SP-dynamics
@@ -1337,12 +1357,45 @@
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))])
 (define-metafunction SP-dynamics
   do-assign-attribute-safe : Σ l x v -> [Σ s-]
-  [(do-assign-attribute-safe Σ l_obj x_mem (ref l_new))
-   (do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
+  [(do-assign-attribute-safe Σ l_obj x_mem v_mem)
+   [Σ (begin s-_chk (assign (attribute fast (ref l_obj) x_mem) v_mem))]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
-   (where (yes any) (lookup? ρ x_mem))]
-  [(do-assign-attribute-safe Σ l_obj x_mem (ref l_new))
-   [Σ (raise (new "Exception" ((con ,(format "assign-attribute: undeclared field ~a" (term x_mem))))))]])
+   (where s-_chk (lookup-s-chk Σ l_cls x_mem v_mem))])
+(define-metafunction SP-dynamics
+  lookup-s-chk : Σ l x v -> s-
+  [(lookup-s-chk Σ "object" x v)
+   (raise (new "Exception" ((ref (con ,(format "instance variable ~a is not declared." (term x)))))))]
+  [(lookup-s-chk Σ l x v)
+   (raise (new "Exception" ((ref (con ,(format "can't override class variable ~a from an instance" (term x)))))))
+   (where (obj l_cls
+               (class (v_sup ...)
+                 ([x_cmem s-_cmem] ...)
+                 ([x_imem s-_imem] ...))
+               ρ)
+          (lookup-Σ Σ l))
+   (where (yes _) (lookup? ([x_cmem s-_cmem] ...) x))]
+  [(lookup-s-chk Σ l x v)
+   (expr (call-function
+          (lambda (x) s-_chk (local (x) (return (con None))))
+          (v)))
+   (where (obj l_cls
+               (class (v_sup ...)
+                 ([x_cmem s-_cmem] ...)
+                 ([x_imem s-_imem] ...))
+               ρ)
+          (lookup-Σ Σ l))
+   (where (no _) (lookup? ([x_cmem s-_cmem] ...) x))
+   (where (yes s-_chk) (lookup? ([x_imem s-_imem] ...) x))]
+  [(lookup-s-chk Σ l x v)
+   (lookup-s-chk Σ l_sup x v)
+   (where (obj l_cls
+               (class ((ref l_sup))
+                 ([x_cmem s-_cmem] ...)
+                 ([x_imem s-_imem] ...))
+               ρ)
+          (lookup-Σ Σ l))
+   (where (no _) (lookup? ([x_cmem s-_cmem] ...) x))
+   (where (no _) (lookup? ([x_imem s-_imem] ...) x))])
 (define-metafunction SP-dynamics
   do-delete-attribute : Σ mode l x -> [Σ s-]
   [(do-delete-attribute Σ mode l_obj x_mem)

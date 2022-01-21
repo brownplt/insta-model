@@ -5,6 +5,8 @@
 (require "compile.rkt")
 (require "runtime.rkt")
 
+(random-seed 2022)
+
 ;; GOAL: progression and preservation
 
 (define-extended-language SP-conjecture
@@ -32,9 +34,13 @@
        [(list next-state)
         (reduce (sub1 gas) next-state)]
        [(list)
-        state])]))
+        state]
+       [otherwise
+        (println state)
+        (println (apply-reduction-relation/tag-with-names red-p state))
+        (raise "Aho")])]))
 
-;; transtion the input state until it gets stuck or we reach `number` steps.
+;; transition the input state until it gets stuck or we reach `number` steps.
 (define-judgment-form SP-conjecture
   #:mode (-->ⁿ I I O)
   #:contract (-->ⁿ p number p)

@@ -310,18 +310,6 @@ def ast_to_sexp(node):
             symbol('list'),
             [ast_to_sexp(e) for e in node.elts]
         ]
-    elif isinstance(node, ast.ListComp):
-        return [
-            symbol('list-comp'),
-            ast_to_sexp(node.elt),
-            [ast_to_sexp(g) for g in node.generators]
-        ]
-    elif isinstance(node, ast.comprehension):
-        return [
-            ast_to_sexp(node.target),
-            ast_to_sexp(node.iter),
-            [ast_to_sexp(cnd) for cnd in node.ifs]
-        ]
     elif isinstance(node, ast.For):
         return [
             symbol('for'),
@@ -356,7 +344,7 @@ def python_file_to_sexp(test_file):
 
 
 def parse_python_file(test_file):
-    # print("Working on " + test_file)
+    print("Working on " + test_file)
     name = test_file
     lines = open(test_file).readlines()
     prog = python_file_to_sexp(test_file)

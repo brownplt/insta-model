@@ -985,7 +985,8 @@
               (term [(if-exp "int" "bool" (ref (con None)))
                      dynamic]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (attribute "bool" "__add__")))
-              (term [(attribute safe "bool" "__add__") dynamic]))
+              (term [(ref (method "int" "__add__"))
+                     (-> (dynamic dynamic) dynamic)]))
   (test-equal (term (compile-e (base-Ψ) (prim-Γ) (prim-Γ) (call "int" ("bool"))))
               (term [(new "int" ("bool"))
                      (exact "int")]))
@@ -1653,10 +1654,11 @@
            (compile-s Ψ Γ_dcl Γ_thn T+☠ s_thn)
            (compile-s Ψ Γ_dcl Γ_els T+☠ s_els))
     (compile-begin Ψ Γ_dcl Γ_els T+☠ s ...))
-   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_lcl e))]
+   (where [e- Γ_thn Γ_els] (condition Ψ Γ_dcl Γ_dcl e))]
   [(compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_1 s_2 ...)
+   ;; We must drop Γ_lcl because we don't know what happens in s_1
    (make-begin (compile-s Ψ Γ_dcl Γ_lcl T+☠ s_1)
-               (compile-begin Ψ Γ_dcl Γ_lcl T+☠ s_2 ...))])
+               (compile-begin Ψ Γ_dcl Γ_dcl T+☠ s_2 ...))])
 (define-metafunction SP-compiled
   condition : Ψ Γ Γ e -> [e- Γ Γ]
   [(condition Ψ Γ_dcl Γ_lcl (is x (con None)))
@@ -1731,14 +1733,14 @@
                        (ann-assign "d" (subscript "CheckedDict" (tuple ("str" "int")))
                                    (call (subscript "CheckedDict" (tuple ("str" "int")))
                                          ((dict ([(con "foo") (con 123)])))))))))
-              (term (local
-                      ("CheckedDict" "d")
-                      (begin
-                        (import-from "__static__" "CheckedDict")
-                        (assign
-                         "d"
-                         (new (chkdict (subof "str") (subof "int"))
-                              ((dict (((ref (con "foo")) (ref (con 123))))))))))))
+              (term (()
+                     ("CheckedDict" "d")
+                     (begin
+                       (import-from "__static__" "CheckedDict")
+                       (assign
+                        "d"
+                        (new (chkdict (subof "str") (subof "int"))
+                             ((dict (((ref (con "foo")) (ref (con 123))))))))))))
   (test-equal (term (compile-program
                      (desugar-program
                       ((import-from "__static__" ("CheckedDict"))
@@ -1746,20 +1748,26 @@
                          (pass))
                        (class "D" ("C")
                          (pass))))))
-              (term (local
-                      ("CheckedDict" "C" "D")
-                      (begin
-                        (import-from "__static__" "CheckedDict")
-                        (assign "C"
-                                (class "C"
-                                  ((ref (chkdict (subof "str") (subof "int"))))
-                                  ()
-                                  ()))
-                        (assign "D"
-                                (class "D"
-                                  ("C")
-                                  ()
-                                  ())))))))
+              (term ((((user-defined-class "D")
+                       (class ((user-defined-class "C")) () () ()))
+                      ((user-defined-class "C")
+                       (class ((chkdict (subof "str") (subof "int")))
+                         ()
+                         ()
+                         ())))
+                     ("CheckedDict" "C" "D")
+                     (begin
+                       (import-from "__static__" "CheckedDict")
+                       (assign "C"
+                               (class "C"
+                                 ((ref (chkdict (subof "str") (subof "int"))))
+                                 ()
+                                 ()))
+                       (assign "D"
+                               (class "D"
+                                 ("C")
+                                 ()
+                                 ())))))))
 (define-metafunction SP-compiled
   compile-program : program -> program-
   [(compile-program (local ([x d] ...) s))
