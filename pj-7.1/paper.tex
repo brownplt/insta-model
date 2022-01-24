@@ -12,8 +12,9 @@
 %% TODO before submission
 %% - choose words: static vs typed, nonstatic vs dynamic vs untyped
 %%   trying to avoid nonstatic? staticifying?
-%% - terms: sound generic / concrete ... aren't people going to forget concrete? better keep as last resort
 %% - perhaps a compatibility story, programmers can work on Python 3.9 until Cinder catches up b/c source code is the same
+%% - SP doc https://docs.google.com/document/d/1-xzpBuiDYnpeGrXy61R_JCy7-iJ2v6F5DcoB4ICHEfw/edit#
+%% -
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -58,10 +59,10 @@
 \newcommand{\sptoptional}[1]{\paramtype{\typefont{Optional}}{#1}}
 \newcommand{\sptset}[1]{\paramtype{\typefont{Set}}{#1}}
 \newcommand{\sptunion}[1]{\paramtype{\typefont{Union}}{#1}}
-\newcommand{\sptrawpydict}{\typefont{PyDict}}
-\newcommand{\sptrawchkdict}{\typefont{ChkDict}} %% not a real SP type, but useful for TeX
+\newcommand{\sptrawpydict}{\typefont{Dict}}
+\newcommand{\sptrawchkdict}{\typefont{CheckedDict}} %% not a real SP type, but useful for TeX
 \newcommand{\sptpydict}[2]{\paramtype{\sptrawpydict}{#1, #2}}
-\newcommand{\sptchkdict}[2]{\paramtype{\typefont{ChkDict}}{#1, #2}}
+\newcommand{\sptchkdict}[2]{\paramtype{\sptrawchkdict}{#1, #2}}
 \newcommand{\sptenv}{\typefont{Env}}
 \newcommand{\sptenvnil}{\cdot}
 \newcommand{\sptenvempty}{\sptenvnil}
@@ -94,6 +95,7 @@
 \newcommand{\spnone}{\code{none}}
 \newcommand{\spint}{\codefont{int}}
 \newcommand{\spbool}{\codefont{bool}}
+\newcommand{\spstr}{\typefont{str}}
 \newcommand{\spfloat}{\codefont{float}}
 \newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
 \newcommand{\spchkdict}[3]{\spapp{\paramtype{\code{chkdict}}{#1, #2}}{#3}}
@@ -203,7 +205,7 @@
   This paper describes \SP{}, a language developed by engineers at Instagram
   that has proven itself sound, fast, and reasonably expressive in production.
   \SP{}'s approach to gradual types is essentially a programmer-tunable combination of
-  the \emph{concrete}\/ and \emph{transient}\/ approaches from the literature.
+  the \emph{concrete\/} and \emph{transient\/} approaches from the literature.
   Concrete types provide full soundness and low performance overhead, but impose
   nonlocal constraints.
   Transient types are sound in a shallow sense and easier to use; they help
@@ -225,7 +227,7 @@
   % What new facts were uncovered? If the
   % research was not results oriented, what new
   % capabilities are enabled by the work?
-  Our main finding is that the \emph{gradual soundness}\/ that
+  Our main finding is that the \emph{gradual soundness\/} that
   arises from a mix of concrete and transient types is an effective
   way to lower the maintenance cost of the concrete approach.
   We also find that method-based JIT technology can eliminate the
@@ -291,7 +293,7 @@ and proposed implementation methods~\cite{kas-pldi-2019,bbst-oopsla-2017},
 compiler technology~\cite{vsc-dls-2019,fgsfs-oopsla-2018},
 and even weakened semantics~\cite{glfd-pj-2022,vss-popl-2017,gi-scp-2020},
 but these efforts have not yet decisively closed the performance gap.
-The most promising attempt is the \emph{concrete} semantics
+The most promising attempt is the \emph{concrete\/} semantics
 for gradual types~\cite{clzv-ecoop-2018,mt-oopsla-2017,wzlov-popl-2010}, but it imposes nonlocal
 constraints on untyped code.
 In particular, concrete-typed client code is incompatible with
@@ -309,20 +311,18 @@ full-strength optimizations, a design that we call \emph{gradual soundness}.
 To a first approximation, there are three main stages:
 \begin{enumerate}
   \item
-    \SP{} contains a full language of \emph{shallow types}\/ that describe idiomatic
+    A full language of \emph{shallow types\/} that describe idiomatic
     Python code at a coarse granularity.
     Adapting an untyped module to use shallow types requires at most a few local code
     changes.
   \item
-    A small set of \emph{concrete types}\/ describe generic data structures
+    A second level of \emph{concrete types\/} describes generic data structures
     that guarantee the types of their elements.
     If programmers modify their code to build concrete structures instead of Python
-    ones (a potentially nonlocal change), then \SP{} can speed up reads from these
-    structures.
+    ones (a potentially nonlocal change), then \SP{} can perform deeper optimizations.
   \item
-    Additional types and flags to enable further optimizations.
-    These include \emph{primitive types}\/ that enable unboxed arithmetic
-    and \emph{strict module semantics}\/ that makes modules immutable.
+    Additional progressive types that enable further optimizations.
+    In particular, \emph{primitive types\/} enable unboxed arithmetic.
 \end{enumerate}
 
 Over the past year, Instagram has been applying gradual soundness to its
@@ -429,19 +429,19 @@ def f(x):
 
 f({"A": 1})
   \end{lstlisting}
-\end{minipage}\begin{minipage}{0.08\columnwidth}\(~~\rightarrow\!\!\)\end{minipage}\begin{minipage}{0.32\columnwidth}\noindent\begin{lstlisting}
-from __static__ import PyDict
-def f(x: PyDict[Str, Int]):
+\end{minipage}\begin{minipage}{0.07\columnwidth}\(~~\rightarrow\!\!\!\!\)\end{minipage}\begin{minipage}{0.32\columnwidth}\noindent\begin{lstlisting}
+from typing import Dict
+def f(x: Dict[str, int]):
   return x["A"]
 
 f({"A": 1})
   \end{lstlisting}
-  \end{minipage}\begin{minipage}{0.08\columnwidth}\(~~\rightarrow\!\!\)\end{minipage}\begin{minipage}{0.34\columnwidth}\noindent\begin{lstlisting}
-from __static__ import ChkDict
-def f(x: ChkDict[Str, Int]):
+  \end{minipage}\begin{minipage}{0.07\columnwidth}\(~~\rightarrow\!\!\!\!\)\end{minipage}\begin{minipage}{0.38\columnwidth}\noindent\begin{lstlisting}
+from __static__ import CheckedDict
+def f(x: CheckedDict[str, int]):
   return x["A"]
 
-f(chkdict[Str, Int]({"A": 1}))
+f(CheckedDict[str, int]({"A": 1}))
   \end{lstlisting}
   \end{minipage}
 
@@ -465,7 +465,8 @@ The other two versions import dictionary types from the \SP{} standard library:
     These checks enable optimizations within the function body.
 
   \item
-    The $\sptrawchkdict$ type describes a \emph{concrete} dictionary data structure provided by \SP{}.
+    The $\sptrawchkdict$ type
+    describes a \emph{concrete} dictionary data structure provided by \SP{}.
     Unlike Python dictionaries, these checked dictionaries are guaranteed to
     contain well-typed keys and values even if they escape to untyped code.
     As the body of \code{f} illustrates, the syntax for using a checked dict is standard.
@@ -494,9 +495,9 @@ performance results, set the basic strategy for run-time checks.
   \item
     Critical code often relies on first-order functions and objects,
     at least in the Instagram web server.
-    Precise types for higher-order functions and first-class classes
-    are thus a low priority; instead, the dynamic type is available as a coarse
-    approximation.
+    Precise types for higher-order functions, for first-class classes, and even for
+    locally-defined functions and classes are thus a low priority; instead, the
+    dynamic type is available as a coarse approximation.
   \item
     The codebase in which \SP{} is being applied makes heavy use of Pyre
     type annotations.
@@ -555,6 +556,7 @@ dynamic type as a default and skips most \emph{but not all\/} static checks.
 Programmers can thus add annotations to part of a module
 while leaving the rest unannotated.
 
+%% TODO avoid typo ... shorten?
 In addition to serving as a default, the dynamic type also replaces any undefined types.
 For example, suppose that the type $\sptflout{}$ is undefined in \SP{}
 (i.e., it is a misspelling of $\sptfloat$) and that a
@@ -613,12 +615,12 @@ module compiles with minimal code changes}.
   \begin{subfigure}[t]{0.48\columnwidth}
     \begin{lstlisting}
 class A:
-  def m(self) -> Int:
+  def m(self) -> int:
     return 0
 
 class B(A):
   def m(self):
-    # Error: Dyn cannot override Int
+    # Error: dynamic cannot override int
     return 0
   \end{lstlisting}
     \caption{SGG Violation: removing a type in the subclass \code{B} raises a static error}
@@ -627,19 +629,19 @@ class B(A):
   \hfill
   \begin{subfigure}[t]{0.48\columnwidth}
   \begin{lstlisting}
-from __static__ import ChkDict
+from __static__ import CheckedDict
 
-def f(x: ChkDict[Str, Dyn]):
+def f(x: CheckedDict[str, dynamic]):
   return x["A"]
 
-d = ChkDict[Str, Int]({"A": 1})
+d = CheckedDict[str, int]({"A": 1})
 f(d)
-# Error: f expected ChkDict[Str, Dyn]
+# Error: f expected CheckedDict[str, dynamic]
   \end{lstlisting}
     \caption{DGG Violation: removing part of the type for the parameter \code{x} raises a dynamic error}
     \label{f:gg-failure-dyn}
   \end{subfigure}
-  \caption{\SP{} ensures neither the static (SGG) nor the dynamic (DGG) gradual guarantees}
+  \caption{\SP{} provides neither the static (SGG) nor the dynamic (DGG) gradual guarantees (assuming a standard type-precision relation)}
   \label{fig:gg-failure}
 \end{figure}
 
@@ -677,19 +679,22 @@ name of its type.
 
 Parameterized types (generics) are more difficult to enforce.
 For example, suppose that a typed function expects inputs that match
-the type \code{Dict[Int,Int]}; that is, dictionaries with integer keys and
+the type \code{Dict[int,int]}; that is, dictionaries with integer keys and
 integer values.
 A constant-time check for dictionaries is not enough to protect the typed
 function because it fails to validate the elements inside a dictionary.
 The \SP{} solution is to provide two incompatible versions of every parameterized type,
 both of which support efficient run-time checks.\footnote{Not all parameterized \SP{} types have both shallow
-and concrete versions at present. In particular, concrete user-defined classes have yet to gain concrete support.}
+and concrete versions at present.
+In particular, user-defined classes do not have concrete support.
+The shallow check for a user-defined class, however, guarantees the types of all
+non-generic fields and methods.}
 For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
 \begin{enumerate}
   \item
     The \emph{shallow} type $\sptrawpydict$ gets enforced with a constant-time check
     for dict values that ignores the elements inside a dict.
-    Consequently, a parameterized surface type such as $\sptpydict{\sptint}{\sptint}$
+    Consequently, a parameterized surface type such as $\sptpydict{K}{V}$
     is merely a promise of dict values at run-time; it does not promise anything about
     dict keys and values.
   \item
@@ -769,7 +774,7 @@ inheritance:
 
   \item
     Non-final methods and fields may be overridden in arbitrary ways by untyped code.
-    In typed code, however, overrides must be compatible subtypes.
+    In typed code, however, overrides cannot use less-precise types.
     For example, a method that returns a number cannot be overridden by a method
     that returns the dynamic type; \cref{f:gg-failure-stat} shows the static error
     that arises from such an override.
@@ -794,21 +799,6 @@ that it computes type-correct results.
 % are supported by an efficiently implementation that cooperates with
 % \SP{}
 The wrappers are handled efficiently by a tailored implementation of vtables~(\cref{s:vtable}).
-
-
-\subsection{Strict Modules}
-\label{s:strict-mod}
-
-%% 2022-01-12 Although the Static Python compiler can technically be
-%% used apart from strict modules, and we do that in tests for faster tests, it’s
-%% not sound and we don’t allow it in prod.
-
-Python modules are mutable collections of names.
-Names can be added, deleted, and updated at runtime.
-\SP{} accommodates these behaviors in the same manner as standard Python, which
-necessarily limits the benefits of module types.
-As an alternative, \SP{} programmers may opt in to a \emph{strict module} semantics.
-Strict modules are immutable, and thus enable type-based compiler optimizations.
 
 
 \subsection{Progressive Primitive Types}
@@ -843,6 +833,26 @@ primitives and standard data.
 % In the future, a preprocessor might convert Python arithmetic to primitive arithmetic.
 
 % https://github.com/facebookincubator/cinder/issues/52
+
+
+\subsection{Behavioral Changes to Python}
+\label{s:not-python}
+
+FILL
+
+%% 2022-01-12 Although the Static Python compiler can technically be
+%% used apart from strict modules, and we do that in tests for faster tests, it’s
+%% not sound and we don’t allow it in prod.
+
+%% Python modules are mutable collections of names.
+%% Names can be added, deleted, and updated at runtime.
+%% \SP{} accommodates these behaviors in the same manner as standard Python, which
+%% necessarily limits the benefits of module types.
+%% As an alternative, \SP{} programmers may opt in to a \emph{strict module} semantics.
+%% Strict modules are immutable, and thus enable type-based compiler optimizations.
+
+%% 1 strict modules
+%% 2 .....
 
 
 \section{Runtime System Highlights}
@@ -974,8 +984,8 @@ The implementation has three main components:
     When a concrete dictionary enters typed code from an untyped context,
     its tag must match the expected type exactly.
     For example, type $\sptchkdict{K}{V}$ matches the type
-    $\sptchkdict{\sptstr}{\sptdyn}$ only if $K$ is equal to $\sptstr$
-    and $V$ is equal to $\sptdyn$.
+    $\sptchkdict{K'}{V'}$ only if $K$ is equal to $K'$
+    and $V$ is equal to $V'$.
 \end{itemize}
 %
 In general, other checked datatypes have the same three components:
@@ -1009,7 +1019,7 @@ though types are needed to enable the most-effective optimizations.
 To validate the design of \SP{}, we developed a model of the language in PLT
 Redex~\cite{kcdeffmrtf-popl-2012}.
 The model covers a substantial part of the Python language, including
-module imports, loops, exception handlers, and delete statements.
+assertions, loops, exception handlers, and delete statements.
 It follows \SP{}'s approach to typing these features.
 The model is available at:
 \begin{center}
@@ -1021,12 +1031,12 @@ three methods to give confidence that our model matches reality.
 First, we manually reviewed the model in depth---using our
 own expertise---to look for non-conformance.  Second, 
 we used Redex's random testing tools~\cite{kf-sfp-2009} to check
-type soundness on thousands of example programs (\totalnum{\mbox{FILL}}).
-%% FILL how many programs exactly?
-%% FILL what bugs did testing catch?
+type soundness on thousands of examples (1,600 expressions and 11,000
+programs).
+% \footnote{Random testing helped us find and fix several issues in the
+% model.  None of issues had implications for \SP{}'s soundness.}
 Finally, we employed the well-established method of testing end-to-end
-conformance~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}
-with a test suite.
+conformance with a test suite~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}.
 In particular, we translated \numSPtest{} tests from the \SP{} regression suite to the
 syntax of the model and confirmed that the results
 do match,\footnote{For most of the \numSPtest{} tests, the translation is automatic.
@@ -1038,6 +1048,18 @@ do match,\footnote{For most of the \numSPtest{} tests, the translation is automa
   \cref{a:banned-test} gives a detailed categorization.
   }
 which suggests that the model conforms to actual \SP{}.
+
+%% 2022-01-20 redex-check details
+%% 1 no counterexamples in 10000 attempts
+%%   found 1636 well-typed expressions.
+%%   1278 of them reduce to a value.
+%%   358 of them don't reduce to a value within the step limit.
+%%
+%% 2 no counterexamples in 100000 attempts
+%%   found 11963 well-typed programs.
+%%   11924 of them terminate.
+%%   39 of them don't terminate within the step limit.
+
 
 \paragraph{The Payoff: Issues Reported}
 
@@ -1089,7 +1111,7 @@ Creating a formal model helped us catch this specification error.
 
 \paragraph{Section Outline}
 
-The rest of this section illustrates core aspects of our Redex model by way of
+The rest of this section illustrates our Redex model using
 a small formalization.
 \Cref{s:surface} presents a surface syntax to highlight the boundaries between
 typed and untyped code.
@@ -1112,7 +1134,7 @@ typed and untyped code.
       \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
   \\
     \spexpr & \defeq &
-      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spfloat \langmid \spobject \langmid
+      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid \spobject \langmid
   \\ & &
       \sppydict{\spx: \spexpr, \ldots} \langmid
       \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
@@ -1129,7 +1151,7 @@ typed and untyped code.
       \sptnone \langmid
       \sptint \langmid
       \sptbool \langmid
-      \sptfloat \langmid
+      \sptstr \langmid
       \sptobject \langmid
       \sptclass \langmid
   \\ & &
@@ -1162,21 +1184,22 @@ Functions must have one positional argument.
 Classes must declare one parent (either $\spobject$ or another class), one field, and one method.
 Expressions describe values and simple computations.
 The basic values consist of the following: the none value, integers,
-booleans (which are the integers \code{0} and \code{1}), floating point numbers, and the top object.
+booleans (which are the integers \code{0} and \code{1}), strings, and the top object.
 There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
 The remaining forms express function calls, dictionary reads and writes, object field reads and writes,
 and method calls.
 
 In Python, the syntax for expressions overlaps with the syntax of types.
-The Python name \code{None}, for example, is both an expression and a type.
+The Python name \code{None} is both an expression and a type,
+and the \SP{} names \code{chkdict} and \code{CheckedDict} are synonyms.
 By contrast, \cref{f:surface-types} keeps the two syntaxes distinct.
-Expressions use lowercase names (e.g., \code{none}) and types uses capitalized
-names (\code{None}).
+Expressions use lowercase names (\code{none}, \code{chkdict}) and types uses capitalized
+names (\code{None}, \code{CheckedDict}).
 
 Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
 user-defined class, and union types.
-We assume that all unions are written in a tidy normal form, e.g., that
-$\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be flattened and normalized to $\sptdyn$.
+We assume that all unions are written in a flat and simplified form, e.g., that
+$\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
 \SP{} does not enforce all surface types against untyped code, only the evaluation
 types presented in the next subsection~(\cref{s:eval-types}).
@@ -1201,7 +1224,7 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptnone \langmid
       \sptint \langmid
       \sptbool \langmid
-      \sptfloat \langmid
+      \sptstr \langmid
       \sptobject \langmid
       \sptclass \langmid
     \\ & &
@@ -1219,7 +1242,7 @@ None of the omitted features give substantially new ways for typed code to inter
     \\
       \sptoptional{\mftypeF{\sptype_1}} & \mbox{if $\sptype_0 = \sptoptional{\sptype_1}$}
     \\
-      \sptdyn & \mbox{if $\sptype_0 = \sptunion{\sptype, \ldots}$ and $\sptype_0 \neq \sptoptional{\sptype}$}
+      \sptdyn & \mbox{if $\sptype_0 = \sptunion{\sptype, \ldots}$ and $\sptype_0 \neq \sptoptional{\sptype}\!\!\!\!$}
     \\
       \sptchkdict{\mftypeF{\sptype_1}}{\mftypeF{\sptype_2}} & \mbox{if $\sptype_0 = \sptchkdict{\sptype_1}{\sptype_2}$}
     \\
@@ -1297,7 +1320,7 @@ casts either succeed or fail immediately.
     \sptnone & \mbox{Accepts the Python none value} \\
     \sptint & \mbox{Accepts integers} \\
     \sptbool & \mbox{Accepts booleans (the integers \code{0} and \code{1})} \\
-    \sptfloat & \mbox{Accepts floats}
+    \sptstr & \mbox{Accepts strings}
   \end{array}\)
 \end{table}
 
@@ -1341,7 +1364,7 @@ Combined with the typing rule, however, materialization is a concise way to find
 where a well-typed program needs casts to ensure soundness.
 For example, suppose that $\spf$ is a function from integers to the dynamic
 type and that $\spx$ is a variable with the dynamic type.
-An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptfloat$ using two materializations:
+An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two materializations:
 
 \medskip
 \begin{mathpar}
@@ -1358,9 +1381,9 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptfloat$ using two m
       \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptdyn
     }
     \quad
-    \sptdyn \spmatr \sptfloat
+    \sptdyn \spmatr \sptstr
   }{
-    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptfloat
+    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptstr
   }
 
   \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
@@ -1414,7 +1437,7 @@ interacts with a typed value.
     }
 
     %% TODO show dict read rules?
-%    \inferrule*[left=PD-Ref]{
+%    \inferrule*[left=D-Ref]{
 %      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
 %      \\\\
 %      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
@@ -1430,7 +1453,7 @@ interacts with a typed value.
 %      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \spteval_1
 %    }
 
-    \inferrule*[lab=PD-Set]{
+    \inferrule*[lab=D-Set]{
       \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
       \\\\
       \sptenv_0 \wtexpr \spexpr_1 : \sptobject
@@ -1642,9 +1665,10 @@ The question is thus whether all boundaries are properly guarded.
 Our answer has two parts.
 First, observe that every evaluation type comes with a decidable
 cast~(\cref{t:cast}).
-For basic types such as floats, a tag check clearly suffices.
+For basic types such as strings, a tag check clearly suffices.
 For parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$,
-the exact-match semantics also provides a decidable test.
+the exact-match semantics is also decidable (and also implemented with
+tag checks).
 Second, observe that boundaries can only relate the dynamic type to an
 evaluation type; there are no significant boundaries that relate a partially
 static type to an evaluation type.
@@ -1660,7 +1684,7 @@ enough to protect all boundaries.
 The model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
 handle.
-These include primitive types~\cref{s:c-types} strict modules~\cref{s:strict-mod},
+These include primitive types~\cref{s:c-types}, module-level variables,
 and the boundary to untyped Python~(\cref{s:py-boundary}).
 %% Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
 %% are also omitted.
@@ -1682,14 +1706,13 @@ Consequently, \SP{} supports interactions with Python modules in the only viable
 way: by letting the Python code run with zero static constraints and minimal
 dynamic constraints.
 
-There are two case in which \SP{} types impose constraints on untyped Python code.
+%% TODO FILL only 2 cases? revisit after adding "changes to python" section in 2
+There are two cases in which \SP{} types impose constraints on untyped Python code.
 First, concrete generic types (e.g., $\sptrawchkdict$)
 reject inputs that were not created via a checked contructor.
 If a client of a Python module decides to impose concrete types, the Python module
 may need to change.
-Second, the strict setting for modules prevents updates to module-level variables.
-If existing code mutates a binding in a strict module, a run-time error will
-occur.
+Second, typed modules prevent updates to module-level variables.
 
 Interactions with {open-world}~\cite{vss-popl-2017} Python code pose a minor
 threat to soundness because
@@ -1890,7 +1913,8 @@ In other words, the goal is to slow code down as little as possible.
 
 Part of this goal is met by inserting casts only in positions where the dynamic
 type flows into a static type.
-The materialize rule in the model illustrates this policy.
+The materialize rule in the model illustrates this policy, which ensures that
+well-typed writes to classes and to concrete dictionaries have no cost.
 Typed functions, however, are compiled with a \bcinst{CHECK\_ARGS} instruction
 that defensively casts all arguments.
 By convention, this instruction always appears on the first line of a typed
@@ -2034,19 +2058,6 @@ type errors and the other three are for performance.
 \subsubsection{Code Changes for the Type Checker}
 \label{s:behavior-changes}
 
-    %% X bg: lookup the dino email about mocks
-    %% And we do go through great lengths to make monkey patching work.  Because
-    %% we need to enforce return types it ends up being not quite as flexible as
-    %% normal Python.  For example one common pattern is to use Python’s mock
-    %% library and we currently end up throwing lots of TypeError’s when a
-    %% function which returns None is mocked and starts returning a MagicMock
-    %% object instead.  But it’s an easy fix in that you can specify the return
-    %% value to be compatible.  There may be more complex cases where you want to
-    %% return a mock for an actual class.  For example in our code base there’s
-    %% frequent mocking of the HttpRequest object and we have a MockReqeust object
-    %% which is a subclass of HttpRequest so that these can still be mocked
-    %% (luckily this actually pre-dated our static conversion work).
-
 \begin{enumerate}
   \item
     \ipara{Fix type errors due to mock wrappers}
@@ -2189,8 +2200,8 @@ Every benchmark version invoked the JIT on the same functions---even the untyped
   \centering
   \begin{tabular}{lrr}
     Name               & Typed / Python & Refined / Python \\\midrule
-    \bmname{deltablue} &          TBD &            TBD \\
-    \bmname{nbody}     &          TBD &            TBD \\
+    \bmname{deltablue} &         FILL &           FILL \\
+    \bmname{nbody}     &         FILL &           FILL \\
     \bmname{richards}  &         0.53 &           0.22 \\
     \bmname{fannkuch}  &         1.03 &           0.46
     %% fannkuch typedbasic2 = 0.90
@@ -2344,12 +2355,12 @@ for its implementors and for adopters:
     Shallow types such as $\sptrawpydict$ accommodate Python code but offer coarse
     soundness guarantees.
     These types have been the top priority for \SP{}.
-    Concrete types support full soundness, but impose nonlocal maintenace costs.
+    Concrete types support full soundness, but impose nonlocal maintenance costs.
     \SP{} supports few concrete types at the moment and plans to add more.
   \item
     Progressive primitive types are available to help developers maximize performance.
     These types are intentionally incompatible with the dynamic type to help programmers
-    avoid casts at run-time.
+    avoid casts.
 \end{itemize}
 %
 Many of these restrictions go against the grain of the mainstream
@@ -2457,7 +2468,7 @@ We use \numSPtest{} of these tests for the model.
 The remaining \numSPdiff{} tests are skipped for the following reasons:
 
 \begin{itemize}
-  \item TBD need categories
+  \item FILL need categories, expect about 40 of these.
 \end{itemize}
 
 
