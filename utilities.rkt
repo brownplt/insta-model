@@ -13,6 +13,19 @@
    ------------------
    (show any)])
 
+(module+ test
+  (test-equal (term (++ (x) (y z)))
+              (term (x y z))))
+(define-metafunction SP
+  ++ : (any ...) (any ...) -> (any ...)
+  [(++ (any_1 ...) (any_2 ...))
+   (any_1 ... any_2 ...)])
+(define-metafunction SP
+  ++* : (any ...) ... -> (any ...)
+  [(++*) ()]
+  [(++* any_1 any_2 ...)
+   (++ any_1 (++* any_2 ...))])
+
 (define-judgment-form SP
   #:mode (member I I)
   #:contract (member any (any ...))

@@ -74,28 +74,22 @@ General union types fall back to `dynamic`.
 
 - [PyDict_is_inhabitable.py](conformance_suite/PyDict_is_inhabitable.py)
 
-Inserting `PyDict` entries is allowed.
+Inserting `PyDict` entries is allowed statically.
 
 - [PyDict_insert.py](conformance_suite/PyDict_insert.py)
 
-Updating `PyDict` entries is allowed.
+Updating `PyDict` entries is allowed statically.
 
 - [PyDict_update.py](conformance_suite/PyDict_update.py)
 
-Deleting `PyDict` entries with good keys is allowed.
+Deleting `PyDict` entries is allowed statically.
 
 - [PyDict_delete_good_key.py](conformance_suite/PyDict_delete_good_key.py)
-
-Deleting `PyDict` entries with bad keys is allowed.
-
 - [PyDict_delete_bad_key.py](conformance_suite/PyDict_delete_bad_key.py)
 
-Looking up `PyDict` entries with good keys is allowed.
+Looking up `PyDict` entries is allowed statically.
 
 - [PyDict_lookup_good_key.py](conformance_suite/PyDict_lookup_good_key.py)
-
-Looking up `PyDict` entries with bad keys is allowed.
-
 - [PyDict_lookup_bad_key.py](conformance_suite/PyDict_lookup_bad_key.py)
 
 ## CheckedDict[T0, T1]

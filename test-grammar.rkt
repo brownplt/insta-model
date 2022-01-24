@@ -96,7 +96,7 @@
 (test-match SP program+ (term ((ann-assign "x" (con None) (con None)))))
 
 ;; conformance_suite/PyDict_delete_bad_key.py
-(test-match SP program+ (term ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "other"))))))
+(test-match SP program+ (term ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (try ((delete (subscript "x" (con "other")))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/PyDict_delete_good_key.py
 (test-match SP program+ (term ((import-from "__static__" ("PyDict")) (ann-assign "x" "PyDict" (dict (((con 1) (con "foo")) ((con "bar") (con 2))))) (delete (subscript "x" (con "bar"))))))
@@ -237,7 +237,7 @@
 (test-match SP program+ (term ((import-from "typing" ("Any")) (function-def "f" () dynamic ((ann-assign "x" "Any" (con 42)))))))
 
 ;; conformance_suite/edited_test_assign_try_except_redeclare_unknown_type.py
-(test-match SP program+ (term ((import-from "typing" ("Any")) (function-def "testfunc" () dynamic ((ann-assign "e" "int") (try-except-else-finally (pass) ((except-handler "Any" "e" (pass))) () ()) (return (con 42)))))))
+(test-match SP program+ (term ((import-from "typing" ("Any")) (function-def "testfunc" () dynamic ((ann-assign "e" "int") (try (pass) ((except-handler "Any" "e" (pass))) () ()) (return (con 42)))))))
 
 ;; conformance_suite/edited_test_bind_boolop_type.py
 (test-match SP program+ (term ((import-from "typing" ("Any")) (class "C" () ((function-def "f" (("self" dynamic)) "bool" ((return (con #t)))) (function-def "g" (("self" dynamic)) "bool" ((return (con #f)))) (function-def "x" (("self" dynamic)) "bool" ((return (bool-op and ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))) (function-def "y" (("self" dynamic)) "bool" ((return (bool-op or ((call (attribute "self" "f") ()) (call (attribute "self" "g") ())))))))) (function-def "main" () dynamic ((assign ("c") (call "C" ())) (assert (compare (call (attribute "c" "x") ()) ((== (con #f))))) (assert (compare (call (attribute "c" "y") ()) ((== (con #t))))))) (expr (call "main" ())))))
@@ -261,7 +261,7 @@
 (test-match SP program+ (term ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (assign ((subscript "x" (con "abc"))) (con "foo")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (assign ((subscript "x" (con "abc"))) (con 42)) (assign ("x") (call (subscript "CheckedDict" (tuple ("int" "str"))) ())) (assign ((subscript "x" (con 42))) (con "abc")))))
 
 ;; conformance_suite/edited_test_checked_dict_bad_ctor.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (try-except-else-finally ((expr (call (subscript "CheckedDict" (tuple ("str" "str"))) ((con None))))) ((except-handler "Exception" None (pass))) ((raise (call "Exception" ((con "Should fail."))))) ()))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (try ((expr (call (subscript "CheckedDict" (tuple ("str" "str"))) ((con None))))) ((except-handler "Exception" None (pass))) ((raise (call "Exception" ((con "Should fail."))))) ()))))
 
 ;; conformance_suite/edited_test_checked_dict_clear.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (expr (call (attribute "x" "clear") ())) (assert (compare "x" ((== (dict ()))))))))
@@ -270,10 +270,10 @@
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (assert (compare (call "type" ("x")) ((== (subscript "CheckedDict" (tuple ("str" "str"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")))))))))))
 
 ;; conformance_suite/edited_test_checked_dict_errors.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (try-except-else-finally ((expr (call (attribute "x" "get") ((call "as_dyn" ((con 100))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute "x" "get") ((con "x") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (try ((expr (call (attribute "x" "get") ((call "as_dyn" ((con 100))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try ((expr (call (attribute "x" "get") ((con "x") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/edited_test_checked_dict_fromkeys_bad_types.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((list ((con 2))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc") (call "object" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (try ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((list ((con 2))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc") (call "object" ()))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try ((expr (call (attribute (subscript "CheckedDict" (tuple ("str" "int"))) "fromkeys") ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/edited_test_checked_dict_get.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call (attribute "x" "get") ((con "x"))) ((== (con 2))))) (assert (compare (call (attribute "x" "get") ((con "y") (con 100))) ((== (con 100))))))))
@@ -288,34 +288,37 @@
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assert (compare (call "list" ((call (attribute "x" "keys") ()))) ((== (list ((con "x"))))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "keys") ()))) ((== (list ((con "x") (con "y"))))))))))
 
 ;; conformance_suite/edited_test_checked_dict_nonoptional.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Any" "Optional")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con None))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con None))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (import-from "typing" ("Any" "Optional")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (try ((assign ((subscript "x" (call "as_dyn" ((con None))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (try ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con None))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/edited_test_checked_dict_optional.py
 (test-match SP program+ (term ((import-from "typing" ("Any" "Optional")) (import-from "__static__" ("CheckedDict")) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" (subscript "Optional" "str")))) ())) (assign ((subscript "x" (con "abc"))) (con None)) (assign ("x") (call (subscript "CheckedDict" (tuple ((subscript "Optional" "str") "str"))) ())) (assign ((subscript "x" (con None))) (con "abc")))))
 
 ;; conformance_suite/edited_test_checked_dict_pop.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "pop") ((con "x")))) (assert (compare "y" ((== (con 2))))) (try-except-else-finally ((expr (call (attribute "x" "pop") ((con "z"))))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "pop") ((con "x")))) (assert (compare "y" ((== (con 2))))) (try ((expr (call (attribute "x" "pop") ((con "z"))))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/edited_test_checked_dict_popitem.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "popitem") ())) (assert (compare "y" ((== (tuple ((con "x") (con 2))))))) (try-except-else-finally ((expr (call (attribute "x" "popitem") ()))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2))))))) (assign ("y") (call (attribute "x" "popitem") ())) (assert (compare "y" ((== (tuple ((con "x") (con 2))))))) (try ((expr (call (attribute "x" "popitem") ()))) ((except-handler "KeyError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/edited_test_checked_dict_setdefault.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (expr (call (attribute "x" "setdefault") ((con "abc") (con "foo")))) (assert (compare "x" ((== (dict (((con "abc") (con "foo")))))))))))
 
 ;; conformance_suite/edited_test_checked_dict_setdefault_bad_values.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((con "abc") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "setdefault") ((call "as_dyn" ((con 42))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try ((expr (call (attribute "x" "setdefault") ((con "abc") (call "as_dyn" ((con "abc"))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try ((expr (call (attribute "x" "setdefault") ((call "as_dyn" ((con 42))) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))))))
 
 ;; conformance_suite/edited_test_checked_dict_types_enforced.py
-(test-match SP program+ (term ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con 42))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))))))
+(test-match SP program+ (term ((import-from "typing" ("Any")) (import-from "__static__" ("CheckedDict")) (function-def "as_dyn" (("x" dynamic)) dynamic ((return "x"))) (ann-assign "x" "Any" (call (subscript "CheckedDict" (tuple ("str" "str"))) ())) (try ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con "abc"))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try ((assign ((subscript "x" (call "as_dyn" ((con 42))))) (con 42))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try ((assign ((subscript "x" (con "abc"))) (call "as_dyn" ((con "abc"))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))))))
 
 ;; conformance_suite/edited_test_checked_dict_update.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "str"))) ((dict (((con "x") (con "abc"))))))) (expr (call (attribute "x" "update") ((dict (((con "y") (con "foo"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")) ((con "y") (con "foo")))))))) (expr (call (attribute "x" "update") ((dict (((con "z") (con "bar"))))))) (assert (compare "x" ((== (dict (((con "x") (con "abc")) ((con "y") (con "foo")) ((con "z") (con "bar")))))))))))
 
 ;; conformance_suite/edited_test_checked_dict_update_bad_type.py
-(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try-except-else-finally ((expr (call (attribute "x" "update") ((dict (((con 24) (con 42)))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))))))
+(test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ())) (try ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))) (try ((expr (call (attribute "x" "update") ((dict (((con "x") (con "abc")))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (try ((expr (call (attribute "x" "update") ((dict (((con 24) (con 42)))))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare "x" ((== (dict ()))))))))
 
 ;; conformance_suite/edited_test_checked_dict_values.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (assign ("x") (call (subscript "CheckedDict" (tuple ("str" "int"))) ((dict (((con "x") (con 2)) ((con "y") (con 3))))))) (assert (compare (call "list" ((call (attribute "x" "values") ()))) ((== (list ((con 2) (con 3))))))))))
+
+;; conformance_suite/edited_test_class_method_invoke.py
+(test-match SP program+ (term ((class "B" () ((function-def "__init__" (("self" dynamic) ("value" dynamic)) dynamic ((assign ((attribute "self" "value")) "value"))))) (class "D" ("B") ((function-def "__init__" (("self" dynamic) ("value" dynamic)) dynamic ((expr (call (attribute "B" "__init__") ("self" "value"))))) (function-def "f" (("self" dynamic)) dynamic ((return (attribute "self" "value")))))) (function-def "main" () dynamic ((assign ("d") (call "D" ((con 42)))) (assert (compare (call (attribute "d" "f") ()) ((== (con 42))))))) (expr (call "main" ())))))
 
 ;; conformance_suite/edited_test_compile_checked_dict_opt_in.py
 (test-match SP program+ (term ((import-from "__static__" ("CheckedDict")) (class "B" () (pass)) (class "D" ("B") (pass)) (function-def "testfunc" () dynamic ((assign ("x") (call (subscript "CheckedDict" (tuple ("B" "int"))) ((dict (((call "B" ()) (con 42)) ((call "D" ()) (con 42))))))) (return "x"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "type" ((call "test" ()))) ((== (subscript "CheckedDict" (tuple ("B" "int"))))))))) (expr (call "main" ("testfunc"))))))
@@ -357,13 +360,13 @@
 (test-match SP program+ (term ((class "C" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 1)))))) (function-def "x" (("c" "C")) dynamic ((assign ("x") (call (attribute "c" "f") ())) (aug-assign "x" + (call (attribute "c" "f") ())) (return "x"))) (function-def "main" (("x" dynamic)) dynamic ((assert (compare (call "x" ((call "C" ()))) ((== (con 2))))) (assign ((attribute "C" "f")) (lambda (("self" dynamic)) (con 42))) (assert (compare (call "x" ((call "C" ()))) ((== (con 84))))))) (expr (call "main" ("x"))))))
 
 ;; conformance_suite/edited_test_method_prologue_posonly.py
-(test-match SP program+ (term ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/edited_test_method_prologue_shadowcode.py
-(test-match SP program+ (term ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 2))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 2))) ((assert (compare (call "f" ((con "abc") (con "abc"))) ((== (con 42)))))) ()) (try ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/edited_test_method_prologue_shadowcode_2.py
-(test-match SP program+ (term ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 10))) ((assert (compare (call "f" ((con "abc"))) ((== (con 42)))))) ()) (try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((for "i" (call "range" ((con 10))) ((assert (compare (call "f" ((con "abc"))) ((== (con 42)))))) ()) (try ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/edited_test_override_override_inherited.py
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (class "B" () ((function-def "f" (("self" dynamic)) (subscript "Optional" (con "B")) ((return "self"))))) (class "D" ("B") (pass)) (function-def "f" (("x" "B")) dynamic ((return (call (attribute "x" "f") ())))) (function-def "main" (("f" dynamic)) dynamic ((assign ("b") (call "B" ())) (assign ("d") (call "D" ())) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== "d")))) (assign ((attribute "D" "f")) (lambda (("self" dynamic)) (con None))) (assert (compare (call "f" ("b")) ((== "b")))) (assert (compare (call "f" ("d")) ((== (con None))))))) (expr (call "main" ("f"))))))
@@ -384,7 +387,7 @@
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (function-def "foo" (("tval" (subscript "Optional" "object"))) "str" ((if (call "isinstance" ("tval" "str")) ((return "tval")) ()) (return (con "hi")))))))
 
 ;; conformance_suite/edited_test_typed_field_deleted_attr.py
-(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "value"))))) (function-def "main" () dynamic ((assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try-except-else-finally ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ())))))
+(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("value" "str")) dynamic ((ann-assign (attribute "self" "x") "str" "value"))))) (function-def "main" () dynamic ((assign ("a") (call "C" ((con "abc")))) (delete (attribute "a" "x")) (try ((expr (attribute "a" "x"))) ((except-handler "AttributeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ())))))
 
 ;; conformance_suite/edited_test_untyped_attr.py
 (test-match SP program+ (term ((function-def "f" () dynamic ((return (con 42)))) (assign ("x") (call "f" ())) (assign ("y") (attribute "x" "load")) (assign ((attribute "x" "store")) (con 42)) (delete (attribute "x" "delete")))))
@@ -396,10 +399,10 @@
 (test-match SP program+ (term ()))
 
 ;; conformance_suite/field_init.py
-(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (try-except-else-finally ((assign ("o") (call "C" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (try ((assign ("o") (call "C" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/field_update.py
-(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (assign ("o") (call "C" ((con "foo")))) (try-except-else-finally ((function-def "dyn_int" () dynamic ((return (con 42)))) (assign ((attribute "o" "x")) (call "dyn_int" ()))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
+(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("arg" dynamic)) (con None) ((ann-assign (attribute "self" "x") "str" "arg"))))) (assign ("o") (call "C" ((con "foo")))) (try ((function-def "dyn_int" () dynamic ((return (con 42)))) (assign ((attribute "o" "x")) (call "dyn_int" ()))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))))
 
 ;; conformance_suite/for-loop_basic.py
 (test-match SP program+ (term ((function-def "fact" (("n" "int")) "int" ((ann-assign "o" "int" (con 1)) (for "i" (call "range" ("n")) ((aug-assign "o" * (bin-op + "i" (con 1)))) ()) (return "o"))) (assert (compare (call "fact" ((con 5))) ((is (con 120))))))))
@@ -408,7 +411,7 @@
 (test-match SP program+ (term ((for "i" (list ((con 2))) (pass) ((assign ("i") (con 3)))) (assert (compare "i" ((is (con 3))))))))
 
 ;; conformance_suite/for-loop_else_raise_exit.py
-(test-match SP program+ (term ((try-except-else-finally ((for "i" (list ((con 2))) ((raise (call "Exception" ()))) ((assign ("i") (con 3))))) ((except-handler "Exception" None (pass))) () ()) (assert (compare "i" ((is (con 2))))))))
+(test-match SP program+ (term ((try ((for "i" (list ((con 2))) ((raise (call "Exception" ()))) ((assign ("i") (con 3))))) ((except-handler "Exception" None (pass))) () ()) (assert (compare "i" ((is (con 2))))))))
 
 ;; conformance_suite/init_checks_arity.py
 (test-match SP program+ (term ((class "Person" () ((function-def "__init__" (("self" dynamic) ("name" "str") ("age" "int")) dynamic (pass)))) (assign ("p1") (call "Person" ((con "Alice") (con 21) (con #f)))))))
@@ -612,16 +615,22 @@
 (test-match SP program+ (term ((class "C" () ((function-def "f" (("self" dynamic)) "int" ((return (con 1)))))) (class "D" ("C") ((function-def "f" (("self" dynamic)) "int" ((return (con 2)))))) (class "E" ("C") (pass)) (function-def "x" (("c" "C")) dynamic ((assign ("x") (call (attribute "c" "f") ())) (aug-assign "x" + (call (attribute "c" "f") ())) (return "x"))) (function-def "main" (("x" dynamic)) dynamic ((assert (compare (call "x" ((call "C" ()))) ((== (con 2))))) (assert (compare (call "x" ((call "D" ()))) ((== (con 4))))) (assert (compare (call "x" ((call "E" ()))) ((== (con 2))))))) (expr (call "main" ("x"))))))
 
 ;; conformance_suite/test_assert_narrowing_debug.py
-(test-match SP program+ (term ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con 1))) ((== (con 2))))) (try-except-else-finally ((expr (call "foo" ((con "a"))))) ((except-handler "AssertionError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("foo"))))))
+(test-match SP program+ (term ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "int" ((assert (call "isinstance" ("x" "int"))) (return (bin-op + "x" (con 1))))) (function-def "main" (("foo" dynamic)) dynamic ((assert (compare (call "foo" ((con 1))) ((== (con 2))))) (try ((expr (call "foo" ((con "a"))))) ((except-handler "AssertionError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("foo"))))))
 
 ;; conformance_suite/test_assert_narrowing_type_error.py
 (test-match SP program+ (term ((function-def "foo" (("x" (bin-op bit-or "int" "str"))) "str" ((assert (call "isinstance" ("x" "int"))) (return "x"))))))
+
+;; conformance_suite/test_assign_but_annotated.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((ann-assign "x" "B" (call "D" ())) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #f))) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_assign_chained.py
 (test-match SP program+ (term ((function-def "test" () "str" ((ann-assign "x" "str" (con "hi")) (assign ("y" "x") (con "hello")) (return "y"))))))
 
 ;; conformance_suite/test_assign_chained_failure_wrong_target_type.py
 (test-match SP program+ (term ((function-def "test" () "str" ((ann-assign "x" "int" (con 1)) (assign ("y" "x") (con "hello")) (return "y"))))))
+
+;; conformance_suite/test_assign_conditional_both_sides.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((assign ("x") (call "B" ())) (if "abc" ((assign ("x") (call "D" ()))) ((assign ("x") (call "D" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #t))) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_assign_conditional_invoke_in_else.py
 (test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((assign ("x") (call "B" ())) (if "abc" ((assign ("x") (call "D" ()))) ((return (call (attribute "x" "f") ())))))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #t))) ((== (con None))))))) (expr (call "main" ("testfunc"))))))
@@ -657,31 +666,49 @@
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (function-def "f" (("x" (subscript "Optional" "int"))) "int" ((if (compare "x" ((is (con None)))) ((assign ("x") (con 1))) ()) (return "x"))))))
 
 ;; conformance_suite/test_assign_try_assign_in_else.py
-(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try-except-else-finally (pass) ((except-handler None None (pass))) ((assign ("x") (call "B" ()))) ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try (pass) ((except-handler None None (pass))) ((assign ("x") (call "B" ()))) ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_assign_try_assign_in_except.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try (pass) ((except-handler None None ((assign ("x") (call "B" ()))))) () ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_assign_try_assign_in_except_with_var.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try (pass) ((except-handler "TypeError" "e" ((assign ("x") (call "B" ()))))) () ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_assign_try_assign_in_finally.py
-(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try-except-else-finally (pass) () () ((assign ("x") (call "B" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try (pass) () () ((assign ("x") (call "B" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_assign_try_assign_in_second_except.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try (pass) ((except-handler "TypeError" None (pass)) (except-handler None None ((assign ("x") (call "B" ()))))) () ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_assign_try_assign_in_try.py
-(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try-except-else-finally ((assign ("x") (call "B" ()))) ((except-handler None None (pass))) () ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try ((assign ("x") (call "B" ()))) ((except-handler None None (pass))) () ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_assign_try_except_no_initial.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((try ((ann-assign "x" "B" (call "D" ()))) ((except-handler None None ((assign ("x") (call "B" ()))))) () ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_assign_try_except_redeclare.py
-(test-match SP program+ (term ((function-def "testfunc" () dynamic ((ann-assign "e" "int") (try-except-else-finally (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))
+(test-match SP program+ (term ((function-def "testfunc" () dynamic ((ann-assign "e" "int") (try (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))
 
 ;; conformance_suite/test_assign_try_except_typing.py
-(test-match SP program+ (term ((function-def "testfunc" () dynamic ((try-except-else-finally (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))
+(test-match SP program+ (term ((function-def "testfunc" () dynamic ((try (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))
 
 ;; conformance_suite/test_assign_try_except_typing_narrowed.py
-(test-match SP program+ (term ((class "E" ("Exception") (pass)) (function-def "testfunc" () dynamic ((ann-assign "e" "Exception") (try-except-else-finally (pass) ((except-handler "E" "e" (pass))) () ()) (return (con 42)))))))
+(test-match SP program+ (term ((class "E" ("Exception") (pass)) (function-def "testfunc" () dynamic ((ann-assign "e" "Exception") (try (pass) ((except-handler "E" "e" (pass))) () ()) (return (con 42)))))))
 
 ;; conformance_suite/test_assign_try_except_typing_predeclared.py
-(test-match SP program+ (term ((function-def "testfunc" () dynamic ((ann-assign "e" "Exception") (try-except-else-finally (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))
+(test-match SP program+ (term ((function-def "testfunc" () dynamic ((ann-assign "e" "Exception") (try (pass) ((except-handler "Exception" "e" (pass))) () ()) (return (con 42)))))))
 
 ;; conformance_suite/test_assign_type_propagation.py
 (test-match SP program+ (term ((function-def "test" () "int" ((assign ("x") (con 5)) (return "x"))))))
 
 ;; conformance_suite/test_assign_while.py
 (test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((assign ("x") (call "B" ())) (while "abc" ((assign ("x") (call "D" ()))) ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #f))) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_assign_while_2.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((ann-assign "x" "B" (call "D" ())) (while "abc" ((assign ("x") (call "B" ()))) ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #f))) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_assign_while_else.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((assign ("x") (call "B" ())) (while "abc" (pass) ((assign ("x") (call "D" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #f))) ((== (con "abc"))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_assign_while_else_2.py
 (test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((ann-assign "x" "B" (call "D" ())) (while "abc" (pass) ((assign ("x") (call "B" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #f))) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
@@ -694,6 +721,9 @@
 
 ;; conformance_suite/test_attr_generic_optional.py
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (function-def "f" (("x" "Optional")) dynamic ((return (attribute "x" "foo")))))))
+
+;; conformance_suite/test_aug_add.py
+(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((assign ((attribute "self" "x")) (con 1)))))) (function-def "f" (("a" "C")) dynamic ((aug-assign (attribute "a" "x") + (con 1)))))))
 
 ;; conformance_suite/test_aug_assign.py
 (test-match SP program+ (term ((function-def "f" (("l" dynamic)) dynamic ((aug-assign (subscript "l" (con 0)) + (con 1)))) (function-def "main" (("f" dynamic)) dynamic ((assign ("l") (list ((con 1)))) (expr (call "f" ("l"))) (assert (compare (subscript "l" (con 0)) ((== (con 2))))))) (expr (call "main" ("f"))))))
@@ -799,6 +829,48 @@
 
 ;; conformance_suite/test_exact_invoke_function.py
 (test-match SP program+ (term ((function-def "f" () "str" ((return (call (attribute (con ", ") "join") ((list ((con "1") (con "2") (con "3")))))))))))
+
+;; conformance_suite/test_fast_len_dict.py
+(test-match SP program+ (term ((function-def "f" () dynamic ((assign ("l") (dict (((con 1) (con "a")) ((con 2) (con "b")) ((con 3) (con "c")) ((con 4) (con "d"))))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 4))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_list.py
+(test-match SP program+ (term ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2) (con 3) (con 4) (con 5) (con 6) (con 7)))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 7))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_list_subclass.py
+(test-match SP program+ (term ((class "mylist" ("list") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" () dynamic ((assign ("l") (call "mylist" ((list ((con 1) (con 2)))))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 1111))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_list_subclass_2.py
+(test-match SP program+ (term ((class "mylist" ("list") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" (("x" dynamic)) dynamic ((assign ("l") (list ((con 1) (con 2)))) (if "x" ((assign ("l") (call "mylist" ((list ((con 1) (con 2))))))) ()) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con #t))) ((== (con 1111))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_set.py
+(test-match SP program+ (term ((function-def "f" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("l") (set ("a" "b"))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con "a") (con "b"))) ((== (con 2))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_set_subclass.py
+(test-match SP program+ (term ((class "myset" ("set") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" () dynamic ((assign ("l") (call "myset" ((list ((con 1) (con 2)))))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 1111))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_set_subclass_2.py
+(test-match SP program+ (term ((class "myset" ("set") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" (("x" dynamic) ("a" dynamic) ("b" dynamic)) dynamic ((assign ("l") (set ("a" "b"))) (if "x" ((assign ("l") (call "myset" ((list ("a" "b")))))) ()) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con #t) (con 1) (con 2))) ((== (con 1111))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_str.py
+(test-match SP program+ (term ((function-def "f" () dynamic ((assign ("l") (con "my str!")) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 7))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_str_subclass.py
+(test-match SP program+ (term ((class "mystr" ("str") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" () dynamic ((assign ("s") (call "mystr" ((con "a")))) (return (call "len" ("s"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 1111))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_str_subclass_2.py
+(test-match SP program+ (term ((class "mystr" ("str") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" (("x" dynamic)) dynamic ((assign ("s") (con "abc")) (if "x" ((assign ("s") (call "mystr" ((con "pqr"))))) ()) (return (call "len" ("s"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con #t))) ((== (con 1111))))) (assert (compare (call "f" ((con #f))) ((== (con 3))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_str_unicode_chars.py
+(test-match SP program+ (term ((function-def "f" () dynamic ((assign ("l") (con "🤣")) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 1))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_tuple.py
+(test-match SP program+ (term ((function-def "f" (("a" dynamic) ("b" dynamic)) dynamic ((assign ("l") (tuple ("a" "b"))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con "a") (con "b"))) ((== (con 2))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_tuple_subclass.py
+(test-match SP program+ (term ((class "mytuple" ("tuple") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" () dynamic ((assign ("l") (call "mytuple" ((list ((con 1) (con 2)))))) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (con 1111))))))) (expr (call "main" ("f"))))))
+
+;; conformance_suite/test_fast_len_tuple_subclass_2.py
+(test-match SP program+ (term ((class "mytuple" ("tuple") ((function-def "__len__" (("self" dynamic)) dynamic ((return (con 1111)))))) (function-def "f" (("x" dynamic) ("a" dynamic) ("b" dynamic)) dynamic ((assign ("l") (tuple ("a" "b"))) (if "x" ((assign ("l") (call "mytuple" ((list ("a" "b")))))) ()) (return (call "len" ("l"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con #t) (con 1) (con 2))) ((== (con 1111))))))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_for_iter_unchecked_get.py
 (test-match SP program+ (term ((function-def "f" () dynamic ((assign ("l") (list ((con 1) (con 2) (con 3)))) (assign ("acc") (list ())) (for "x" "l" ((expr (call (attribute "acc" "append") ("x")))) ()) (return "acc"))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ()) ((== (list ((con 1) (con 2) (con 3))))))))) (expr (call "main" ("f"))))))
@@ -908,17 +980,20 @@
 ;; conformance_suite/test_invoke_strict_module_recursive.py
 (test-match SP program+ (term ((function-def "fib" (("number" dynamic)) dynamic ((if (compare "number" ((<= (con 1)))) ((return "number")) ()) (return (bin-op + (call "fib" ((bin-op - "number" (con 1)))) (call "fib" ((bin-op - "number" (con 2)))))))) (function-def "main" (("fib" dynamic)) dynamic ((assert (compare (call "fib" ((con 4))) ((== (con 3))))))) (expr (call "main" ("fib"))))))
 
+;; conformance_suite/test_list_of_dynamic.py
+(test-match SP program+ (term ((import-from "threading" ("Thread")) (import-from "typing" ("List")) (function-def "f" (("threads" (subscript "List" "Thread"))) "int" ((return (call "len" ("threads"))))))))
+
 ;; conformance_suite/test_max.py
 (test-match SP program+ (term ((function-def "f" (("a" "int") ("b" "int")) "int" ((return (call "max" ("a" "b"))))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con 1) (con 3))) ((== (con 3))))) (assert (compare (call "f" ((con 3) (con 1))) ((== (con 3))))))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_method_prologue.py
-(test-match SP program+ (term ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("x" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try ((expr (call "f" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_method_prologue_2.py
-(test-match SP program+ (term ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("x" dynamic) ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try ((expr (call "f" ((con "abc") (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_method_prologue_3.py
-(test-match SP program+ (term ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("x" "int") ("y" "str")) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((try ((expr (call "f" ((con 42) (con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_method_prologue_no_annotation.py
 (test-match SP program+ (term ((function-def "f" (("x" dynamic)) dynamic ((return (con 42)))) (function-def "main" (("f" dynamic)) dynamic ((assert (compare (call "f" ((con "abc"))) ((== (con 42))))))) (expr (call "main" ("f"))))))
@@ -938,14 +1013,20 @@
 ;; conformance_suite/test_multiply_list_exact_by_int_reverse.py
 (test-match SP program+ (term ((function-def "f" () "int" ((assign ("l") (bin-op * (con 2) (list ((con 1) (con 2) (con 3))))) (return (call "len" ("l"))))) (function-def "main" () dynamic ((assert (compare (call "f" ()) ((== (con 6))))))) (expr (call "main" ())))))
 
+;; conformance_suite/test_narrow_conditional.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((assign ("x") (call "B" ())) (if "abc" ((assign ("x") (call "D" ())) (return (call (attribute "x" "f") ()))) ()))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #t))) ((== (con "abc"))))) (assert (compare (call "test" ((con #f))) ((== (con None))))))) (expr (call "main" ("testfunc"))))))
+
+;; conformance_suite/test_narrow_conditional_widened.py
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" (("abc" dynamic)) dynamic ((assign ("x") (call "B" ())) (if "abc" ((assign ("x") (call "D" ()))) ()) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ((con #t))) ((== (con "abc"))))) (assert (compare (call "test" ((con #f))) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+
 ;; conformance_suite/test_narrow_or.py
 (test-match SP program+ (term ((function-def "f" (("x" (bin-op bit-or "int" (con None)))) "int" ((if (bool-op or ((compare "x" ((is (con None)))) (compare "x" ((> (con 1)))))) ((assign ("x") (con 1))) ()) (return "x"))))))
 
 ;; conformance_suite/test_nested_fn_type_error.py
-(test-match SP program+ (term ((function-def "f" (("i" "int") ("j" "str") ("l" "int") ("m" "int") ("n" "int") ("o" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 1) (con "a") (con 2) (con 3) (con "4") (con 5))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("i" "int") ("j" "str") ("l" "int") ("m" "int") ("n" "int") ("o" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))) (function-def "main" (("f" dynamic)) dynamic ((try ((expr (call "f" ((con 1) (con "a") (con 2) (con 3) (con "4") (con 5))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_nested_fn_type_error_2.py
-(test-match SP program+ (term ((function-def "f" (("i" "int") ("j" "str") ("k" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))) (function-def "main" (("f" dynamic)) dynamic ((try-except-else-finally ((expr (call "f" ((con 1) (con 2) (con 3))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
+(test-match SP program+ (term ((function-def "f" (("i" "int") ("j" "str") ("k" "int")) "bool" ((function-def "g" (("k" "int")) "bool" ((return (if-exp (compare "j" ((== (con "gt")))) (compare "k" ((> (con 0)))) (compare "k" ((<= (con 0)))))))) (return (call "g" ("i"))))) (function-def "main" (("f" dynamic)) dynamic ((try ((expr (call "f" ((con 1) (con 2) (con 3))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()))) (expr (call "main" ("f"))))))
 
 ;; conformance_suite/test_no_narrow_to_dynamic.py
 (test-match SP program+ (term ((function-def "f" () dynamic ((return (con 42)))) (function-def "g" () dynamic ((ann-assign "x" "int" (con 100)) (assign ("x") (call "f" ())) (return (call (attribute "x" "bit_length") ())))) (function-def "main" (("g" dynamic)) dynamic ((assert (compare (call "g" ()) ((== (con 6))))))) (expr (call "main" ("g"))))))
@@ -976,6 +1057,9 @@
 
 ;; conformance_suite/test_none_unaryop.py
 (test-match SP program+ (term ((function-def "f" () dynamic ((assign ("x") (con None)) (return (unary-op - "x")))))))
+
+;; conformance_suite/test_nonoptional_load.py
+(test-match SP program+ (term ((class "C" () ((function-def "__init__" (("self" dynamic) ("y" "int")) dynamic ((assign ((attribute "self" "y")) "y"))))) (function-def "f" (("c" "C")) "int" ((return (attribute "c" "y")))))))
 
 ;; conformance_suite/test_optional_assign.py
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (class "C" () ((function-def "f" (("self" dynamic) ("x" (subscript "Optional" (con "C")))) dynamic ((if (compare "x" ((is (con None)))) ((return "self")) ((ann-assign "p" (subscript "Optional" (con "C")) "x"))))))))))
@@ -1046,14 +1130,20 @@
 ;; conformance_suite/test_str_split.py
 (test-match SP program+ (term ((function-def "get_str" () "str" ((return (con "something here")))) (function-def "test" () "str" ((assign ((tuple ("a" "b"))) (call (attribute (call "get_str" ()) "split") ((con None) (con 1)))) (return "b"))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con "here"))))))) (expr (call "main" ("test"))))))
 
+;; conformance_suite/test_strict_module.py
+(test-match SP program+ (term ((function-def "f" (("a" dynamic)) dynamic ((ann-assign "x" "bool" "a"))))))
+
+;; conformance_suite/test_strict_module_constant.py
+(test-match SP program+ (term ((function-def "f" (("a" dynamic)) dynamic ((ann-assign "x" "bool" "a"))))))
+
 ;; conformance_suite/test_strict_module_mutable.py
 (test-match SP program+ (term ((import-from "__strict__" ("mutable")) (class "C" () ((function-def "__init__" (("self" dynamic) ("x" dynamic)) dynamic ((assign ((attribute "self" "x")) (con 1)))))))))
 
 ;; conformance_suite/test_try_except_finally.py
-(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try-except-else-finally (pass) ((except-handler "TypeError" None (pass))) () ((assign ("x") (call "B" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
+(test-match SP program+ (term ((class "B" () ((function-def "f" (("self" dynamic)) dynamic ((return (con 42)))))) (class "D" ("B") ((function-def "f" (("self" dynamic)) dynamic ((return (con "abc")))))) (function-def "testfunc" () dynamic ((ann-assign "x" "B" (call "D" ())) (try (pass) ((except-handler "TypeError" None (pass))) () ((assign ("x") (call "B" ())))) (return (call (attribute "x" "f") ())))) (function-def "main" (("test" dynamic)) dynamic ((assert (compare (call "test" ()) ((== (con 42))))))) (expr (call "main" ("testfunc"))))))
 
 ;; conformance_suite/test_try_return_finally.py
-(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f1" (("x" "List")) dynamic ((try-except-else-finally ((return (con None))) () () ((expr (call (attribute "x" "append") ((con "hi")))))))) (function-def "main" (("f1" dynamic)) dynamic ((assign ("l") (list ())) (expr (call "f1" ("l"))) (assert (compare "l" ((== (list ((con "hi"))))))))) (expr (call "main" ("f1"))))))
+(test-match SP program+ (term ((import-from "typing" ("List")) (function-def "f1" (("x" "List")) dynamic ((try ((return (con None))) () () ((expr (call (attribute "x" "append") ((con "hi")))))))) (function-def "main" (("f1" dynamic)) dynamic ((assign ("l") (list ())) (expr (call "f1" ("l"))) (assert (compare "l" ((== (list ((con "hi"))))))))) (expr (call "main" ("f1"))))))
 
 ;; conformance_suite/test_type_of_or.py
 (test-match SP program+ (term ((function-def "f" (("x" "int") ("y" "str")) (bin-op bit-or "int" "str") ((return (bool-op or ("x" "y"))))))))
@@ -1119,7 +1209,7 @@
 (test-match SP program+ (term ((function-def "x" (("y" dynamic)) dynamic ((assign ("z") (unary-op - "y")))))))
 
 ;; conformance_suite/test_verify_arg_dynamic_type.py
-(test-match SP program+ (term ((function-def "x" (("v" "str")) dynamic ((return (con "abc")))) (function-def "y" (("v" dynamic)) dynamic ((return (call "x" ("v"))))) (function-def "main" (("y" dynamic)) dynamic ((try-except-else-finally ((expr (call "y" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare (call "y" ((con "foo"))) ((== (con "abc"))))))) (expr (call "main" ("y"))))))
+(test-match SP program+ (term ((function-def "x" (("v" "str")) dynamic ((return (con "abc")))) (function-def "y" (("v" dynamic)) dynamic ((return (call "x" ("v"))))) (function-def "main" (("y" dynamic)) dynamic ((try ((expr (call "y" ((con 42))))) ((except-handler "TypeError" None (pass))) ((raise (call "Exception" ()))) ()) (assert (compare (call "y" ((con "foo"))) ((== (con "abc"))))))) (expr (call "main" ("y"))))))
 
 ;; conformance_suite/test_verify_lambda.py
 (test-match SP program+ (term ((assign ("x") (lambda (("x" dynamic)) "x")) (assign ("a") (call "x" ((con "hi")))) (function-def "main" () dynamic ((assert (compare "a" ((== (con "hi"))))))) (expr (call "main" ())))))
@@ -1149,25 +1239,25 @@
 (test-match SP program+ (term ((import-from "typing" ("Optional")) (class "C" () ((function-def "__init__" (("self" dynamic)) dynamic ((ann-assign (attribute "self" "field") (subscript "Optional" (con "C")) "self"))))) (function-def "f" (("x" (subscript "Optional" "C"))) dynamic ((while (compare "x" ((is-not (con None)))) ((ann-assign "val" (subscript "Optional" "C") (attribute "x" "field")) (if (compare "val" ((is-not (con None)))) ((assign ("x") "val")) ())) ()))))))
 
 ;; conformance_suite/try_except_basic.py
-(test-match SP program+ (term ((try-except-else-finally ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42))))))))
+(test-match SP program+ (term ((try ((ann-assign "x" "int" (con 42))) ((except-handler "Exception" None (pass))) (pass) (pass)) (assert (compare "x" ((is (con 42))))))))
 
 ;; conformance_suite/try_except_catch_else_no_exn.py
-(test-match SP program+ (term ((function-def "f" () dynamic ((try-except-else-finally (pass) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ()))) (assert (compare (call "f" ()) ((is (con 3))))))))
+(test-match SP program+ (term ((function-def "f" () dynamic ((try (pass) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ()))) (assert (compare (call "f" ()) ((is (con 3))))))))
 
 ;; conformance_suite/try_except_catch_else_some_exn.py
-(test-match SP program+ (term ((function-def "f" () dynamic ((try-except-else-finally ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ()))) (assert (compare (call "f" ()) ((is (con 2))))))))
+(test-match SP program+ (term ((function-def "f" () dynamic ((try ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ()))) (assert (compare (call "f" ()) ((is (con 2))))))))
 
 ;; conformance_suite/try_except_catch_final_no_exn.py
-(test-match SP program+ (term ((function-def "f" () dynamic ((try-except-else-finally (pass) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ((return (con 42)))))) (assert (compare (call "f" ()) ((is (con 42))))))))
+(test-match SP program+ (term ((function-def "f" () dynamic ((try (pass) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ((return (con 42)))))) (assert (compare (call "f" ()) ((is (con 42))))))))
 
 ;; conformance_suite/try_except_catch_final_some_exn.py
-(test-match SP program+ (term ((function-def "f" () dynamic ((try-except-else-finally ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ((return (con 42)))))) (assert (compare (call "f" ()) ((is (con 42))))))))
+(test-match SP program+ (term ((function-def "f" () dynamic ((try ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 2))))) ((return (con 3))) ((return (con 42)))))) (assert (compare (call "f" ()) ((is (con 42))))))))
 
 ;; conformance_suite/try_except_catch_same_class.py
-(test-match SP program+ (term ((function-def "f" () dynamic ((try-except-else-finally ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42))))))))
+(test-match SP program+ (term ((function-def "f" () dynamic ((try ((raise (call "Exception" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42))))))))
 
 ;; conformance_suite/try_except_catch_sub_class.py
-(test-match SP program+ (term ((class "C" ("Exception") (pass)) (function-def "f" () dynamic ((try-except-else-finally ((raise (call "C" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42))))))))
+(test-match SP program+ (term ((class "C" ("Exception") (pass)) (function-def "f" () dynamic ((try ((raise (call "C" ((con "foo"))))) ((except-handler "Exception" None ((return (con 42))))) () ()))) (assert (compare (call "f" ()) ((is (con 42))))))))
 
 ;; conformance_suite/tuple_is_inhabitable.py
 (test-match SP program+ (term ((ann-assign "x" "tuple" (tuple ())))))

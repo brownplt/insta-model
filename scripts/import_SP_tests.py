@@ -50,6 +50,7 @@ ban_anywhere_in_test = list({
         'test_inline_bare_return',
         'test_inline_func_default',
         'test_compile_checked_dict_bad_annotation',
+        'test_fast_len_dict_subclass',
         #   These tests uses default argument
         'test_verify_lambda_keyword_only',
         'test_default_type_error',
@@ -66,12 +67,8 @@ ban_anywhere_in_test = list({
     ],
     # We don't model format strings.
     'format_strings': [
-        'f"[^\\"]*"',
-        "f'[^\\']*'",
-    ],
-    'not_implemented': [
-        # We don't model features that are not even implemented in Static Python
-        "@skipIf\\(True, \"this isn't implemented yet\"\\)",
+        'f"[^\\"\n]*"',
+        "f'[^\\'\n]*'",
     ],
     'nested_class': [
         # We don't model nested classes.
@@ -87,14 +84,27 @@ ban_anywhere_in_test = list({
         '_comprehension',
         '_comprehension_',
         '_comprehensions_',
-        'test_compile_checked_dict_wrong_unknown_type',  # dict
+        'test_compile_checked_dict_wrong_unknown_type\\(',  # dict
         'test_for_iter_list\\(',  # list
         'test_for_iter_sequence_orelse\\(',  # list
         'test_for_iter_sequence_return\\(',  # list
         'test_nested_for_iter_sequence\\(',  # list
         'test_nested_for_iter_sequence_return\\(',  # list
         'test_for_iter_tuple\\(',  # list
-        'test_invoke_with_cell',  # list
+        'test_invoke_with_cell\\(',  # list
+        'test_fast_len_conditional_dict\\(', # dict
+        'test_fast_len_conditional_dict_funcarg\\(', # dict
+        'test_fast_len_conditional_list\\(', # list
+        'test_fast_len_conditional_list_funcarg\\(', # list
+        'test_fast_len_conditional_set\\(', # set
+        'test_fast_len_conditional_set_funcarg\\(', # set
+        'test_fast_len_conditional_tuple\\(', # tuple
+        'test_fast_len_conditional_tuple_funcarg\\(', # tuple
+        'test_fast_len_loop_conditional_list\\(', # list
+        'test_fast_len_loop_conditional_dist\\(', # dist
+        'test_fast_len_loop_conditional_set\\(', # set
+        'test_fast_len_loop_conditional_tuple\\(', # tuple
+        'test_invoke_with_cell_arg\\(', # list
     ],
     'memory_management': [
         # We don't model memory management.
@@ -621,14 +631,7 @@ def main():
         row = {}
         import re
         for category, words in ban_anywhere_in_test:
-            try:
-                row[category] = int(
-                    any(re.search(word, test) is not None for word in words))
-            except Exception as e:
-                print(e)
-                print(category)
-                print(words)
-                exit(1)
+            row[category] = int(any(re.search(w, test) is not None for w in words))
         if any(i == 1 for i in row.values()):
             row['model_could_not_parse'] = 0
             while name in left_out_tests.keys():

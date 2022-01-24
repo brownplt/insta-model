@@ -177,8 +177,10 @@
    (method "int" "__lt__")
    (method "int" "__le__")
    (method "int" "bit_length")
+   (method "str" "__init__")
    (method "str" "__iter__")
    (method "str" "split")
+   (method "str" "__len__")
    (method "list" "__init__")
    (method "list" "__eq__")
    (method "list" "__len__")
@@ -190,7 +192,10 @@
    (method "tuple" "__eq__")
    (method "tuple" "__getitem__")
    (method "tuple" "__mul__")
+   (method "tuple" "__len__")
+   (method "set" "__init__")
    (method "set" "__contains__")
+   (method "set" "__len__")
    (method "dict" "__init__")
    (method "dict" "__getitem__")
    (method "dict" "__setitem__")
@@ -612,6 +617,8 @@
    [Σ (ref (con ,(= (term number_1) (term number_2))))]]
   [(delta Σ (method "int" "bit_length") (v ...))
    (delta-int-bit-length Σ v ...)]
+  [(delta Σ (method "str" "__init__") (v ...))
+   (delta-str-init Σ v ...)]
   [(delta Σ (method "str" "__iter__") (v ...))
    (delta-str-iter Σ v ...)]
   [(delta Σ (method "str" "split") (v ...))
@@ -624,6 +631,14 @@
    (delta-list-mul Σ v ...)]
   [(delta Σ (method "list" "__len__") (v ...))
    (delta-list-len Σ v ...)]
+  [(delta Σ (method "set" "__init__") (v ...))
+   (delta-set-init Σ v ...)]
+  [(delta Σ (method "set" "__len__") (v ...))
+   (delta-set-len Σ v ...)]
+  [(delta Σ (method "tuple" "__len__") (v ...))
+   (delta-tuple-len Σ v ...)]
+  [(delta Σ (method "str" "__len__") (v ...))
+   (delta-str-len Σ v ...)]
   [(delta Σ (method "list" "__getitem__") (v ...))
    (delta-list-getitem Σ v ...)]
   [(delta Σ (method "list" "__setitem__") (v ...))
@@ -691,6 +706,12 @@
                        (assign "chkdict" (new (chkdict T_key T_val) ()))
                        (expr (call-function (attribute fast "chkdict" "update") ("dict")))
                        (return "chkdict")))))])
+(define-metafunction SP-dynamics
+  delta-str-init : Σ v ... -> [Σ e-]
+  [(delta-str-init Σ_0 (ref l_obj) (ref (con string)))
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls g ρ) (lookup-Σ Σ_0 l_obj))
+   (where Σ_1 (update Σ_0 [l_obj (obj l_cls (con string) ρ)]))])
 (define-metafunction SP-dynamics
   delta-str-iter : Σ v ... -> [Σ e-]
   [(delta-str-iter Σ (ref (con string)))
@@ -867,25 +888,6 @@
                        (expr (call-function (attribute fast "obj" "__init__") ()))
                        (expr (call-function (attribute fast "obj" "update") ("dct")))
                        (return (ref (con None)))))))]
-  #;
-  [(delta-checkeddict-init Σ_0 T_key T_val l_obj l_dct)
-   [Σ_1 (enter -1
-               ;; TODO: switch to for, because we can't know v_key and v_val at compile time
-               (begin
-                 (compile-check v_key T_key)
-                 ...
-                 (compile-check v_val T_val)
-                 ...
-                 (return (ref l_obj))))]
-   (where (obj (chkdict T_key T_val) (nothing) ())
-          (lookup-Σ Σ_0 l_obj))
-   (where (obj "dict" (dict ([v_key v_val] ...)) ρ)
-          (lookup-Σ Σ_0 l_dct))
-   (where Σ_1
-          (update Σ_0
-                  [l_obj (obj (chkdict T_key T_val)
-                              (dict ([v_key v_val] ...))
-                              ())]))]
   [(delta-checkeddict-init Σ T_key T_val l_obj l_dct)
    [Σ (raise (new "Exception" ((con "CheckedDict expects a valid dict"))))]])
 (define-metafunction SP-dynamics
@@ -935,8 +937,8 @@
    [Σ_1 (ref (con None))]
    (where (obj l_typ (dict (vv_1 ... [v_key v_val] vv_2 ...)) ρ) (lookup-Σ Σ_0 l_map))
    (where Σ_1 (update Σ_0 [l_map (obj l_typ (dict (vv_1 ... vv_2 ...)) ρ)]))]
-  [(delta-dict-delitem Σ v ...)
-   [Σ (raise (new "Exception" ((con "delitem"))))]])
+  [(delta-dict-delitem Σ (ref l_map) v_key)
+   [Σ (raise (new "KeyError" ()))]])
 (define-metafunction SP-dynamics
   delta-int-bit-length : Σ v ... -> [Σ e-]
   [(delta-int-bit-length Σ (ref (con number_1)))
@@ -958,6 +960,22 @@
           (lookup-Σ Σ_0 l_init))
    (where Σ_1
           (update Σ_0 [l_obj (obj l_cls (list (v_val ...)) ρ)]))])
+(define-metafunction SP-dynamics
+  delta-set-init : Σ v ... -> [Σ e-]
+  [(delta-set-init Σ_0 (ref l_obj))
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls (nothing) ρ)
+          (lookup-Σ Σ_0 l_obj))
+   (where Σ_1
+          (update Σ_0 [l_obj (obj l_cls (set ()) ρ)]))]
+  [(delta-set-init Σ_0 (ref l_obj) (ref l_init))
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls (nothing) ρ)
+          (lookup-Σ Σ_0 l_obj))
+   (where (obj l_initcls (list (v_val ...)) ρ_init)
+          (lookup-Σ Σ_0 l_init))
+   (where Σ_1
+          (update Σ_0 [l_obj (obj l_cls (set (v_val ...)) ρ)]))])
 (define-metafunction SP-dynamics
   delta-tuple-init : Σ v ... -> [Σ e-]
   [(delta-tuple-init Σ_0 (ref l_obj) (ref l_tpl))
@@ -1003,6 +1021,27 @@
    (where (obj l_cls (list (v_elm ...)) ρ_obj) (lookup-Σ Σ l_obj))]
   [(delta-list-len Σ v ...)
    [Σ (raise (new "Exception" ((ref (con "list-len")))))]])
+(define-metafunction SP-dynamics
+  delta-tuple-len : Σ v ... -> [Σ e-]
+  [(delta-tuple-len Σ (ref l_obj))
+   [Σ (con ,(length (term (v_elm ...))))]
+   (where (obj l_cls (tuple (v_elm ...)) ρ_obj) (lookup-Σ Σ l_obj))]
+  [(delta-tuple-len Σ v ...)
+   [Σ (raise (new "Exception" ((ref (con "tuple-len")))))]])
+(define-metafunction SP-dynamics
+  delta-set-len : Σ v ... -> [Σ e-]
+  [(delta-set-len Σ (ref l_obj))
+   [Σ (con ,(length (term (v_elm ...))))]
+   (where (obj l_cls (set (v_elm ...)) ρ_obj) (lookup-Σ Σ l_obj))]
+  [(delta-set-len Σ v ...)
+   [Σ (raise (new "Exception" ((ref (con "set-len")))))]])
+(define-metafunction SP-dynamics
+  delta-str-len : Σ v ... -> [Σ e-]
+  [(delta-str-len Σ (ref l_obj))
+   [Σ (con ,(string-length (term string)))]
+   (where (obj l_cls (con string) ρ_obj) (lookup-Σ Σ l_obj))]
+  [(delta-str-len Σ v ...)
+   [Σ (raise (new "Exception" ((ref (con "str-len")))))]])
 (define-metafunction SP-dynamics
   delta-list-setitem : Σ v ... -> [Σ e-]
   [(delta-list-setitem Σ_0 (ref l_obj) (ref (con number)) v_new)
@@ -1632,7 +1671,7 @@
   [(instance-mem*-of-class Σ "object")
    ()]
   [(instance-mem*-of-class Σ l)
-   (append (x_imem ...) (x_prn ...))
+   (++ (x_imem ...) (x_prn ...))
    (where (obj "type" (class ((ref l_prn)) ([x_cmem s-_cmem] ...) ([x_imem s-_imem] ...)) ρ)
           (lookup-Σ Σ l))
    (where (x_prn ...) (instance-mem*-of-class Σ l_prn))])

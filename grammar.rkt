@@ -1,6 +1,5 @@
 #lang racket
 (require redex/reduction-semantics)
-(require redex-abbrevs)
 (provide (all-defined-out))
 
 (define-language SP
@@ -43,9 +42,6 @@
       (subscript e+ e+)
       (lambda ([x t+] ...) e+))
 
-  ;; generator (comprehension node)
-  (g+ [a-target e+ (e+ ...)])
-
   ;; type expression
   (t+ dynamic e+)
 
@@ -57,45 +53,38 @@
       (if e+ (s+ ...) (s+ ...))
       (while e+ (s+ ...) (s+ ...))
       (for a-target e+ (s+ ...) (s+ ...))
-    ;   break
-    ;   continue
-      (delete d-target)
-      (ann-assign aa-target t+)
-      (ann-assign aa-target t+ e+)
+      (delete delete-target)
+      (ann-assign ann-assign-target t+)
+      (ann-assign ann-assign-target t+ e+)
       (assign (a-target ...) e+)
       (aug-assign e+ o2 e+)
       (class x (e+ ...) (s+ ...))
       (function-def x ([x t+] ...) t+ (s+ ...))
       (import-from x (x ...))
       (import-from x (*))
-      (try-except-else-finally (s+ ...) (h+ ...) (s+ ...) (s+ ...))
-      (raise e+))
+      (raise e+)
+      (try (s+ ...) (h+ ...) (s+ ...) (s+ ...)))
 
   ;; except-handlers
   (h+ (except-handler e++None x+None (s+ ...)))
-  (x+None x None)
   (e++None e+ None)
+  (x+None x None)
 
-  ;; targets of assignment,
-  ;;   which is a subset of e+
-  (a-target
-   x
-   (attribute e+ x)
-   (subscript e+ e+)
-   (tuple (a-target ...))
-   (list (a-target ...)))
 
-  ;; targets of ann-assign,
-  ;;   which is a subset of assign-target
-  (aa-target
+  ;; targets of ann-assign
+  (ann-assign-target
    x
    (attribute e+ x))
 
-  ;; targets of deletion,
-  ;;   which is a subset of assign-target
-  (d-target
-   x
-   (attribute e+ x)
+  ;; targets of delete
+  (delete-target
+   ann-assign-target
    (subscript e+ e+))
+  
+  ;; targets of assign
+  (a-target
+   delete-target
+   (tuple (a-target ...))
+   (list (a-target ...)))
 
   (x string))

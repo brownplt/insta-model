@@ -76,10 +76,6 @@
   ;; attribute-access mode
   (mode fast safe)
 
-  (m- (field x)
-      (field x e-)
-      (method x x (x ...) s- level-))
-
   (level- (local (x ...) s-))
 
   ;; a global environments that stores user-defined-classes
@@ -298,29 +294,33 @@
   [(lookup-builtin-class "str")
    (class ("object")
      (["__init__" (-> (dynamic dynamic) dynamic)]
+      ["__len__" (-> (dynamic ) dynamic)]
       ["__iter__" dynamic]
       ["split" dynamic])
      (["__init__" (method "str" "__init__")]
+      ["__len__" (method "str" "__len__")]
       ["__iter__" (method "str" "__iter__")]
       ["split" (method "str" "split")])
      ())]
   [(lookup-builtin-class "set")
    (class ("object")
      (["__init__" dynamic]
-      ["__contains__" (-> (dynamic dynamic) (subof "bool"))])
+      ["__len__" (-> (dynamic ) dynamic)]
+      ["__contains__" (-> (dynamic dynamic) dynamic)])
      (["__init__" (method "set" "__init__")]
+      ["__len__" (method "set" "__len__")]
       ["__contains__" (method "set" "__contains__")])
      ())]
   [(lookup-builtin-class "list")
    (class ("object")
      (["__init__" dynamic]
-      ["__eq__" (-> (dynamic dynamic) (subof "bool"))]
+      ["__eq__" (-> (dynamic dynamic) dynamic)]
       ["__mul__" (-> (dynamic dynamic) dynamic)]
-      ["__len__" (-> (dynamic ) (subof "int"))]
+      ["__len__" (-> (dynamic ) dynamic)]
       ["__iter__" (-> (dynamic ) dynamic)]
       ["__getitem__" (-> (dynamic dynamic) dynamic)]
       ["__setitem__" (-> (dynamic dynamic dynamic) dynamic)]
-      ["append" (-> (dynamic dynamic) (subof "list"))])
+      ["append" (-> (dynamic dynamic) dynamic)])
      (["__init__" (method "list" "__init__")]
       ["__eq__" (method "list" "__eq__")]
       ["__mul__" (method "list" "__mul__")]
@@ -416,10 +416,12 @@
      (["__init__" (-> (dynamic dynamic) dynamic)]
       ["__eq__" (-> (dynamic dynamic) (subof "bool"))]
       ["__mul__" (-> (dynamic dynamic) dynamic)]
+      ["__len__" (-> (dynamic) dynamic)]
       ["__getitem__" (-> (dynamic dynamic) dynamic)])
      (["__init__" (method "tuple" "__init__")]
       ["__eq__" (method "tuple" "__eq__")]
       ["__mul__" (method "tuple" "__mul__")]
+      ["__len__" (method "tuple" "__len__")]
       ["__getitem__" (method "tuple" "__getitem__")])
      ())])
 
@@ -561,12 +563,12 @@
 (define-metafunction SP-compiled
   flatten : boolean Ψ l -> Γ
   [(flatten boolean Ψ l)
-   (append Γ (flatten-l*+dynamic boolean Ψ l*+dynamic))
+   (++ Γ (flatten-l*+dynamic boolean Ψ l*+dynamic))
    (where (class l*+dynamic Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l))
    (where #t boolean)
    (where Γ Γ_cls)]
   [(flatten boolean Ψ l)
-   (append Γ (flatten-l*+dynamic boolean Ψ l*+dynamic))
+   (++ Γ (flatten-l*+dynamic boolean Ψ l*+dynamic))
    (where (class l*+dynamic Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l))
    (where #f boolean)
    (where Γ Γ_ins)])
@@ -580,7 +582,7 @@
   flatten-l* : boolean Ψ l ... -> Γ
   [(flatten-l* boolean Ψ) ()]
   [(flatten-l* boolean Ψ l_0 l_1 ...)
-   (append (flatten boolean Ψ l_0)
+   (++ (flatten boolean Ψ l_0)
            (flatten-l* boolean Ψ l_1 ...))])
 
 (module+ test
@@ -1508,21 +1510,21 @@
 (define-metafunction SP-compiled
   compile-m : Ψ Γ x m -> [boolean x T s-]
   ;; declare-only member can be either a ClassVar
-  [(compile-m Ψ Γ x_cls (field x t))
+  [(compile-m Ψ Γ x_cls (ann x t))
    [#t
     x
     T
     (begin)]
    (where (ClassVar T) (eval-t Ψ Γ t))]
   ;; or an instance-level member
-  [(compile-m Ψ Γ x_cls (field x t))
+  [(compile-m Ψ Γ x_cls (ann x t))
    [#f
     x
     T
     (begin)]
    (where T (eval-t Ψ Γ t))]
   ;; initialized members must all be class-level
-  [(compile-m Ψ Γ x_cls (field x t e))
+  [(compile-m Ψ Γ x_cls (ann-assign x t e))
    [#t
     x
     T
@@ -1530,8 +1532,7 @@
             (maybe-cast Ψ (compile-e Ψ Γ Γ e) T))]
    (where (ClassVar T) (eval-t Ψ Γ t))]
   ;; methods are ClassVar
-  [(compile-m Ψ Γ x_cls (method x_mth ([x_slf dynamic] [x_arg t_arg] ...) t_out level))
-   ;; TODO
+  [(compile-m Ψ Γ x_cls (function-def x_mth ([x_slf dynamic] [x_arg t_arg] ...) t_out level))
    [#t
     x_mth
     T
@@ -1541,25 +1542,25 @@
 (define-metafunction SP-compiled
   compile-mt : Ψ Γ x m -> [boolean x T]
   ;; declare-only member can be either a ClassVar
-  [(compile-mt Ψ Γ x_cls (field x t))
+  [(compile-mt Ψ Γ x_cls (ann x t))
    [#t
     x
     T]
    (where (ClassVar T) (eval-t Ψ Γ t))]
   ;; or an instance-level member
-  [(compile-mt Ψ Γ x_cls (field x t))
+  [(compile-mt Ψ Γ x_cls (ann x t))
    [#f
     x
     T]
    (where T (eval-t Ψ Γ t))]
   ;; initialized members must all be class-level
-  [(compile-mt Ψ Γ x_cls (field x t e))
+  [(compile-mt Ψ Γ x_cls (ann-assign x t e))
    [#t
     x
     T]
    (where (ClassVar T) (eval-t Ψ Γ t))]
   ;; methods are ClassVar
-  [(compile-mt Ψ Γ x_cls (method x_mth ([x_slf dynamic] [x_arg t_arg] ...) t_out level))
+  [(compile-mt Ψ Γ x_cls (function-def x_mth ([x_slf dynamic] [x_arg t_arg] ...) t_out level))
    [#t
     x_mth
     T]
@@ -1870,7 +1871,7 @@
   [(gather-import)
    ()]
   [(gather-import [x_1 import-d] [x_2 d_2] ...)
-   (append ([x_1 import-d]) (gather-import [x_2 d_2] ...))]
+   (++ ([x_1 import-d]) (gather-import [x_2 d_2] ...))]
   [(gather-import [x_1 d_1] [x_2 d_2] ...)
    (gather-import [x_2 d_2] ...)])
 (define-metafunction SP-compiled
@@ -1878,7 +1879,7 @@
   [(gather-class)
    ()]
   [(gather-class [x_1 (class (e ...) (m ...))] [x_2 d_2] ...)
-   (append ([x_1 (class (e ...) (m ...))]) (gather-class [x_2 d_2] ...))]
+   (++ ([x_1 (class (e ...) (m ...))]) (gather-class [x_2 d_2] ...))]
   [(gather-class [x_1 d_1] [x_2 d_2] ...)
    (gather-class [x_2 d_2] ...)])
 (define-metafunction SP-compiled
@@ -1886,7 +1887,7 @@
   [(gather-other)
    ()]
   [(gather-other [x_1 other-d] [x_2 d_2] ...)
-   (append ([x_1 other-d]) (gather-other [x_2 d_2] ...))]
+   (++ ([x_1 other-d]) (gather-other [x_2 d_2] ...))]
   [(gather-other [x_1 d_1] [x_2 d_2] ...)
    (gather-other [x_2 d_2] ...)])
 

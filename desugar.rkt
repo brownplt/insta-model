@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics)
 (require "grammar.rkt")
+(require "utilities.rkt")
 (provide (all-defined-out))
 
 (define-extended-language SP-core SP
@@ -9,7 +10,8 @@
   (program level)
   
   ;; global names (labels) of global things
-  ;;   we will extend l when we reach dynamics.rkt
+  ;;   we will extend l to mean heap labels
+  ;;   when we get to the model of the runtime
   (l x)
   ;; values are just references to global things
   (v (ref l))
@@ -28,8 +30,7 @@
      (if-exp e e e)
      (attribute e x)
      (call e (e ...))
-     (lambda ([x t] ...) e)
-     (function-exp ([x t] ...) t level))
+     (lambda ([x t] ...) e))
 
   ;; type expression
   (t dynamic e)
@@ -41,8 +42,6 @@
      (begin s ...)
      (if e s s)
      (while e s s)
-     break
-     continue
      (delete x)
      (delete (attribute e x))
      (ann x t)
@@ -50,22 +49,22 @@
      (ann-assign x t e)
      (ann-assign (attribute e x) t e)
      (function-def x ([x t] ...) t level)
-     (class x (e ...) (m ...))
-     ;; import should only appear at the global scope
-     (import-from x x)
+     (class x (e ...) (m ...)) ;; only allow at the global scope
+     (import-from x x)         ;; only allow at the global scope
+     (finally s s)
+     (raise e)
      (try s ;; body
           e ;; exn class to catch
           x ;; binder
           s ;; when caught
           s ;; else
-          )
-     (finally s s)
-     (raise e))
+          ))
 
-  ;; class members
-  (m (field x t)
-     (field x t e)
-     (method x ([x t] ...) t level))
+  ;; class members,
+  ;;   a subset of statements
+  (m (ann x t)
+     (ann-assign x t e)
+     (function-def x ([x t] ...) t level))
 
   ;; (scope) level
   (level (local ([x d] ...) s))
@@ -93,26 +92,13 @@
 
 
 ;; The remaining part of this file describe the desugaring process.
-;; Desugaring is context-insensitive "__ __" doesn't rely on the type of
-;; terms. This process remove three kinds of constructs:
-;;   - operators (except is because they are primitive)
+;; Desugaring is context-insensitive. That is, it doesn't rely on the 
+;; types. This process remove three kinds of constructs:
+;;   - operators (except `is` because they are primitive)
 ;;   - subscription
 ;;   - restrict assignment targets to variables and attributes
-;; And lift variable declaration to the beginning of each block
-
-(module+ test
-  (test-equal (term (append (x) (y z)))
-              (term (x y z))))
-(define-metafunction SP-core
-  append : (any ...) (any ...) -> (any ...)
-  [(append (any_1 ...) (any_2 ...))
-   (any_1 ... any_2 ...)])
-(define-metafunction SP-core
-  append* : (any ...) ... -> (any ...)
-  [(append*) ()]
-  [(append* any_1 any_2 ...)
-   (append any_1 (append* any_2 ...))])
-
+;; Besides, this process lifts variable declaration to the beginning of
+;; each block
 
 (module+ test
   (test-equal (term (desugar-e "xyz"))
@@ -288,7 +274,7 @@
                                                 ((assign ("j") "i")
                                                  (return "i")))))))
               (term (class "C" ()
-                      ((method "foo" (["self" dynamic] ["i" "int"])
+                      ((function-def "foo" (["self" dynamic] ["i" "int"])
                                dynamic
                                (local (["self" dynamic]
                                        ["i" "int"]
@@ -336,22 +322,22 @@
           (make-begin (desugar-s s+_els) ...))]
   [(desugar-s (for a-target e+ (s+_thn ...) (s+_els ...)))
    (begin
-     (ann-assign x dynamic (call (attribute e+ "__iter__") ()))
-     (while (con #t)
+     (ann-assign x_iter dynamic (call (attribute e+ "__iter__") ()))
+     (ann-assign x_exit dynamic (con #t))
+     (while x_exit
        (try
          (begin
-           (desugar-s (assign (a-target) (call (attribute x "__next__") ())))
+           (desugar-s (assign (a-target) (call (attribute x_iter "__next__") ())))
            (make-begin (desugar-s s+_thn) ...))
          (ref "StopIteration")
          "-tmp-"
          (begin
            (make-begin (desugar-s s+_els) ...)
-           break)
+           (ann-assign x_exit dynamic (con #f)))
          (begin))
        (begin)))
-   (where x ,(symbol->string (gensym '-for-)))]
-  [(desugar-s break) break]
-  [(desugar-s continue) continue]
+   (where x_iter ,(symbol->string (gensym '-for-iter-)))
+   (where x_exit ,(symbol->string (gensym '-for-exit-)))]
   [(desugar-s (delete e+))
    (desugar-delete e+)]
   ;; ann-assign without ann
@@ -379,7 +365,7 @@
    (class x ((desugar-t t+) ...) (m ...))
    (where (m_explicit ...) (m*-of-begin (make-begin (desugar-s s+) ...)))
    (where (m_implicit ...) (m*-of-m* (m_explicit ...)))
-   (where (m ...) (append (m_explicit ...) (m_implicit ...)))]
+   (where (m ...) (++ (m_explicit ...) (m_implicit ...)))]
   ;; function-def
   [(desugar-s (function-def x ([x_arg t+_arg] ...) t+_ret (s+ ...)))
    (function-def x ([x_arg (desugar-t t+_arg)] ...) (desugar-t t+_ret)
@@ -394,7 +380,7 @@
    (make-begin (import-from x_mod x_dst) ...)]
   [(desugar-s (import-from x_mod (*)))
    (desugar-import-from-* x_mod)]
-  [(desugar-s (try-except-else-finally (s+_body ...) (h+ ...) (s+_orelse ...) (s+_final ...)))
+  [(desugar-s (try (s+_body ...) (h+ ...) (s+_orelse ...) (s+_final ...)))
    (finally
     (make-try (make-begin (desugar-s s+_body) ...)
               ((desugar-h h+) ...)
@@ -512,43 +498,21 @@
 (define-metafunction SP-core
   m*-of-begin : (begin s ...) -> (m ...)
   [(m*-of-begin (begin s ...))
-   ((m-of-s s) ...)])
-(module+ test
-  (test-equal (term (m-of-s (ann "i" "int")))
-              (term (field "i" "int")))
-  (test-equal (term (m-of-s (ann-assign "i" "int" "abc")))
-              (term (field "i" "int" "abc")))
-  (test-equal (term (m-of-s (function-def "x" (["self" dynamic] ["a" "int"] ["b" "str"]) "dict"
-                                          (local (["self" dynamic]
-                                                  ["a" "int"]
-                                                  ["b" "str"])
-                                            (return (dict (["a" "b"])))))))
-              (term (method "x" (["self" dynamic] ["a" "int"] ["b" "str"]) "dict"
-                            (local (["self" dynamic]
-                                    ["a" "int"]
-                                    ["b" "str"])
-                              (return (dict (["a" "b"]))))))))
-(define-metafunction SP-core
-  m-of-s : s -> m
-  [(m-of-s (ann x t))
-   (field x t)]
-  [(m-of-s (ann-assign x t e))
-   (field x t e)]
-  [(m-of-s (function-def x ([x_arg t_arg] ...) t_ret level_bdy))
-   (method x ([x_arg t_arg] ...) t_ret level_bdy)])
+   (m ...)
+   (where (m ...) (s ...))])
 (define-metafunction SP-core
   self-m*-of-s : s -> (m ...)
   [(self-m*-of-s (ann-assign (attribute "self" x) t e))
-   ((field x t))]
+   ((ann x t))]
   [(self-m*-of-s (begin s ...))
-   (append* (m ...) ...)
+   (++* (m ...) ...)
    (where ((m ...) ...) ((self-m*-of-s s) ...))]
   [(self-m*-of-s s)
    ()])
 (define-metafunction SP-core
   m*-of-m* : (m ...) -> (m ...)
   [(m*-of-m* (m_1 ... 
-              (method "__init__" ([x_arg t_arg] ...) t_ret (local ([x_lcl d_lcl] ...) s_bdy))
+              (function-def "__init__" ([x_arg t_arg] ...) t_ret (local ([x_lcl d_lcl] ...) s_bdy))
               m_2 ...))
    (self-m*-of-s s_bdy)]
   [(m*-of-m* (m ...))
@@ -557,7 +521,7 @@
 (define-metafunction SP-core
   level-of-s : ([x d] ...) s -> level
   [(level-of-s xd* s)
-   (local (drop-later-dynamic (append xd* (xd*-of-s s))) s)])
+   (local (drop-later-dynamic (++ xd* (xd*-of-s s))) s)])
 (module+ test
   (test-equal (term (xd*-of-s (expr "abc")))
               (term ()))
@@ -584,16 +548,16 @@
   (test-equal (term (xd*-of-s (function-def "f" (["a" "int"]) "str" (local () (begin)))))
               (term (["f" (function-def ("int") "str")])))
   (test-equal (term (xd*-of-s (class "C" ("object")
-                                ((field "i" "int")
-                                 (field "s" "str" "hello")
-                                 (method "greet" (["self" dynamic]) "str"
+                                ((ann "i" "int")
+                                 (ann-assign "s" "str" "hello")
+                                 (function-def "greet" (["self" dynamic]) "str"
                                          (local ()
                                            (begin)))))))
               (term (["C"
                       (class ("object")
-                        ((field "i" "int")
-                         (field "s" "str" "hello")
-                         (method
+                        ((ann "i" "int")
+                         (ann-assign "s" "str" "hello")
+                         (function-def
                           "greet"
                           (("self" dynamic))
                           "str"
@@ -612,13 +576,9 @@
   [(xd*-of-s (begin s ...))
    (xd*-of-s-begin (xd*-of-s s) ...)]
   [(xd*-of-s (if e_cnd s_thn s_els))
-   (append (xd*-of-s s_thn) (xd*-of-s s_els))]
+   (++ (xd*-of-s s_thn) (xd*-of-s s_els))]
   [(xd*-of-s (while e_cnd s_thn s_els))
-   (append (xd*-of-s s_thn) (xd*-of-s s_els))]
-  [(xd*-of-s break)
-   ()]
-  [(xd*-of-s continue)
-   ()]
+   (++ (xd*-of-s s_thn) (xd*-of-s s_els))]
   [(xd*-of-s (delete x))
    ()]
   [(xd*-of-s (delete (attribute e x)))
@@ -642,11 +602,11 @@
   [(xd*-of-s (import-from x_mod x_var))
    ([x_var (import-from x_mod x_var)])]
   [(xd*-of-s (try s_bdy e_exn x_exn s_exn s_els))
-   (append (xd*-of-s s_bdy)
-           (append (append ([x_exn dynamic]) (xd*-of-s s_exn))
+   (++ (xd*-of-s s_bdy)
+           (++ (++ ([x_exn dynamic]) (xd*-of-s s_exn))
                    (xd*-of-s s_els)))]
   [(xd*-of-s (finally s_bdy s_fnl))
-   (append (xd*-of-s s_bdy) (xd*-of-s s_fnl))]
+   (++ (xd*-of-s s_bdy) (xd*-of-s s_fnl))]
   [(xd*-of-s (raise e))
    ()])
 (module+ test
@@ -659,24 +619,7 @@
   [(xd*-of-s-begin)
    ()]
   [(xd*-of-s-begin xd*_1 xd*_2 ...)
-   (append xd*_1 (xd*-of-s-begin xd*_2 ...))])
-#;
-(module+ test
-  (test-equal (term (xd-of-m (field "i" "int")))
-              (term ["i" "int"]))
-  (test-equal (term (xd-of-m (field "i" "int" "a")))
-              (term ["i" "int"]))
-  (test-equal (term (xd-of-m (method "f" () dynamic (local () (begin)))))
-              (term ["f" (function-def () dynamic)])))
-#;
-(define-metafunction SP-core
-  xd-of-m : m -> [x d]
-  [(xd-of-m (field x t))
-   [x t]]
-  [(xd-of-m (field x t e))
-   [x t]]
-  [(xd-of-m (method x ([x_arg t_arg] ...) t_ret level_bdy))
-   [x (function-def (t_arg ...) t_ret)]])
+   (++ xd*_1 (xd*-of-s-begin xd*_2 ...))])
 (module+ test
   (test-equal (term (drop-later-dynamic ()))
               (term ()))

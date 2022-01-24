@@ -281,7 +281,7 @@ def ast_to_sexp(node):
         ]
     elif isinstance(node, ast.Try):
         return [
-            symbol('try-except-else-finally'),
+            symbol('try'),
             [ast_to_sexp(s) for s in node.body],
             [ast_to_sexp(h) for h in node.handlers],
             [ast_to_sexp(s) for s in node.orelse],
