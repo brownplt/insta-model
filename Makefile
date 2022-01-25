@@ -11,7 +11,7 @@ statistics:
 
 redex_tests:
 	echo "Translating Python files to tests of the model."
-	python3.9 ./scripts/python_tests_to_redex_tests.py
+	python3.9 ./scripts/python_tests_to_redex_tests.py > /dev/null
 
 check_model:
 	echo "Testing the model." && \
