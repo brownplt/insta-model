@@ -21,6 +21,7 @@
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
+\newcommand{\PEP}{PEP~484}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\bcinst}[1]{\code{#1}}
 \newcommand{\defeq}{=}
@@ -399,11 +400,10 @@ Others might be useful to adopt in new language designs.
 
 \section{A Tour of \SP{}}
 \label{s:tour}
-%% purpose = SP looks like Pyre, adds soundness to certain types
 
-% {Language Pipeline}
+% {Language Pipeline for IG}
 % \begin{enumerate}
-%   \item Pyre as an optional, but recommended pre-check. (Not necessary for the model.)
+%   \item Pyre as an optional, but recommended pre-check. (Specific to IG. Not necessary for the model.)
 %   \item SP type checker
 %   \item Custom bytecode, Cinder JIT
 % \end{enumerate}
@@ -483,10 +483,11 @@ nonlocal maintenance costs (i.e., on constructor calls).
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
-Pyre~\cite{pyre}, an optional type checker developed by Facebook,
-greatly influenced the syntax and types of \SP{}.
-Nom~\cite{mt-oopsla-2017,mt-oopsla-2021}, a research language with compelling
-performance results, set the basic strategy for run-time checks.
+Its syntax for types is based on the definitions in \PEP{} and related proposals~\cite{pep484}.
+Its static semantics for types is inspired by the Pyre~\cite{pyre}, mypy~\cite{mypy}, and Pyright~\cite{pyright}
+optional type checkers.
+And its strategy for run-time checks is adapted from Nom~\cite{mt-oopsla-2017,mt-oopsla-2021},
+a research language with compelling performance results.
 \SP{}'s novelty comes from the following engineering constraints:
 \begin{itemize}
   \item
@@ -499,9 +500,9 @@ performance results, set the basic strategy for run-time checks.
     locally-defined functions and classes are thus a low priority; instead, the
     dynamic type is available as a coarse approximation.
   \item
-    The codebase in which \SP{} is being applied makes heavy use of Pyre
-    type annotations.
-    \SP{} is therefore compatible with Pyre syntax to reduce the
+    The codebase in which \SP{} is being applied makes heavy use of
+    \PEP{} type annotations and is regularly analyzed by Pyre.
+    \SP{} is therefore compatible with the \PEP{} syntax to reduce the
     adoption burden on its target users.
     %% depth-first approach? (the alternatives are not very clear ... depth vs breadth?)
   \item
@@ -513,13 +514,11 @@ performance results, set the basic strategy for run-time checks.
 \end{itemize}
 %
 In general, the types that \SP{} implements all enable significant optimizations
-and can be validated with constant-time casts.
-Types that do not meet these criteria are deferred to Pyre, even if they are widely-used.
-
-At present, \SP{} has no plans to support all Pyre types.
+and can be validated quickly with casts.
+Types that do not meet these criteria are deferred to the mature optional
+type checkers that already exist for Python.
+In fact, \SP{} has no plans at present to support all \PEP{} types.
 The goal is to implement a small language of types efficiently.
-After all, programmers can always lint their code with Pyre before running
-\SP{}.
 
 The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
@@ -535,10 +534,8 @@ Three other unsupported types bear special mention:
 first-class class and object types~(\cref{s:inheritance});
 first-class function (callable) types; and
 recursive types.
-Pyre has some support for the first two, but not for recursive types.
-In any event, the demand for all three types is low in our applications
-of \SP{}.
-%% mypy = https://github.com/python/mypy/issues/731
+Pyre and mypy some support for the first two, but not for recursive types.
+%% mypy rec.types = https://github.com/python/mypy/issues/731
 %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
 
@@ -565,8 +562,9 @@ dictionary with integer keys and $\sptflout$-typed values.
 \SP{} interprets this annotation as $\sptchkdict{\sptint}{\sptdyn}$ and allows any sort
 of values inside the dictionary at runtime.
 
+TODO reword.
 At first glance, this behavior might seem odd: why not reject undefined types with an error?
-The reason is to reduce friction with existing Pyre annotations.
+The reason is to reduce friction with existing \pep{} annotations.
 Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
 efficiently, e.g., the type $\sptset{\sptint}$ for sets of integers.
 By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
@@ -658,7 +656,7 @@ f(d)
 \subsection{Concrete Types and Shallow Types}
 \label{s:checked-type}
 
-Every \SP{} type corresponds to a constant-time dynamic check.
+Every \SP{} type corresponds to a constant-time cast.
 When an unknown value reaches a boundary to typed code at run-time,
 \SP{} uses these checks to quickly decide whether or not the value
 matches the type (think: \code{isinstance} checks).
@@ -674,8 +672,10 @@ these \emph{concrete} types.
 
 First off, for a basic nominally-typed language (think Java 1.4, before
 generics), constant-time checks are easy to implement.
-Every type has a name and every value can carry a tag that corresponds to the
+Every type has a name and every value has a tag that corresponds to the
 name of its type.
+A cast must examine the parents of a class in the worst case,
+but these traversals are bounded by a (typically small) constant.
 
 Parameterized types (generics) are more difficult to enforce.
 For example, suppose that a typed function expects inputs that match
@@ -1273,7 +1273,7 @@ As the retraction shows, the evaluation types make two main changes:
 
 \subsubsection{Casts}
 
-\SP{} evaluation types can all be enforced fully and in constant-time
+\SP{} evaluation types can all be enforced fully and efficiently
 with casts.
 \Cref{t:cast} describes the casts in detail.
 Most call for a tag check, i.e., a Python \code{isinstance} test.
@@ -1284,7 +1284,6 @@ checked dict values that were initialized with exactly the same key and value ty
 As noted in~\cref{s:type-dynamic}, the exact-match rules applies even when $\spteval_0$
 or $\spteval_1$ is the dynamic type.
 
-As promised, all casts run in constant time.
 No cast requires traversing a data structure.
 Similarly, no cast allocates a wrapper to check higher-order behaviors in a delayed fashion.
 This latter property means that blame-tracking~\cite{ff-icfp-2002} is trivial because
@@ -2158,18 +2157,19 @@ type errors and the other three are for performance.
 %% side effects.
 
 
-\subsubsection{Developer Experience}
-
-For the most part, programmers have been happy adopting \SP{}.
-The transition from Pyre to \SP{} has delivered performance benefits
-that outweigh the cost of code changes.
-Even the use of strict modules has been acceptable; only two modules
-required non-trivial rewrites to avoid mutation.
-
-One significant pushback dealt with multiple inheritance.
-The \SP{} team proposed a rewrite from multiple inheritance to single inheritance,
-but the code maintainers preferred to keep the design as-is instead of enabling
-type-driven method dispatch optimizations.
+% 2022-01-24 bg: hidden from submission to save space
+%\subsubsection{Developer Experience}
+%
+%For the most part, programmers have been happy adopting \SP{}.
+%The transition from Pyre to \SP{} has delivered performance benefits
+%that outweigh the cost of code changes.
+%Even the use of strict modules has been acceptable; only two modules
+%required non-trivial rewrites to avoid mutation.
+%
+%One significant pushback dealt with multiple inheritance.
+%The \SP{} team proposed a rewrite from multiple inheritance to single inheritance,
+%but the code maintainers preferred to keep the design as-is instead of enabling
+%type-driven method dispatch optimizations.
 
 
 \subsection{Microbenchmarks}
@@ -2246,7 +2246,7 @@ It remains to be seen whether a non-tracing JIT is effective for higher-order
 casts.
 
 \SP{} is one of many type systems for Python.
-Other optional type checkers include Pyre, mypy, and PyType;
+Other optional type checkers include Pyre~\cite{pyre}, mypy~\cite{mypy}, and Pyright~\cite{pyright};
 these systems do not ensure safe interactions with untyped Python.
 Another sound type system is Reticulated,
 which enforces structural types (rather than nominal) using its transient
@@ -2341,7 +2341,7 @@ for its implementors and for adopters:
 \begin{itemize}
   \item
     The syntax of sound static types is relatively small compared
-    to Pyre~\cite{pyre} and other types-for-Python proposals~\cite{mypy,pytype}.
+    to the \PEP{} definition.
     Higher-order types are absent.
     The focus is instead on first-order class types, base types, and standard data structures.
   \item
@@ -2412,7 +2412,8 @@ The 25 GitHub issues that arose from our work may be found at the following thre
 
 \section{On Migrations from Pyre to \SP{}}
 
-Although the Instagram web server has extensive Pyre annotations,
+Although the Instagram web server has extensive type annotations that are
+checked by Pyre,
 these annotations are not always enough to satisfy \SP{}.
 In fact, code may have latent bugs that Pyre did not catch;
 we list common reasons for such bugs below:
