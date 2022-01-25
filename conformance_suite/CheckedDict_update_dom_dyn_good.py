@@ -1,4 +1,4 @@
-# CheckedDict_update_dom_dyn_key_pos.py
+# CheckedDict_update_dom_dyn_good.py
 # This should pass.
 # This should terminate.
 

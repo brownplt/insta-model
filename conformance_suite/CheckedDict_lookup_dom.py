@@ -1,4 +1,4 @@
-# CheckedDict_lookup_checks_statically.py
+# CheckedDict_lookup_dom.py
 # This should fail.
 
 from __static__ import PyDict, CheckedDict

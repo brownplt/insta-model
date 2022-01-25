@@ -1,4 +1,4 @@
-# CheckedDict_lookup_val_neg.py
+# CheckedDict_lookup_cod.py
 # This should fail.
 
 from __static__ import PyDict, CheckedDict

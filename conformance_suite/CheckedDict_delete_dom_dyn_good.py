@@ -1,4 +1,4 @@
-# CheckedDict_lookup_checks_dynamically_pass.py
+# CheckedDict_delete_dom_dyn_good.py
 # This should pass.
 # This should terminate.
 

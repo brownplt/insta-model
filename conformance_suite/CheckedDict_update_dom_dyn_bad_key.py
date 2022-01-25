@@ -1,4 +1,4 @@
-# CheckedDict_update_checks_keys.py
+# CheckedDict_update_dom_dyn_bad_key.py
 # This should pass.
 # This should error.
 

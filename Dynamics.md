@@ -54,14 +54,16 @@ After updating, looking up the key should give the new value.
 
 ## CheckedDict
 
-`CheckedDict` is inhabitable.
+The `CheckedDict` constructor checks its argument.
 
 - [CheckedDict_is_inhabitable.py](conformance_suite/CheckedDict_is_inhabitable.py)
+- [CheckedDict_from_nondict.py](conformance_suite/CheckedDict_from_nondict.py)
+- [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
 - [CheckedDict_from_good_dict.py](conformance_suite/CheckedDict_from_good_dict.py)
 
 `CheckedDict[T1, T2].__getitem__` works.
 
-- [CheckedDict_lookup_good_key.py](conformance_suite/CheckedDict_lookup_good_key.py)
+- [CheckedDict_lookup_good.py](conformance_suite/CheckedDict_lookup_good.py)
 - [CheckedDict_lookup_bad_key.py](conformance_suite/CheckedDict_lookup_bad_key.py)
 
 `CheckedDict[T1, T2].__getitem__` checks its input(s) dynamically.
@@ -81,18 +83,13 @@ After updating, looking up the key should give the new value.
 
 `CheckedDict[T1, T2].__delitem__` works.
 
-- [CheckedDict_delete_good_key.py](conformance_suite/CheckedDict_delete_good_key.py)
+- [CheckedDict_delete_good.py](conformance_suite/CheckedDict_delete_good.py)
 - [CheckedDict_delete_bad_key.py](conformance_suite/CheckedDict_delete_bad_key.py)
 
 `CheckedDict[T1, T2].__delitem__` checks its input(s) dynamically.
 
 - [CheckedDict_delete_dom_dyn_good.py](conformance_suite/CheckedDict_delete_dom_dyn_good.py)
 - [CheckedDict_delete_dom_dyn_bad_key.py](conformance_suite/CheckedDict_delete_dom_dyn_bad_key.py)
-
-The CheckedDict constructor checks its argument.
-
-- [CheckedDict_from_nondict.py](conformance_suite/CheckedDict_from_nondict.py)
-- [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
 
 ## PyDicts and CheckedDicts
 

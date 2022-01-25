@@ -1,4 +1,4 @@
-# CheckedDict_lookup_checks_dynamically_fail.py
+# CheckedDict_delete_dom_dyn_bad_key.py
 # This should pass.
 # This should error.
 

@@ -1,4 +1,4 @@
-# CheckedDict_update_val_neg.py
+# CheckedDict_update_dom_val.py
 # This should fail.
 
 from __static__ import PyDict, CheckedDict

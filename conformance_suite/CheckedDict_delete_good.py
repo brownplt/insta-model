@@ -1,4 +1,4 @@
-# CheckedDict_lookup_good_key.py
+# CheckedDict_delete_good.py
 # This should pass.
 # This should terminate.
 
