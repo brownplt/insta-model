@@ -1,6 +1,6 @@
-# CheckedDict_lookup_checks_keys.py
+# CheckedDict_lookup_checks_dynamically_pass.py
 # This should pass.
-# This should error.
+# This should terminate.
 
 from __static__ import CheckedDict
 
@@ -8,4 +8,4 @@ def asDyn(x):
     return x
 
 x: CheckedDict[str, int] = CheckedDict[str, int]({"foo": 2})
-asDyn(x)[42]
+asDyn(x)["foo"]

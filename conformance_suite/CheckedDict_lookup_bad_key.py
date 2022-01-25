@@ -1,8 +1,13 @@
-# CheckedDict_lookup_val_pos.py
+# CheckedDict_lookup_bad_key.py
 # This should pass.
 # This should terminate.
 
 from __static__ import PyDict, CheckedDict
 
 x: CheckedDict[str, int] = CheckedDict[str, int]({"foo": 1})
-y: int = x["foo"]
+try:
+    y: int = x["bar"]
+except KeyError:
+    pass
+else:
+    raise Exception()

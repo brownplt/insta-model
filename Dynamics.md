@@ -59,49 +59,40 @@ After updating, looking up the key should give the new value.
 - [CheckedDict_is_inhabitable.py](conformance_suite/CheckedDict_is_inhabitable.py)
 - [CheckedDict_from_good_dict.py](conformance_suite/CheckedDict_from_good_dict.py)
 
-Inserting `CheckedDict` entries is allowed.
+`CheckedDict[T1, T2].__getitem__` works.
 
-- [CheckedDict_insert.py](conformance_suite/CheckedDict_insert.py)
+- [CheckedDict_lookup_good_key.py](conformance_suite/CheckedDict_lookup_good_key.py)
+- [CheckedDict_lookup_bad_key.py](conformance_suite/CheckedDict_lookup_bad_key.py)
 
-Updating `CheckedDict` entries is allowed.
+`CheckedDict[T1, T2].__getitem__` checks its input(s) dynamically.
 
-- [CheckedDict_update_key_pos.py](conformance_suite/CheckedDict_update_key_pos.py)
-- [CheckedDict_update_val_pos.py](conformance_suite/CheckedDict_update_val_pos.py)
+- [CheckedDict_lookup_dom_dyn_good.py](conformance_suite/CheckedDict_lookup_dom_dyn_good.py)
+- [CheckedDict_lookup_dom_dyn_bad_key.py](conformance_suite/CheckedDict_lookup_dom_dyn_bad_key.py)
 
-Deleting `CheckedDict` entries with good keys is allowed.
+`CheckedDict[T1, T2].__setitem__` works.
 
-- [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
+- [CheckedDict_update.py](conformance_suite/CheckedDict_update.py)
 
-Looking up `CheckedDict` entries with good keys is allowed.
+`CheckedDict[T1, T2].__setitem__` checks its input(s) dynamically.
 
-- [CheckedDict_lookup_key_pos.py](conformance_suite/CheckedDict_lookup_key_pos.py)
+- [CheckedDict_update_dom_dyn_good.py](conformance_suite/CheckedDict_update_dom_dyn_good.py)
+- [CheckedDict_update_dom_dyn_bad_key.py](conformance_suite/CheckedDict_update_dom_dyn_bad_key.py)
+- [CheckedDict_update_dom_dyn_bad_val.py](conformance_suite/CheckedDict_update_dom_dyn_bad_val.py)
 
-After deletion, looking up the key should fail.
+`CheckedDict[T1, T2].__delitem__` works.
 
-- [CheckedDict_delete_then_lookup.py](conformance_suite/CheckedDict_delete_then_lookup.py)
+- [CheckedDict_delete_good_key.py](conformance_suite/CheckedDict_delete_good_key.py)
+- [CheckedDict_delete_bad_key.py](conformance_suite/CheckedDict_delete_bad_key.py)
 
-After insertion, looking up the key should succeed.
+`CheckedDict[T1, T2].__delitem__` checks its input(s) dynamically.
 
-- [CheckedDict_insert_then_lookup.py](conformance_suite/CheckedDict_insert_then_lookup.py)
+- [CheckedDict_delete_dom_dyn_good.py](conformance_suite/CheckedDict_delete_dom_dyn_good.py)
+- [CheckedDict_delete_dom_dyn_bad_key.py](conformance_suite/CheckedDict_delete_dom_dyn_bad_key.py)
 
-After updating, looking up the key should give the new value.
-
-- [CheckedDict_update_then_lookup.py](conformance_suite/CheckedDict_update_then_lookup.py)
-
-CheckedDicts check inputs.
+The CheckedDict constructor checks its argument.
 
 - [CheckedDict_from_nondict.py](conformance_suite/CheckedDict_from_nondict.py)
 - [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
-
-CheckedDicts check keys.
-
-- [CheckedDict_lookup_checks_keys.py](conformance_suite/CheckedDict_lookup_checks_keys.py)
-- [CheckedDict_update_checks_keys.py](conformance_suite/CheckedDict_update_checks_keys.py)
-- [CheckedDict_delete_checks_keys.py](conformance_suite/CheckedDict_delete_checks_keys.py)
-
-CheckedDicts check new values.
-
-- [CheckedDict_update_checks_values.py](conformance_suite/CheckedDict_update_checks_values.py)
 
 ## PyDicts and CheckedDicts
 

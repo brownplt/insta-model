@@ -5,4 +5,4 @@
 from __static__ import PyDict
 
 x: PyDict = {1: "foo", "bar": 2}
-x["bar"]
+assert x["bar"] == 2

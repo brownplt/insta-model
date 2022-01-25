@@ -1,8 +1,7 @@
-# CheckedDict_update_key_pos.py
-# This should pass.
-# This should terminate.
+# CheckedDict_lookup_checks_statically.py
+# This should fail.
 
 from __static__ import PyDict, CheckedDict
 
 x: CheckedDict[str, int] = CheckedDict[str, int]({"foo": 1})
-x["bar"] = 3
+del x[2]

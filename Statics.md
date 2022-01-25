@@ -92,7 +92,7 @@ Looking up `PyDict` entries is allowed statically.
 - [PyDict_lookup_good_key.py](conformance_suite/PyDict_lookup_good_key.py)
 - [PyDict_lookup_bad_key.py](conformance_suite/PyDict_lookup_bad_key.py)
 
-## CheckedDict[T0, T1]
+## CheckedDict[T1, T2]
 
 `CheckedDict` must be constructed from `dict`.
 
@@ -100,37 +100,34 @@ Looking up `PyDict` entries is allowed statically.
 - [CheckedDict_from_bad_dict.py](conformance_suite/CheckedDict_from_bad_dict.py)
 - [CheckedDict_from_good_dict.py](conformance_suite/CheckedDict_from_good_dict.py)
 
-Looking up `CheckedDict[T0, T1]` expects a `T0` key.
+Looking up `CheckedDict[T1, T2]` expects a `T1` key.
 
-- [CheckedDict_lookup_key_neg.py](conformance_suite/CheckedDict_lookup_key_neg.py)
-- [CheckedDict_lookup_key_pos.py](conformance_suite/CheckedDict_lookup_key_pos.py)
+- [CheckedDict_lookup_good_key.py](conformance_suite/CheckedDict_lookup_good_key.py)
+- [CheckedDict_lookup_bad_key.py](conformance_suite/CheckedDict_lookup_bad_key.py)
+- [CheckedDict_lookup_dom.py](conformance_suite/CheckedDict_lookup_dom.py)
 
-Looking up `CheckedDict[T0, T1]` returns a `T1` value.
+Looking up `CheckedDict[T1, T2]` returns a `T2` value.
 
-- [CheckedDict_lookup_val_neg.py](conformance_suite/CheckedDict_lookup_val_neg.py)
-- [CheckedDict_lookup_val_pos.py](conformance_suite/CheckedDict_lookup_val_pos.py)
+- [CheckedDict_lookup_cod.py](conformance_suite/CheckedDict_lookup_cod.py)
 
-Updating a `CheckedDict[T0, T1]` checks the key.
+Updating a `CheckedDict[T1, T2]` expects a `T1` key and a `T2` value.
 
-- [CheckedDict_update_key_neg.py](conformance_suite/CheckedDict_update_key_neg.py)
-- [CheckedDict_update_key_pos.py](conformance_suite/CheckedDict_update_key_pos.py)
+- [CheckedDict_update.py](conformance_suite/CheckedDict_update.py)
+- [CheckedDict_update_dom_key.py](conformance_suite/CheckedDict_update_dom_key.py)
+- [CheckedDict_update_dom_val.py](conformance_suite/CheckedDict_update_dom_val.py)
 
-Updating a `CheckedDict[T0, T1]` checks the value.
+Deleting `CheckedDict[T1, T2]` expects a `T1` key.
 
-- [CheckedDict_update_val_neg.py](conformance_suite/CheckedDict_update_val_neg.py)
-- [CheckedDict_update_val_pos.py](conformance_suite/CheckedDict_update_val_pos.py)
-
-Deleting `CheckedDict[T0, T1]` entries checks the key.
-
-- [CheckedDict_delete_neg.py](conformance_suite/CheckedDict_delete_neg.py)
-- [CheckedDict_delete_pos.py](conformance_suite/CheckedDict_delete_pos.py)
+- [CheckedDict_delete_good_key.py](conformance_suite/CheckedDict_delete_good_key.py)
+- [CheckedDict_delete_bad_key.py](conformance_suite/CheckedDict_delete_bad_key.py)
+- [CheckedDict_delete_dom.py](conformance_suite/CheckedDict_delete_dom.py)
 
 The key type of CheckedDicts can be `Optional[T]`.
 
 - [CheckedDict_key_can_be_Optional.py](conformance_suite/CheckedDict_key_can_be_Optional.py)
 - [CheckedDict_val_can_be_Optional.py](conformance_suite/CheckedDict_val_can_be_Optional.py)
 
-`CheckedDict`-typed variables can be initialized with `dict` literals, in which case the keys and values will be checked.
+`CheckedDict`-typed variables can be initialized with `dict` literals, in which case the keys and values will be checked statically.
 
 - [CheckedDict_from_dict_literal_pos.py](conformance_suite/CheckedDict_from_dict_literal_pos.py)
 - [CheckedDict_from_dict_literal_neg.py](conformance_suite/CheckedDict_from_dict_literal_neg.py)
