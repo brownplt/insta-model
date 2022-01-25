@@ -81,12 +81,9 @@
       (is ee e-)
       (is v ee)
       (if-exp ee e- e-)
-      (attribute mode ee x)
-      (invoke-function l (v ... ee e- ...))
-      (invoke-method l x ee (e- ...))
-      (invoke-method l x v (v ... ee e- ...))
-      (call-function ee (e- ...))
-      (call-function v (v ... ee e- ...))
+      (attribute ee x)
+      (call ee (e- ...))
+      (call v (v ... ee e- ...))
       (class x (v ... ee e- ...) ([x s-] ...) ([x s-] ...))
       (leave l se)
       (new l (v ... ee e- ...))
@@ -100,12 +97,9 @@
       (is es e-)
       (is v es)
       (if-exp es e- e-)
-      (attribute mode es x)
-      (invoke-function l (v ... es e- ...))
-      (invoke-method l x es (e- ...))
-      (invoke-method l x v (v ... es e- ...))
-      (call-function es (e- ...))
-      (call-function v (v ... es e- ...))
+      (attribute es x)
+      (call es (e- ...))
+      (call v (v ... es e- ...))
       (class x (v ... es e- ...) ([x s-] ...) ([x s-] ...))
       (leave l ss)
       (new l (v ... es e- ...))
@@ -115,10 +109,10 @@
       (return ee)
       (begin se s- ...)
       (if ee s- s-)
-      (delete (attribute mode ee x))
+      (delete (attribute ee x))
       (assign x ee)
-      (assign (attribute mode ee x) e-)
-      (assign (attribute mode v x) ee)
+      (assign (attribute ee x) e-)
+      (assign (attribute v x) ee)
       (try se e- x s- s-)
       (finally se s-)
       (raise ee)
@@ -129,10 +123,10 @@
       (return es)
       (begin ss s- ...)
       (if es s- s-)
-      (delete (attribute mode es x))
+      (delete (attribute es x))
       (assign x es)
-      (assign (attribute mode es x) e-)
-      (assign (attribute mode v x) es)
+      (assign (attribute es x) e-)
+      (assign (attribute v x) es)
       (try ss e- x s- s-)
       (finally ss s-)
       (raise es)
@@ -141,10 +135,10 @@
   (sx (expr hole)
       (return hole)
       (if hole s- s-)
-      (delete (attribute mode hole x))
+      (delete (attribute hole x))
       (assign x hole)
-      (assign (attribute mode hole x) e-)
-      (assign (attribute mode v x) hole)
+      (assign (attribute hole x) e-)
+      (assign (attribute v x) hole)
       (raise hole))
   ;; in expression bubble up exception
   (ex (tuple (v ... hole e- ...))
@@ -155,12 +149,9 @@
       (is hole e-)
       (is v hole)
       (if-exp hole e- e-)
-      (attribute mode hole x)
-      (invoke-function l (v ... hole e- ...))
-      (invoke-method l x hole (e- ...))
-      (invoke-method l x v (v ... hole e- ...))
-      (call-function hole (e- ...))
-      (call-function v (v ... hole e- ...))
+      (attribute hole x)
+      (call hole (e- ...))
+      (call v (v ... hole e- ...))
       (class x (v ... hole e- ...) ([x s-] ...) ([x s-] ...))
       (new l (v ... hole e- ...)))
   ;; builtin-op-l, a subset of l
@@ -279,14 +270,14 @@
         (lambda -1 ("x")
           (begin)
           (local ("x")
-            (return (call-function (attribute safe "x" "__len__") ()))))
+            (return (call (attribute "x" "__len__") ()))))
         ())]
   [(lookup-Σ-primitive "max")
    (obj "function"
         (lambda -1 ("x" "y")
           (begin)
           (local ("x" "y")
-            (if (call-function (attribute safe "y" "__lt__") ("x"))
+            (if (call (attribute "y" "__lt__") ("x"))
                 (return "x")
                 (return "y"))))
         ())]
@@ -295,7 +286,7 @@
         (lambda -1 ("x" "y")
           (begin)
           (local ("x" "y")
-            (if (call-function (attribute safe "y" "__lt__") ("x"))
+            (if (call (attribute "y" "__lt__") ("x"))
                 (return "y")
                 (return "x"))))
         ())]
@@ -336,8 +327,8 @@
           (begin)
           (local ("self" "seq")
             (begin
-              (assign (attribute fast "self" "seq") "seq")
-              (assign (attribute fast "self" "index") (con 0))
+              (assign (attribute "self" "seq") "seq")
+              (assign (attribute "self" "index") (con 0))
               (return (con None)))))
         ())]
   [(lookup-Σ-primitive (method "list_iterator" "__next__"))
@@ -346,13 +337,13 @@
           (begin)
           (local ("self" "index" "seq" "elm")
             (begin
-              (assign "index" (attribute fast "self" "index"))
-              (assign "seq" (attribute fast "self" "seq"))
-              (if (is "index" (call-function (attribute fast "seq" "__len__") ()))
+              (assign "index" (attribute "self" "index"))
+              (assign "seq" (attribute "self" "seq"))
+              (if (is "index" (call (attribute "seq" "__len__") ()))
                   (raise (new "StopIteration" ()))
                   (begin
-                    (assign "elm" (call-function (attribute fast "seq" "__getitem__") ("index")))
-                    (assign (attribute fast "self" "index")
+                    (assign "elm" (call (attribute "seq" "__getitem__") ("index")))
+                    (assign (attribute "self" "index")
                             (invoke-function (method "int" "__add__") ("index" (con 1))))
                     (return "elm"))))))
         ())]
@@ -380,17 +371,17 @@
           (local ("dict" "update" "items" "item" "-tmp-")
             (begin
               (assign "items"
-                      (call-function
-                        (attribute safe (call-function (attribute safe "update" "items") ())
+                      (call
+                        (attribute (call (attribute "update" "items") ())
                                         "__iter__")
                         ()))
               (while (con #t)
                 (try
                   (begin
-                    (assign "item" (call-function (attribute safe "items" "__next__") ()))
-                    (expr (call-function (attribute safe "dict" "__setitem__")
-                            ((call-function (attribute safe "item" "__getitem__") ((con 0)))
-                             (call-function (attribute safe "item" "__getitem__") ((con 1)))))))
+                    (assign "item" (call (attribute "items" "__next__") ()))
+                    (expr (call (attribute "dict" "__setitem__")
+                            ((call (attribute "item" "__getitem__") ((con 0)))
+                             (call (attribute "item" "__getitem__") ((con 1)))))))
                   (ref "StopIteration")
                   "-tmp-"
                   break
@@ -454,11 +445,11 @@
         ())]
   [(lookup-Σ-primitive class-l)
    (obj "type"
-        (class ((ref l_sup) ...)
+        (class ((ref l_sup))
           ([x_cmem (compile-check x_cmem T_cmem)] ...)
           ([x_imem (compile-check x_imem T_imem)] ...))
         ([x_cmem l_cmem] ...))
-   (where (class (l_sup ...)
+   (where (class l_sup
             ([x_cmem T_cmem] ...)
             ([x_cmem l_cmem] ...)
             ([x_imem T_imem] ...))
@@ -542,7 +533,7 @@
    (where number_1 (number-of-c c_1))
    (where number_2 (number-of-c c_2))]
   [(delta-int-add Σ (con c) l)
-   [Σ (call-function (attribute safe (ref l) "__add__") ((ref (con c))))]])
+   [Σ (call (attribute (ref l) "__add__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
   delta-int-sub : Σ l ... -> [Σ e-]
   [(delta-int-sub Σ (con c_1) (con c_2))
@@ -550,7 +541,7 @@
    (where number_1 (number-of-c c_1))
    (where number_2 (number-of-c c_2))]
   [(delta-int-sub Σ (con c) l)
-   [Σ (call-function (attribute safe (ref l) "__sub__") ((ref (con c))))]])
+   [Σ (call (attribute (ref l) "__sub__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
   delta-int-mul : Σ l ... -> [Σ e-]
   [(delta-int-mul Σ (con c_1) (con c_2))
@@ -558,7 +549,7 @@
    (where number_1 (number-of-c c_1))
    (where number_2 (number-of-c c_2))]
   [(delta-int-mul Σ (con c) l)
-   [Σ (call-function (attribute safe (ref l) "__mul__") ((ref (con c))))]])
+   [Σ (call (attribute (ref l) "__mul__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
   delta-int-div : Σ l ... -> [Σ e-]
   [(delta-int-div Σ (con c_1) (con c_2))
@@ -570,7 +561,7 @@
    (where number_1 (number-of-c c_1))
    (where number_2 (number-of-c c_2))]
   [(delta-int-div Σ (con c) l)
-   [Σ (call-function (attribute safe (ref l) "__div__") ((ref (con c))))]])
+   [Σ (call (attribute (ref l) "__div__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
   delta-int-le : Σ l ... -> [Σ e-]
   [(delta-int-le Σ (con c_1) (con c_2))
@@ -578,7 +569,7 @@
    (where number_1 (number-of-c c_1))
    (where number_2 (number-of-c c_2))]
   [(delta-int-le Σ (con c) l)
-   [Σ (call-function (attribute safe (ref l) "__le__") ((ref (con c))))]])
+   [Σ (call (attribute (ref l) "__le__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
   delta-int-lt : Σ l ... -> [Σ e-]
   [(delta-int-lt Σ (con c_1) (con c_2))
@@ -586,7 +577,7 @@
    (where number_1 (number-of-c c_1))
    (where number_2 (number-of-c c_2))]
   [(delta-int-lt Σ (con c) l)
-   [Σ (call-function (attribute safe (ref l) "__lt__") ((ref (con c))))]])
+   [Σ (call (attribute (ref l) "__lt__") ((ref (con c))))]])
 (define-metafunction SP-dynamics
   delta-int-init : Σ l ... -> [Σ e-]
   [(delta-int-init Σ_0 l_obj (con number))
@@ -698,13 +689,13 @@
 (define-metafunction SP-dynamics
   delta-checkeddict-fromkeys : Σ T_key T_val l_arg ... -> [Σ e-]
   [(delta-checkeddict-fromkeys Σ T_key T_val l_arg ...)
-   [Σ (call-function e-_fun ((invoke-function (method "dict" "fromkeys") ((ref l_arg) ...))))]
+   [Σ (call e-_fun ((invoke-function (method "dict" "fromkeys") ((ref l_arg) ...))))]
    (where e-_fun (lambda ("dict")
                    (begin)
                    (local ("dict" "chkdict")
                      (begin
                        (assign "chkdict" (new (chkdict T_key T_val) ()))
-                       (expr (call-function (attribute fast "chkdict" "update") ("dict")))
+                       (expr (call (attribute "chkdict" "update") ("dict")))
                        (return "chkdict")))))])
 (define-metafunction SP-dynamics
   delta-str-init : Σ v ... -> [Σ e-]
@@ -846,7 +837,7 @@
   [(delta-dict-fromkeys Σ l_keys)
    (delta-dict-fromkeys Σ l_keys (con None))]
   [(delta-dict-fromkeys Σ l_keys l_val)
-   [Σ (call-function e-_fun ((ref l_keys) (ref l_val)))]
+   [Σ (call e-_fun ((ref l_keys) (ref l_val)))]
    (where e-_fun (as-dyn (compile-function
                            (base-Ψ) (base-Γ)
                            (["keys" dynamic] ["default" dynamic])
@@ -880,13 +871,13 @@
                               (dict ())
                               ())]))]
   [(delta-checkeddict-init Σ T_key T_val l_obj l_dct)
-   [Σ (call-function e-_fun ((ref l_obj) (ref l_dct)))]
+   [Σ (call e-_fun ((ref l_obj) (ref l_dct)))]
    (where e-_fun (lambda ("obj" "dct")
                    (begin)
                    (local ("obj" "dct")
                      (begin
-                       (expr (call-function (attribute fast "obj" "__init__") ()))
-                       (expr (call-function (attribute fast "obj" "update") ("dct")))
+                       (expr (call (attribute "obj" "__init__") ()))
+                       (expr (call (attribute "obj" "update") ("dct")))
                        (return (ref (con None)))))))]
   [(delta-checkeddict-init Σ T_key T_val l_obj l_dct)
    [Σ (raise (new "Exception" ((con "CheckedDict expects a valid dict"))))]])
@@ -894,7 +885,6 @@
   delta-checkeddict-delitem : Σ T_key T_val l_obj l_key -> [Σ e-]
   [(delta-checkeddict-delitem Σ_0 T_key T_val l_obj l_key)
    [Σ_1 (enter -1
-               ;; TODO: switch to for, because we can't know v_key and v_val at compile time
                (begin
                  (compile-check (ref l_key) T_key)
                  (return (ref l_obj))))]
@@ -990,7 +980,7 @@
   delta-list-eq : Σ v ... -> [Σ e-]
   [(delta-list-eq Σ (ref l_lft) (ref l_rht))
    [Σ (enter -1
-             (return (make-and (call-function (attribute safe v_lft "__eq__")  (v_rht)) ...)))]
+             (return (make-and (call (attribute v_lft "__eq__")  (v_rht)) ...)))]
    (where (obj l_lftcls (list (v_lft ...)) ρ_lft) (lookup-Σ Σ l_lft))
    (where (obj l_rhtcls (list (v_rht ...)) ρ_rht) (lookup-Σ Σ l_rht))
    (where #t ,(= (length (term (v_lft ...))) (length (term (v_rht ...)))))]
@@ -1090,7 +1080,7 @@
   delta-tuple-eq : Σ v ... -> [Σ e-]
   [(delta-tuple-eq Σ (ref l_lft) (ref l_rht))
    [Σ (enter -1
-             (return (make-and (call-function (attribute safe v_lft "__eq__")  (v_rht)) ...)))]
+             (return (make-and (call (attribute v_lft "__eq__")  (v_rht)) ...)))]
    (where (obj l_lftcls (tuple (v_lft ...)) ρ_lft) (lookup-Σ Σ l_lft))
    (where (obj l_rhtcls (tuple (v_rht ...)) ρ_rht) (lookup-Σ Σ l_rht))
    (where #t ,(= (length (term (v_lft ...))) (length (term (v_rht ...)))))]
@@ -1139,30 +1129,30 @@
    [Σ (raise (new "Exception" ((con "issubclass: arity error"))))]])
 
 (define-metafunction SP-dynamics
-  do-call-function : Σ l h (v ...) -> [Σ l e-]
+  do-call : Σ l h (v ...) -> [Σ l e-]
   ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`
-  [(do-call-function Σ l (obj "method" g ρ) (v ...))
-   (do-call-function-good-rator Σ l (obj "method" g ρ) (v ...))]
-  [(do-call-function Σ l (obj "function" g ρ) (v ...))
-   (do-call-function-good-rator Σ l (obj "function" g ρ) (v ...))]
-  [(do-call-function Σ l h (v ...))
-   [Σ l (raise (new "Exception" ((con ,(format "CALL_FUNCTION: not a callable ~a" (term h))))))]])
+  [(do-call Σ l (obj "method" g ρ) (v ...))
+   (do-call-good-rator Σ l (obj "method" g ρ) (v ...))]
+  [(do-call Σ l (obj "function" g ρ) (v ...))
+   (do-call-good-rator Σ l (obj "function" g ρ) (v ...))]
+  [(do-call Σ l h (v ...))
+   [Σ l (raise (new "Exception" ((con ,(format " ~a is not a callable" (term h))))))]])
 (define-metafunction SP-dynamics
-  do-call-function-good-rator : Σ l h (v ...) -> [Σ l e-]
+  do-call-good-rator : Σ l h (v ...) -> [Σ l e-]
   ;; This function assumes nothing about the operator `h` and the arguments `(v ...)`
-  [(do-call-function-good-rator Σ l (obj "method" (method l_fun l_obj) ρ) (v ...))
-   [Σ l (call-function (ref l_fun) ((ref l_obj) v ...))]]
-  [(do-call-function-good-rator Σ l (obj "function" g ρ) (v ...))
-   (do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))])
+  [(do-call-good-rator Σ l (obj "method" (method l_fun l_obj) ρ) (v ...))
+   [Σ l (call (ref l_fun) ((ref l_obj) v ...))]]
+  [(do-call-good-rator Σ l (obj "function" g ρ) (v ...))
+   (do-call-check-arity Σ l (obj "function" g ρ) (v ...))])
 (define-metafunction SP-dynamics
-  do-call-function-check-arity : Σ l (obj "function" g ρ) (v ...) -> [Σ l e-]
-  [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
-   (do-invoke-function-safe Σ l (obj "function" g ρ) (v ...))
+  do-call-check-arity : Σ l (obj "function" g ρ) (v ...) -> [Σ l e-]
+  [(do-call-check-arity Σ l (obj "function" g ρ) (v ...))
+   (do-call-safe Σ l (obj "function" g ρ) (v ...))
    (where * (arity g))]
-  [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
-   (do-invoke-function-safe Σ l (obj "function" g ρ) (v ...))
+  [(do-call-check-arity Σ l (obj "function" g ρ) (v ...))
+   (do-call-safe Σ l (obj "function" g ρ) (v ...))
    (where #t ,(= (term (arity g)) (length (term (v ...)))))]
-  [(do-call-function-check-arity Σ l (obj "function" g ρ) (v ...))
+  [(do-call-check-arity Σ l (obj "function" g ρ) (v ...))
    [Σ l (enter -1
                (raise (new "Exception" ((con ,(format "arity-mismatch ~a: ~a vs ~a; ~a"
                                                       (term g)
@@ -1185,47 +1175,20 @@
    (where (-> (T_arg ...) T_out) (lookup-member-T (base-Ψ) l_cls x_mth))]
   [(arity-prim-op (method l_cls x_mth))
    *
-   (where dynamic (lookup-member-T (base-Ψ) l_cls x_mth))]
-  #|
-  [(arity-prim-op (method "object" "__init__")) 1]
-  [(arity-prim-op (method "Exception" "__init__")) *]
-  [(arity-prim-op (method "int" "__add__")) 2]
-  [(arity-prim-op (method "int" "__sub__")) 2]
-  [(arity-prim-op (method "int" "__mul__")) 2]
-  [(arity-prim-op (method "int" "__div__")) 2]
-  [(arity-prim-op (method "int" "__eq__")) 2]
-  [(arity-prim-op (method "dict" "__init__")) 2]
-  [(arity-prim-op (method "dict" "__getitem__")) 2]
-  [(arity-prim-op (method "dict" "__setitem__")) 3]
-  [(arity-prim-op (method "dict" "__delitem__")) 2]
-  [(arity-prim-op (method "dict" "get")) *]
-  [(arity-prim-op (method (chkdict T_key T_val) "__init__")) *]
-  [(arity-prim-op (method (chkdict T_key T_val) "__getitem__")) 2]
-  [(arity-prim-op (method (chkdict T_key T_val) "__setitem__")) 3]
-  [(arity-prim-op (method (chkdict T_key T_val) "__delitem__")) 2]
-  [(arity-prim-op (method (chkdict T_key T_val) "__eq__")) 1]
-  [(arity-prim-op (method (chkdict T_key T_val) "get")) *]
-  |#)
+   (where dynamic (lookup-member-T (base-Ψ) l_cls x_mth))])
+
 
 (define-metafunction SP-dynamics
-  do-invoke-method : Σ l l x v (v ...) -> [Σ l e-]
-  ;; This function assumes that `v` is an instance of (a subclass of) `l`,
-  ;;   and arguments `(v ...)` are well-typed.
-  ;; invoke the method `x` declared in class `l`.
-  [(do-invoke-method Σ l_env l_cls x v_obj (v_arg ...))
-   [Σ l_env (call-function (attribute fast v_obj x) (v_arg ...))]])
-
-(define-metafunction SP-dynamics
-  do-invoke-function-safe : Σ l h (v ...) -> [Σ l e-]
+  do-call-safe : Σ l h (v ...) -> [Σ l e-]
   ;; invoke the function `h` under the environment `l`.
   ;; This function assumes that `h` is an instance of `function`
   ;;   and arguments `(v ...)` are well-typed.
   ;; primitive function
-  [(do-invoke-function-safe Σ l_env (obj "function" (prim-op l) ()) (v ...))
+  [(do-call-safe Σ l_env (obj "function" (prim-op l) ()) (v ...))
    [Σ_1 l_env e-]
    (where [Σ_1 e-] (delta Σ l (v ...)))]
   ;; derived function
-  [(do-invoke-function-safe Σ l_env
+  [(do-call-safe Σ l_env
                        (obj "function"
                             (lambda l_cls (x_arg ...)
                               s-_chk
@@ -1234,30 +1197,7 @@
                        (v_arg ...))
    (do-invoke-function-function-safe Σ l_env l_cls (x_arg ...) s-_chk (x_var ...) s-_bdy ρ (v_arg ...))]
   ;; the type function
-  [(do-invoke-function-safe Σ l_env h ((ref l_arg)))
-   [Σ l_env (ref l_cls)]
-   (where h (lookup-Σ Σ "type"))
-   (where (obj l_cls g ρ) (lookup-Σ Σ l_arg))])
-(define-metafunction SP-dynamics
-  do-invoke-function-fast : Σ l h (v ...) -> [Σ l e-]
-  ;; invoke the function `h` under the environment `l`.
-  ;; This function assumes that `h` is an instance of `function`
-  ;;   and arguments `(v ...)` are well-typed.
-  ;; primitive function
-  [(do-invoke-function-fast Σ l_env (obj "function" (prim-op l) ()) (v ...))
-   [Σ_1 l_env e-]
-   (where [Σ_1 e-] (delta Σ l (v ...)))]
-  ;; derived function
-  [(do-invoke-function-fast Σ l_env
-                       (obj "function"
-                            (lambda l_cls (x_arg ...)
-                              s-_chk
-                              (local (x_var ...) s-_bdy))
-                            ρ)
-                       (v_arg ...))
-   (do-invoke-function-function-fast Σ l_env l_cls (x_arg ...) s-_chk (x_var ...) s-_bdy ρ (v_arg ...))]
-  ;; the type function
-  [(do-invoke-function-fast Σ l_env h ((ref l_arg)))
+  [(do-call-safe Σ l_env h ((ref l_arg)))
    [Σ l_env (ref l_cls)]
    (where h (lookup-Σ Σ "type"))
    (where (obj l_cls g ρ) (lookup-Σ Σ l_arg))])
@@ -1275,25 +1215,12 @@
    (where #t ,(= (length (term (x_arg ...)))
                  (length (term (v_arg ...)))))
    (where (Σ_1 l_bdy) (alloc Σ_0 (env ([x_var ☠] ...) l_cls)))])
-(define-metafunction SP-dynamics
-  do-invoke-function-function-fast : Σ l l (x ...) s- (x ...) s- ρ (v ...) -> [Σ l e-]
-  [(do-invoke-function-function-fast Σ_0 l_env l_cls (x_arg ...) s-_chk (x_var ...) s-_bdy ρ (v_arg ...))
-   [Σ_1
-    l_bdy
-    (leave l_env
-           (begin
-             (assign x_arg v_arg)
-             ...
-             s-_bdy))]
-   (where #t ,(= (length (term (x_arg ...)))
-                 (length (term (v_arg ...)))))
-   (where (Σ_1 l_bdy) (alloc Σ_0 (env ([x_var ☠] ...) l_cls)))])
 
 (define-metafunction SP-dynamics
-  do-attribute : Σ mode l x -> [Σ e-]
+  do-attribute : Σ l x -> [Σ e-]
   ;; When the attribute is defined by the object
   ;;   return the corresponding attribute
-  [(do-attribute Σ mode l_obj x)
+  [(do-attribute Σ l_obj x)
    [Σ (ref l_att)]
    (where #f ,(redex-match? SP-dynamics dunder-member (term x)))
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
@@ -1301,27 +1228,27 @@
   ;; When the attribute is defined by the class
   ;;   find the corresponding attribute
   ;;   and wrap it as necessary
-  [(do-attribute Σ mode l_obj x)
+  [(do-attribute Σ l_obj x)
    (wrap-attribute Σ l_att l_obj)
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
-   (where l_att (lookup-class-attribute Σ mode l_cls x))]
-  [(do-attribute Σ mode l_obj x)
+   (where l_att (lookup-class-attribute Σ safe l_cls x))]
+  [(do-attribute Σ l_obj x)
    [Σ (raise (new "AttributeError" ((con ,(format "undefined attribute ~a.~a" (term l_cls) (term x))))))]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
-   (where ☠ (lookup-class-attribute Σ mode l_cls x))])
+   (where ☠ (lookup-class-attribute Σ safe l_cls x))])
 (define-metafunction SP-dynamics
-  lookup-class-attribute : Σ mode l x -> l+☠
-  [(lookup-class-attribute Σ mode "type" "__eq__")
+  lookup-class-attribute : Σ safe l x -> l+☠
+  [(lookup-class-attribute Σ safe "type" "__eq__")
    (method "object" "__eq__")]
-  [(lookup-class-attribute Σ mode l_cls x)
+  [(lookup-class-attribute Σ safe l_cls x)
    l_att
    (where (obj "type" g ρ) (lookup-Σ Σ l_cls))
    (where (yes l_att) (lookup? ρ x))]
-  [(lookup-class-attribute Σ mode l_cls x)
-   (lookup-class-attribute Σ mode l_prn x)
+  [(lookup-class-attribute Σ safe l_cls x)
+   (lookup-class-attribute Σ safe l_prn x)
    (where (obj "type" (class ((ref l_prn)) ([x_cmem s-_cmem] ...) ([x_imem s-_imem] ...)) ρ)
           (lookup-Σ Σ l_cls))]
-  [(lookup-class-attribute Σ mode l_cls x)
+  [(lookup-class-attribute Σ safe l_cls x)
    ☠])
 (define-metafunction SP-dynamics
   wrap-attribute : Σ l_att l_obj -> [Σ v]
@@ -1378,7 +1305,7 @@
 
 
 (define-metafunction SP-dynamics
-  do-assign-attribute : Σ mode l x v -> [Σ s-]
+  do-assign-attribute : Σ safe l x v -> [Σ s-]
   [(do-assign-attribute Σ fast l_obj x_mem (ref l_new))
    (do-assign-attribute-fast Σ l_obj x_mem (ref l_new))]
   [(do-assign-attribute Σ safe l_obj x_mem (ref l_new))
@@ -1397,7 +1324,7 @@
 (define-metafunction SP-dynamics
   do-assign-attribute-safe : Σ l x v -> [Σ s-]
   [(do-assign-attribute-safe Σ l_obj x_mem v_mem)
-   [Σ (begin s-_chk (assign (attribute fast (ref l_obj) x_mem) v_mem))]
+   [Σ (begin s-_chk (assign (attribute (ref l_obj) x_mem) v_mem))]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
    (where s-_chk (lookup-s-chk Σ l_cls x_mem v_mem))])
 (define-metafunction SP-dynamics
@@ -1414,7 +1341,7 @@
           (lookup-Σ Σ l))
    (where (yes _) (lookup? ([x_cmem s-_cmem] ...) x))]
   [(lookup-s-chk Σ l x v)
-   (expr (call-function
+   (expr (call
           (lambda (x) s-_chk (local (x) (return (con None))))
           (v)))
    (where (obj l_cls
@@ -1436,12 +1363,12 @@
    (where (no _) (lookup? ([x_cmem s-_cmem] ...) x))
    (where (no _) (lookup? ([x_imem s-_imem] ...) x))])
 (define-metafunction SP-dynamics
-  do-delete-attribute : Σ mode l x -> [Σ s-]
-  [(do-delete-attribute Σ mode l_obj x_mem)
+  do-delete-attribute : Σ safe l x -> [Σ s-]
+  [(do-delete-attribute Σ safe l_obj x_mem)
    [(update Σ [l_obj (obj l_cls g (any_1 ... any_2 ...))])
     (begin)]
    (where (obj l_cls g (any_1 ... [x_mem l_mem] any_2 ...)) (lookup-Σ Σ l_obj))]
-  [(do-delete-attribute Σ mode l_obj x_mem)
+  [(do-delete-attribute Σ safe l_obj x_mem)
    [Σ (raise (new "Exception" ((ref (con "delete")))))]])
 (define-metafunction SP-dynamics
   do-if : h s- s- -> s-
@@ -1479,7 +1406,7 @@
             (term [([0 (env () ☠)]
                     [1 (obj "MyClass" (nothing) (["abc" (con 2)]))])
                    0
-                   (delete (attribute fast (ref 1) "abc"))])
+                   (delete (attribute (ref 1) "abc"))])
             (term (terminate)))
   (test-->> red-p
             (term [([0 (env (["abc" (con 2)]) ☠)])
@@ -1490,7 +1417,7 @@
             (term [([0 (env () ☠)]
                     [1 (obj "MyClass" (nothing) (["abc" (con 2)]))])
                    0
-                   (assign (attribute fast (ref 1) "abc") (ref (con 3)))])
+                   (assign (attribute (ref 1) "abc") (ref (con 3)))])
             (term (terminate))))
 (define red-p
   (reduction-relation
@@ -1551,17 +1478,17 @@
         (in-hole [Σ_2 l ss] (begin))
         (where Σ_2 (update-env Σ_1 l x ☠))
         "delete"]
-   [--> (in-hole [Σ_1 l ss] (delete (attribute mode (ref l_obj) x)))
+   [--> (in-hole [Σ_1 l ss] (delete (attribute (ref l_obj) x)))
         (in-hole [Σ_2 l ss] s-)
-        (where [Σ_2 s-] (do-delete-attribute Σ_1 mode l_obj x))
+        (where [Σ_2 s-] (do-delete-attribute Σ_1 safe l_obj x))
         "delete attribute"]
    [--> (in-hole [Σ_1 l ss] (assign x_var (ref l_var)))
         (in-hole [Σ_2 l ss] (begin))
         (where Σ_2 (update-env Σ_1 l x_var l_var))
         "assign"]
-   [--> (in-hole [Σ_1 l ss] (assign (attribute mode (ref l_obj) x_mem) v_new))
+   [--> (in-hole [Σ_1 l ss] (assign (attribute (ref l_obj) x_mem) v_new))
         (in-hole [Σ_2 l ss] s-)
-        (where [Σ_2 s-] (do-assign-attribute Σ_1 mode l_obj x_mem v_new))
+        (where [Σ_2 s-] (do-assign-attribute Σ_1 safe l_obj x_mem v_new))
         "assign attribute"]
    [--> (in-hole [Σ_1 l_env ss] (import-from x_mod x_var))
         (in-hole [Σ_2 l_env ss] (begin))
@@ -1574,7 +1501,7 @@
         (in-hole [Σ l_env ss] s-_els)
         "try-else"]
    [--> (in-hole [Σ l_env ss] (try (raise v) e-_exn x_exn s-_exn s-_els))
-        (in-hole [Σ l_env ss] (if (call-function (ref "isinstance") (v e-_exn))
+        (in-hole [Σ l_env ss] (if (call (ref "isinstance") (v e-_exn))
                                   (begin
                                     (assign x_exn v)
                                     s-_exn)
@@ -1617,9 +1544,9 @@
    [--> (in-hole [Σ l_env se] (if-exp (ref l) e-_thn e-_els))
         (in-hole [Σ l_env se] (do-if-exp (lookup-Σ Σ l) e-_thn e-_els))
         "if-exp"]
-   [--> (in-hole [Σ_0 l_env se] (attribute mode (ref l) x))
+   [--> (in-hole [Σ_0 l_env se] (attribute (ref l) x))
         (in-hole [Σ_1 l_env se] e-)
-        (where [Σ_1 e-] (do-attribute Σ_0 mode l x))
+        (where [Σ_1 e-] (do-attribute Σ_0 l x))
         "attribute"]
    [--> (in-hole [Σ_1 l_env se] (lambda (x ...) s- level-))
         (in-hole [Σ_2 l_env se] (ref l_fun))
@@ -1636,18 +1563,10 @@
                                              ([x_imem s-_imem] ...))
                                            ([x_cmem ☠] ...))]))
         "class"]
-   [--> (in-hole [Σ_0 l_env0 se] (invoke-function l (v ...)))
+   [--> (in-hole [Σ_0 l_env0 se] (call (ref l_fun) (v_arg ...)))
         (in-hole [Σ_1 l_env1 se] e-)
-        (where [Σ_1 l_env1 e-] (do-invoke-function-fast Σ_0 l_env0 (lookup-Σ Σ_0 l) (v ...)))
-        "invoke-function"]
-   [--> (in-hole [Σ_0 l_env0 se] (invoke-method l x v_obj (v_arg ...)))
-        (in-hole [Σ_1 l_env1 se] e-)
-        (where [Σ_1 l_env1 e-] (do-invoke-method Σ_0 l_env0 l x v_obj (v_arg ...)))
-        "invoke-method"]
-   [--> (in-hole [Σ_0 l_env0 se] (call-function (ref l_fun) (v_arg ...)))
-        (in-hole [Σ_1 l_env1 se] e-)
-        (where [Σ_1 l_env1 e-] (do-call-function Σ_0 l_env0 (lookup-Σ Σ_0 l_fun) (v_arg ...)))
-        "call-function"]
+        (where [Σ_1 l_env1 e-] (do-call Σ_0 l_env0 (lookup-Σ Σ_0 l_fun) (v_arg ...)))
+        "call"]
    [--> (in-hole [Σ_0 l_env se] (new l_cls (v_arg ...)))
         (in-hole [Σ_1 l_env se] e-)
         (where [Σ_1 e-] (do-new Σ_0 l_cls v_arg ...))
@@ -1657,7 +1576,7 @@
   [(do-new Σ_0 l_cls v_arg ...)
    [Σ_1 (enter -1
                (begin
-                 (expr (call-function (attribute fast (ref l_obj) "__init__")
+                 (expr (call (attribute (ref l_obj) "__init__")
                                       (v_arg ...)))
                  (return (ref l_obj))))]
    (where h (lookup-Σ Σ_0 l_cls))

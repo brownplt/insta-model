@@ -1,10 +1,13 @@
-everything: import_tests redex_tests check_model
+everything: import_tests statistics redex_tests check_model
 
 import_tests:
 	echo "Importing tests from Static Python's test suite."
 	rm -f ./skipped_tests/*
 	rm -f ./conformance_suite/test_*
 	python3.9 ./scripts/import_SP_tests.py
+
+statistics:
+	bash scripts/stat.sh
 
 redex_tests:
 	echo "Translating Python files to tests of the model."
