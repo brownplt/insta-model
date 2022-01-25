@@ -32,11 +32,13 @@
 \newcommand{\nnum}[1]{$N=#1$}
 \newcommand{\totalnum}[1]{$#1$ total}
 
+%% TODO 2022-01-25 recount tests
 \newcommand{\numbenchmark}{2}
-\newcommand{\numSPtest}{214}
-\newcommand{\numSPtotal}{802} %% SP commit 6d61575 from Jan 9
-\newcommand{\numSPdiff}{588} %% (\numSPtotal - \numSPtest)
+\newcommand{\numSPtest}{265}
+\newcommand{\numSPtotal}{779} %% SP commit 6d61575 from Jan 9
+\newcommand{\numSPdiff}{514} %% (\numSPtotal - \numSPtest)
 \newcommand{\CPUchange}{3.7\%}
+% 588 514
 
 \newcommand{\spapp}[2]{#1\,(#2)}
 \newcommand{\spann}[2]{#1\!:\!#2}
@@ -564,7 +566,7 @@ of values inside the dictionary at runtime.
 
 TODO reword.
 At first glance, this behavior might seem odd: why not reject undefined types with an error?
-The reason is to reduce friction with existing \pep{} annotations.
+The reason is to reduce friction with existing \PEP{} annotations.
 Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
 efficiently, e.g., the type $\sptset{\sptint}$ for sets of integers.
 By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
@@ -1042,7 +1044,7 @@ syntax of the model and confirmed that the results
 do match,\footnote{For most of the \numSPtest{} tests, the translation is automatic.
   A few tests required hand-pruning to remove features that the model
   does not handle (\totalnum{52}).
-  \SP{} has \numSPdiff{} other tests (\numSPtotal{} total) that we did not use
+  \SP{} has \numSPdiff{} other tests (\totalnum{\numSPtotal{}}) that we did not use
   because they fall outside the scope of the model.
   \Cref{s:impl} summarizes the out-of-scope features;
   \cref{a:banned-test} gives a detailed categorization.
@@ -2469,9 +2471,107 @@ We use \numSPtest{} of these tests for the model.
 The remaining \numSPdiff{} tests are skipped for the following reasons:
 
 \begin{itemize}
-  \item FILL need categories, expect about 40 of these.
+  \item 269 test primitive types.
+  \item 62 test optional and keyword functions.
+  \item 26 test the classloader.
+  \item 24 test coroutines (\code{async}).
+  \item 23 test list and dictionary comprehensions.
+  \item 15 use format strings.
+  \item 12 test class and object slots.
+  \item The others (\nnum{83}) test a wide range of other topics
+    including byte strings, memory management, specific decorators
+    (\code{@staticmethod}), and optimizations.
+
+%% actual list
+%  \item 269 use C_types
+%  \item 62 use fancy_args
+%  \item 26 use xxclassloader
+%  \item 24 use async_methods
+%  \item 23 use comprehension_syntax
+%  \item 15 use format_strings
+%  \item 12 use __slots__
+%
+%  \item 10 use advanced_occurrance_typing
+%  \item 8 use @staticmethod
+%  \item 7 use prod_assert
+%  \item 7 use python_scope
+%  \item 6 use __call__
+%  \item 6 use reveal_type
+%  \item 4 use @_donotcompile
+%  \item 4 use memory_management
+%  \item 3 use ...
+%  \item 3 use __setattr__
+%  \item 3 use immutable_variables
+%  \item 3 use shadow_frame
+%  \item 2 use TypeVar
+%  \item 2 use decorator
+%  \item 2 use float
+%  \item 2 use nested_class
+%  \item 2 use nonexpressible_tests
+%  \item 2 use optimize=1
+%  \item 2 use sys.modules
+%  \item 1 use @property
+%  \item 1 use NamedTuple
+%  \item 1 use Protocol
+%  \item 1 use bad_tests
+%  \item 1 use byte_strings
+%  \item 1 use code_flag
+%  \item 1 use fancy_function_type
+%  \item 1 use final_classes
+%  \item 1 use slicing_syntax
+%  \item 1 use sorted
+%  \item 1 use try_except_redeclare
+%  \item 1 use with_traceback
 \end{itemize}
 
+%%\begin{table}
+%%  %% 2022-01-25: seems to raise more questions than it answers ... next question is what each filter really means.
+%%  \caption{List of filter names and a count of skipped test that failed each filter}
+%%  \label{t:left-out}
+%%
+%%  \begin{tabular}{lr}
+%%    Filter & Tests Caught \\\hline
+%%    C\_types & 269 \\
+%%    fancy\_args & 77 \\
+%%    format\_strings & 60 \\
+%%    xxclassloader & 37 \\
+%%    async\_methods & 25 \\
+%%    comprehension\_syntax & 23 \\
+%%    \_\_slots\_\_ & 15 \\
+%%    immutable\_variables & 14 \\
+%%    python\_scope & 14 \\
+%%    float & 11 \\
+%%    advanced\_occurrance\_typing & 10 \\
+%%    @staticmethod & 8 \\
+%%    reveal\_type & 8 \\
+%%    \_\_call\_\_ & 7 \\
+%%    prod\_assert & 7 \\
+%%    ... & 5 \\
+%%    nested\_class & 5 \\
+%%    @\_donotcompile & 4 \\
+%%    decorator & 4 \\
+%%    memory\_management & 4 \\
+%%    sys.modules & 4 \\
+%%    TypeVar & 3 \\
+%%    \_\_setattr\_\_ & 3 \\
+%%    byte\_strings & 3 \\
+%%    shadow\_frame & 3 \\
+%%    sorted & 3 \\
+%%    nonexpressible\_tests & 2 \\
+%%    optimize=1 & 2 \\
+%%    weakref & 2 \\
+%%    @property & 1 \\
+%%    NamedTuple & 1 \\
+%%    Protocol & 1 \\
+%%    bad\_tests & 1 \\
+%%    code\_flag & 1 \\
+%%    fancy\_function\_type & 1 \\
+%%    final\_classes & 1 \\
+%%    slicing\_syntax & 1 \\
+%%    try\_except\_redeclare & 1 \\
+%%    with\_traceback & 1
+%%  \end{tabular}
+%%\end{table}
 
 \section{Fine-Grained Benchmark Data}
 \label{a:microbench-detail}

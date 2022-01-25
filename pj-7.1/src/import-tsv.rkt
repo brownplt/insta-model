@@ -1,5 +1,18 @@
 #lang racket/base
 
+;; Import .tsv data from this folder.
+;; (The data is originally from the SP team.)
+;;
+;; Usage:
+;;  racket import-tsv.rkt <file.tsv>
+;;
+;; Prints a TeX version of the file.
+
+;; ---
+
+(provide
+  tex-escape)
+
 (require
   racket/list
   racket/string)
