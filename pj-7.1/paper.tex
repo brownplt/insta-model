@@ -27,15 +27,16 @@
 \newcommand{\defeq}{=}
 \newcommand{\mfeq}{=}
 \newcommand{\langmid}{~\mid~} %% {\mathrel{\mathbf{\Big\vert}}}
-\newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
+\newenvironment{langarray}{\(\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
 \newcommand{\nnum}[1]{$N=#1$}
 \newcommand{\totalnum}[1]{$#1$ total}
 
+%% TODO 2022-01-25 recount tests
 \newcommand{\numbenchmark}{2}
-\newcommand{\numSPtest}{214}
+\newcommand{\numSPtest}{265}
 \newcommand{\numSPtotal}{802} %% SP commit 6d61575 from Jan 9
-\newcommand{\numSPdiff}{588} %% (\numSPtotal - \numSPtest)
+\newcommand{\numSPdiff}{537} %% (\numSPtotal - \numSPtest)
 \newcommand{\CPUchange}{3.7\%}
 
 \newcommand{\spapp}[2]{#1\,(#2)}
@@ -249,7 +250,7 @@
   Our performance claims are based on production experience in the Instagram
   web server.
   Migrations to \SP{} in the server have caused a \CPUchange{} increase in
-  requests handled per second at max CPU utilization.
+  requests handled per second at maximum CPU load.
 
   \vglue10pt
 
@@ -275,7 +276,7 @@ Gradual typing has attracted significant interest as a solution to
 the debate between static and dynamic typing.
 The premise is simple: let programmers introduce types in part of a
 codebase and while leaving the rest untyped.
-Run-time casts and checks enforce the critical assumptions that typed code makes about
+Run-time casts and checks enforce the assumptions that typed code makes about
 untyped components, thereby ensuring that the types are sound no matter how
 untyped code behaves.
 
@@ -322,17 +323,18 @@ To a first approximation, there are three main stages:
     If programmers modify their code to build concrete structures instead of Python
     ones (a potentially nonlocal change), then \SP{} can perform deeper optimizations.
   \item
-    Additional progressive types that enable further optimizations.
-    In particular, \emph{primitive types\/} enable unboxed arithmetic.
+    A third set of progressive types enable further optimizations.
+    In particular, \emph{primitive types\/} allow for unboxed arithmetic,
+    which has been critical in practice.
 \end{enumerate}
 
 Over the past year, Instagram has been applying gradual soundness to its
 primary web server monolith.
-The results are very positive.
 Although only a handful of modules use \SP{} types (hundreds among thousands),
 and only a few critical modules rely on concrete types and primitive types (dozens),
 these migrations have resulted in a \CPUchange{} increase in production requests handled
-per second for servers at max CPU utilization.
+per second for servers running at maximum CPU load.
+These results are very positive:
 Type-directed optimizations outweigh the cost of enforcing soundness.
 Consequently, we believe the details of the \SP{} approach are of interest to
 the gradual typing community at large.
@@ -361,7 +363,7 @@ This paper makes two contributions:
     that core \SP{} is indeed sound.
     Perhaps more importantly, the \emph{process} of modeling revealed 20 significant
     issues in \SP{}.
-    Four of these were critical soundness bugs.
+    Four of these were soundness bugs.
 
 \end{itemize}
 
@@ -414,9 +416,8 @@ In essence, \SP{} is the type system for an entirely new language.
 The interface that it offers to programmers, however, replicates the
 Python experience.
 \SP{} runs untyped Python 3.8 programs with minimal changes to their
-behavior,\footnote{\Cref{s:behavior-changes} lists differences with Python 3.8 that
-have caused friction in practice.}
-and it compiles code on-the-fly to give the same workflow and enable the same
+behavior~(\cref{s:not-python}),
+and it compiles code on-the-fly to enable the same
 developer tools as standard Python.
 The advanced features of the \SP{} type system are offered on an opt-in basis
 and arranged so that programmers can begin adding types one module at a time.
@@ -483,9 +484,9 @@ nonlocal maintenance costs (i.e., on constructor calls).
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
-Its syntax for types is based on the definitions in \PEP{} and related proposals~\cite{pep484}.
-Its static semantics for types is inspired by the Pyre~\cite{pyre}, mypy~\cite{mypy}, and Pyright~\cite{pyright}
-optional type checkers.
+Its syntax for types is based on the definitions in \PEP{}~\cite{pep484}.
+Its static semantics for types is inspired by optional type checkers; in
+particular, Pyre~\cite{pyre} and mypy~\cite{mypy}.
 And its strategy for run-time checks is adapted from Nom~\cite{mt-oopsla-2017,mt-oopsla-2021},
 a research language with compelling performance results.
 \SP{}'s novelty comes from the following engineering constraints:
@@ -503,7 +504,7 @@ a research language with compelling performance results.
     The codebase in which \SP{} is being applied makes heavy use of
     \PEP{} type annotations and is regularly analyzed by Pyre.
     \SP{} is therefore compatible with the \PEP{} syntax to reduce the
-    adoption burden on its target users.
+    adoption burden.
     %% depth-first approach? (the alternatives are not very clear ... depth vs breadth?)
   \item
     A module-level granularity is acceptable.
@@ -517,15 +518,17 @@ In general, the types that \SP{} implements all enable significant optimizations
 and can be validated quickly with casts.
 Types that do not meet these criteria are deferred to the mature optional
 type checkers that already exist for Python.
-In fact, \SP{} has no plans at present to support all \PEP{} types.
+In fact, \SP{} has no plans to support all \PEP{} types.
 The goal is to implement a small language of types efficiently.
 
 The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
 and nominal classes.
-Union types are well-supported statically and narrow down in accordance
-with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
-but are, for the most part, not supported at run-time~(\cref{s:eval-types}).
+Union types are tracked statically; for example, if \code{x} is an integer and
+\code{y} is a string, then the expression \code{x or y} has a union type.
+They also narrow down via type tests as a kind of occurrence
+typing~\cite{tf-icfp-2010,gsk-esop-2011}.
+Union types are not, however, generally supported at run-time~(\cref{s:eval-types}).
 The only exception is that binary unions of a type and the Python \code{None}
 value get enforced with a run-time check ($\sptunion{\sptype, \sptnone}$, or
 $\sptoptional{\sptype}$).
@@ -534,7 +537,7 @@ Three other unsupported types bear special mention:
 first-class class and object types~(\cref{s:inheritance});
 first-class function (callable) types; and
 recursive types.
-Pyre and mypy some support for the first two, but not for recursive types.
+Pyre and mypy some support for the first two kinds, but not for recursive types.
 %% mypy rec.types = https://github.com/python/mypy/issues/731
 %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
@@ -542,40 +545,24 @@ Pyre and mypy some support for the first two, but not for recursive types.
 \subsection{Type Dynamic}
 \label{s:type-dynamic}
 
-%% 2021-12-14 TODO:
-%% - anything to say about Any being a "meta" type in Python typing module?
-%%   2022-01-10 bg: not sure what the consequences of "meta type" are
-
-Like most gradual languages, \SP{} includes a dynamic type
-that allows untyped expressions within a statically-typed context.
+\SP{} includes a dynamic type that allows untyped expressions within a
+statically-typed context.
 Whenever an expression or variable lacks a type annotation, \SP{} uses the
-dynamic type as a default and skips most \emph{but not all\/} static checks.
-Programmers can thus add annotations to part of a module
-while leaving the rest unannotated.
+dynamic type as a default and skips most static checks.
+The overall goal of this design is to let programmers add simple annotations to
+part of a Python module while leaving the rest untyped.
 
-%% TODO avoid typo ... shorten?
-In addition to serving as a default, the dynamic type also replaces any undefined types.
-For example, suppose that the type $\sptflout{}$ is undefined in \SP{}
-(i.e., it is a misspelling of $\sptfloat$) and that a
-program contains the annotation $\sptchkdict{\sptstr}{\sptflout}$, which describes a
-dictionary with integer keys and $\sptflout$-typed values.
-\SP{} interprets this annotation as $\sptchkdict{\sptint}{\sptdyn}$ and allows any sort
-of values inside the dictionary at runtime.
+In addition to unannotated positions, the dynamic type is also the default for
+\PEP{} types that \SP{} does not yet understand.
+If existing code uses the type $\sptset{\sptint}$ for sets of integers,
+then \SP{} replaces it with dynamic.
+Thus, \SP{} focuses on types that it can soundly optimize without forcing
+programmers to remove types that other systems (e.g., mypy) can check.
 
-TODO reword.
-At first glance, this behavior might seem odd: why not reject undefined types with an error?
-The reason is to reduce friction with existing \pep{} annotations.
-Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
-efficiently, e.g., the type $\sptset{\sptint}$ for sets of integers.
-By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
-
-The \SP{} dynamic type is also different than the flexible dynamic type provided
-by gradual languages that satisfy the gradual
-guarantees~\cite{svcb-snapl-2015}.
-In \SP{}, replacing part of a type with dynamic can lead to a static error when
-the compiler analyzes that part of the module.
-Similarly, the addition of a dynamic type can lead to a run-time error because of the
-strict checks that \SP{} applies to generic types.
+The behavior of the \SP{} dynamic type is subtle because dynamic code
+faces more restrictions than untyped Python code.
+Replacing part of a type with dynamic can lead to either a static error or
+a run-time error.
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
 %% \footnote{Technically, \SP{} does not even
 %% have syntax for the dynamic type. The idiomatic way to ask for dynamic is to
@@ -597,17 +584,18 @@ strict checks that \SP{} applies to generic types.
     At runtime, the function rejects this argument because its type is not an
     exact match.
 \end{itemize}
-These behaviors enable efficient run-time checks and additional type-directed
-optimizations.
-Part of the reason \SP{} weighs these benefits more heavily than the costs
+These extra restrictions make the \SP{} dynamic type different than the flexible
+dynamic type provided by languages that satisfy the gradual guarantees~\cite{svcb-snapl-2015}.
+But they also enable efficient run-time checks for generics and type-directed optimizations
+for method calls.
+Part of the reason \SP{} weighs these benefits more heavily than the gradual guarantees
 is that programmers have to opt-in to a feature in order to risk the errors.
-The static error above comes only after enabling the \SP{} compiler on a module.
-The dynamic error comes only after adopting a concrete type (for checked dictionaries).
-
-More to the point, \SP{} has little interest in guarantees about
-\emph{removing an arbitrary annotation}.
-It is, however, very interested in making sure that \emph{an untyped
-module compiles with minimal code changes}.
+The static error above comes only after enabling the \SP{} compiler on both a parent
+class and its subclass.
+The dynamic error comes only after adopting a concrete type for checked dictionaries.
+More to the point, \SP{} is less interested in guarantees about \emph{removing
+an arbitrary annotation} and more interested in making sure that \emph{an
+untyped module compiles with minimal code changes}.
 
 \begin{figure}
   \begin{subfigure}[t]{0.48\columnwidth}
@@ -675,7 +663,7 @@ generics), constant-time checks are easy to implement.
 Every type has a name and every value has a tag that corresponds to the
 name of its type.
 A cast must examine the parents of a class in the worst case,
-but these traversals are bounded by a (typically small) constant.
+but these traversals are bounded and typically short.
 
 Parameterized types (generics) are more difficult to enforce.
 For example, suppose that a typed function expects inputs that match
@@ -696,7 +684,7 @@ For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
     for dict values that ignores the elements inside a dict.
     Consequently, a parameterized surface type such as $\sptpydict{K}{V}$
     is merely a promise of dict values at run-time; it does not promise anything about
-    dict keys and values.
+    keys and values.
   \item
     The \emph{concrete} type $\sptchkdict{K}{V}$ guarantees well-typed
     keys and values, but is incompatible with built-in Python dictionaries.
@@ -714,28 +702,28 @@ all values that reach those clients must be concrete,
 and so on and so forth.
 
 The upside of concrete types is that they enforce stronger type constraints.
-These constraints can catch bugs and usually lead to more-efficient code.
-Faster performance is not guaranteed, though, because it depends on how the dict
-gets used.
-\Cref{t:shallow-vs-concrete} presents a detailed comparison.
+These constraints can catch bugs and always lead to more-efficient typed code.
+Faster performance is not guaranteed, though, because concrete types must
+check all writes from untyped contexts.
+\Cref{t:shallow-vs-concrete} presents in more detail the worst-case costs of
+shallow and concrete dict types.
 Shallow types pay a constant-time cost whenever an untyped value enters typed code
 and whenever a typed context reads from a shallow value.
-The net cost of reads may be high.
 Concrete types pay a potentially-high cost for constructors,
-a constant-time cost for casts and for writes,
+a constant-time cost for casts and for writes in untyped code,
 and zero cost for dereferences.
-If a value is frequently written to and rarely read from, shallow types may actually
-be faster.
+If a value travels to untyped code, gets written to many times, and gets read few times,
+then the shallow types may run faster overall.
 
 \begin{table}[t]
-  \caption{Worst-case costs for shallow and concrete types}
+  \caption{Worst-case costs for shallow and concrete types (T=typed, U=untyped)}
   \label{t:shallow-vs-concrete}
 
   \centering
-  \(\begin{array}{lrrrr}
-     & \mbox{Constructor} & \mbox{Cast} & \mbox{Read} & \mbox{Write} \\\hline
-    \sptrawpydict                &           0 & O(1) & O(1) &     0 \\
-    \sptchkdict{K}{V} &        O(N) & O(1) &    0 &  O(1)
+  \(\begin{array}{l@{}rr@{\qquad}rr@{~~}@{\qquad}r@{~~}r}
+                   & \mbox{Constructor} & \mbox{Cast} & \mbox{T-Read} & \mbox{T-Write} & \mbox{U-Read} & \mbox{U-Write} \\\hline
+    \sptrawpydict         &           0 &        O(1) &          O(1) &              0 &             0 &              0 \\
+    \sptchkdict{K}{V}     &        O(N) &        O(1) &             0 &              0 &             0 &           O(1)
   \end{array}\)
 \end{table}
 
@@ -758,7 +746,7 @@ languages that provide separate hierarchies for untyped and (gradually) typed
 classes are Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}.}
 The closest related work, for Nom~\cite{mt-oopsla-2017}, implements
 a rather flexible point in the design space.
-\SP{} implements a simpler design that places a few restrictions on types and
+\SP{} implements a simpler design that restricts types and
 inheritance:
 
 \begin{enumerate}
@@ -792,7 +780,7 @@ Each typed class can furthermore assume that if a method has a precise (non-dyna
 type, then all typed overrides are subtypes of this type.
 \SP{} can therefore optimize dispatch from typed callers to typed methods
 and use checked dispatch for other combinations.
-One extra step arises when an untyped class overrides a typed method.
+One extra step arises when an untyped method overrides a typed method.
 In this case, \SP{} creates a wrapper around the overriding method to check
 that it computes type-correct results.
 % Because these wrappers perform a simple first-order check, they
@@ -838,21 +826,20 @@ primitives and standard data.
 \subsection{Behavioral Changes to Python}
 \label{s:not-python}
 
-FILL
+Relative to Python, \SP{} makes a few behavioral changes to enable
+sound types and strong optimizations:
+class attributes must be set in an \code{\_\_init\_\_} method to
+ensure predictable layouts (all \PEP{} checkers agree on this);
+module-level variables cannot be mutated; and
+typed classes can inherit from at most one other typed class.
 
-%% 2022-01-12 Although the Static Python compiler can technically be
-%% used apart from strict modules, and we do that in tests for faster tests, it’s
-%% not sound and we don’t allow it in prod.
-
-%% Python modules are mutable collections of names.
-%% Names can be added, deleted, and updated at runtime.
-%% \SP{} accommodates these behaviors in the same manner as standard Python, which
-%% necessarily limits the benefits of module types.
-%% As an alternative, \SP{} programmers may opt in to a \emph{strict module} semantics.
-%% Strict modules are immutable, and thus enable type-based compiler optimizations.
-
-%% 1 strict modules
-%% 2 .....
+Several other Python features are unsupported at present:
+enums; the \code{@dataclass} decorator;
+overrides of the \code{\_\_setattr\_\_} and \code{\_\_getattr\_\_} methods;
+keyword arguments with default expressions (rather than values); and
+calls to keyword functions that use \code{**kwargs} with either
+a custom object or a dict with extra keys.
+The \SP{} team plans to lift these restrictions in the future.
 
 
 \section{Runtime System Highlights}
@@ -874,14 +861,13 @@ The \SP{} runtime system, formally known as Cinder, extends
 CPython 3.8 in several ways to take full advantage of static types.
 Cinder includes tailored bytecode instructions, virtual method tables,
 concrete datatypes, a registry of typed modules, and a JIT compiler.
-
 These main ingredients of Cinder may be of interest to other teams seeking to
 add sound gradual typing to an existing language.
-For example, Node developers may wish to fork that runtime and experiment with
+For example, Node developers may wish to fork V8 and experiment with
 bytecode instructions that leverage sound static types.
 
 
-\subsection{Bytecode Instructions}
+\paragraph{Bytecode Instructions}
 
 Cinder is a bytecode compiler that extends the Python instruction set.
 All the standard Python instructions work similarly to Python 3.8;
@@ -920,7 +906,7 @@ and applies it as an optimization.
 
 
 
-\subsection{Virtual Method Tables}
+\paragraph{Virtual Method Tables}
 \label{s:vtable}
 
 Cinder adds virtual method tables (vtables) to typed classes.
@@ -937,14 +923,12 @@ function calls.
 
 The implementation of vtables happens to be built on the Python \code{vectorcall}
 protocol; it is not a from-scratch development.
-Additionally, however, Cinder vtables are specialized to check untyped overrides
-of typed methods against their expected return type (instead of using a layer of
-indirection for the check, as found languages that enforce types with higher-order
-wrappers~\cite{clzv-ecoop-2018,gf-icfp-2018}).
+Cinder vtables are specialized to check untyped overrides of typed methods
+using a wrapper implemented in C rather than in Python, to reduce performance costs.
 
 %% beware: with vtables, method resolution is different than Python b/c args. get
 %%   resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
-
+%%
 %% > This difference in behavior isn’t so much desired as just a consequence of making
 %% > `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
 %% > the callable is placed on the stack, then the arguments, then there is a
@@ -958,7 +942,7 @@ wrappers~\cite{clzv-ecoop-2018,gf-icfp-2018}).
 %% > the `INVOKE_METHOD`. -Carl
 
 
-\subsection{Concrete Data Structures}
+\paragraph{Concrete Data Structures}
 \label{s:chkdict-impl}
 
 The concrete versions of built-in data structures come with both a type and an
@@ -974,7 +958,7 @@ The implementation has three main components:
     The constructor requires two type parameters and a Python dictionary ($\sptrawpydict$).
     It checks that the elements of the dictionary match the key and value types.
   \item
-    All write operations check their input.
+    All untyped writes must be protected by casts.
     Every operation that mutates or extends a checked dictionary must
     validate any untyped arguments that it receives.
   \item
@@ -992,18 +976,15 @@ In general, other checked datatypes have the same three components:
 a constructor, checked update functions, and a tag.
 
 
-\subsection{Classloader}
+\paragraph{Classloader}
 \label{s:classloader}
 
 \SP{} keeps track of typed functions and typed classes with a specialized classloader.
-At runtime, the classloader keeps a registry of typed objects and whether or not they
-are mutable.
+At runtime, the classloader keeps a registry of typed objects.
 The registry helps the bytecode reference objects and types via their module names.
-The mutability bit lets \SP{} optimize access for immutable data while soundly allowing
-patches to mutable data.
 
 
-\subsection{Method-at-a-Time JIT}
+\paragraph{Method-at-a-Time JIT}
 \label{s:jit}
 
 Cinder includes a JIT (just-in-time) compiler for its bytecode.
@@ -1039,15 +1020,16 @@ Finally, we employed the well-established method of testing end-to-end
 conformance with a test suite~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}.
 In particular, we translated \numSPtest{} tests from the \SP{} regression suite to the
 syntax of the model and confirmed that the results
-do match,\footnote{For most of the \numSPtest{} tests, the translation is automatic.
-  A few tests required hand-pruning to remove features that the model
-  does not handle (\totalnum{52}).
-  \SP{} has \numSPdiff{} other tests (\numSPtotal{} total) that we did not use
-  because they fall outside the scope of the model.
-  \Cref{s:impl} summarizes the out-of-scope features;
-  \cref{a:banned-test} gives a detailed categorization.
-  }
+do match,
 which suggests that the model conforms to actual \SP{}.
+
+For most of the \numSPtest{} tests, the translation is automatic.
+A few tests required hand-pruning to remove features that the model does not
+handle (\totalnum{52}).
+\SP{} has \numSPdiff{} other tests (\totalnum{\numSPtotal{}}) that we did not
+use because they fall outside the scope of the model.
+\Cref{s:impl} summarizes the out-of-scope features; \cref{a:banned-test} gives
+a detailed categorization.
 
 %% 2022-01-20 redex-check details
 %% 1 no counterexamples in 10000 attempts
@@ -1064,9 +1046,8 @@ which suggests that the model conforms to actual \SP{}.
 \paragraph{The Payoff: Issues Reported}
 
 The modelling process helped uncover several critical issues with the
-implementation of \SP{}.
-This is a very important payoff given that \SP{} is running in production at
-Instagram.
+implementation of \SP{}---an important payoff given that \SP{} is running in
+production at Instagram.
 Overall, we reported 25 bug reports to the \SP{} team via GitHub~(listed in
 \cref{a:github-issues}).
 Four of these were soundness issues, one of which could be easily exploited to raise
@@ -1092,15 +1073,15 @@ reported a type error:
       if x is None:
         break
       return x
-
-  print(f(None))
-  # None
 \end{lstlisting}
+%
+%  print(f(None))
+%  # None
 \end{minipage}
 
 \noindent{}The function \code{f} expects either a string or the \code{None} value and promises to return a string.
 When called with \code{None}, however, the function breaks out of the \code{while} loop
-and implicitly returns \code{None}---disobeying the return type.
+and implicitly returns \code{None} contrary to the return type.
 \SP{} had failed to account for the \code{break} and implicit return.
 More concerningly, the associated test case \emph{expected} the program to type check.
 Creating a formal model helped us catch this specification error.
@@ -1121,59 +1102,6 @@ typed and untyped code.
 
 \subsection{Surface Syntax and Types}
 \label{s:surface}
-
-\begin{figure}[t]
-  \begin{langarray}
-    \spprog & \defeq &
-      \spstmt \langmid \spstmt,~\spprog
-  \\
-    \spstmt & \defeq &
-      \spvardef{\spx}{\sptype}{\spexpr} \langmid
-      \spfundef{\spf}{\spann{\spx}{\sptype}}{\sptype}{\spexpr} \langmid
-  \\ & &
-      \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
-  \\
-    \spexpr & \defeq &
-      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid \spobject \langmid
-  \\ & &
-      \sppydict{\spx: \spexpr, \ldots} \langmid
-      \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
-  \\ & &
-      \spapp{\spf}{\spexpr} \langmid
-      \spdictref{\spexpr}{\spexpr} \langmid
-      \spdictset{\spexpr}{\spexpr}{\spexpr} \langmid
-      \spobjref{\spc}{\spx} \langmid
-      \spobjset{\spc}{\spx}{\spexpr} \langmid
-      \spobjapp{\spc}{\spf}{\spexpr}
-  \\
-    \sptype & \defeq &
-      \sptdyn \langmid
-      \sptnone \langmid
-      \sptint \langmid
-      \sptbool \langmid
-      \sptstr \langmid
-      \sptobject \langmid
-      \sptclass \langmid
-  \\ & &
-      \sptpydict{\sptype}{\sptype} \langmid
-      \sptchkdict{\sptype}{\sptype} \langmid
-      \sptunion{\sptype, \ldots}
-  \\
-    \sptenv & \defeq &
-      \sptenvnil \langmid
-      \sptvardef{\spx}{\sptype},~\sptenv \langmid
-      \sptfundef{\spf}{\sptype}{\sptype},~\sptenv \langmid
-      \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype}}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype}},~\sptenv
-  \\
-    \spx, \spf & \defeq & \mbox{variable names}
-  \end{langarray}
-
-  \bigskip
-  \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
-
-  \caption{Surface Syntax and Types}
-  \label{f:surface-types}
-\end{figure}
 
 \Cref{f:surface-types} presents a core surface syntax for model programs.
 A program is a sequence of statements;
@@ -1212,6 +1140,59 @@ These details are crucial in the mechanization, which tests whether \SP{}
 soundly approximates Python.
 They are less important here, where our focus is on type boundaries.
 None of the omitted features give substantially new ways for typed code to interact with dynamic code.
+
+\begin{figure}[t]
+  \begin{langarray}
+    \spprog & \defeq &
+      \spstmt \langmid \spstmt,~\spprog
+    \\[1.5ex]
+    \spstmt & \defeq &
+      \spvardef{\spx}{\sptype}{\spexpr} \langmid
+      \spfundef{\spf}{\spann{\spx}{\sptype}}{\sptype}{\spexpr} \langmid
+  \\ & &
+      \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
+    \\[1.5ex]
+    \spexpr & \defeq &
+      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid \spobject \langmid
+  \\ & &
+      \sppydict{\spx: \spexpr, \ldots} \langmid
+      \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
+  \\ & &
+      \spapp{\spf}{\spexpr} \langmid
+      \spdictref{\spexpr}{\spexpr} \langmid
+      \spdictset{\spexpr}{\spexpr}{\spexpr} \langmid
+      \spobjref{\spc}{\spx} \langmid
+      \spobjset{\spc}{\spx}{\spexpr} \langmid
+      \spobjapp{\spc}{\spf}{\spexpr}
+    \\[1.5ex]
+    \sptype & \defeq &
+      \sptdyn \langmid
+      \sptnone \langmid
+      \sptint \langmid
+      \sptbool \langmid
+      \sptstr \langmid
+      \sptobject \langmid
+      \sptclass \langmid
+  \\ & &
+      \sptpydict{\sptype}{\sptype} \langmid
+      \sptchkdict{\sptype}{\sptype} \langmid
+      \sptunion{\sptype, \ldots}
+    \\[1.5ex]
+    \sptenv & \defeq &
+      \sptenvnil \langmid
+      \sptvardef{\spx}{\sptype},~\sptenv \langmid
+      \sptfundef{\spf}{\sptype}{\sptype},~\sptenv \langmid
+      \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype}}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype}},~\sptenv
+    \\[1.5ex]
+    \spx, \spf & \defeq & \mbox{variable names}
+  \end{langarray}
+
+  \bigskip
+  \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
+
+  \caption{Surface Syntax and Types}
+  \label{f:surface-types}
+\end{figure}
 
 
 \subsection{Evaluation Types, Casts, and Typing Judgment}
@@ -1325,96 +1306,6 @@ casts either succeed or fail immediately.
 
 
 \subsubsection{Expression Typing, Cast Insertion}
-
-To better show where \SP{} needs to insert casts, we present a selection of typing rules.
-Recall that a program declares variables, functions, and classes~(\cref{f:surface-types}).
-These statements come with types and fill an environment ($\sptenv$).
-Relative to the current environment, the expressions within each statement must
-satisfy the typing judgment in~\cref{f:eval-types}.
-
-The first two rules are for function application.
-A typed function may be applied to an argument that matches its domain type,
-in which case it computes a value that matches its codomain type.
-A dynamically-typed variable may be applied to any input (that matches the top
-type $\sptobject$) to yield a dynamically-typed result.
-The next rules illustrate writes to Python dictionaries and checked dictionaries.
-A shallow Python dict may be updated with any kind of key and value.
-By contrast, a concrete checked dict requires keys and values that match its type parameters.
-Next we have two rules for classes:
-\trule{F-Set} says that writes to a class field must match the declared field
-type; and \trule{M-App} shows that typed methods impose similar constraints as
-typed fuctions.
-
-The final two rules, \trule{C-Sub} and \trule{Matr}, depend on auxiliary judgments
-for consistent subtyping ($\spcompat$) and materialization ($\spmatr$).
-Consistent subtyping relates type $\spteval_0$ to type $\spteval_1$ if they are
-related by static subtyping ($\spsubteq$) or if
-$\spteval_1$ is the dynamic type.
-When this relation holds, it is safe to upcast a value from type $\spteval_0$
-to type $\spteval_1$.
-Materialization relates the dynamic type to any non-dynamic type.
-Occurrences of the \trule{Matr} rule are downcasts that require a
-run-time check.
-
-The name \emph{materialization} and the rule \trule{Matr} are inspired by prior
-work~\cite{clps-popl-2019}.
-By itself, the judgment is merely an upside-down type precision relation~\cite{g-icfp-2013,sv-dls-2008}.
-Combined with the typing rule, however, materialization is a concise way to find
-where a well-typed program needs casts to ensure soundness.
-For example, suppose that $\spf$ is a function from integers to the dynamic
-type and that $\spx$ is a variable with the dynamic type.
-An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two materializations:
-
-\medskip
-\begin{mathpar}
-  \inferrule*[left=Matr]{
-    \inferrule*{
-      \inferrule*[left=Matr]{
-        \sptenv_0 \wtexpr \spx : \sptdyn
-        \\
-        \sptdyn \spmatr \sptint
-      }{
-        \sptenv_0 \wtexpr \spx : \sptint
-      }
-    }{
-      \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptdyn
-    }
-    \quad
-    \sptdyn \spmatr \sptstr
-  }{
-    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptstr
-  }
-
-  \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
-\end{mathpar}
-\medskip
-Consequently, this derivation calls for two casts to match the \trule{Matr} applications.
-
-We end here, with materialization, rather than present a semantics
-for the formalization.
-After all, the main benefit of a full formal semantics is to validate
-the behavior of complex expressions---and this job is
-better left to the Redex mechanization.
-
-Furthermore, our casts-via-materialization rule assumes that the
-type checker has access to the whole program.
-In practice, \SP{} approximates our ideal casts in two steps
-to support interactions with unanalyzed Python modules.
-First, \SP{} inserts casts in an overapproximate way:
-\begin{itemize}
-  \item
-    typed functions and methods begin by checking all their arguments;
-  \item
-    typed classes check all field writes;
-  \item
-    concrete-typed dictionaries check all writes; and
-  \item
-    typed code checks the results of function calls, references, and other elimination forms
-    whenever there is a materialization from the dynamic type.
-\end{itemize}
-Second, the type-directed optimizer skips casts wherever a well-typed context
-interacts with a typed value.
-\Cref{s:impl} explains the optimizer in more detail.
 
 \begin{figure}[p]
   \fbox{$\sptenv \wtexpr \spexpr : \spteval$}~selected rules
@@ -1538,7 +1429,7 @@ interacts with a typed value.
     \end{mathpar}
   \end{minipage}
 
-  \medskip
+  \bigskip
   \fbox{$\sptenv \wtsub \spteval \spsubteq \spteval$}~reflexive, transitive closure of the following $\spsubt$ relation:
   \begin{mathpar}
     \inferrule*{
@@ -1582,6 +1473,97 @@ interacts with a typed value.
   \caption{Expression Typing, Consistent Subtyping, and Materialization}
   \label{f:eval-types}
 \end{figure}
+
+
+To better show where \SP{} needs to insert casts, we present a selection of typing rules.
+Recall that a program declares variables, functions, and classes~(\cref{f:surface-types}).
+These declarations fill a type environment ($\sptenv$).
+Relative to the current environment, the expressions within each statement must
+satisfy the typing judgment in~\cref{f:eval-types}.
+
+The first two rules are for function application.
+A typed function may be applied to an argument that matches its domain type,
+in which case it computes a value that matches its codomain type.
+A dynamically-typed variable may be applied to any input (that matches the top
+type $\sptobject$) to yield a dynamically-typed result.
+The next rules illustrate writes to Python dictionaries and checked dictionaries.
+A shallow Python dict may be updated with any kind of key and value.
+By contrast, a concrete checked dict requires keys and values that match its type parameters.
+Next we have two rules for classes:
+\trule{F-Set} says that writes to a class field must match the declared field
+type; and \trule{M-App} shows that typed methods impose similar constraints as
+typed fuctions.
+
+The final two rules, \trule{C-Sub} and \trule{Matr}, depend on auxiliary judgments
+for consistent subtyping ($\spcompat$) and materialization ($\spmatr$).
+Consistent subtyping relates type $\spteval_0$ to type $\spteval_1$ if they are
+related by static subtyping ($\spsubteq$) or if
+$\spteval_1$ is the dynamic type.
+When this relation holds, it is safe to upcast a value from type $\spteval_0$
+to type $\spteval_1$.
+Materialization relates the dynamic type to any non-dynamic type.
+Occurrences of the \trule{Matr} rule are downcasts that require a
+run-time check.
+
+The name \emph{materialization} and the rule \trule{Matr} are inspired by prior
+work~\cite{clps-popl-2019}.
+By itself, the judgment is merely an upside-down type precision relation~\cite{g-icfp-2013,sv-dls-2008}.
+Combined with the typing rule, however, materialization is a concise way to find
+where a well-typed program needs casts to ensure soundness.
+For example, suppose that $\spf$ is a function from integers to the dynamic
+type and that $\spx$ is a variable with the dynamic type.
+An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two materializations:
+
+\medskip
+\begin{mathpar}
+  \inferrule*[left=Matr]{
+    \inferrule*{
+      \inferrule*[left=Matr]{
+        \sptenv_0 \wtexpr \spx : \sptdyn
+        \\
+        \sptdyn \spmatr \sptint
+      }{
+        \sptenv_0 \wtexpr \spx : \sptint
+      }
+    }{
+      \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptdyn
+    }
+    \quad
+    \sptdyn \spmatr \sptstr
+  }{
+    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptstr
+  }
+
+  \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
+\end{mathpar}
+\medskip
+Consequently, this derivation calls for two casts to match the \trule{Matr} applications.
+
+We end here, with materialization, rather than present a semantics
+for the formalization.
+After all, the main benefit of a full formal semantics is to validate
+the behavior of complex expressions---and this job is
+better left to the Redex mechanization.
+
+Furthermore, our casts-via-materialization rule assumes that the
+type checker has access to the whole program.
+In practice, \SP{} approximates our ideal casts in two steps
+to support interactions with unanalyzed Python modules.
+First, \SP{} inserts casts in an overapproximate way:
+\begin{itemize}
+  \item
+    typed functions and methods begin by checking all their arguments;
+  \item
+    typed classes check all field writes;
+  \item
+    concrete-typed dictionaries check all writes; and
+  \item
+    typed code checks the results of function calls, references, and other elimination forms
+    whenever there is a materialization from the dynamic type.
+\end{itemize}
+Second, the type-directed optimizer skips casts wherever a well-typed context
+interacts with a typed value.
+\Cref{s:impl} explains the optimizer in more detail.
 
 
 %\subsubsection{Program Typing, Inheritance Restriction}
@@ -1683,7 +1665,7 @@ enough to protect all boundaries.
 The model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
 handle.
-These include primitive types~\cref{s:c-types}, module-level variables,
+These include primitive types~(\cref{s:c-types}), module-level variables,
 and the boundary to untyped Python~(\cref{s:py-boundary}).
 %% Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
 %% are also omitted.
@@ -1708,7 +1690,7 @@ dynamic constraints.
 %% TODO FILL only 2 cases? revisit after adding "changes to python" section in 2
 There are two cases in which \SP{} types impose constraints on untyped Python code.
 First, concrete generic types (e.g., $\sptrawchkdict$)
-reject inputs that were not created via a checked contructor.
+reject inputs that were not created via a checked constructor.
 If a client of a Python module decides to impose concrete types, the Python module
 may need to change.
 Second, typed modules prevent updates to module-level variables.
@@ -1719,9 +1701,10 @@ typed functions (and methods) cannot assume that their arguments are
 well-typed.
 All arguments sent from typed contexts get validated either statically or
 via materialization casts, but arguments from untyped contexts are unchecked.
-For this reason, \SP{} compiles every typed function to check its inputs.
-Similarly, concrete types such as $\sptrawchkdict$ also
-check their writes.
+For this reason, \SP{} compiles every typed function to check its inputs;
+the optimizer can bypass these checks for typed-to-typed calls~(\cref{s:optimize}).
+Similarly, concrete types such as $\sptrawchkdict$ must check writes that
+come from untyped contexts.
 %% 2022-01-09 worth mentioning primitive types? they get cast like anything else (they don't materiazize)
 %% 2022-01-13 don't think so --- leave prims alone, we don't want to frighten reviews with unsoundness
 
@@ -1733,10 +1716,10 @@ check their writes.
 %%  the thing is, they're untyped and (maybe) not tested
 
 \SP{} does not ascribe types to the following Python features.
-These are not covered in our model because the implementation simply
+These are not covered in the model because the implementation simply
 assigns the dynamic type and lets the runtime treat them as untyped
 Python code.
-For each, the dynamic type is a very reasonable choice;
+For each, the dynamic type is a reasonable choice;
 accurate static types would be burdensome to maintain.
 
 
@@ -1752,7 +1735,10 @@ Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifical
 but it requires a second layer of \emph{interface types} atop the nominal hierarchy.
 MonNom~\cite{mt-oopsla-2021} uses interfaces in a similar way to accommodate
 structural objects.
-How best to add an interface layer in \SP{} is an open question.
+
+On a related note, \SP{} has no support for first-class functions or for
+structural types as defined by PEP~544~\cite{pep544}.
+MonNom interfaces may be a promising way to support these types.
 
 % in particular , Python's multiple inheritance would complicate the mixin story.
 % Classic mixins rely on structural types~\cite{bc-oopsla-1990}.
@@ -1776,14 +1762,20 @@ How best to add an interface layer in \SP{} is an open question.
 %% TODO check Dino email, confirm with C&D that layout conflict is unrelated to vtables
 
 Python allows classes to inherit from a list of parents.
-To resolve method calls to such a class, Python
-dynamically traverses the parent list in a fixed order
-seeking a first match.
+\SP{} accommodates this behavior provided that one parent is defined in typed
+code and the untyped parents do not specify their members (via
+\code{\_\_slots\_\_}).
+Other uses of multiple inheritance must stay in untyped code.
 
-Due to the dynamic method resolution order (MRO),
-\SP{} does not track types for classes with multiple parents.
-Method calls to these classes execute the same way as
-in Python, with no type-directed optimizations to improve dispatch.
+\SP{} does not leverage types for classes with multiple parents
+because of vtable layout issues.
+Efficient vtable dispatch requires that each method name
+resides in a fixed slot across all subclasses.
+With multiple inheritance, however, parents may disagree about which method
+lives in each slot.
+%% possible improvement: invoke methods on the first parent statically and on
+%% other parents dynamically and forbid those other paarents from having instance
+%% attributes.
 
 
 \paragraph{Dynamic Execution}
@@ -1793,13 +1785,13 @@ in Python, with no type-directed optimizations to improve dispatch.
 %%\code{\_\_setattr\_\_} that we don’t support. So far in the cases where
 %%we’ve done this it hasn’t required a major rewrite.
 
-Results computed by calls to \code{eval} and \code{exec} have the dynamic type.
+Calls to \code{eval} and \code{exec} have the dynamic type.
 The type system makes no finer prediction about what kind of value such calls will
 return.
 
 Studies of JavaScript and R have shown that many uses of dynamic execution
 can be removed through simple adjustments~\cite{rhbv-ecoop-2011,gdkkv-oopsla-2021,mrmv-esop-2012}.
-Assuming these findings carry over to Python, similar adjustments would
+Assuming these findings carry over to Python, similar adjustments would be
 preferable over attempting to type \code{eval}.
 
 
@@ -1887,15 +1879,16 @@ The latter is for functions and methods; it checks all inputs to a function
 against their declared types.
 
 Two of the listed instructions allocate \SP{}-specific data structures.
-The first creates a checked dictionary; the second creates an object with a vtable~(\cref{s:vtable}).
+The first creates a checked dictionary; the second allocates an uninitialized instance
+of an object~(\cref{s:vtable}).
 Cinder comes with a similar instruction to build checked lists.
 %% The developers will add more instructions along the same lines in the future.
 
 The remaining instructions are for optimization.
 Both \bcinst{INVOKE\_FUNCTION} and \bcinst{INVOKE\_METHOD} are alternatives
 to Python's dynamic call dispatch.
-The former jumps to a statically-determined address;
-the latter uses a vtable lookup to quickly find an address at run-time.
+The former uses the classloader to quickly find the address of a function;
+the latter uses a vtable lookup to find a method.
 The load and store instructions for fields improve upon Python's generic attribute lookup.
 In the JIT, these instructions can sometimes be further optimized to a single assembly instruction.
 The \bcinst{FAST\_LEN} instruction gets the length of a built-in datatype directly, instead
@@ -1904,11 +1897,11 @@ Lastly, the \bcinst{REFINE\_TYPE} instruction tells the JIT about the type of a 
 type is not clear from the context.
 
 
-\paragraph{Indirect Optimization}
+\paragraph{Removing Casts}
 
 In addition to upgrading bytecode instructions to optimized ones, \SP{} takes care
-to minimize the type checks that it executes at run-time.
-In other words, the goal is to slow code down as little as possible.
+to minimize the type casts that it executes at run-time.
+In other words, it takes care to slow code down as little as possible.
 
 Part of this goal is met by inserting casts only in positions where the dynamic
 type flows into a static type.
@@ -1945,7 +1938,7 @@ The Instagram web server has been using \SP{} code to serve requests in
 production since April 2021.
 Overall, the results are very encouraging.
 Instagram's internal profiling tools attribute a \CPUchange{} improvement
-in CPU utilization~(\cref{s:what-is-cpu}) to \SP{} conversions~(\cref{s:migration-path}).
+in CPU efficiency~(\cref{s:what-is-cpu}) to \SP{} conversions~(\cref{s:migration-path}).
 This is a big improvement at Instagram scale.
 
 Developers have converted over 500 modules to \SP{} thus far.
@@ -1960,7 +1953,7 @@ but these features delivered critical performance in key modules.
 %% 873 modules use JIT for some functions (about to increase by OOM)
 
 
-\subsection{How to Interpret the CPU Utilization Result}
+\subsection{How to Interpret the CPU Efficiency Result}
 \label{s:what-is-cpu}
 
 The Instagram web server code runs on a large number of host machines, each of
@@ -1973,22 +1966,27 @@ two representative sets of machines to run as experimental and control groups.
 The experimental groups gets the latest version of the server code;
 the control group gets the previous version.
 Next, the profiling tools slowly increase the number of requests that these
-machines receive until each is running at max CPU utilization.
+machines receive until each is running at maximum load.
 Once the machines are fully allocated, the tools measure how many requests
 per second each group is able to handle.
 If the experimental group can serve more requests per second, then the change
 is recorded as a success.
 Assuming that the experimental and control groups have equivalent hardware
 capabilities, and assuming that both groups receive a representative sample
-of requests, then the results of an experiment (increase/decrease in CPU utilization)
+of requests, then the results of an experiment (increase/decrease in CPU efficiency)
 should predict actual performance.
 
-The main threat to validity is that this CPU utilization number depends on
-product code and on client behavior.
-Over time, the size of the average request may increase and thereby increase
-the CPU cost of serving one request.
-Nevertheless, CPU utilization is the primary metric that Instagram
-uses for production changes.
+The one caveat with this CPU efficiency measure is that it is pinned
+to a specific point in time.
+Changes in product code and in client behavior can change the size
+of a typical web server request, which changes the number
+of requests that a server can handle per second.
+Taking the sum of several CPU efficiency changes over a long
+timespan is therefore only a rough measure of their net effect.
+%% In particular, although we report a \CPUchange{} net improvement
+%% in web server CPU efficiency due to \SP{}, removing \SP{} and
+%% taking a new measurement may yield a slightly different degredation
+%% than \CPUchange{}.
 
 
 \subsection{Migration Path}
@@ -2002,18 +2000,19 @@ few compiled modules spread across an interpreted codebase).
 Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
 Furthermore, \SP{} types combined with Cinder resulted in a
-0.7\% reduction in web server CPU usage.
+0.7\% improvement in web server CPU efficiency.
 Primitive types~(\cref{s:c-types}) were essential for matching Cython.
 
 Later \SP{} migrations have been directed by profiling to find frequently-executed code.
-During the first half of 2021, the \SP{} team identified critical
+During the first half of 2021, the \SP{} team identified hot
 modules and proposed types plus small code changes to the maintainers of these modules~(\cref{s:code-changes}).
-The accepted proposals resulted in a 1\% improvement in web server CPU usage.
+The accepted proposals resulted in a 1\% improvement in CPU efficiency.
 During the second half of 2021, the \SP{} team applied the same
 process at a larger scale.
 They also modified a code-generating module to output \SP{} code;
 this one change brought over four hundred generated modules into the typed fold.
-Overall, the second-half changes added a 2\% web server CPU improvement.
+Overall, the second-half changes added 2\% to the number of requests
+that servers could handle per second at maximum CPU load.
 
 As of December 2021, the \SP{} team has converted 541 modules.
 Most of these came from the code-generating tool (417); the rest
@@ -2071,15 +2070,10 @@ type errors and the other three are for performance.
 
   \item
     \ipara{Change mocked function to expect positional arguments}
-    \SP{} currently rewrites all function calls to use positional arguments.
-    Mock-wrapped functions therefore need to use positional arguments instead of keywords.
+    \SP{} currently rewrites the bytecode for all typed-to-typed function calls to use positional arguments.
+    Mock-wrapped functions therefore need to use positional arguments.
     %% Carl: we plan to fix this incompatibility by falling back to the original call
     %% arguments when we detect the target function has been patched.
-
-  \item
-    \ipara{Change functions to accept positional arguments}
-    Functions that expect only keyword arguments cannot yet be called from \SP{} contexts.
-    %% Carl: We plan to support this next half.
 
   \item
     \ipara{Organize class and instance attributes}
@@ -2091,16 +2085,15 @@ type errors and the other three are for performance.
     %% - related to github #37 ?
 
   \item
-    \ipara{Move \code{@dataclass} and \code{Enum} classes}
-    \SP{} does not support classes decorated with \code{@dataclass}
-    and classes that are enums.
-    For now, programmers have to move these classes to an untyped module.
-    %% Carl: We have work in progress on supporting some Enum types, and plan to add a @dataclass intrinsic soon.
+    \ipara{Move unsupported Python features}
+    Code that uses the unsupported features listed in~\cref{s:not-python}
+    must be changed or moved to an untyped module.
+    So far, these changes have not required major rewrites.
 
   \item
-    \ipara{Remove unsupported Python features}
-    Occurrences of the dynamic Python features listed in \cref{s:dynamic-python} must be rewritten or moved.
-    %% According to the \SP{} team, these changes have not required any major rewrites.
+    \ipara{Refine some Pyre annotations}
+    Well-typed Pyre code is not always well-typed \SP{} code.
+    \Cref{a:pyre-limits} lists the main friction points.
 
 \end{enumerate}
 
@@ -2123,6 +2116,13 @@ type errors and the other three are for performance.
     (of the form $\sptchkdict{K}{V}$)
     and six modules use a checked list type.
     %% - bg: how occasional? worried about power of the "gradual soundness" claim
+
+  \item
+    \ipara{Change functions to accept positional arguments}
+    Functions calls that use only keyword arguments are not yet optimized by \SP{}.
+    Rewriting these functions and call-sites to use positional arguments improves performance.
+
+    %% Carl: We plan to support this next half.
 
   \item
     \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
@@ -2180,27 +2180,30 @@ type errors and the other three are for performance.
 \Cref{t:microbenchmark} compares \SP{} to Python on public microbenchmarks.\footnote{\url{https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks}}
 These microbenchmarks are admittedly small and quite different than typical application code,
 but they provide an auditable and reproducible way to measure performance.
+
 Each row presents two ratios.
 The first compares a simply-typed version of the benchmark to untyped Python code.
 The second compares a hand-refined benchmark to untyped Python.
 The refinements are modest, mostly adding primitive types to hot loops;
-they do not require siginificant expertise to reproduce.
+they do not require significant expertise to reproduce.
 
 All runtimes for this table came from a 64-bit CentOS Linux system using a build
 of \SP{} and Cinder compiled with default settings
 (commit \href{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}{\code{d0d071a}}).
-Each benchmark version ran 11 times total: once to warm up the JIT and 10 times to
-compute an average runtime (using the \code{time} utility).
-Every benchmark version invoked the JIT on the same functions---even the untyped versions.
+Each benchmark version ran 11 times total: once to warm up the bytecode caches
+(\code{.pyc} files) and 10 times to compute an average runtime (using the
+\code{time} utility).
+Every benchmark version invoked the JIT on the same functions---even the
+untyped versions.
 
 \begin{table}[t]
-  \caption{Microbenchmark performance ratios. NB: data for deltablue and nbody is pending.}
+  \caption{Microbenchmark performance ratios. NB: data for nbody is pending.}
   \label{t:microbenchmark}
 
   \centering
   \begin{tabular}{lrr}
     Name               & Typed / Python & Refined / Python \\\midrule
-    \bmname{deltablue} &         FILL &           FILL \\
+    \bmname{deltablue} &         0.59 &           0.30 \\
     \bmname{nbody}     &         FILL &           FILL \\
     \bmname{richards}  &         0.53 &           0.22 \\
     \bmname{fannkuch}  &         1.03 &           0.46
@@ -2212,8 +2215,11 @@ Almost all ratios are less than one, showing that \SP{} achieves a speedup over
 Python despite the cost of enforcing soundness.
 The one exception is the basic typed version of \bmname{fannkuch}, which sees a minor
 slowdown.
-This benchmark is primarily about number-crunching; and indeed, changing a few simple
-types to primitive types without modifying the code leads to a minor speedup (ratio = $0.90$).
+This benchmark is primarily about number-crunching and the basic version uses standard
+numeric types that \SP{} does not optimize.
+Switching to primitive types without otherwise changing the code
+gives an immediate speedup (ratio = $0.90$).
+\Cref{a:microbench-detail} presents further benchmark details.
 
 
 \section{Related Work}
@@ -2246,8 +2252,9 @@ It remains to be seen whether a non-tracing JIT is effective for higher-order
 casts.
 
 \SP{} is one of many type systems for Python.
-Other optional type checkers include Pyre~\cite{pyre}, mypy~\cite{mypy}, and Pyright~\cite{pyright};
-these systems do not ensure safe interactions with untyped Python.
+Other \emph{optional\/} type checkers include Pyre~\cite{pyre},
+mypy~\cite{mypy}, PyType~\cite{pytype}, and Pyright~\cite{pyright}; these
+systems do not ensure safe interactions with untyped Python.
 Another sound type system is Reticulated,
 which enforces structural types (rather than nominal) using its transient
 semantics~\cite{vss-popl-2017,v-thesis-2019}.
@@ -2365,7 +2372,7 @@ for its implementors and for adopters:
 %
 Many of these restrictions go against the grain of the mainstream
 research community, but they have been effective in practice.
-The current \CPUchange{} increase in CPU usage is a huge improvement
+The current \CPUchange{} increase in CPU efficiency is a huge improvement
 at the scale of the Instagram web server.
 
 In conclusion, we conjecture that the \SP{} approach to gradual typing
@@ -2382,14 +2389,17 @@ Gradual, progressive soundness may prove itself to be an effective general strat
 gradual types in practice.
 
 
-%\acks{
-%  Thanks to
-%  Guido van Rossum for stimulating tweets.
-%  This work was partly supported by the US National Science Foundation.
-%  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
-%  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
-%  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-%}
+\acks{
+  \SP{} was developed by Sinan Cepel, William Meehan, Carl Meyer, Aniket Panse,
+  and Dino Viehland.
+  The Brown authors contributed to the language by modeling it independently; they
+  are not part of the \SP{} team.
+
+  Special thanks to Guido van Rossum for helping the authors meet via Twitter
+  and for his ongoing contributions to Python.
+  This work was partly supported by the US National Science Foundation.
+  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+}
 
 {\sloppy
 \printbibliography
@@ -2411,6 +2421,7 @@ The 25 GitHub issues that arose from our work may be found at the following thre
 
 
 \section{On Migrations from Pyre to \SP{}}
+\label{a:pyre-limits}
 
 Although the Instagram web server has extensive type annotations that are
 checked by Pyre,
@@ -2469,8 +2480,107 @@ We use \numSPtest{} of these tests for the model.
 The remaining \numSPdiff{} tests are skipped for the following reasons:
 
 \begin{itemize}
-  \item FILL need categories, expect about 40 of these.
+  \item 269 test primitive types.
+  \item 62 test optional and keyword functions.
+  \item 26 test the classloader.
+  \item 24 test coroutines (\code{async}).
+  \item 23 test list and dictionary comprehensions.
+  \item 15 use format strings.
+  \item 12 test class and object slots.
+  \item The others (\nnum{106}) test a long tail of other topics
+    including byte strings, memory management, specific decorators
+    (\code{@staticmethod}), and optimizations.
+
+%% actual list
+%  \item 269 use C_types
+%  \item 62 use fancy_args
+%  \item 26 use xxclassloader
+%  \item 24 use async_methods
+%  \item 23 use comprehension_syntax
+%  \item 15 use format_strings
+%  \item 12 use __slots__
+%
+%  \item 10 use advanced_occurrance_typing
+%  \item 8 use @staticmethod
+%  \item 7 use prod_assert
+%  \item 7 use python_scope
+%  \item 6 use __call__
+%  \item 6 use reveal_type
+%  \item 4 use @_donotcompile
+%  \item 4 use memory_management
+%  \item 3 use ...
+%  \item 3 use __setattr__
+%  \item 3 use immutable_variables
+%  \item 3 use shadow_frame
+%  \item 2 use TypeVar
+%  \item 2 use decorator
+%  \item 2 use float
+%  \item 2 use nested_class
+%  \item 2 use nonexpressible_tests
+%  \item 2 use optimize=1
+%  \item 2 use sys.modules
+%  \item 1 use @property
+%  \item 1 use NamedTuple
+%  \item 1 use Protocol
+%  \item 1 use bad_tests
+%  \item 1 use byte_strings
+%  \item 1 use code_flag
+%  \item 1 use fancy_function_type
+%  \item 1 use final_classes
+%  \item 1 use slicing_syntax
+%  \item 1 use sorted
+%  \item 1 use try_except_redeclare
+%  \item 1 use with_traceback
 \end{itemize}
+
+%%\begin{table}
+%%  %% 2022-01-25: seems to raise more questions than it answers ... next question is what each filter really means.
+%%  \caption{List of filter names and a count of skipped test that failed each filter}
+%%  \label{t:left-out}
+%%
+%%  \begin{tabular}{lr}
+%%    Filter & Tests Caught \\\hline
+%%    C\_types & 269 \\
+%%    fancy\_args & 77 \\
+%%    format\_strings & 60 \\
+%%    xxclassloader & 37 \\
+%%    async\_methods & 25 \\
+%%    comprehension\_syntax & 23 \\
+%%    \_\_slots\_\_ & 15 \\
+%%    immutable\_variables & 14 \\
+%%    python\_scope & 14 \\
+%%    float & 11 \\
+%%    advanced\_occurrance\_typing & 10 \\
+%%    @staticmethod & 8 \\
+%%    reveal\_type & 8 \\
+%%    \_\_call\_\_ & 7 \\
+%%    prod\_assert & 7 \\
+%%    ... & 5 \\
+%%    nested\_class & 5 \\
+%%    @\_donotcompile & 4 \\
+%%    decorator & 4 \\
+%%    memory\_management & 4 \\
+%%    sys.modules & 4 \\
+%%    TypeVar & 3 \\
+%%    \_\_setattr\_\_ & 3 \\
+%%    byte\_strings & 3 \\
+%%    shadow\_frame & 3 \\
+%%    sorted & 3 \\
+%%    nonexpressible\_tests & 2 \\
+%%    optimize=1 & 2 \\
+%%    weakref & 2 \\
+%%    @property & 1 \\
+%%    NamedTuple & 1 \\
+%%    Protocol & 1 \\
+%%    bad\_tests & 1 \\
+%%    code\_flag & 1 \\
+%%    fancy\_function\_type & 1 \\
+%%    final\_classes & 1 \\
+%%    slicing\_syntax & 1 \\
+%%    try\_except\_redeclare & 1 \\
+%%    with\_traceback & 1
+%%  \end{tabular}
+%%\end{table}
 
 
 \section{Fine-Grained Benchmark Data}
@@ -2545,7 +2655,7 @@ need to rewrite these operations in Python for maximum efficiency.
 don't cache function lookups for \code{INVOKE\_FUNCTION} in the interpreter loop,
 making the calls to \code{list.insert} and \code{list.pop} slower; this is fixable.
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{Richards microbenchmark data}
   \label{t:mb:richards}
   \footnotesize \centering
@@ -2597,7 +2707,7 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
 
 \end{table}
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{Fannkuch microbenchmark data}
   \label{t:mb:fannkuch}
   \footnotesize\centering
@@ -2662,90 +2772,205 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
   $2.89$ & $2.76$ & $4.16$ \\
 \end{tabular}
 
-
 \end{table}
 
-\begin{table}[tph]
-  \caption{Exact commands to invoke each benchmark}
+\begin{table}[tp]
+  \caption{DeltaBlue microbenchmark data}
+  \label{t:mb:deltablue}
+  \footnotesize\centering
+
+\begin{tabular}{rrrrrr}
+  \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} & \colname{T-Max} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () \\\hline
+  $0.3$ & $0.4$ & $1.32$ & $0.51$ & $0.64$ & $1.02$ \\
+  $0.32$ & $0.39$ & $1.23$ & $0.54$ & $0.64$ & $1$ \\
+  $0.31$ & $0.4$ & $1.24$ & $0.54$ & $0.64$ & $0.99$ \\
+  $0.3$ & $0.42$ & $1.31$ & $0.56$ & $0.65$ & $1.02$ \\
+  $0.28$ & $0.4$ & $1.24$ & $0.52$ & $0.65$ & $0.96$ \\
+  $0.28$ & $0.39$ & $1.24$ & $0.55$ & $0.65$ & $0.98$ \\
+  $0.29$ & $0.4$ & $1.27$ & $0.55$ & $0.68$ & $0.97$ \\
+  $0.3$ & $0.42$ & $1.29$ & $0.53$ & $0.67$ & $1$ \\
+  $0.29$ & $0.39$ & $1.28$ & $0.53$ & $0.69$ & $0.99$ \\
+  $0.28$ & $0.42$ & $1.32$ & $0.51$ & $0.64$ & $0.99$ \\
+\end{tabular}
+
+\begin{tabular}{rrrrrr}
+  \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} & \colname{T-Min} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () \\\hline
+  $0.6$ & $0.74$ & $1.32$ & $0.69$ & $0.82$ & $1.27$ \\
+  $0.59$ & $0.74$ & $1.32$ & $0.67$ & $0.84$ & $1.27$ \\
+  $0.57$ & $0.71$ & $1.31$ & $0.7$ & $0.89$ & $1.23$ \\
+  $0.58$ & $0.74$ & $1.23$ & $0.73$ & $0.82$ & $1.26$ \\
+  $0.6$ & $0.71$ & $1.32$ & $0.71$ & $0.84$ & $1.26$ \\
+  $0.59$ & $0.73$ & $1.4$ & $0.71$ & $0.84$ & $1.23$ \\
+  $0.56$ & $0.7$ & $1.37$ & $0.71$ & $0.85$ & $1.35$ \\
+  $0.58$ & $0.69$ & $1.3$ & $0.71$ & $0.82$ & $1.31$ \\
+  $0.58$ & $0.69$ & $1.27$ & $0.69$ & $0.81$ & $1.34$ \\
+  $0.6$ & $0.73$ & $1.39$ & $0.68$ & $0.8$ & $1.33$ \\
+\end{tabular}
+
+\begin{tabular}{rrrrrr}
+  \colname{T-Min-2} & \colname{T-Min-2} & \colname{T-Min-2} & \colname{T-Min-2} & \colname{T-Min-2} & \colname{T-Min-2} \\
+  (\colname{SP} \colname{JIT} \colname{SF}) & (\colname{SP} \colname{JIT}) & (\colname{SP}) & (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () \\\hline
+  $0.54$ & $0.66$ & $1.38$ & $0.61$ & $0.76$ & $1.17$ \\
+  $0.51$ & $0.62$ & $1.44$ & $0.61$ & $0.75$ & $1.25$ \\
+  $0.55$ & $0.69$ & $1.41$ & $0.6$ & $0.82$ & $1.17$ \\
+  $0.54$ & $0.69$ & $1.41$ & $0.63$ & $0.75$ & $1.16$ \\
+  $0.54$ & $0.7$ & $1.41$ & $0.65$ & $0.75$ & $1.17$ \\
+  $0.55$ & $0.67$ & $1.4$ & $0.66$ & $0.75$ & $1.15$ \\
+  $0.52$ & $0.67$ & $1.43$ & $0.61$ & $0.75$ & $1.15$ \\
+  $0.52$ & $0.66$ & $1.4$ & $0.62$ & $0.75$ & $1.18$ \\
+  $0.52$ & $0.64$ & $1.51$ & $0.65$ & $0.76$ & $1.18$ \\
+  $0.5$ & $0.65$ & $1.41$ & $0.62$ & $0.79$ & $1.15$ \\
+\end{tabular}
+
+\begin{tabular}{rrr}
+  \colname{Orig} & \colname{Orig} & \colname{Orig} \\
+  (\colname{JIT} \colname{SF}) & (\colname{JIT}) & () \\\hline
+  $0.64$ & $0.78$ & $1.22$ \\
+  $0.64$ & $0.81$ & $1.25$ \\
+  $0.63$ & $0.81$ & $1.23$ \\
+  $0.62$ & $0.79$ & $1.2$ \\
+  $0.67$ & $0.81$ & $1.23$ \\
+  $0.7$ & $0.8$ & $1.23$ \\
+  $0.68$ & $0.78$ & $1.34$ \\
+  $0.66$ & $0.79$ & $1.22$ \\
+  $0.69$ & $0.85$ & $1.23$ \\
+  $0.68$ & $0.79$ & $1.24$ \\
+\end{tabular}
+\end{table}
+
+\begin{table}[tp]
+  \caption{Exact commands to invoke each benchmark (1/2)}
   \label{t:mb:commands}
   \tiny\centering
 
   \begin{tabular}{ll}
-  \colname{Benchmark} & \colname{Command} \\\hline
-  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
-  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{SP} \colname{JIT}) & \texttt{ -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
-  Richards \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
-  (\colname{SP}) &  \\
-  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame Tools/benchmarks/richards\_static.py 100} \\
-  Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{JIT}) & \texttt{ Tools/benchmarks/richards\_static.py 100} \\
-  Richards \colname{T-Max} & \texttt{time ./python Tools/benchmarks/richards\_static.py 100} \\
-  () &  \\
-  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
-  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{SP} \colname{JIT}) & \texttt{dcards -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
-  Richards \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
-  (\colname{SP}) &  \\
-  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame Tools/benchmarks/richards\_static\_basic.py 100} \\
-  Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{JIT}) & \texttt{dcards Tools/benchmarks/richards\_static\_basic.py 100} \\
-  Richards \colname{T-Min} & \texttt{time ./python Tools/benchmarks/richards\_static\_basic.py 100} \\
-  () &  \\
-  Richards \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
-  (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/richards.py 100} \\
-  Richards \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
-  (\colname{JIT}) & \texttt{hmarks/richards.py 100} \\
-  Richards \colname{Orig} & \texttt{time ./python Tools/benchmarks/richards.py 100} \\
-  () &  \\
-  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
-  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{SP} \colname{JIT}) & \texttt{ -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
-  Fannkuch \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
-  (\colname{SP}) &  \\
-  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame Tools/benchmarks/fannkuch\_static.py 5} \\
-  Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
-  (\colname{JIT}) & \texttt{ Tools/benchmarks/fannkuch\_static.py 5} \\
-  Fannkuch \colname{T-Max} & \texttt{time ./python Tools/benchmarks/fannkuch\_static.py 5} \\
-  () &  \\
-  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
-  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{SP} \colname{JIT}) & \texttt{dcards -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
-  Fannkuch \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
-  (\colname{SP}) &  \\
-  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
-  Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
-  (\colname{JIT}) & \texttt{dcards Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
-  Fannkuch \colname{T-Min} & \texttt{time ./python Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
-  () &  \\
-  Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
-  (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
-  Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
-  (\colname{SP} \colname{JIT}) & \texttt{ldcards -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
-  Fannkuch \colname{T-Min-2} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
-  (\colname{SP}) &  \\
-  Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
-  (\colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
-  Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
-  (\colname{JIT}) & \texttt{ldcards Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
-  Fannkuch \colname{T-Min-2} & \texttt{time ./python Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
-  () &  \\
-  Fannkuch \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
-  (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/fannkuch.py 5} \\
-  Fannkuch \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
-  (\colname{JIT}) & \texttt{hmarks/fannkuch.py 5} \\
-  Fannkuch \colname{Orig} & \texttt{time ./python Tools/benchmarks/fannkuch.py 5} \\
-  () &  \\
-\end{tabular}
+    \colname{Benchmark} & \colname{Command} \\\hline
+    Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
+    Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{SP} \colname{JIT}) & \texttt{ -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
+    Richards \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/richards\_static.py 100} \\
+    (\colname{SP}) &  \\
+    Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame Tools/benchmarks/richards\_static.py 100} \\
+    Richards \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{JIT}) & \texttt{ Tools/benchmarks/richards\_static.py 100} \\
+    Richards \colname{T-Max} & \texttt{time ./python Tools/benchmarks/richards\_static.py 100} \\
+    () &  \\
+    Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
+    Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{SP} \colname{JIT}) & \texttt{dcards -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
+    Richards \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/richards\_static\_basic.py 100} \\
+    (\colname{SP}) &  \\
+    Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame Tools/benchmarks/richards\_static\_basic.py 100} \\
+    Richards \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_richards\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{JIT}) & \texttt{dcards Tools/benchmarks/richards\_static\_basic.py 100} \\
+    Richards \colname{T-Min} & \texttt{time ./python Tools/benchmarks/richards\_static\_basic.py 100} \\
+    () &  \\
+    Richards \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
+    (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/richards.py 100} \\
+    Richards \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
+    (\colname{JIT}) & \texttt{hmarks/richards.py 100} \\
+    Richards \colname{Orig} & \texttt{time ./python Tools/benchmarks/richards.py 100} \\
+    () &  \\
+    Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
+    Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{SP} \colname{JIT}) & \texttt{ -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
+    Fannkuch \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static.py 5} \\
+    (\colname{SP}) &  \\
+    Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{JIT} \colname{SF}) & \texttt{ -X jit-shadow-frame Tools/benchmarks/fannkuch\_static.py 5} \\
+    Fannkuch \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static.txt -X jit-enable-jit-list-wildcards} \\
+    (\colname{JIT}) & \texttt{ Tools/benchmarks/fannkuch\_static.py 5} \\
+    Fannkuch \colname{T-Max} & \texttt{time ./python Tools/benchmarks/fannkuch\_static.py 5} \\
+    () &  \\
+    Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+    Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{SP} \colname{JIT}) & \texttt{dcards -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+    Fannkuch \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+    (\colname{SP}) &  \\
+    Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{JIT} \colname{SF}) & \texttt{dcards -X jit-shadow-frame Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+    Fannkuch \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic.txt -X jit-enable-jit-list-wil} \\
+    (\colname{JIT}) & \texttt{dcards Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+    Fannkuch \colname{T-Min} & \texttt{time ./python Tools/benchmarks/fannkuch\_static\_basic.py 5} \\
+    () &  \\
+    Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+    Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+    (\colname{SP} \colname{JIT}) & \texttt{ldcards -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+    Fannkuch \colname{T-Min-2} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+    (\colname{SP}) &  \\
+    Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+    (\colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+    Fannkuch \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_fannkuch\_static\_basic2.txt -X jit-enable-jit-list-wi} \\
+    (\colname{JIT}) & \texttt{ldcards Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+    Fannkuch \colname{T-Min-2} & \texttt{time ./python Tools/benchmarks/fannkuch\_static\_basic2.py 5} \\
+    () &  \\
+    Fannkuch \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
+    (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/fannkuch.py 5} \\
+    Fannkuch \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
+    (\colname{JIT}) & \texttt{hmarks/fannkuch.py 5} \\
+    Fannkuch \colname{Orig} & \texttt{time ./python Tools/benchmarks/fannkuch.py 5} \\
+    () &
+  \end{tabular}
+\end{table}
 
+\begin{table}[tp]
+  \caption{Exact commands to invoke each benchmark (2/2)}
+  \label{t:mb:commands}
+  \tiny\centering
+
+  \begin{tabular}{ll}
+    DeltaBlue \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static.txt -X jit-enable-jit-list-wildcard} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{s -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/deltablue\_static.py 100} \\
+    DeltaBlue \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static.txt -X jit-enable-jit-list-wildcard} \\
+    (\colname{SP} \colname{JIT}) & \texttt{s -X install-strict-loader Tools/benchmarks/deltablue\_static.py 100} \\
+    DeltaBlue \colname{T-Max} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/deltablue\_static.py 100} \\
+    (\colname{SP}) &  \\
+    DeltaBlue \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static.txt -X jit-enable-jit-list-wildcard} \\
+    (\colname{JIT} \colname{SF}) & \texttt{s -X jit-shadow-frame Tools/benchmarks/deltablue\_static.py 100} \\
+    DeltaBlue \colname{T-Max} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static.txt -X jit-enable-jit-list-wildcard} \\
+    (\colname{JIT}) & \texttt{s Tools/benchmarks/deltablue\_static.py 100} \\
+    DeltaBlue \colname{T-Max} & \texttt{time ./python Tools/benchmarks/deltablue\_static.py 100} \\
+    () &  \\
+    DeltaBlue \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic.txt -X jit-enable-jit-list-wi} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/deltablue\_static\_basic.py 100} \\
+    DeltaBlue \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic.txt -X jit-enable-jit-list-wi} \\
+    (\colname{SP} \colname{JIT}) & \texttt{ldcards -X install-strict-loader Tools/benchmarks/deltablue\_static\_basic.py 100} \\
+    DeltaBlue \colname{T-Min} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/deltablue\_static\_basic.py 100} \\
+    (\colname{SP}) &  \\
+    DeltaBlue \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic.txt -X jit-enable-jit-list-wi} \\
+    (\colname{JIT} \colname{SF}) & \texttt{ldcards -X jit-shadow-frame Tools/benchmarks/deltablue\_static\_basic.py 100} \\
+    DeltaBlue \colname{T-Min} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic.txt -X jit-enable-jit-list-wi} \\
+    (\colname{JIT}) & \texttt{ldcards Tools/benchmarks/deltablue\_static\_basic.py 100} \\
+    DeltaBlue \colname{T-Min} & \texttt{time ./python Tools/benchmarks/deltablue\_static\_basic.py 100} \\
+    () &  \\
+    DeltaBlue \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic2.txt -X jit-enable-jit-list-w} \\
+    (\colname{SP} \colname{JIT} \colname{SF}) & \texttt{ildcards -X jit-shadow-frame -X install-strict-loader Tools/benchmarks/deltablue\_static\_basic2.py 100} \\
+    DeltaBlue \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic2.txt -X jit-enable-jit-list-w} \\
+    (\colname{SP} \colname{JIT}) & \texttt{ildcards -X install-strict-loader Tools/benchmarks/deltablue\_static\_basic2.py 100} \\
+    DeltaBlue \colname{T-Min-2} & \texttt{time ./python -X install-strict-loader Tools/benchmarks/deltablue\_static\_basic2.py 100} \\
+    (\colname{SP}) &  \\
+    DeltaBlue \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic2.txt -X jit-enable-jit-list-w} \\
+    (\colname{JIT} \colname{SF}) & \texttt{ildcards -X jit-shadow-frame Tools/benchmarks/deltablue\_static\_basic2.py 100} \\
+    DeltaBlue \colname{T-Min-2} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_deltablue\_static\_basic2.txt -X jit-enable-jit-list-w} \\
+    (\colname{JIT}) & \texttt{ildcards Tools/benchmarks/deltablue\_static\_basic2.py 100} \\
+    DeltaBlue \colname{T-Min-2} & \texttt{time ./python Tools/benchmarks/deltablue\_static\_basic2.py 100} \\
+    () &  \\
+    DeltaBlue \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards -X jit-sha} \\
+    (\colname{JIT} \colname{SF}) & \texttt{dow-frame Tools/benchmarks/deltablue.py 100} \\
+    DeltaBlue \colname{Orig} & \texttt{time ./python -X jit -X jit-list-file=Tools/benchmarks/jitlist\_main.txt -X jit-enable-jit-list-wildcards Tools/benc} \\
+    (\colname{JIT}) & \texttt{hmarks/deltablue.py 100} \\
+    DeltaBlue \colname{Orig} & \texttt{time ./python Tools/benchmarks/deltablue.py 100} \\
+    () &  \\
+  \end{tabular}
 \end{table}
 
 
