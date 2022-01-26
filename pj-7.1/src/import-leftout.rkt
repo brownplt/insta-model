@@ -46,9 +46,10 @@
     (values k v)))
 
 (define (top-reasons tbl0**)
-  (define too-small 10)
+  (define too-small 0)
   (let loop ([tbl** tbl0**])
     (define-values [titlev totalv] (get-reason-totals* tbl**))
+    (printf "tbl N ~a~n ~a~n ~a~n" (vector-length tbl**) titlev totalv)
     (define-values [top-title top-total]
       (for/fold ([tt #f]
                  [tn #f])
@@ -63,10 +64,11 @@
                           #:when (< 0 curr-n))
                          (values curr-t curr-n))))
         (newline)
-        (for ((kv (in-list (sort-reason-hash h))))
+        (pretty-write tbl**)
+        #;(for ((kv (in-list (sort-reason-hash h))))
           (printf "  \\item ~a use ~a~n" (cdr kv) (car kv))))
       (let ((top-idx (vindex-of titlev top-title)))
-        (printf "  \\item ~a use ~a~n" top-total top-title)
+        #;(printf "  \\item ~a use ~a~n" top-total top-title)
         (loop (delete-column
                 (delete-row* tbl** (lambda (r)
                                      (define n (vector-ref r top-idx))
