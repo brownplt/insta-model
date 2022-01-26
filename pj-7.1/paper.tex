@@ -27,7 +27,7 @@
 \newcommand{\defeq}{=}
 \newcommand{\mfeq}{=}
 \newcommand{\langmid}{~\mid~} %% {\mathrel{\mathbf{\Big\vert}}}
-\newenvironment{langarray}{\(\def\arraystretch{1.5}\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
+\newenvironment{langarray}{\(\begin{array}{l@{\hspace{2mm}}c@{\hspace{2mm}}l}}{\end{array}\)}
 \newcommand{\ipara}[1]{\emph{#1}\/.}
 \newcommand{\nnum}[1]{$N=#1$}
 \newcommand{\totalnum}[1]{$#1$ total}
@@ -276,7 +276,7 @@ Gradual typing has attracted significant interest as a solution to
 the debate between static and dynamic typing.
 The premise is simple: let programmers introduce types in part of a
 codebase and while leaving the rest untyped.
-Run-time casts and checks enforce the critical assumptions that typed code makes about
+Run-time casts and checks enforce the assumptions that typed code makes about
 untyped components, thereby ensuring that the types are sound no matter how
 untyped code behaves.
 
@@ -323,17 +323,18 @@ To a first approximation, there are three main stages:
     If programmers modify their code to build concrete structures instead of Python
     ones (a potentially nonlocal change), then \SP{} can perform deeper optimizations.
   \item
-    Additional progressive types that enable further optimizations.
-    In particular, \emph{primitive types\/} enable unboxed arithmetic.
+    A third set of progressive types enable further optimizations.
+    In particular, \emph{primitive types\/} allow for unboxed arithmetic,
+    which has been critical in practice.
 \end{enumerate}
 
 Over the past year, Instagram has been applying gradual soundness to its
 primary web server monolith.
-The results are very positive.
 Although only a handful of modules use \SP{} types (hundreds among thousands),
 and only a few critical modules rely on concrete types and primitive types (dozens),
 these migrations have resulted in a \CPUchange{} increase in production requests handled
 per second for servers running at maximum CPU load.
+These results are very positive:
 Type-directed optimizations outweigh the cost of enforcing soundness.
 Consequently, we believe the details of the \SP{} approach are of interest to
 the gradual typing community at large.
@@ -362,7 +363,7 @@ This paper makes two contributions:
     that core \SP{} is indeed sound.
     Perhaps more importantly, the \emph{process} of modeling revealed 20 significant
     issues in \SP{}.
-    Four of these were critical soundness bugs.
+    Four of these were soundness bugs.
 
 \end{itemize}
 
@@ -416,7 +417,7 @@ The interface that it offers to programmers, however, replicates the
 Python experience.
 \SP{} runs untyped Python 3.8 programs with minimal changes to their
 behavior~(\cref{s:not-python}),
-and it compiles code on-the-fly to give the same workflow and enable the same
+and it compiles code on-the-fly to enable the same
 developer tools as standard Python.
 The advanced features of the \SP{} type system are offered on an opt-in basis
 and arranged so that programmers can begin adding types one module at a time.
@@ -483,9 +484,9 @@ nonlocal maintenance costs (i.e., on constructor calls).
 
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
-Its syntax for types is based on the definitions in \PEP{} and related proposals~\cite{pep484}.
-Its static semantics for types is inspired by the Pyre~\cite{pyre} and mypy~\cite{mypy}
-optional type checkers.
+Its syntax for types is based on the definitions in \PEP{}~\cite{pep484}.
+Its static semantics for types is inspired by optional type checkers; in
+particular, Pyre~\cite{pyre} and mypy~\cite{mypy}.
 And its strategy for run-time checks is adapted from Nom~\cite{mt-oopsla-2017,mt-oopsla-2021},
 a research language with compelling performance results.
 \SP{}'s novelty comes from the following engineering constraints:
@@ -536,7 +537,7 @@ Three other unsupported types bear special mention:
 first-class class and object types~(\cref{s:inheritance});
 first-class function (callable) types; and
 recursive types.
-Pyre and mypy some support for the first two, but not for recursive types.
+Pyre and mypy some support for the first two kinds, but not for recursive types.
 %% mypy rec.types = https://github.com/python/mypy/issues/731
 %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
@@ -558,7 +559,7 @@ then \SP{} replaces it with dynamic.
 Thus, \SP{} focuses on types that it can soundly optimize without forcing
 programmers to remove types that other systems (e.g., mypy) can check.
 
-The behavior of the \SP{} dynamic type is subtle, however, because dynamic code
+The behavior of the \SP{} dynamic type is subtle because dynamic code
 faces more restrictions than untyped Python code.
 Replacing part of a type with dynamic can lead to either a static error or
 a run-time error.
@@ -715,7 +716,7 @@ If a value travels to untyped code, gets written to many times, and gets read fe
 then the shallow types may run faster overall.
 
 \begin{table}[t]
-  \caption{Worst-case costs for shallow and concrete types (T = typed, U = untyped)}
+  \caption{Worst-case costs for shallow and concrete types (T=typed, U=untyped)}
   \label{t:shallow-vs-concrete}
 
   \centering
@@ -745,7 +746,7 @@ languages that provide separate hierarchies for untyped and (gradually) typed
 classes are Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}.}
 The closest related work, for Nom~\cite{mt-oopsla-2017}, implements
 a rather flexible point in the design space.
-\SP{} implements a simpler design that places a few restrictions on types and
+\SP{} implements a simpler design that restricts types and
 inheritance:
 
 \begin{enumerate}
@@ -1045,9 +1046,8 @@ a detailed categorization.
 \paragraph{The Payoff: Issues Reported}
 
 The modelling process helped uncover several critical issues with the
-implementation of \SP{}.
-This is a very important payoff given that \SP{} is running in production at
-Instagram.
+implementation of \SP{}---an important payoff given that \SP{} is running in
+production at Instagram.
 Overall, we reported 25 bug reports to the \SP{} team via GitHub~(listed in
 \cref{a:github-issues}).
 Four of these were soundness issues, one of which could be easily exploited to raise
@@ -1073,15 +1073,15 @@ reported a type error:
       if x is None:
         break
       return x
-
-  print(f(None))
-  # None
 \end{lstlisting}
+%
+%  print(f(None))
+%  # None
 \end{minipage}
 
 \noindent{}The function \code{f} expects either a string or the \code{None} value and promises to return a string.
 When called with \code{None}, however, the function breaks out of the \code{while} loop
-and implicitly returns \code{None}---disobeying the return type.
+and implicitly returns \code{None} contrary to the return type.
 \SP{} had failed to account for the \code{break} and implicit return.
 More concerningly, the associated test case \emph{expected} the program to type check.
 Creating a formal model helped us catch this specification error.
@@ -1145,13 +1145,13 @@ None of the omitted features give substantially new ways for typed code to inter
   \begin{langarray}
     \spprog & \defeq &
       \spstmt \langmid \spstmt,~\spprog
-  \\
+    \\[1.5ex]
     \spstmt & \defeq &
       \spvardef{\spx}{\sptype}{\spexpr} \langmid
       \spfundef{\spf}{\spann{\spx}{\sptype}}{\sptype}{\spexpr} \langmid
   \\ & &
       \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
-  \\
+    \\[1.5ex]
     \spexpr & \defeq &
       \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid \spobject \langmid
   \\ & &
@@ -1164,7 +1164,7 @@ None of the omitted features give substantially new ways for typed code to inter
       \spobjref{\spc}{\spx} \langmid
       \spobjset{\spc}{\spx}{\spexpr} \langmid
       \spobjapp{\spc}{\spf}{\spexpr}
-  \\
+    \\[1.5ex]
     \sptype & \defeq &
       \sptdyn \langmid
       \sptnone \langmid
@@ -1177,13 +1177,13 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptpydict{\sptype}{\sptype} \langmid
       \sptchkdict{\sptype}{\sptype} \langmid
       \sptunion{\sptype, \ldots}
-  \\
+    \\[1.5ex]
     \sptenv & \defeq &
       \sptenvnil \langmid
       \sptvardef{\spx}{\sptype},~\sptenv \langmid
       \sptfundef{\spf}{\sptype}{\sptype},~\sptenv \langmid
       \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype}}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype}},~\sptenv
-  \\
+    \\[1.5ex]
     \spx, \spf & \defeq & \mbox{variable names}
   \end{langarray}
 
@@ -1429,7 +1429,7 @@ casts either succeed or fail immediately.
     \end{mathpar}
   \end{minipage}
 
-  \medskip
+  \bigskip
   \fbox{$\sptenv \wtsub \spteval \spsubteq \spteval$}~reflexive, transitive closure of the following $\spsubt$ relation:
   \begin{mathpar}
     \inferrule*{
@@ -1477,7 +1477,7 @@ casts either succeed or fail immediately.
 
 To better show where \SP{} needs to insert casts, we present a selection of typing rules.
 Recall that a program declares variables, functions, and classes~(\cref{f:surface-types}).
-These statements come with types and fill an environment ($\sptenv$).
+These declarations fill a type environment ($\sptenv$).
 Relative to the current environment, the expressions within each statement must
 satisfy the typing judgment in~\cref{f:eval-types}.
 
@@ -1897,11 +1897,11 @@ Lastly, the \bcinst{REFINE\_TYPE} instruction tells the JIT about the type of a 
 type is not clear from the context.
 
 
-\paragraph{Indirect Optimization}
+\paragraph{Removing Casts}
 
 In addition to upgrading bytecode instructions to optimized ones, \SP{} takes care
-to minimize the type checks that it executes at run-time.
-In other words, the goal is to slow code down as little as possible.
+to minimize the type casts that it executes at run-time.
+In other words, it takes care to slow code down as little as possible.
 
 Part of this goal is met by inserting casts only in positions where the dynamic
 type flows into a static type.
@@ -2071,7 +2071,7 @@ type errors and the other three are for performance.
   \item
     \ipara{Change mocked function to expect positional arguments}
     \SP{} currently rewrites the bytecode for all typed-to-typed function calls to use positional arguments.
-    Mock-wrapped functions therefore need to use positional arguments instead of keywords.
+    Mock-wrapped functions therefore need to use positional arguments.
     %% Carl: we plan to fix this incompatibility by falling back to the original call
     %% arguments when we detect the target function has been patched.
 
@@ -2219,6 +2219,7 @@ This benchmark is primarily about number-crunching and the basic version uses st
 numeric types that \SP{} does not optimize.
 Switching to primitive types without otherwise changing the code
 gives an immediate speedup (ratio = $0.90$).
+\Cref{a:microbench-detail} presents further benchmark details.
 
 
 \section{Related Work}
@@ -2394,13 +2395,10 @@ gradual types in practice.
   The Brown authors contributed to the language by modeling it independently; they
   are not part of the \SP{} team.
 
-  This work was partly supported by the US National Science Foundation.
-  %% Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
-  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
-
   Special thanks to Guido van Rossum for helping the authors meet via Twitter
   and for his ongoing contributions to Python.
+  This work was partly supported by the US National Science Foundation.
+  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
 }
 
 {\sloppy
