@@ -2388,14 +2388,20 @@ Gradual, progressive soundness may prove itself to be an effective general strat
 gradual types in practice.
 
 
-%\acks{
-%  Thanks to
-%  Guido van Rossum for stimulating tweets.
-%  This work was partly supported by the US National Science Foundation.
-%  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
-%  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
-%  Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-%}
+\acks{
+  \SP{} was developed by Sinan Cepel, William Meehan, Carl Meyer, Aniket Panse,
+  and Dino Viehland.
+  The Brown authors contributed to the language by modeling it independently; they
+  are not part of the \SP{} team.
+
+  This work was partly supported by the US National Science Foundation.
+  %% Greenman received support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+  This research was also developed with funding from the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL).
+  The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S.~Government.
+
+  Special thanks to Guido van Rossum for helping the authors meet via Twitter
+  and for his ongoing contributions to Python.
+}
 
 {\sloppy
 \printbibliography
@@ -2651,7 +2657,7 @@ need to rewrite these operations in Python for maximum efficiency.
 don't cache function lookups for \code{INVOKE\_FUNCTION} in the interpreter loop,
 making the calls to \code{list.insert} and \code{list.pop} slower; this is fixable.
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{Richards microbenchmark data}
   \label{t:mb:richards}
   \footnotesize \centering
@@ -2703,7 +2709,7 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
 
 \end{table}
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{Fannkuch microbenchmark data}
   \label{t:mb:fannkuch}
   \footnotesize\centering
@@ -2770,7 +2776,7 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
 
 \end{table}
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{DeltaBlue microbenchmark data}
   \label{t:mb:deltablue}
   \footnotesize\centering
@@ -2834,11 +2840,9 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
   $0.69$ & $0.85$ & $1.23$ \\
   $0.68$ & $0.79$ & $1.24$ \\
 \end{tabular}
-
-
 \end{table}
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{Exact commands to invoke each benchmark (1/2)}
   \label{t:mb:commands}
   \tiny\centering
@@ -2920,7 +2924,7 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
   \end{tabular}
 \end{table}
 
-\begin{table}[tph]
+\begin{table}[tp]
   \caption{Exact commands to invoke each benchmark (2/2)}
   \label{t:mb:commands}
   \tiny\centering
