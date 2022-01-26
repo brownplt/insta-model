@@ -177,30 +177,17 @@
   )
 
 (define-metafunction SP-compiled
-  let : ([x e-] ...) s- -> e-
-  [(let ([x e-] ...) s-)
-   (call (lambda (x ...) (begin) (local (x ...) s-))
-                  (e- ...))])
-
-(define-judgment-form SP-compiled
-  #:mode (compileo I O)
-  #:contract (compileo program+ program-)
-  [(where program- ,(with-handlers ([exn:fail (λ (e) (void))])
-                      (term (compile-program (desugar-program program+)))))
-   ------------------------------------
-   (compileo program+ program-)])
-
-(define-metafunction SP-compiled
-  lookup-Ψ : Ψ class-l -> (class l+☠+dynamic Γ ρ Γ)
-  ;; Find the meaning of a class by its cid
-  ;; lookup user-defined classes
+  lookup-Ψ : Ψ class-l -> C
+  ;; Find the meaning of a class by its label.
+  ;;   Every user-defined class is defined in Ψ.
+  ;;   Every primitive class is defined by lookup-builtin-class.
   [(lookup-Ψ Ψ (user-defined-class x))
    (lookup Ψ (user-defined-class x))]
   [(lookup-Ψ Ψ l)
    (lookup-builtin-class l)])
 (define-metafunction SP-compiled
-  lookup-builtin-class : class-l -> (class l+☠+dynamic Γ ρ Γ)
-  ;; primitive/builtin classes are handled here
+  lookup-builtin-class : class-l -> C
+  ;; Find the meaning of a primitive class by its label.
   [(lookup-builtin-class "object")
    (class ☠
      (["__init__" (-> (dynamic) dynamic)]
@@ -438,6 +425,7 @@
 
 (define-metafunction SP-compiled
   prim-Γ : -> Γ
+  ;; This definition exists for testing purposes
   [(prim-Γ)
    (extend (base-Γ)
            ["CheckedDict" (generic "CheckedDict")]
@@ -455,6 +443,7 @@
               (term (exact "str"))))
 (define-metafunction SP-compiled
   T-of-c : c -> T
+  ;; What is the type (T) of the constant (c)
   [(T-of-c c) (exact (l-of-c c))])
 (define-metafunction SP-compiled
   l-of-c : c -> l
@@ -466,6 +455,7 @@
 (define-judgment-form SP-compiled
   #:mode (⊢Ψ I)
   #:contract (⊢Ψ Ψ)
+  ;; Is the class environment (Ψ) well-formed?
   [(where ([l C] ...) Ψ)
    (Ψ⊢l Ψ l) ...
    -----------------------
@@ -473,10 +463,11 @@
 (define-judgment-form SP-compiled
   #:mode (Ψ⊢l I I)
   #:contract (Ψ⊢l Ψ l)
+  ;; Is the class indicated by the class label (l) well-formed?
   [(where #t (acyclic Ψ () l))
    (where Γ_cls (flatten #t Ψ l))
-   (where Γ_ins (flatten #f Ψ l))
    (class-Ψ⊢Γ Ψ Γ_cls)
+   (where Γ_ins (flatten #f Ψ l))
    (class-Ψ⊢Γ Ψ Γ_ins)
    (where #t (disjoint (keysof Γ_cls) (keysof Γ_ins)))
    ------------------------------
@@ -486,11 +477,12 @@
   [(acyclic Ψ (l_visited ...) l_current)
    #f
    (judgment-holds (member l_current (l_visited ...)))]
-  [(acyclic Ψ (l_visited ...) "object")
-   #t]
   [(acyclic Ψ (l_visited ...) l_current)
    (acyclic Ψ (l_current l_visited ...) l_next)
    (where (class l_next Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_current))]
+  [(acyclic Ψ (l_visited ...) l_current)
+   #t
+   (where (class ☠ Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_current))]
   [(acyclic Ψ (l_visited ...) l_current)
    #t
    (where (class dynamic Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_current))])
@@ -507,6 +499,7 @@
 (define-judgment-form SP-compiled
   #:mode (class-Ψ⊢Γ I I)
   #:contract (class-Ψ⊢Γ Ψ Γ)
+  ;; Is the member collection (Γ) well-formed?
   [(where #f (bad-flat-class Ψ Γ))
    ---------------------------------
    (class-Ψ⊢Γ Ψ Γ)])
@@ -645,7 +638,7 @@
 (define-judgment-form SP-compiled
   #:mode (Ψ⊢T<:T I I I)
   #:contract (Ψ⊢T<:T Ψ T T)
-
+  ;; Is the first type (T) a subtype of the second one?
   [(where T_dst (union Ψ T_src T_dst))
    -----------------
    (Ψ⊢T<:T Ψ T_src T_dst)])
@@ -653,6 +646,7 @@
 (define-judgment-form SP-compiled
   #:mode (Ψ⊢T≲:T I I I)
   #:contract (Ψ⊢T≲:T Ψ T T)
+  ;; Is the first type (T) a consistent-subtype of the second one?
 
   [--------------------
    (Ψ⊢T≲:T Ψ dynamic T)]
@@ -703,20 +697,11 @@
     dynamic]])
 (define-metafunction SP-compiled
   get-attribute-class : Ψ l x -> [e- T]
-  ;; When the attribute is found in the current class,
-  ;;   and the method location is known
-  [(get-attribute-class Ψ l_cls x_mem)
-   [(ref l_mth) T]
-   (where (class any Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))
-   (where (yes T) (lookup? Γ_cls x_mem))
-   (where l_mth (lookup ρ_cls x_mem))]
-  ;; When the attribute is found in the current class,
-  ;;   and the method location is unknown
+  ;; When the attribute is found in the current class.
   [(get-attribute-class Ψ l_cls x_mem)
    [(attribute (ref l_cls) x_mem) T]
    (where (class any Γ_cls ρ_cls Γ_ins) (lookup-Ψ Ψ l_cls))
-   (where (yes T) (lookup? Γ_cls x_mem))
-   (where ☠ (lookup ρ_cls x_mem))]
+   (where (yes T) (lookup? Γ_cls x_mem))]
   ;; When the attribute is not found in the current class,
   ;;   and there is exactly one parent class
   [(get-attribute-class Ψ l_cls x_mem)
@@ -813,7 +798,6 @@
   lookup-member-T : Ψ l x -> T+☠
   ;; Given a class environment Ψ, a class name l, a member name x, what is the type of
   ;;   that member when accessed from an instance of the class?
-  
   ;; a hack to pass several None tests
   [(lookup-member-T Ψ "NoneType" x)
    ☠]
@@ -1034,10 +1018,13 @@
    e-_src
    (judgment-holds (Ψ⊢T<:T Ψ T_src T_dst))]
   [(maybe-cast Ψ [e-_src T_src] checkable-T_dst)
-   (let (["tmp" e-_src])
-     (begin
-       (compile-check "tmp" checkable-T_dst)
-       (return "tmp")))
+   (call (lambda ("tmp")
+           (begin)
+           (local ("tmp")
+             (begin
+               (compile-check "tmp" checkable-T_dst)
+               (return "tmp"))))
+         (e-_src))
    (judgment-holds (Ψ⊢T≲:T Ψ T_src checkable-T_dst))])
 (define-metafunction SP-compiled
   compile-e-lambda : Ψ Γ Γ ([x t] ...) e -> [e- T]
@@ -1116,22 +1103,22 @@
    (where T_dst (eval-t Ψ Γ_dcl e_dst))]
   ;; functions
   [(compile-e-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
-   (compile-e-call-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))])
+   (compile-real-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))])
 (define-metafunction SP-compiled
-  compile-e-call-call : Ψ Γ_dcl Γ_lcl e_fun (e_arg ...) -> [e- T]
-  [(compile-e-call-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
+  compile-real-call : Ψ Γ_dcl Γ_lcl e_fun (e_arg ...) -> [e- T]
+  [(compile-real-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
    [(call e-_fun ((maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
     T_out]
    (where [e-_fun (-> (T_arg ...) T_out)] (compile-e Ψ Γ_dcl Γ_lcl e_fun))
    (where #t ,(= (length (term (e_arg ...)))
                  (length (term (T_arg ...)))))]
-  [(compile-e-call-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
+  [(compile-real-call Ψ Γ_dcl Γ_lcl e_fun (e_arg ...))
    [(call e-_fun ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
     dynamic]
    (where [e-_fun dynamic] (compile-e Ψ Γ_dcl Γ_lcl e_fun))])
 (define-metafunction SP-compiled
   compile-new : Ψ Γ_dcl Γ_lcl T (e_arg ...) -> [e- T]
-  ;; CheckedDict(dict)
+  ;; a special case - CheckedDict[T1,T2](dict)
   [(compile-new Ψ Γ_dcl Γ_lcl (subof l) ((dict ([e_key e_val] ...))))
    [(new l ((dict ([(maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_key) T_key)
                     (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_val) T_val)]
@@ -1154,38 +1141,24 @@
   compile-method-calls : Ψ Γ_dcl Γ_lcl e_obj x_mth e_arg ... -> [e- T]
   ;; exact
   [(compile-method-calls Ψ Γ_dcl Γ_lcl e_obj x_mth e_arg ...)
-   (compile-exact-method-calls Ψ Γ_dcl Γ_lcl e-_obj exactness l_cls x_mth e_arg ...)
+   (compile-real-method-calls Ψ Γ_dcl Γ_lcl e-_obj l_cls x_mth e_arg ...)
    (where [e-_obj (exactness l_cls)] (compile-e Ψ Γ_dcl Γ_lcl e_obj))]
   ;; fallback
   [(compile-method-calls Ψ Γ_dcl Γ_lcl e_obj x_mth e_arg ...)
-   (compile-e-call-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))])
+   (compile-real-call Ψ Γ_dcl Γ_lcl (attribute e_obj x_mth) (e_arg ...))])
 (define-metafunction SP-compiled
   invoke-function : l (e- ...) -> e-
   [(invoke-function l (e- ...))
    (call (ref l) (e- ...))])
 (define-metafunction SP-compiled
-  compile-exact-method-calls : Ψ Γ_dcl Γ_lcl e-_obj exactness l_cls x_mth e_arg ... -> [e- T]
-  [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl e-_obj exact l_cls x_mth e_arg ...)
-   [(invoke-function l_mth (e-_obj (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
-    T_out]
-   (where (-> (T_arg ...) T_out) (lookup-member-T Ψ l_cls x_mth))
-   (where #t ,(= (length (term (e_arg ...)))
-                 (length (term (T_arg ...)))))
-   (where (ref l_mth) (lookup-member-l Ψ l_cls x_mth))]
-  [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl e-_obj exact l_cls x_mth e_arg ...)
-   [(call e- (e-_obj (maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
-    T_out]
-   (where (-> (T_arg ...) T_out) (lookup-member-T Ψ l_cls x_mth))
-   (where #t ,(= (length (term (e_arg ...)))
-                 (length (term (T_arg ...)))))
-   (where e- (lookup-member-l Ψ l_cls x_mth))]
-  [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl e-_obj subof l_cls x_mth e_arg ...)
+  compile-real-method-calls : Ψ Γ_dcl Γ_lcl e-_obj l_cls x_mth e_arg ... -> [e- T]
+  [(compile-real-method-calls Ψ Γ_dcl Γ_lcl e-_obj l_cls x_mth e_arg ...)
    [(call (attribute e-_obj x_mth) ((maybe-cast Ψ (compile-e Ψ Γ_dcl Γ_lcl e_arg) T_arg) ...))
     T_out]
    (where (-> (T_arg ...) T_out) (lookup-member-T Ψ l_cls x_mth))
    (where #t ,(= (length (term (e_arg ...)))
                  (length (term (T_arg ...)))))]
-  [(compile-exact-method-calls Ψ Γ_dcl Γ_lcl e-_obj exactness l_cls x_mth e_arg ...)
+  [(compile-real-method-calls Ψ Γ_dcl Γ_lcl e-_obj l_cls x_mth e_arg ...)
    [(call (attribute e-_obj x_mth) ((as-dyn (compile-e Ψ Γ_dcl Γ_lcl e_arg)) ...))
     dynamic]
    (where dynamic (lookup-member-T Ψ l_cls x_mth))])
@@ -1235,11 +1208,6 @@
    ----------------------
    (attributable (exactness l) x)])
 (define-metafunction SP-compiled
-  bind-method : T -> T
-  [(bind-method (-> (T_slf T_arg ...) T_ret))
-   (-> (T_arg ...) T_ret)]
-  [(bind-method T) T])
-(define-metafunction SP-compiled
   compile-e-if-exp : Ψ Γ Γ e e e -> [e- T]
   ;; base case
   [(compile-e-if-exp Ψ Γ_dcl Γ_lcl e e_thn e_els)
@@ -1263,9 +1231,13 @@
    (make-type-assert
     (check-exactness (invoke-function "type" (e-)) exactness l))]
   [(compile-check e- (Optional T))
-   (if (is e- (con None))
-       (begin)
-       (compile-check e- T))])
+   (expr (call (lambda ("tmp")
+                 (begin)
+                 (local ("tmp")
+                   (if (is "tmp" (con None))
+                       (begin)
+                       (compile-check "tmp" T))))
+               (e-)))])
 (define-metafunction SP-compiled
   check-exactness : e- exactness l -> e-
   [(check-exactness e- exact l)
