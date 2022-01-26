@@ -14,8 +14,6 @@ input_file = "./tests.py"
 skip_prefix = "    @skipIf("
 test_prefix = "    def test_"
 output_path_prefix = "./conformance_suite/"
-# skipped_tests_path_prefix = "./skipped_tests/"
-cannot_parse_path_prefix = "./cannot_parse/"
 # Ignore a test if it contains one of the following word
 ban_anywhere_in_test = list({
     # We don't model floats.
@@ -662,7 +660,7 @@ def main():
             except Exception as e:
                 continue
         if not translated:
-            row['model_could_not_parse'] = 0
+            row['model_could_not_parse'] = 1
             while name in left_out_tests.keys():
                 name = name + ' (again)'
             left_out_tests[name] = row

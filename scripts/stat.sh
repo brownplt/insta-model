@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SKIPPED_TESTS=`cat left-out_reason.csv | head -n -1 | wc -l`
+SKIPPED_TESTS=`cat left-out_reason.csv | tail -n +2 | wc -l`
 USED_TESTS=$(ls -l ./conformance_suite/*test_* | wc -l)
 ACTUAL_TOTAL=$(expr ${SKIPPED_TESTS} + ${USED_TESTS})
 EXPECTED_TOTAL=$(grep 'def test_' tests.py | wc -l);
