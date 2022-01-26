@@ -486,7 +486,7 @@ nonlocal maintenance costs (i.e., on constructor calls).
 The \SP{} type system is a unique synthesis of ideas from the gradual typing literature
 and prior work on types for Python.
 Its syntax for types is based on the definitions in \PEP{} and related proposals~\cite{pep484}.
-Its static semantics for types is inspired by the Pyre~\cite{pyre}, mypy~\cite{mypy}, and Pyright~\cite{pyright}
+Its static semantics for types is inspired by the Pyre~\cite{pyre} and mypy~\cite{mypy}
 optional type checkers.
 And its strategy for run-time checks is adapted from Nom~\cite{mt-oopsla-2017,mt-oopsla-2021},
 a research language with compelling performance results.
@@ -525,9 +525,11 @@ The goal is to implement a small language of types efficiently.
 The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
 and nominal classes.
-Union types are well-supported statically and narrow down in accordance
-with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),
-but are, for the most part, not supported at run-time~(\cref{s:eval-types}).
+Union types are tracked statically and narrow down in accordance
+with type tests (a form of occurrence typing~\cite{tf-icfp-2010,gsk-esop-2011}),\footnote{
+  For example, if \code{x} is an integer and \code{y} is a string, then the
+  expression \code{x or y} has a union type.}
+but are not generally supported at run-time~(\cref{s:eval-types}).
 The only exception is that binary unions of a type and the Python \code{None}
 value get enforced with a run-time check ($\sptunion{\sptype, \sptnone}$, or
 $\sptoptional{\sptype}$).
@@ -544,40 +546,24 @@ Pyre and mypy some support for the first two, but not for recursive types.
 \subsection{Type Dynamic}
 \label{s:type-dynamic}
 
-%% 2021-12-14 TODO:
-%% - anything to say about Any being a "meta" type in Python typing module?
-%%   2022-01-10 bg: not sure what the consequences of "meta type" are
-
-Like most gradual languages, \SP{} includes a dynamic type
-that allows untyped expressions within a statically-typed context.
+\SP{} includes a dynamic type that allows untyped expressions within a
+statically-typed context.
 Whenever an expression or variable lacks a type annotation, \SP{} uses the
-dynamic type as a default and skips most \emph{but not all\/} static checks.
-Programmers can thus add annotations to part of a module
-while leaving the rest unannotated.
+dynamic type as a default and skips most static checks.
+The overall goal of this design is to let programmers add simple annotations to
+part of a Python module while leaving the rest untyped.
 
-%% TODO avoid typo ... shorten?
-In addition to serving as a default, the dynamic type also replaces any undefined types.
-For example, suppose that the type $\sptflout{}$ is undefined in \SP{}
-(i.e., it is a misspelling of $\sptfloat$) and that a
-program contains the annotation $\sptchkdict{\sptstr}{\sptflout}$, which describes a
-dictionary with integer keys and $\sptflout$-typed values.
-\SP{} interprets this annotation as $\sptchkdict{\sptint}{\sptdyn}$ and allows any sort
-of values inside the dictionary at runtime.
+In addition to unannotated positions, the dynamic type is also the default for
+\PEP{} types that \SP{} does not yet understand.
+If existing code uses the type $\sptset{\sptint}$ for sets of integers,
+then \SP{} replaces it with dynamic.
+Thus, \SP{} focuses on types that it can soundly optimize without forcing
+programmers to remove types that other systems (e.g., mypy) can check.
 
-TODO reword.
-At first glance, this behavior might seem odd: why not reject undefined types with an error?
-The reason is to reduce friction with existing \PEP{} annotations.
-Pyre is a mature static type system that can check more types than \SP{} knows how to enforce
-efficiently, e.g., the type $\sptset{\sptint}$ for sets of integers.
-By replacing such types with dynamic, \SP{} can accept Pyre code that it does not yet fully understand.
-
-The \SP{} dynamic type is also different than the flexible dynamic type provided
-by gradual languages that satisfy the gradual
-guarantees~\cite{svcb-snapl-2015}.
-In \SP{}, replacing part of a type with dynamic can lead to a static error when
-the compiler analyzes that part of the module.
-Similarly, the addition of a dynamic type can lead to a run-time error because of the
-strict checks that \SP{} applies to generic types.
+The behavior of the \SP{} dynamic type is subtle, however, because dynamic code
+faces more restrictions than untyped Python code.
+Replacing part of a type with dynamic can lead to either a static error or
+a run-time error.
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
 %% \footnote{Technically, \SP{} does not even
 %% have syntax for the dynamic type. The idiomatic way to ask for dynamic is to
@@ -599,17 +585,18 @@ strict checks that \SP{} applies to generic types.
     At runtime, the function rejects this argument because its type is not an
     exact match.
 \end{itemize}
-These behaviors enable efficient run-time checks and additional type-directed
-optimizations.
-Part of the reason \SP{} weighs these benefits more heavily than the costs
+These extra restrictions make the \SP{} dynamic type different than the flexible
+dynamic type provided by languages that satisfy the gradual guarantees~\cite{svcb-snapl-2015}.
+But they also enable efficient run-time checks for generics and type-directed optimizations
+for method calls.
+Part of the reason \SP{} weighs these benefits more heavily than the gradual guarantees
 is that programmers have to opt-in to a feature in order to risk the errors.
-The static error above comes only after enabling the \SP{} compiler on a module.
-The dynamic error comes only after adopting a concrete type (for checked dictionaries).
-
-More to the point, \SP{} has little interest in guarantees about
-\emph{removing an arbitrary annotation}.
-It is, however, very interested in making sure that \emph{an untyped
-module compiles with minimal code changes}.
+The static error above comes only after enabling the \SP{} compiler on both a parent
+class and its subclass.
+The dynamic error comes only after adopting a concrete type for checked dictionaries.
+More to the point, \SP{} is less interested in guarantees about \emph{removing
+an arbitrary annotation} and more interested in making sure that \emph{an
+untyped module compiles with minimal code changes}.
 
 \begin{figure}
   \begin{subfigure}[t]{0.48\columnwidth}
@@ -698,7 +685,7 @@ For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
     for dict values that ignores the elements inside a dict.
     Consequently, a parameterized surface type such as $\sptpydict{K}{V}$
     is merely a promise of dict values at run-time; it does not promise anything about
-    dict keys and values.
+    keys and values.
   \item
     The \emph{concrete} type $\sptchkdict{K}{V}$ guarantees well-typed
     keys and values, but is incompatible with built-in Python dictionaries.
@@ -716,28 +703,28 @@ all values that reach those clients must be concrete,
 and so on and so forth.
 
 The upside of concrete types is that they enforce stronger type constraints.
-These constraints can catch bugs and usually lead to more-efficient code.
-Faster performance is not guaranteed, though, because it depends on how the dict
-gets used.
-\Cref{t:shallow-vs-concrete} presents a detailed comparison.
+These constraints can catch bugs and always lead to more-efficient typed code.
+Faster performance is not guaranteed, though, because concrete types must
+check all writes from untyped contexts.
+\Cref{t:shallow-vs-concrete} presents in more detail the worst-case costs of
+shallow and concrete dict types.
 Shallow types pay a constant-time cost whenever an untyped value enters typed code
 and whenever a typed context reads from a shallow value.
-The net cost of reads may be high.
 Concrete types pay a potentially-high cost for constructors,
-a constant-time cost for casts and for writes,
+a constant-time cost for casts and for writes in untyped code,
 and zero cost for dereferences.
-If a value is frequently written to and rarely read from, shallow types may actually
-be faster.
+If a value travels to untyped code, gets written to many times, and gets read few times,
+then the shallow types may run faster overall.
 
 \begin{table}[t]
-  \caption{Worst-case costs for shallow and concrete types}
+  \caption{Worst-case costs for shallow and concrete types (T = typed, U = untyped)}
   \label{t:shallow-vs-concrete}
 
   \centering
-  \(\begin{array}{lrrrr}
-     & \mbox{Constructor} & \mbox{Cast} & \mbox{Read} & \mbox{Write} \\\hline
-    \sptrawpydict                &           0 & O(1) & O(1) &     0 \\
-    \sptchkdict{K}{V} &        O(N) & O(1) &    0 &  O(1)
+  \(\begin{array}{l@{}rr@{\qquad}rr@{~~}@{\qquad}r@{~~}r}
+                   & \mbox{Constructor} & \mbox{Cast} & \mbox{T-Read} & \mbox{T-Write} & \mbox{U-Read} & \mbox{U-Write} \\\hline
+    \sptrawpydict         &           0 &        O(1) &          O(1) &              0 &             0 &              0 \\
+    \sptchkdict{K}{V}     &        O(N) &        O(1) &             0 &              0 &             0 &           O(1)
   \end{array}\)
 \end{table}
 
@@ -794,7 +781,7 @@ Each typed class can furthermore assume that if a method has a precise (non-dyna
 type, then all typed overrides are subtypes of this type.
 \SP{} can therefore optimize dispatch from typed callers to typed methods
 and use checked dispatch for other combinations.
-One extra step arises when an untyped class overrides a typed method.
+One extra step arises when an untyped method overrides a typed method.
 In this case, \SP{} creates a wrapper around the overriding method to check
 that it computes type-correct results.
 % Because these wrappers perform a simple first-order check, they
@@ -876,14 +863,13 @@ The \SP{} runtime system, formally known as Cinder, extends
 CPython 3.8 in several ways to take full advantage of static types.
 Cinder includes tailored bytecode instructions, virtual method tables,
 concrete datatypes, a registry of typed modules, and a JIT compiler.
-
 These main ingredients of Cinder may be of interest to other teams seeking to
 add sound gradual typing to an existing language.
-For example, Node developers may wish to fork that runtime and experiment with
+For example, Node developers may wish to fork V8 and experiment with
 bytecode instructions that leverage sound static types.
 
 
-\subsection{Bytecode Instructions}
+\paragraph{Bytecode Instructions}
 
 Cinder is a bytecode compiler that extends the Python instruction set.
 All the standard Python instructions work similarly to Python 3.8;
@@ -922,7 +908,7 @@ and applies it as an optimization.
 
 
 
-\subsection{Virtual Method Tables}
+\paragraph{Virtual Method Tables}
 \label{s:vtable}
 
 Cinder adds virtual method tables (vtables) to typed classes.
@@ -939,14 +925,12 @@ function calls.
 
 The implementation of vtables happens to be built on the Python \code{vectorcall}
 protocol; it is not a from-scratch development.
-Additionally, however, Cinder vtables are specialized to check untyped overrides
-of typed methods against their expected return type (instead of using a layer of
-indirection for the check, as found languages that enforce types with higher-order
-wrappers~\cite{clzv-ecoop-2018,gf-icfp-2018}).
+Cinder vtables are specialized to check untyped overrides of typed methods
+using a wrapper implemented in C rather than in Python, to reduce performance costs.
 
 %% beware: with vtables, method resolution is different than Python b/c args. get
 %%   resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
-
+%%
 %% > This difference in behavior isn’t so much desired as just a consequence of making
 %% > `INVOKE_METHOD` optimizable. With a normal dynamic `CALL_FUNCTION`, first
 %% > the callable is placed on the stack, then the arguments, then there is a
@@ -960,7 +944,7 @@ wrappers~\cite{clzv-ecoop-2018,gf-icfp-2018}).
 %% > the `INVOKE_METHOD`. -Carl
 
 
-\subsection{Concrete Data Structures}
+\paragraph{Concrete Data Structures}
 \label{s:chkdict-impl}
 
 The concrete versions of built-in data structures come with both a type and an
@@ -976,7 +960,7 @@ The implementation has three main components:
     The constructor requires two type parameters and a Python dictionary ($\sptrawpydict$).
     It checks that the elements of the dictionary match the key and value types.
   \item
-    All write operations check their input.
+    All untyped writes must be protected by casts.
     Every operation that mutates or extends a checked dictionary must
     validate any untyped arguments that it receives.
   \item
@@ -994,18 +978,15 @@ In general, other checked datatypes have the same three components:
 a constructor, checked update functions, and a tag.
 
 
-\subsection{Classloader}
+\paragraph{Classloader}
 \label{s:classloader}
 
 \SP{} keeps track of typed functions and typed classes with a specialized classloader.
-At runtime, the classloader keeps a registry of typed objects and whether or not they
-are mutable.
+At runtime, the classloader keeps a registry of typed objects.
 The registry helps the bytecode reference objects and types via their module names.
-The mutability bit lets \SP{} optimize access for immutable data while soundly allowing
-patches to mutable data.
 
 
-\subsection{Method-at-a-Time JIT}
+\paragraph{Method-at-a-Time JIT}
 \label{s:jit}
 
 Cinder includes a JIT (just-in-time) compiler for its bytecode.
@@ -1685,7 +1666,7 @@ enough to protect all boundaries.
 The model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
 handle.
-These include primitive types~\cref{s:c-types}, module-level variables,
+These include primitive types~(\cref{s:c-types}), module-level variables,
 and the boundary to untyped Python~(\cref{s:py-boundary}).
 %% Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
 %% are also omitted.
@@ -1710,7 +1691,7 @@ dynamic constraints.
 %% TODO FILL only 2 cases? revisit after adding "changes to python" section in 2
 There are two cases in which \SP{} types impose constraints on untyped Python code.
 First, concrete generic types (e.g., $\sptrawchkdict$)
-reject inputs that were not created via a checked contructor.
+reject inputs that were not created via a checked constructor.
 If a client of a Python module decides to impose concrete types, the Python module
 may need to change.
 Second, typed modules prevent updates to module-level variables.
@@ -1721,9 +1702,10 @@ typed functions (and methods) cannot assume that their arguments are
 well-typed.
 All arguments sent from typed contexts get validated either statically or
 via materialization casts, but arguments from untyped contexts are unchecked.
-For this reason, \SP{} compiles every typed function to check its inputs.
-Similarly, concrete types such as $\sptrawchkdict$ also
-check their writes.
+For this reason, \SP{} compiles every typed function to check its inputs;
+the optimizer can bypass these checks for typed-to-typed calls~(\cref{s:optimize}).
+Similarly, concrete types such as $\sptrawchkdict$ must check writes that
+come from untyped contexts.
 %% 2022-01-09 worth mentioning primitive types? they get cast like anything else (they don't materiazize)
 %% 2022-01-13 don't think so --- leave prims alone, we don't want to frighten reviews with unsoundness
 
@@ -1735,10 +1717,10 @@ check their writes.
 %%  the thing is, they're untyped and (maybe) not tested
 
 \SP{} does not ascribe types to the following Python features.
-These are not covered in our model because the implementation simply
+These are not covered in the model because the implementation simply
 assigns the dynamic type and lets the runtime treat them as untyped
 Python code.
-For each, the dynamic type is a very reasonable choice;
+For each, the dynamic type is a reasonable choice;
 accurate static types would be burdensome to maintain.
 
 
@@ -2248,8 +2230,9 @@ It remains to be seen whether a non-tracing JIT is effective for higher-order
 casts.
 
 \SP{} is one of many type systems for Python.
-Other optional type checkers include Pyre~\cite{pyre}, mypy~\cite{mypy}, and Pyright~\cite{pyright};
-these systems do not ensure safe interactions with untyped Python.
+Other \emph{optional\/} type checkers include Pyre~\cite{pyre},
+mypy~\cite{mypy}, PyType~\cite{pytype}, and Pyright~\cite{pyright}; these
+systems do not ensure safe interactions with untyped Python.
 Another sound type system is Reticulated,
 which enforces structural types (rather than nominal) using its transient
 semantics~\cite{vss-popl-2017,v-thesis-2019}.
