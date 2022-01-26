@@ -158,6 +158,7 @@
   (prim-op-l
    "type"
    "issubclass"
+   "-assign-attribute-"
    (method "object" "__init__")
    (method "Exception" "__init__")
    (method "int" "__init__")
@@ -454,6 +455,17 @@
             ([x_cmem l_cmem] ...)
             ([x_imem T_imem] ...))
           (lookup-builtin-class class-l))]
+  [(lookup-Σ-primitive class-l)
+   (obj "type"
+        (class ()
+          ([x_cmem (compile-check x_cmem T_cmem)] ...)
+          ([x_imem (compile-check x_imem T_imem)] ...))
+        ([x_cmem l_cmem] ...))
+   (where (class ☠
+            ([x_cmem T_cmem] ...)
+            ([x_cmem l_cmem] ...)
+            ([x_imem T_imem] ...))
+          (lookup-builtin-class class-l))]
   [(lookup-Σ-primitive prim-op-l)
    (obj "function" (prim-op prim-op-l) ())])
 
@@ -682,6 +694,8 @@
    (delta-type Σ v ...)]
   [(delta Σ "issubclass" (v ...))
    (delta-issubclass Σ v ...)]
+  [(delta Σ "-assign-attribute-" (v ...))
+   (delta-assign-attribute Σ v ...)]
   ;; fall back
   [(delta Σ l (v ...))
    [Σ (raise (new "Exception" ((con ,(format "delta: ~a" (term l))))))]
@@ -1127,6 +1141,26 @@
    [Σ (raise (new "Exception" ((con "issubclass: arity error"))))]]
   [(delta-issubclass Σ v_1 v_2 v_3 v_4 ...)
    [Σ (raise (new "Exception" ((con "issubclass: arity error"))))]])
+(define-metafunction SP-dynamics
+  delta-assign-attribute : Σ v ... -> [Σ e-]
+  ;; same class refl
+  [(delta-assign-attribute Σ_0 (ref l_obj) (ref (con x_mem)) (ref l_new))
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls g ρ)
+          (lookup-Σ Σ_0 l_obj))
+   (where (yes any)
+          (lookup? ρ x_mem))
+   (where Σ_1
+          (update Σ_0 [l_obj (obj l_cls g (update ρ [x_mem l_new]))]))]
+  [(delta-assign-attribute Σ_0 (ref l_obj) (ref (con x_mem)) (ref l_new))
+   [Σ_1 (ref (con None))]
+   (where (obj l_cls g ρ)
+          (lookup-Σ Σ_0 l_obj))
+   (where Σ_1
+          (update Σ_0 [l_obj (obj l_cls g (extend ρ [x_mem l_new]))]))]
+  [(delta-assign-attribute Σ v ...)
+   [Σ (raise (new "Exception" ((con "-assign-attribute-: arity error"))))]])
+
 
 (define-metafunction SP-dynamics
   do-call : Σ l h (v ...) -> [Σ l e-]
@@ -1170,6 +1204,7 @@
   [(arity-prim-op "type") 1]
   [(arity-prim-op "isinstance") 2]
   [(arity-prim-op "issubclass") 2]
+  [(arity-prim-op "-assign-attribute-") 3]
   [(arity-prim-op (method l_cls x_mth))
    ,(length (term (dynamic T_arg ...)))
    (where (-> (T_arg ...) T_out) (lookup-member-T (base-Ψ) l_cls x_mth))]
@@ -1303,38 +1338,28 @@
   [(do-if-exp h e-_thn e-_els)
    e-_thn])
 
-
 (define-metafunction SP-dynamics
-  do-assign-attribute : Σ safe l x v -> [Σ s-]
-  [(do-assign-attribute Σ fast l_obj x_mem (ref l_new))
-   (do-assign-attribute-fast Σ l_obj x_mem (ref l_new))]
-  [(do-assign-attribute Σ safe l_obj x_mem (ref l_new))
-   (do-assign-attribute-safe Σ l_obj x_mem (ref l_new))])
-(define-metafunction SP-dynamics
-  do-assign-attribute-fast : Σ l x v -> [Σ s-]
-  [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
-   [(update Σ [l_obj (obj l_cls g (update ρ [x_mem l_new]))])
-    (begin)]
-   (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
-   (where (yes any) (lookup? ρ x_mem))]
-  [(do-assign-attribute-fast Σ l_obj x_mem (ref l_new))
-   [(update Σ [l_obj (obj l_cls g (extend ρ [x_mem l_new]))])
-    (begin)]
-   (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))])
-(define-metafunction SP-dynamics
-  do-assign-attribute-safe : Σ l x v -> [Σ s-]
-  [(do-assign-attribute-safe Σ l_obj x_mem v_mem)
-   [Σ (begin s-_chk (assign (attribute (ref l_obj) x_mem) v_mem))]
+  do-assign-attribute : Σ l x v -> [Σ s-]
+  [(do-assign-attribute Σ l_obj x_mem v_mem)
+   [Σ (begin
+        s-_chk
+        (expr (call (ref "-assign-attribute-") ((ref l_obj) (ref (con x_mem)) v_mem))))]
    (where (obj l_cls g ρ) (lookup-Σ Σ l_obj))
    (where s-_chk (lookup-s-chk Σ l_cls x_mem v_mem))])
 (define-metafunction SP-dynamics
   lookup-s-chk : Σ l x v -> s-
+  ;; If we reach "object", we know the attribute is not declared
   [(lookup-s-chk Σ "object" x v)
    (raise (new "Exception" ((ref (con ,(format "instance variable ~a is not declared." (term x)))))))]
+  ;; If we are writing to a class value, no check is needed because
+  ;;   illegal writes would have been rejected by the compiler
+  [(lookup-s-chk Σ "type" x v)
+   (begin)]
+  ;; If we reach "object", we know the attribute is not declared
   [(lookup-s-chk Σ l x v)
    (raise (new "Exception" ((ref (con ,(format "can't override class variable ~a from an instance" (term x)))))))
    (where (obj l_cls
-               (class (v_sup ...)
+               (class any
                  ([x_cmem s-_cmem] ...)
                  ([x_imem s-_imem] ...))
                ρ)
@@ -1345,7 +1370,7 @@
           (lambda (x) s-_chk (local (x) (return (con None))))
           (v)))
    (where (obj l_cls
-               (class (v_sup ...)
+               (class any
                  ([x_cmem s-_cmem] ...)
                  ([x_imem s-_imem] ...))
                ρ)
@@ -1412,12 +1437,6 @@
             (term [([0 (env (["abc" (con 2)]) ☠)])
                    0
                    (assign "abc" (ref (con 3)))])
-            (term (terminate)))
-  (test-->> red-p
-            (term [([0 (env () ☠)]
-                    [1 (obj "MyClass" (nothing) (["abc" (con 2)]))])
-                   0
-                   (assign (attribute (ref 1) "abc") (ref (con 3)))])
             (term (terminate))))
 (define red-p
   (reduction-relation
@@ -1488,7 +1507,7 @@
         "assign"]
    [--> (in-hole [Σ_1 l ss] (assign (attribute (ref l_obj) x_mem) v_new))
         (in-hole [Σ_2 l ss] s-)
-        (where [Σ_2 s-] (do-assign-attribute Σ_1 safe l_obj x_mem v_new))
+        (where [Σ_2 s-] (do-assign-attribute Σ_1 l_obj x_mem v_new))
         "assign attribute"]
    [--> (in-hole [Σ_1 l_env ss] (import-from x_mod x_var))
         (in-hole [Σ_2 l_env ss] (begin))
@@ -1557,7 +1576,7 @@
                                   ([x_imem s-_imem] ...)))
         (in-hole [Σ_2 l_env se] (ref l_cls))
         (where l_cls (user-defined-class x_cls))
-        (where Σ_2 (extend Σ_1 [l_cls (obj "type"
+        (where Σ_2 (update Σ_1 [l_cls (obj "type"
                                            (class (v ...)
                                              ([x_cmem s-_cmem] ...)
                                              ([x_imem s-_imem] ...))

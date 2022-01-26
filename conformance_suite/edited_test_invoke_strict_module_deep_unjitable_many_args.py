@@ -4,7 +4,8 @@
 
 def f0(): return 42
 def f1(a, b, c, d, e, f, g, h):
-    class C: pass
+    # We deleted the next line because nested classes are not supported.
+    # class C: pass
     return f0() - a + b - c + d - e + f - g + h - 4
 def f2(): return f1(1,2,3,4,5,6,7,8)
 def f3(): return f2()

@@ -17,7 +17,8 @@
      (tuple (checkable-T ...))
      (user-defined-class x)
      (method class-l x)
-     (con c))
+     (con c)
+     number)
 
   ;; compiled expressions are similar to expressions,
   ;;   but with annotations and boolean operators removed.
@@ -1234,9 +1235,11 @@
    (expr (call (lambda ("tmp")
                  (begin)
                  (local ("tmp")
-                   (if (is "tmp" (con None))
-                       (begin)
-                       (compile-check "tmp" T))))
+                   (begin
+                     (if (is "tmp" (con None))
+                         (begin)
+                         (compile-check "tmp" T))
+                     (return (con None)))))
                (e-)))])
 (define-metafunction SP-compiled
   check-exactness : e- exactness l -> e-
