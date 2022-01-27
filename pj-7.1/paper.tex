@@ -14,7 +14,7 @@
 %%   trying to avoid nonstatic? staticifying?
 %% - perhaps a compatibility story, programmers can work on Python 3.9 until Cinder catches up b/c source code is the same
 %% - SP doc https://docs.google.com/document/d/1-xzpBuiDYnpeGrXy61R_JCy7-iJ2v6F5DcoB4ICHEfw/edit#
-%% -
+%% - threats to validity: only 1 migration path, no systematic evaluation (lattice)
 
 %% TODO after submission, before camera-ready
 %% - 
@@ -31,9 +31,10 @@
 \newcommand{\ipara}[1]{\emph{#1}\/.}
 \newcommand{\nnum}[1]{$N=#1$}
 \newcommand{\totalnum}[1]{$#1$ total}
+\newcommand{\pctnum}[1]{$#1\%$}
 
 %% TODO 2022-01-25 recount tests
-\newcommand{\numbenchmark}{2}
+\newcommand{\numbenchmark}{3}
 \newcommand{\numSPtest}{265}
 \newcommand{\numSPtotal}{802} %% SP commit 6d61575 from Jan 9
 \newcommand{\numSPdiff}{537} %% (\numSPtotal - \numSPtest)
@@ -282,8 +283,8 @@ untyped code behaves.
 
 Unfortunately, the high run-time cost of sound types has split
 the gradual typing community.
-Industry teams have developed innovative type systems that accommodate
-untyped designs, but are unsound~\cite{bat-ecoop-2014,rch-popl-2012,cvgrl-oopsla-2017}.
+Industry teams have developed innovative \emph{optional} type systems that accommodate
+untyped designs, but are unsound~\cite{bat-ecoop-2014,rch-popl-2012,cvgrl-oopsla-2017,pep484}.
 These systems intentionally check nothing at run-time when untyped values enter
 typed code.
 Academic teams have primarily focused on the theory of sound
@@ -350,10 +351,10 @@ This paper makes two contributions:
     At Instagram, the web server has become significantly more efficient
     after the application of \SP{} to high-profile modules.
     Because the server code is closed-source, we additionally present data for
-    \numbenchmark{} public benchmarks.
-    Using only shallow types, \SP{} runs on-par with Python despite the costs of
-    enforcing soundness.
-    With fine-tuned types, \SP{} consistently out-performs the Python baseline.
+    \numbenchmark{} public microbenchmarks~(\cref{s:microbenchmarks}).
+    Using only shallow types, \SP{} runs slightly faster than Python
+    despite the costs of enforcing soundness~(avg. \pctnum{28}).
+    With fine-tuned types, \SP{} consistently out-performs the Python baseline~(avg. \pctnum{67}).
 
   \item
     \emph{Mechanization}.
@@ -518,8 +519,8 @@ In general, the types that \SP{} implements all enable significant optimizations
 and can be validated quickly with casts.
 Types that do not meet these criteria are deferred to the mature optional
 type checkers that already exist for Python.
-In fact, \SP{} has no plans to support all \PEP{} types.
-The goal is to implement a small language of types efficiently.
+In fact, \SP{} has no short-term plans to support all \PEP{} types.
+The main priority is to implement a small language of types efficiently.
 
 The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
@@ -537,7 +538,7 @@ Three other unsupported types bear special mention:
 first-class class and object types~(\cref{s:inheritance});
 first-class function (callable) types; and
 recursive types.
-Pyre and mypy some support for the first two kinds, but not for recursive types.
+Pyre and mypy offer some support for the first two kinds, but not for recursive types.
 %% mypy rec.types = https://github.com/python/mypy/issues/731
 %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
@@ -644,47 +645,37 @@ f(d)
 \subsection{Concrete Types and Shallow Types}
 \label{s:checked-type}
 
-Every \SP{} type corresponds to a constant-time cast.
-When an unknown value reaches a boundary to typed code at run-time,
-\SP{} uses these checks to quickly decide whether or not the value
-matches the type (think: \code{isinstance} checks).
-Unlike structural gradual type systems, \SP{} does not traverse
-incoming values, nor does it create wrappers to enforce behavior.
+Every \SP{} type is paired with an efficient cast operation that runs in
+constant time regardless of how large an incoming value is.
+Unlike structural gradual type systems~\cite{gtnffvf-jfp-2019},
+no cast traverses an incoming value and no cast creates a wrapper
+to monitor future behaviors.
+Some casts for generic types are, however, incomplete.
+We call the types with incomplete casts \emph{shallow} types
+and the types with full casts \emph{concrete} types, following
+the \code{StrongScript} authors~\cite{rzv-ecoop-2015}.
 
-These dynamic checks try to faithfully enforce a full type, but some are incomplete---especially
-for generic types.
-We call the incomplete ones \emph{shallow} types.
-The \SP{} strategy for sound generics is to package each value with a type
-tag; following the \textsf{StrongScript} authors~\cite{rzv-ecoop-2015}, we call
-these \emph{concrete} types.
+First off, the casts for non-generic nominal types are straightforward.
+Every type has a name and every value has a tag that corresponds to the name.
+A cast must examine the parents of a class to find a match in the worst case,
+but these traversals are bounded in length and typically short.
 
-First off, for a basic nominally-typed language (think Java 1.4, before
-generics), constant-time checks are easy to implement.
-Every type has a name and every value has a tag that corresponds to the
-name of its type.
-A cast must examine the parents of a class in the worst case,
-but these traversals are bounded and typically short.
-
-Parameterized types (generics) are more difficult to enforce.
-For example, suppose that a typed function expects inputs that match
+Generic types are more difficult to enforce because a tag by itself does not
+describe their contents.
+For example, suppose that a function expects inputs that match
 the type \code{Dict[int,int]}; that is, dictionaries with integer keys and
 integer values.
-A constant-time check for dictionaries is not enough to protect the typed
-function because it fails to validate the elements inside a dictionary.
-The \SP{} solution is to provide two incompatible versions of every parameterized type,
-both of which support efficient run-time checks.\footnote{Not all parameterized \SP{} types have both shallow
-and concrete versions at present.
-In particular, user-defined classes do not have concrete support.
-The shallow check for a user-defined class, however, guarantees the types of all
-non-generic fields and methods.}
-For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
+A constant-time check for Python dictionaries is not enough to protect the
+function against dicts with ill-typed elements.
+The \SP{} solution is provide a second kind of dictionary that ensures
+the validity of its elements.
+These two dicts have distinct types:
 \begin{enumerate}
   \item
     The \emph{shallow} type $\sptrawpydict$ gets enforced with a constant-time check
-    for dict values that ignores the elements inside a dict.
+    for dict values that ignores elements.
     Consequently, a parameterized surface type such as $\sptpydict{K}{V}$
-    is merely a promise of dict values at run-time; it does not promise anything about
-    keys and values.
+    does not promise anything about keys and values.
   \item
     The \emph{concrete} type $\sptchkdict{K}{V}$ guarantees well-typed
     keys and values, but is incompatible with built-in Python dictionaries.
@@ -692,7 +683,11 @@ For dictionaries, \SP{} provides the types $\sptrawpydict$ and $\sptrawchkdict$:
 \end{enumerate}
 %
 These options let programmers decide whether to edit their code to support concrete types
-or leave it as-is with shallow types.
+or leave it as-is with shallow types.\footnote{Not all generic \SP{} types have shallow
+  and concrete versions at present.
+  In particular, user-defined classes do not have concrete support.
+  The shallow check for a user-defined class does, however, guarantee the types of all
+  non-generic fields and methods.}
 Often, the shallow types are more attractive because concrete types impose
 nonlocal changes.
 If one type changes to concrete, then several changes may need to happen:
@@ -702,8 +697,8 @@ all values that reach those clients must be concrete,
 and so on and so forth.
 
 The upside of concrete types is that they enforce stronger type constraints.
-These constraints can catch bugs and always lead to more-efficient typed code.
-Faster performance is not guaranteed, though, because concrete types must
+These constraints can catch bugs and always lead to faster typed code.
+Faster performance is not guaranteed in general, though, because concrete types must
 check all writes from untyped contexts.
 \Cref{t:shallow-vs-concrete} presents in more detail the worst-case costs of
 shallow and concrete dict types.
@@ -711,9 +706,9 @@ Shallow types pay a constant-time cost whenever an untyped value enters typed co
 and whenever a typed context reads from a shallow value.
 Concrete types pay a potentially-high cost for constructors,
 a constant-time cost for casts and for writes in untyped code,
-and zero cost for dereferences.
+and zero cost for reads.
 If a value travels to untyped code, gets written to many times, and gets read few times,
-then the shallow types may run faster overall.
+then the shallow types may run faster in the end.
 
 \begin{table}[t]
   \caption{Worst-case costs for shallow and concrete types (T=typed, U=untyped)}
@@ -909,7 +904,12 @@ and applies it as an optimization.
 \paragraph{Virtual Method Tables}
 \label{s:vtable}
 
-Cinder adds virtual method tables (vtables) to typed classes.
+%% vtables go in:
+%% - typed classes
+%% - builtin classes that SP treats as typed
+%% - typed and untyped subtypes of classes with vtables
+
+Cinder adds virtual method tables (vtables) to classes.
 These tables help to speed up method dispatch relative to Python's
 dynamic lookup.
 Calls to static methods that appear in statically-typed
@@ -1762,10 +1762,8 @@ MonNom interfaces may be a promising way to support these types.
 %% TODO check Dino email, confirm with C&D that layout conflict is unrelated to vtables
 
 Python allows classes to inherit from a list of parents.
-\SP{} accommodates this behavior provided that one parent is defined in typed
-code and the untyped parents do not specify their members (via
-\code{\_\_slots\_\_}).
-Other uses of multiple inheritance must stay in untyped code.
+\SP{} accommodates this behavior provided that at most one parent
+is typed (or uses \code{\_\_slots\_\_} to specify its layout; plain Python has the same restriction).
 
 \SP{} does not leverage types for classes with multiple parents
 because of vtable layout issues.
@@ -1773,6 +1771,8 @@ Efficient vtable dispatch requires that each method name
 resides in a fixed slot across all subclasses.
 With multiple inheritance, however, parents may disagree about which method
 lives in each slot.
+Similarly, \SP{} cannot optimize instance variable reads because their slots
+may have a conflict among parents.
 %% possible improvement: invoke methods on the first parent statically and on
 %% other parents dynamically and forbid those other paarents from having instance
 %% attributes.
@@ -2198,6 +2198,7 @@ untyped versions.
 
 \begin{table}[t]
   \caption{Microbenchmark performance ratios. NB: data for nbody is pending.}
+  %% FILL don't forget to update \numbenchmark{}
   \label{t:microbenchmark}
 
   \centering
@@ -2252,7 +2253,7 @@ It remains to be seen whether a non-tracing JIT is effective for higher-order
 casts.
 
 \SP{} is one of many type systems for Python.
-Other \emph{optional\/} type checkers include Pyre~\cite{pyre},
+Other optional type checkers include Pyre~\cite{pyre},
 mypy~\cite{mypy}, PyType~\cite{pytype}, and Pyright~\cite{pyright}; these
 systems do not ensure safe interactions with untyped Python.
 Another sound type system is Reticulated,
