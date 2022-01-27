@@ -826,7 +826,8 @@ sound types and strong optimizations:
 class attributes must be set in an \code{\_\_init\_\_} method to
 ensure predictable layouts (all \PEP{} checkers agree on this);
 module-level variables cannot be mutated; and
-typed classes can inherit from at most one other typed class.
+multiple inheritance among typed classes (or untyped classes with
+a typed ancestor) is forbidden.
 
 Several other Python features are unsupported at present:
 enums; the \code{@dataclass} decorator;
@@ -1776,6 +1777,38 @@ may have a conflict among parents.
 %% possible improvement: invoke methods on the first parent statically and on
 %% other parents dynamically and forbid those other paarents from having instance
 %% attributes.
+
+%% So in normal Python you will get a layout error anytime you try to inherit from
+%% more than one class defining _slots_. Any SP class with instance attributes
+%% implicitly defines _slots_. So it depends how you interpret "where Python
+%% wouldn't." If you consider SP classes to be slots-defining (because we emit
+%% bytecode such that they are, even though they don't explicitly in the source
+%% code), then our behavior is just the normal Python behavior.
+%% 
+%% There is one edge case where we are more strict, which is a SP class with no
+%% instance attributes, only methods. In this case it will not have _slots_ and
+%% Python would allow it to multiply-inherit with something else that does have
+%% _slots_. But because we also have the vtables problem (which normal Python does
+%% not), we can't ever allow multiple inheritance from two SP classes, even if one
+%% or both of them has no instance slots, and even if that multiple inheritance
+%% occurs in a nonstatic module (the nonstatic subclass will still have a vtable,
+%% because we may statically invoke methods on it, since it is substitutable for
+%% its static parents, and that vtable will still be impossible to construct
+%% correctly.) We implement this restriction in a kind of lazy way by just
+%% piggybacking on Python's existing layout incompatibility check, and adding in a
+%% clause that forces every SP class to always be considered as slots-having, even
+%% if it doesn't actually have any instance variable slots. So in this edge case
+%% only, we will error where Python wouldn't.
+%% 
+%% I summarized all of this in as few words as I could with "at most one parent is
+%% defined in typed code or uses _slots_ to specify its members," which is what
+%% the above boils down to.
+%% 
+%% suppose technically we are slightly more restrictive than we would have to be:
+%% we currently forbid, but technically could support a case of multiple
+%% inheritance where one parent is an SP class with no instance attributes, and
+%% the other parent is a nonstatic class. But this seems not very useful to
+%% support, and just makes the rules even more complicated.
 
 
 \paragraph{Dynamic Execution}
