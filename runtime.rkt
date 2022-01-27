@@ -1402,6 +1402,23 @@
    (where #t (falsy? h))]
   [(do-if h s-_thn s-_els)
    s-_thn])
+(define-metafunction SP-dynamics
+  do-delete : Σ l x -> [Σ s-]
+  [(do-delete Σ l x)
+   (checked-update-env Σ l x ☠)])
+(define-metafunction SP-dynamics
+  checked-update-env : Σ l x l+☠ -> [Σ s-]
+  [(checked-update-env Σ "builtin-env" x_var l+☠_new)
+   [Σ (raise (new "Exception" ()))]]
+  ;; if x is in the current environment
+  [(checked-update-env Σ l_env x_var l+☠_new)
+   [(update Σ [l_env (env (update ρ [x_var l+☠_new]) l+☠_out)])
+    (begin)]
+   (where (env ρ l+☠_out) (lookup-Σ Σ l_env))
+   (where (yes l+☠_old) (lookup? ρ x_var))]
+  [(checked-update-env Σ l_env x_var l+☠_new)
+   (checked-update-env Σ l_out x_var l+☠_new)
+   (where (env ρ l_out) (lookup-Σ Σ l_env))])
 
 (module+ test
   (test-->> red-p
@@ -1494,8 +1511,8 @@
         (in-hole [Σ l ss] (do-if (lookup-Σ Σ l_cnd) s-_thn s-_els))
         "if"]
    [--> (in-hole [Σ_1 l ss] (delete x))
-        (in-hole [Σ_2 l ss] (begin))
-        (where Σ_2 (update-env Σ_1 l x ☠))
+        (in-hole [Σ_2 l ss] s-)
+        (where [Σ_2 s-] (do-delete Σ_1 l x))
         "delete"]
    [--> (in-hole [Σ_1 l ss] (delete (attribute (ref l_obj) x)))
         (in-hole [Σ_2 l ss] s-)

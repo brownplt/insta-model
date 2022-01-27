@@ -7,8 +7,6 @@
 
 (random-seed 2022)
 
-;; GOAL: progression and preservation
-
 (define-extended-language SP-conjecture
   SP-dynamics)
 
@@ -38,7 +36,7 @@
        [otherwise
         (println state)
         (println (apply-reduction-relation/tag-with-names red-p state))
-        (raise "Aho")])]))
+        (raise "???")])]))
 
 ;; transition the input state until it gets stuck or we reach `number` steps.
 (define-judgment-form SP-conjecture
@@ -145,16 +143,26 @@
     (implies e-T
              (match-let ([(list e- T) e-T])
                (inc expr-well-typed-counter)
-               (let* ([p (reduce-to-v 1000 (term (load [() () (expr ,e-)])))]
-                      [Σv? (maybe-get-Σv p)])
-                 (if Σv?
-                     (begin
-                       (inc expr-terminate-counter)
-                       (match-let ([(list Σ v) Σv?])
-                         (term (Σ⊢v:T ,Σ ,v ,T))))
-                     (begin
-                       (inc expr-nonterminate-counter)
-                       #t)))))))
+               (let* ([p (reduce-to-v 100 (term (load [() () (expr ,e-)])))])
+                 (cond
+                   [(redex-match? SP-dynamics (error any) p)
+                    ;; terminate as error
+                    (begin
+                      (inc expr-terminate-counter)
+                      #t)]
+                   [else
+                    (let* ([Σv? (maybe-get-Σv p)])
+                      (if Σv?
+                          ;; terminate as a value
+                          (begin
+                            (inc expr-terminate-counter)
+                            (match-let ([(list Σ v) Σv?])
+                              (term (Σ⊢v:T ,Σ ,v ,T))))
+                          ;; other cases
+                          (begin
+                            (inc expr-nonterminate-counter)
+                            (term (show ,p))
+                            #t)))]))))))
 (define-metafunction SP-conjecture
   compile-implies-terminate-implies-well-typed-e : e+ -> boolean
   [(compile-implies-terminate-implies-well-typed-e e+)
@@ -173,7 +181,7 @@
                  expression-terminate
                  expression-nonterminate)))
 (printf "found ~a well-typed expressions.\n" expression-well-typed)
-(printf "~a of them reduce to a value.\n" expression-terminate)
+(printf "~a of them reduce to a value of the expected type, or to a legitimate error.\n" expression-terminate)
 (printf "~a of them don't reduce to a value within the step limit.\n" expression-nonterminate)
 
 (define prog-well-typed-counter (box 0))
@@ -194,7 +202,7 @@
   redex-maybe-reduce : program- -> any
   [(redex-maybe-reduce program-)
    p
-   (judgment-holds (-->ⁿ (load program-) 1000 p))]
+   (judgment-holds (-->ⁿ (load program-) 100 p))]
   [(redex-maybe-reduce program-)
    #f])
 (define (maybe-reduce program-)
@@ -205,6 +213,7 @@
   [(well-typed-implies-only-stuck-at-good-state program+)
    ,(racket-well-typed-implies-only-stuck-at-good-state (term program+))])
 (define (racket-well-typed-implies-only-stuck-at-good-state program+)
+  (term (show ,program+))
   (let* ([program-? (maybe-compile program+)])
     ;; compile iff well-typed
     ;; We test whether well-typed-ness implies safety
@@ -219,7 +228,7 @@
                      (begin
                        (inc prog-nonterminate-counter)
                        (term (reducible ,p)))))))))
-(define program-total 100000)
+(define program-total 20000)
 ;; safety of program+
 (redex-check SP-conjecture
              program+
