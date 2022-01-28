@@ -113,7 +113,8 @@
 
 
 (define expr-well-typed-counter (box 0))
-(define expr-terminate-counter (box 0))
+(define expr-value-counter (box 0))
+(define expr-error-counter (box 0))
 (define expr-nonterminate-counter (box 0))
 (define-metafunction SP-conjecture
   redex-maybe-compile-expr : e+ -> any
@@ -148,14 +149,14 @@
                    [(redex-match? SP-dynamics (error any) p)
                     ;; terminate as error
                     (begin
-                      (inc expr-terminate-counter)
+                      (inc expr-error-counter)
                       #t)]
                    [else
                     (let* ([Σv? (maybe-get-Σv p)])
                       (if Σv?
                           ;; terminate as a value
                           (begin
-                            (inc expr-terminate-counter)
+                            (inc expr-value-counter)
                             (match-let ([(list Σ v) Σv?])
                               (term (Σ⊢v:T ,Σ ,v ,T))))
                           ;; other cases
@@ -172,17 +173,21 @@
              e+
              (term (compile-implies-terminate-implies-well-typed-e e+))
              #:attempts 10000)
-(define expression-well-typed (unbox expr-well-typed-counter))
-(define expression-terminate (unbox expr-terminate-counter))
-(define expression-nonterminate (unbox expr-nonterminate-counter))
-(when (not (= (+ expression-terminate expression-nonterminate) expression-well-typed))
-  (raise (format "testing expressions. ~a ≠ ~a + ~a"
-                 expression-well-typed
-                 expression-terminate
-                 expression-nonterminate)))
-(printf "found ~a well-typed expressions.\n" expression-well-typed)
-(printf "~a of them reduce to a value of the expected type, or to a legitimate error.\n" expression-terminate)
-(printf "~a of them don't reduce to a value within the step limit.\n" expression-nonterminate)
+(define expr-well-typed (unbox expr-well-typed-counter))
+(define expr-terminate-to-value (unbox expr-value-counter))
+(define expr-terminate-to-error (unbox expr-error-counter))
+(define expr-nonterminate (unbox expr-nonterminate-counter))
+(when (not (= (+ expr-terminate-to-error expr-terminate-to-value expr-nonterminate)
+                 expr-well-typed))
+  (raise (format "testing expressions. ~a ≠ ~a + ~a + ~a"
+                 expr-well-typed
+                 expr-terminate-to-value
+                 expr-terminate-to-error
+                 expr-nonterminate)))
+(printf "found ~a well-typed expressions.\n" expr-well-typed)
+(printf "~a of them reduce to a value of the expected type.\n" expr-terminate-to-value)
+(printf "~a of them reduce to an error.\n" expr-terminate-to-error)
+(printf "~a of them don't reduce to a value within the step limit.\n" expr-nonterminate)
 
 (define prog-well-typed-counter (box 0))
 (define prog-terminate-counter (box 0))
@@ -202,7 +207,7 @@
   redex-maybe-reduce : program- -> any
   [(redex-maybe-reduce program-)
    p
-   (judgment-holds (-->ⁿ (load program-) 100 p))]
+   (judgment-holds (-->ⁿ (load program-) 50 p))]
   [(redex-maybe-reduce program-)
    #f])
 (define (maybe-reduce program-)
@@ -213,7 +218,6 @@
   [(well-typed-implies-only-stuck-at-good-state program+)
    ,(racket-well-typed-implies-only-stuck-at-good-state (term program+))])
 (define (racket-well-typed-implies-only-stuck-at-good-state program+)
-  (term (show ,program+))
   (let* ([program-? (maybe-compile program+)])
     ;; compile iff well-typed
     ;; We test whether well-typed-ness implies safety
@@ -228,7 +232,9 @@
                      (begin
                        (inc prog-nonterminate-counter)
                        (term (reducible ,p)))))))))
-(define program-total 20000)
+;; You can pick a number larger than 15000 but it will be much slower.
+;; Testing 25000 programs takes 1h on Kuang-Chen's laptop.
+(define program-total 15000)
 ;; safety of program+
 (redex-check SP-conjecture
              program+
