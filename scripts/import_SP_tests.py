@@ -557,7 +557,6 @@ def parse_asserts(name, spec):
 
 def translate_all_assert_tests(name, test):
     code, spec = parse_simple_test(test)
-    # Capture tests that have some assertEqual/assertRaise ... (TODO)
     asserts = [
         'assertEqual',
         'assertRaises'
