@@ -1045,18 +1045,17 @@ a detailed categorization.
 
 \paragraph{The Payoff: Issues Reported}
 
-The modelling process helped uncover several critical issues with the
-implementation of \SP{}---an important payoff given that \SP{} is running in
-production at Instagram.
-Overall, we reported 25 bug reports to the \SP{} team via GitHub~(listed in
-\cref{a:github-issues}).
-Four of these were soundness issues, one of which could be easily exploited to raise
+The modelling process helped uncover several critical issues in \SP{}.
+This is a very important payoff given that \SP{} is running in production at
+Instagram.
+Overall, we made 25 bug reports~(\cref{a:github-issues}) to the \SP{} team via GitHub.
+Four of these were soundness issues, one of which we could exploit to raise
 a segmentation fault.
 All but one of these soundness bugs have been fixed.
-Five issues were relatively minor; these dealt with confusing error messages
+Of the remaining issues, five were relatively minor; these dealt with confusing error messages
 and incorrect tests.
 The remaining 16 issues report bugs in language design and implementation.
-The \SP{} team has acknowledged these bugs as such by applying a specific GitHub label: \lstinline{sp-correctness}.
+The \SP{} team has acknowledged these as bugs by applying a specific GitHub label: \lstinline{sp-correctness}.
 
 To give one example issue, \SP{} incorrectly accepted the following program whereas our model
 reported a type error:
