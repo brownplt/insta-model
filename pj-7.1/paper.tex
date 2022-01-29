@@ -2664,10 +2664,16 @@ JIT runs use a JIT list that includes only the benchmark code itself, to
 minimize overhead of compiling unrelated standard library code not used in the
 benchmark.
 
-Benchmarks run on the following commit:
+Benchmarks \bmname{richards} and \bmname{fannkuch} ran on the following commit:
 
 \begin{center}
 \footnotesize\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}
+\end{center}
+
+\noindent\bmname{deltablue} ran on a later commit:
+
+\begin{center}
+\footnotesize\url{https://github.com/facebookincubator/cinder/commit/c9d14c4474facfeca15b618015b58b99a3e86d25}
 \end{center}
 
 Fannkuch in particular is very numeric-heavy, so using unboxed primitive
