@@ -2228,7 +2228,7 @@ Every benchmark version invoked the JIT on the same set of functions.
 \Cref{a:microbench-detail} presents further details.
 
 \begin{table}[t]
-  \caption{Microbenchmark performance ratios. NB: data for nbody is pending.}
+  \caption{Microbenchmark performance ratios}
   %% FILL don't forget to update \numbenchmark{}
   \label{t:microbenchmark}
 
@@ -2236,11 +2236,12 @@ Every benchmark version invoked the JIT on the same set of functions.
   \begin{tabular}{lrr}
     Name               & Typed / Python & Refined / Python \\\midrule
     \bmname{deltablue} &         0.59 &           0.30 \\
-    \bmname{nbody}     &         FILL &           FILL \\
+    %% \bmname{nbody}     &         FILL &           FILL \\
     \bmname{richards}  &         0.53 &           0.22 \\
     \bmname{fannkuch}  &         1.03 &           0.46
     %% fannkuch typedbasic2 = 0.90
   \end{tabular}
+
 \end{table}
 
 Almost all ratios are less than one, showing that \SP{} achieves a speedup over
@@ -2252,7 +2253,23 @@ numeric types that \SP{} does not optimize.
 Switching to primitive types without otherwise changing the code
 gives an immediate speedup (ratio = $0.90$).
 
-%% FILL threats to validity
+%% \textbf{Note to Programming Reviewers:}
+%%  We plan to add a fourth benchmark to \cref{t:microbenchmark}.
+
+
+\paragraph{Threats to Validity}
+
+\Cref{t:microbenchmark} does not analyze benchmark configurations that mix
+typed and untyped code. %% ---only fully-typed and untyped configurations.
+Mixed configurations may reveal performance bugs similar to those found
+by an evaluation of Retifulated Python~\cite{gm-pepm-2018}.
+
+%% Although mixed configurations are unlikely to have disastrous
+%% overhead~\cite{tfgnvf-popl-2016} due to \SP's efficient strategy for enforcing
+%% types and Instagram's positive experience with mixed-typed code in
+%% production~(\cref{s:migration-path}), they could reveal performance bugs
+%% similar to those found by a prior evaluation of Retifulated
+%% Python~\cite{gm-pepm-2018}.
 
 
 \section{Related Work}
@@ -2422,31 +2439,31 @@ point.
 %% gradual types in practice.
 
 
-\acks{
-  \SP{} and the Cinder JIT were developed by
-  Max Bernstein,
-  John Biesnecker,
-  Jacob Bower,
-  Sinan Cepel,
-  Tiansi Hu,
-  Orvid King,
-  Vladimir Matveev,
-  William Meehan,
-  Carl Meyer,
-  Matt Page,
-  Aniket Panse,
-  Brett Simmers,
-  Andrei Talaba,
-  Dino Viehland,
-  and Shiyu Wang.
-  The Brown authors contributed to the language by modeling it independently; they
-  are not part of the \SP{} team.
-
-  Special thanks to Twitter, thanks to which the two teams
-  (specifically, Meyer and Krishnamurthi) met.
-  This work was partly supported by the US National Science Foundation.
-  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-}
+%\acks{
+%  \SP{} and the Cinder JIT were developed by
+%  Max Bernstein,
+%  John Biesnecker,
+%  Jacob Bower,
+%  Sinan Cepel,
+%  Tiansi Hu,
+%  Orvid King,
+%  Vladimir Matveev,
+%  William Meehan,
+%  Carl Meyer,
+%  Matt Page,
+%  Aniket Panse,
+%  Brett Simmers,
+%  Andrei Talaba,
+%  Dino Viehland,
+%  and Shiyu Wang.
+%  The Brown authors contributed to the language by modeling it independently; they
+%  are not part of the \SP{} team.
+%
+%  Special thanks to Twitter, thanks to which the two teams
+%  (specifically, Meyer and Krishnamurthi) met.
+%  This work was partly supported by the US National Science Foundation.
+%  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+%}
 
 {\sloppy
 \printbibliography
