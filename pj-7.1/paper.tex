@@ -9,13 +9,6 @@
 % > this is too much work, it’d never work” But in fact it looks like they seem to
 % > be making it work -- Shriram 2021-09-30
 
-%% TODO before submission
-%% - choose words: static vs typed, nonstatic vs dynamic vs untyped
-%%   trying to avoid nonstatic? staticifying?
-%% - perhaps a compatibility story, programmers can work on Python 3.9 until Cinder catches up b/c source code is the same
-%% - SP doc https://docs.google.com/document/d/1-xzpBuiDYnpeGrXy61R_JCy7-iJ2v6F5DcoB4ICHEfw/edit#
-%% - threats to validity: only 1 migration path, no systematic evaluation (lattice)
-
 %% TODO after submission, before camera-ready
 %% - 
 
@@ -114,7 +107,7 @@
 
 \newcommand{\mfapply}[2]{#1\,(#2)}
 \newcommand{\mffont}[1]{\mathit{#1}}
-\newcommand{\mftypeF}[1]{\mfapply{\mffont{F}}{#1}} % {\mfapply{\mffont{T}_{\downarrow}\!\mffont{S}}{#1}}
+\newcommand{\mftypeF}[1]{\mfapply{\mffont{R}}{#1}} % {\mfapply{\mffont{T}_{\downarrow}\!\mffont{S}}{#1}}
 \newcommand{\mfcast}[2]{\mfapply{\mffont{Cast}}{#1, #2}}
 \newcommand{\mfopt}[1]{\mfapply{\mffont{opt}}{#1}}
 
@@ -166,7 +159,7 @@
 
 \authorrunning{DRAFT do not distribute}
 
-\keywords{gradual typing, migratory typing}
+\keywords{gradual typing, migratory typing, language design, concrete types, shallow types}
 
 \begin{CCSXML}
 \end{CCSXML}
@@ -295,8 +288,8 @@ gradual types, formulating correctness properties and studying ever-more-descrip
 types~(e.g.,~\cite{sgt-jfp-2016,clps-popl-2019,nla-popl-2019,mgt-oopsla-2021})
 A few academics have studied the cost of run-time checks
 in detail~\cite{tfgnvf-popl-2016,gtnffvf-jfp-2019}
-and proposed implementation methods~\cite{kas-pldi-2019,bbst-oopsla-2017},
-compiler technology~\cite{vsc-dls-2019,fgsfs-oopsla-2018},
+and proposed implementation methods~\cite{kas-pldi-2019,fgsfs-oopsla-2018},
+compiler technology~\cite{vsc-dls-2019,bbst-oopsla-2017},
 and even weakened semantics~\cite{glfd-pj-2022,vss-popl-2017,gi-scp-2020},
 but these efforts have not yet decisively closed the performance gap.
 The most promising attempt is the \emph{concrete\/} semantics
@@ -310,7 +303,7 @@ without overly restricting the promise of gradual typing.
 Industry researchers are sidestepping the problem with unsound types---for the most part.
 
 This paper reports an exception to the rule among industry-made gradual type systems.
-The \SP{} team at Instagram has developed a \emph{sound} type system for a subset of
+The \SP{} team at Instagram has developed a sound type system for a subset of
 Python along with a runtime system that uses soundness to drive optimizations.
 The language is staged to let programmers choose between easy migrations and
 full-strength optimizations, a design that we call \emph{gradual soundness}.
@@ -323,7 +316,7 @@ To a first approximation, there are three main stages:
     changes.
   \item
     A second level of \emph{concrete types\/} describes generic data structures
-    that guarantee the types of their elements.
+    that check the types of their elements.
     If programmers modify their code to build concrete structures instead of Python
     ones (a potentially nonlocal change), then \SP{} can perform deeper optimizations.
   \item
@@ -363,11 +356,8 @@ This paper makes two contributions:
     \emph{Mechanization}.
     To validate the soundness of \SP{}, we mechanized a core language in PLT Redex
     and ran both property-based soundness tests and over 200 tests adapted from the \SP{} regression suite.
-    The model brings across the essence of \SP{} and lends support to the claim
-    that core \SP{} is indeed sound.
-    Perhaps more importantly, the \emph{process} of modeling revealed 20 significant
-    issues in \SP{}.
-    Four of these were soundness bugs.
+    The modeling effort revealed 20 significant issues in \SP{},
+    four of which were soundness bugs.
 
 \end{itemize}
 
@@ -418,11 +408,11 @@ Others might be useful to adopt in new language designs.
 bytecode, and a method-based JIT compiler.
 In essence, \SP{} is the type system for an entirely new language.
 The interface that it offers to programmers, however, replicates the
-Python experience.
-\SP{} runs untyped Python 3.8 programs with minimal changes to their
+standard Python experience.
+\SP{} runs Python 3.8 programs with minimal changes to their
 behavior~(\cref{s:not-python}),
-and it compiles code on-the-fly to enable the same
-developer tools as standard Python.
+and it compiles code on-the-fly to support existing
+IDEs and developer tools.
 The advanced features of the \SP{} type system are offered on an opt-in basis
 and arranged so that programmers can begin adding types one module at a time.
 
@@ -460,11 +450,11 @@ utilize \SP{} types.
 The basic program defines a function \code{f} and calls it with a dictionary
 value.
 \SP{} can run this program as-is and even JIT-compile the function.
-The other two versions import dictionary types from the \SP{} standard library:
+The other two versions use dictionary types:
 \begin{itemize}
   \item
     The $\sptrawpydict$ type describes normal Python dictionaries in a \emph{shallow} sense.
-    At compile-time, \SP{} uses this type to check the program for logical errors.
+    At compile-time, \SP{} uses this type to find basic logical errors.
     At run-time, \SP{} enforces the type by checking that all inputs to \code{f} are
     dictionary values.
     These checks enable optimizations within the function body.
@@ -477,11 +467,12 @@ The other two versions import dictionary types from the \SP{} standard library:
     As the body of \code{f} illustrates, the syntax for using a checked dict is standard.
     Creating a checked dict, however, requires a type-parameterized constructor call.
 \end{itemize}
-These typed versions demonstrate the multi-level nature of the \SP{} interface.
+These typed versions demonstrate the multi-level nature of \SP{}.
 At one level, there are types that describe standard Python values that can be added
 to a program with little-to-no code changes.
-Beyond that, \SP{} offers special-purpose types with stronger guarantees that impose
-nonlocal maintenance costs (i.e., on constructor calls).
+At the next level, \SP{} offers special-purpose types with stronger guarantees that impose
+nonlocal maintenance costs, such as requiring edits to constructor calls.
+% (i.e., programmers may need to modify constructor calls).
 
 
 \subsection{Type System Context and Design Goals}
@@ -504,7 +495,7 @@ a research language with compelling performance results.
     at least in the Instagram web server.
     Precise types for higher-order functions, for first-class classes, and even for
     locally-defined functions and classes are thus a low priority; instead, the
-    dynamic type is available as a coarse approximation.
+    dynamic type serves as a coarse approximation.
   \item
     The codebase in which \SP{} is being applied makes heavy use of
     \PEP{} type annotations and is regularly analyzed by Pyre.
@@ -531,18 +522,18 @@ data structures (lists, dicts, promises),
 and nominal classes.
 Union types are tracked statically; for example, if \code{x} is an integer and
 \code{y} is a string, then the expression \code{x or y} has a union type.
-They also narrow down via type tests as a kind of occurrence
+Unions also narrow down via type tests as a kind of occurrence
 typing~\cite{tf-icfp-2010,gsk-esop-2011}.
 Union types are not, however, generally supported at run-time~(\cref{s:eval-types}).
-The only exception is that binary unions of a type and the Python \code{None}
-value get enforced with a run-time check ($\sptunion{\sptype, \sptnone}$, or
-$\sptoptional{\sptype}$).
+The only exception is binary unions with the Python \code{None}
+type ($\sptunion{\sptype, \sptnone}$, or
+$\sptoptional{\sptype}$); these unions are enforced at run-time.
 
 Three other unsupported types bear special mention:
 first-class class and object types~(\cref{s:inheritance});
 first-class function (callable) types; and
 recursive types.
-Pyre and mypy offer some support for the first two kinds, but not for recursive types.
+Pyre and mypy have some support for the first two kinds, but no support for recursive types.
 %% mypy rec.types = https://github.com/python/mypy/issues/731
 %% nothing in pep 484 = https://www.python.org/dev/peps/pep-0484/
 
@@ -559,7 +550,7 @@ part of a Python module while leaving the rest untyped.
 
 In addition to unannotated positions, the dynamic type is also the default for
 \PEP{} types that \SP{} does not yet understand.
-If existing code uses the type $\sptset{\sptint}$ for sets of integers,
+For example, if existing code uses the type $\sptset{\sptint}$ for sets of integers,
 then \SP{} replaces it with dynamic.
 Thus, \SP{} focuses on types that it can soundly optimize without forcing
 programmers to remove types that other systems (e.g., mypy) can check.
@@ -586,8 +577,8 @@ a run-time error.
   \item
     \Cref{f:gg-failure-dyn} sends a checked dictionary with integer values to a
     function that expects dictionaries with dynamic values.
-    At runtime, the function rejects this argument because its type is not an
-    exact match.
+    At runtime, the function rejects this argument because the two types are
+    not an exact match.
 \end{itemize}
 These extra restrictions make the \SP{} dynamic type different than the flexible
 dynamic type provided by languages that satisfy the gradual guarantees~\cite{svcb-snapl-2015}.
@@ -598,7 +589,7 @@ is that programmers have to opt-in to a feature in order to risk the errors.
 The static error above comes only after enabling the \SP{} compiler on both a parent
 class and its subclass.
 The dynamic error comes only after adopting a concrete type for checked dictionaries.
-More to the point, \SP{} is less interested in guarantees about \emph{removing
+In general, \SP{} is less interested in guarantees about \emph{removing
 an arbitrary annotation} and more interested in making sure that \emph{an
 untyped module compiles with minimal code changes}.
 
@@ -659,9 +650,9 @@ We call the types with incomplete casts \emph{shallow} types
 and the types with full casts \emph{concrete} types, following
 the \code{StrongScript} authors~\cite{rzv-ecoop-2015}.
 
-First off, the casts for non-generic nominal types are straightforward.
+First off, casts for non-generic nominal types are straightforward.
 Every type has a name and every value has a tag that corresponds to the name.
-A cast must examine the parents of a class to find a match in the worst case,
+In the worst case, a cast must examine the parents of a class to find a match,
 but these traversals are bounded in length and typically short.
 
 Generic types are more difficult to enforce because a tag by itself does not
@@ -673,7 +664,7 @@ A constant-time check for Python dictionaries is not enough to protect the
 function against dicts with ill-typed elements.
 The \SP{} solution is provide a second kind of dictionary that ensures
 the validity of its elements.
-These two dicts have distinct types:
+These different values have different types:
 \begin{enumerate}
   \item
     The \emph{shallow} type $\sptrawpydict$ gets enforced with a constant-time check
@@ -681,17 +672,15 @@ These two dicts have distinct types:
     Consequently, a parameterized surface type such as $\sptpydict{K}{V}$
     does not promise anything about keys and values.
   \item
-    The \emph{concrete} type $\sptchkdict{K}{V}$ guarantees well-typed
-    keys and values, but is incompatible with built-in Python dictionaries.
-    Programmers must use a type-annotated contructor to make a concrete-typed checked dict.
+    The \emph{concrete} type $\sptchkdict{K}{V}$ gets enforced with a constant-time,
+    compound tag check for concrete dict values that were initialized with
+    exactly the same key and value types.
+    %% Programmers must use a type-annotated contructor to make a concrete-typed checked dict.
 \end{enumerate}
 %
 These options let programmers decide whether to edit their code to support concrete types
-or leave it as-is with shallow types.\footnote{Not all generic \SP{} types have shallow
-  and concrete versions at present.
-  In particular, user-defined classes do not have concrete support.
-  The shallow check for a user-defined class does, however, guarantee the types of all
-  non-generic fields and methods.}
+or leave it as-is with shallow types.
+
 Often, the shallow types are more attractive because concrete types impose
 nonlocal changes.
 If one type changes to concrete, then several changes may need to happen:
@@ -704,7 +693,7 @@ The upside of concrete types is that they enforce stronger type constraints.
 These constraints can catch bugs and always lead to faster typed code.
 Faster performance is not guaranteed in general, though, because concrete types must
 check all writes from untyped contexts.
-\Cref{t:shallow-vs-concrete} presents in more detail the worst-case costs of
+For comparison, \cref{t:shallow-vs-concrete} presents the worst-case costs of
 shallow and concrete dict types.
 Shallow types pay a constant-time cost whenever an untyped value enters typed code
 and whenever a typed context reads from a shallow value.
@@ -713,6 +702,12 @@ a constant-time cost for casts and for writes in untyped code,
 and zero cost for reads.
 If a value travels to untyped code, gets written to many times, and gets read few times,
 then the shallow types may run faster in the end.
+
+Not all generic \SP{} types have shallow and concrete versions at present,
+though they are coming soon.
+In particular, user-defined classes do not have concrete support.
+The shallow check for a user-defined class does, however, guarantee the types
+of all non-generic fields and methods.
 
 \begin{table}[t]
   \caption{Worst-case costs for shallow and concrete types (T=typed, U=untyped)}
@@ -740,9 +735,9 @@ and children.
 % st-ecoop-2007 has no inheritance, object is collection of members simple (Abadi--Cardelli)
 
 Gradual class hierarchies are rarely studied in the literature, especially
-for a language where truly untyped classes can enter the mix.\footnote{Two
-languages that provide separate hierarchies for untyped and (gradually) typed
-classes are Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}.}
+for a language where truly untyped classes can enter the mix.
+Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}, for example,
+provide separate hierarchies for untyped and (gradually) typed classes.
 The closest related work, for Nom~\cite{mt-oopsla-2017}, implements
 a rather flexible point in the design space.
 \SP{} implements a simpler design that restricts types and
@@ -802,16 +797,18 @@ For performance-critical applications, \SP{} includes a set of primitive types
 that describe booleans and sized numbers.
 Example types include \code{int64}, \code{uint64}, \code{double}.
 There are also two special datatypes, \code{Array} and \code{Vector}, that store primitives.
-
 The purpose of these types is to enable unboxed values and arithmetic at
 runtime.
 Consequently, their static semantics is a \emph{progressive}~\cite{pqk-onward-2012}
 refinement over the semantics of basic Python types.
-Primitive types cannot be implicitly cast to non-primitive types,
-including the dynamic type---another violation of the static gradual guarantee.
-Operations such as \code{and} (boolean conjunction) do not accept a mix of primitive and non-primitive data.
-These restrictions give programmers a static separation between fast-running
-primitives and standard data.
+
+Primitive types are restricted in two ways to enforce a static separation
+between fast-running primitives and standard data.
+First, primitives cannot be implicitly cast to non-primitive types,
+including the dynamic type.
+This is another violation of the static gradual guarantee.
+Second, operations such as \code{and} (boolean conjunction) do not accept a mix
+of primitive and non-primitive data.
 
 % Neither a module-level nor a closure-level variable may have a primitive
 % type---because untyped code can mutate such variables.
@@ -830,8 +827,8 @@ sound types and strong optimizations:
 class attributes must be set in an \code{\_\_init\_\_} method to
 ensure predictable layouts (all \PEP{} checkers agree on this);
 module-level variables cannot be mutated; and
-multiple inheritance among typed classes (or untyped classes with
-a typed ancestor) is forbidden.
+multiple inheritance of either typed classes or untyped children
+of typed classes is forbidden.
 
 Several other Python features are unsupported at present:
 enums; the \code{@dataclass} decorator;
@@ -926,7 +923,7 @@ instructions.)
 The implementation of vtables happens to be built on the Python \code{vectorcall}
 protocol; it is not a from-scratch development.
 Cinder vtables are further specialized to check untyped overrides of typed methods
-using a wrapper implemented in C rather than in Python, to reduce performance costs.
+using a wrapper implemented in C (rather than in Python) to reduce performance costs.
 
 %% beware: with vtables, method resolution is different than Python b/c args. get
 %%   resolved before the receiver (A.m(B) goes "A->B" in Py. and "B->A" in SP)
@@ -993,7 +990,7 @@ Cinder includes a JIT (just-in-time) compiler for its bytecode.
 At the moment, programmers enable the JIT by supplying a list of method names
 to the compiler.
 Any method can be JIT-compiled whether or not it uses \SP{} types,
-although types are needed to enable the most-effective optimizations.
+even though fewer types usually leads to fewer optimizations.
 
 
 \section{Model}
@@ -1270,7 +1267,7 @@ No cast requires traversing a data structure.
 Similarly, no cast allocates a wrapper to check higher-order behaviors in a delayed fashion.
 This latter property means that blame-tracking~\cite{ff-icfp-2002} is trivial because
 casts either succeed or fail immediately.
-In other words, \SP{} provides \emph{immediate accountability} same as
+In other words, \SP{} provides the same \emph{immediate accountability} as
 Nom~\cite{mt-oopsla-2017}.
 
 %% 2022-01-15: unclear if this is helpful or redundant, hiding for now
@@ -1297,7 +1294,7 @@ Nom~\cite{mt-oopsla-2017}.
     \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries parameterized by $\spteval_0$ and $\spteval_1$} \\
     \sptdyn & \mbox{No check needed, accepts any value} \\
     \sptobject & \mbox{Accepts any value, except primitives~(\cref{s:c-types})} \\
-    \sptclass_0 & \mbox{Accepts instances of class $\sptclass_0$} \\
+    \sptclass_0 & \mbox{Accepts instances of the class $\sptclass_0$} \\
     \sptnone & \mbox{Accepts the Python none value} \\
     \sptint & \mbox{Accepts integers} \\
     \sptbool & \mbox{Accepts booleans (the integers \code{0} and \code{1})} \\
@@ -1538,7 +1535,7 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two mat
   \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
 \end{mathpar}
 \medskip
-Consequently, this derivation calls for two casts to match the \trule{Matr} applications.
+Consequently, this derivation calls for two casts at the \trule{Matr} applications.
 
 We end here, with materialization, rather than present a semantics
 for the formalization.
@@ -1557,7 +1554,7 @@ First, \SP{} inserts casts in an overapproximate way:
   \item
     typed classes check all field writes;
   \item
-    concrete-typed dictionaries check all writes; and
+    concrete-typed dictionaries check all key and value writes; and
   \item
     typed code checks the results of function calls, references, and other elimination forms
     whenever there is a materialization from the dynamic type.
@@ -1690,7 +1687,7 @@ dynamic constraints.
 
 %% TODO FILL only 2 cases? revisit after adding "changes to python" section in 2
 There are two cases in which \SP{} types impose dynamic constraints on untyped Python code.
-First, concrete generic types (e.g., $\sptrawchkdict$)
+First, concrete types (e.g., $\sptrawchkdict$)
 reject inputs that were not created via a checked constructor.
 If a client of a Python module decides to impose concrete types, the Python module
 may need to change.
@@ -1819,9 +1816,9 @@ may have a conflict among parents.
 %%we’ve done this it hasn’t required a major rewrite.
 
 Calls to \code{eval} and \code{exec} have the dynamic type.
-The type system makes no finer prediction about what kind of value such calls will
-return.
-
+%The type system makes no finer prediction about what kind of value such calls will
+%return.
+%
 Studies of JavaScript and R have shown that many uses of dynamic execution
 can be removed through simple adjustments~\cite{rhbv-ecoop-2011,gdkkv-oopsla-2021,mrmv-esop-2012}.
 Assuming these findings carry over to Python, similar adjustments would be
@@ -1869,7 +1866,7 @@ preferable over attempting to type \code{eval}.
     \bcinst{INVOKE\_METHOD} & Optimization & Execute a method via the object's vtable \\
     \bcinst{LOAD\_FIELD} & Optimization & Read an object field \\
     \bcinst{STORE\_FIELD} & Optimization & Write to an object field \\
-    \bcinst{FAST\_LEN} & Optimization & Get length of a built-in value \\
+    \bcinst{FAST\_LEN} & Optimization & Get the length of a built-in value \\
     \bcinst{REFINE\_TYPE} & Optimization & Type declaration for the JIT \\
 
 %%% Other bytecodes ... either from Carl's talk or the SP repo
@@ -1899,34 +1896,28 @@ preferable over attempting to type \code{eval}.
 \end{table}
 
 \SP{} can generate efficient code because it targets
-the Cinder runtime, which has instructions to check types at run-time, to
-construct \SP{} data structures, and to perform actions in a way that benefits
-from static information.
+the Cinder runtime, which has bytecode instructions to check types at run-time, to
+construct \SP{} data structures, and to perform type-directed actions.
 \Cref{t:bytecode} lists a few representative bytecode instructions.
 The two instructions that express run-time checks are \bcinst{CAST}
 and \bcinst{CHECK\_ARGS}.
 The former checks a value against a type.
 The latter is for functions and methods; it checks all inputs to a function
 against their declared types.
-
 The instructions \bcinst{BUILD\_CHECKED\_MAP} and \bcinst{TP\_ALLOC}
 allocate \SP{}-specific data structures.
 The first creates a checked dictionary; the second allocates an uninitialized instance
 of an object~(\cref{s:vtable}).
 Cinder comes with a similar instruction to build checked lists.
-%% The developers will add more instructions along the same lines in the future.
-
 The remaining instructions are for optimization.
 Both \bcinst{INVOKE\_FUNCTION} and \bcinst{INVOKE\_METHOD} are alternatives
 to Python's dynamic call dispatch.
 The former uses the classloader to quickly find the address of a function;
 the latter uses a vtable lookup to find a method.
 The load and store instructions for fields improve upon Python's generic attribute lookup.
-In the JIT, these instructions can sometimes be further optimized to a single assembly instruction.
-%% The \bcinst{FAST\_LEN} instruction gets the length of a built-in datatype directly, instead
-%% of using the Python \code{\_\_len\_\_} attribute.
-Lastly, the \bcinst{REFINE\_TYPE} instruction tells the JIT about the type of a local value whose
-type is not clear from the context.
+In the JIT, these instructions can be further optimized to a single assembly instruction.
+Lastly, the \bcinst{REFINE\_TYPE} instruction tells the JIT about the type of a local value
+when it is not clear from the context.
 
 
 \paragraph{Reducing Casts}
@@ -1993,13 +1984,13 @@ which continuously handles requests from a common pool.
 Improvements to the server codebase should make these machines more efficient
 as they handle arbitrary requests.
 
-To measure the effect of a code change on these hosts, profiling tools select
+To measure the effect of a code change on these hosts, an internal profiling tool selects
 two representative sets of machines to run as experimental and control groups.
 The experimental groups gets the latest version of the server code;
 the control group gets the previous version.
-Next, the profiling tools slowly increase the number of requests that these
+Next, the profiling tool slowly increases the number of requests that these
 machines receive until each is running at maximum load.
-Once the machines are fully allocated, the tools measure how many requests
+Once the machines are fully allocated, the tool measures how many requests
 per second each group is able to handle.
 If the experimental group can serve more requests per second, then the change
 is a success.
@@ -2014,7 +2005,8 @@ Changes in product code and in client behavior can change the size
 of a typical web server request, which changes the number
 of requests that a server can handle per second.
 Taking the sum of several CPU efficiency changes over a long
-timespan is therefore only a rough measure of their net effect.
+timespan (as we have done) is therefore only a rough
+measure of their net effect.
 %% In particular, although we report a \CPUchange{} net improvement
 %% in web server CPU efficiency due to \SP{}, removing \SP{} and
 %% taking a new measurement may yield a slightly different degredation
@@ -2074,12 +2066,10 @@ migrations, the question arises as to whether the changes themselves
 are responsible for more speedups than the types.
 %% Carl: "I reviewed the ~30 conversion diffs"
 We therefore reviewed the $\sim 30$ conversion diffs that significantly improved
-performance to get a sense of the code changes at hand.
-
-In general, the patches have minor code changes and most of these changes
-affect tests rather than production code.
-Digging deeper, there are nine common kinds of changes: five address
-type errors and the other four are for performance.
+performance to assess the extent of the code changes.
+In general, the patches have minor changes that
+affect tests more than production code.
+There are nine common kinds of changes: five for types and four for speed.
 
 %% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
 %%  removes an extra call layer
@@ -2091,11 +2081,10 @@ type errors and the other four are for performance.
 \begin{enumerate}
   \item
     \ipara{Fix type errors due to mock wrappers}
-    When test code introduces a mock wrapper, it may inadvertantly change the
-    return type of a function.
-    For example, the wrapped version of a function that returns \code{None}
-    will return a \code{MagicMock} object unless the programmer explicitly
-    specifies \code{None} as the desired return value.
+    When test code uses a mock wrapper, it may change the
+    return type of a function because wrappers return a \code{MagicMock} object
+    by default.
+    The fix is to specify a return value.
     %% Carl: This is an inherent and desired
     %% incompatibility; next half we plan to work on improving the Python mock
     %% framework to automatically create mocks of the correct types.
@@ -2111,8 +2100,8 @@ type errors and the other four are for performance.
     \ipara{Organize class and instance attributes}
     Whereas Python allows class attributes to serve as default values for instance attributes,
     \SP{} does not.
-    Programmers have to decide where an attribute belongs so that \SP{} can optimize
-    reads from instance attributes.
+    %% Programmers have to decide where an attribute belongs so that \SP{} can optimize
+    %% reads from instance attributes.
     %% Carl: (efficient via \code{LOAD\_FIELD})
     %% - related to github #37 ?
 
@@ -2120,7 +2109,7 @@ type errors and the other four are for performance.
     \ipara{Move unsupported Python features}
     Code that uses the unsupported features listed in~\cref{s:not-python}
     must be changed or moved to an untyped module.
-    So far, these changes have not required major rewrites.
+    %% So far, these changes have not required major rewrites.
 
   \item
     \ipara{Refine some Pyre annotations}
@@ -2152,7 +2141,7 @@ type errors and the other four are for performance.
   \item
     \ipara{Change functions to accept positional arguments}
     Functions calls that use only keyword arguments are not yet optimized by \SP{}.
-    Rewriting these functions and their call-sites to use positional arguments improves performance.
+    %% Rewriting these functions and their call-sites to use positional arguments improves performance.
 
     %% Carl: We plan to support this next half.
 
@@ -2216,9 +2205,8 @@ but they provide an auditable and reproducible way to measure performance.
 Each row presents two ratios.
 The first compares a simply-typed version of the benchmark to untyped Python code.
 The second compares a hand-refined benchmark to untyped Python.
-The refinements are modest, mostly adding primitive types to hot loops;
-they do not require significant expertise to reproduce.
-
+The refinements are modest, mostly adding primitive types to hot loops.
+%% they did not require significant expertise to create.
 All runtimes for this table came from a 64-bit CentOS Linux system using a build
 of \SP{} and Cinder compiled with default settings.
 Each benchmark version ran 11 times total: once to warm up the bytecode caches
@@ -2262,14 +2250,7 @@ gives an immediate speedup (ratio = $0.90$).
 \Cref{t:microbenchmark} does not analyze benchmark configurations that mix
 typed and untyped code. %% ---only fully-typed and untyped configurations.
 Mixed configurations may reveal performance bugs similar to those found
-by an evaluation of Retifulated Python~\cite{gm-pepm-2018}.
-
-%% Although mixed configurations are unlikely to have disastrous
-%% overhead~\cite{tfgnvf-popl-2016} due to \SP's efficient strategy for enforcing
-%% types and Instagram's positive experience with mixed-typed code in
-%% production~(\cref{s:migration-path}), they could reveal performance bugs
-%% similar to those found by a prior evaluation of Retifulated
-%% Python~\cite{gm-pepm-2018}.
+by an evaluation of Reticulated Python~\cite{gm-pepm-2018}.
 
 
 \section{Related Work}
