@@ -272,7 +272,7 @@
 Gradual typing has attracted significant interest as a solution to
 the debate between static and dynamic typing.
 The premise is simple: let programmers introduce types in part of a
-codebase and while leaving the rest untyped.
+codebase while leaving the rest untyped.
 Run-time casts and checks enforce the assumptions that typed code makes about
 untyped components, thereby ensuring that the types are sound no matter how
 untyped code behaves.
@@ -350,7 +350,7 @@ This paper makes two contributions:
     \numbenchmark{} public microbenchmarks~(\cref{s:microbenchmarks}).
     Using only shallow types, \SP{} runs slightly faster than Python
     despite the costs of enforcing soundness~(avg. \pctnum{28}).
-    With fine-tuned types, \SP{} consistently out-performs the Python baseline~(avg. \pctnum{67}).
+    With fine-tuned types, \SP{} consistently outperforms the Python baseline~(avg. \pctnum{67}).
 
   \item
     \emph{Mechanization}.
@@ -385,8 +385,7 @@ In particular, the maintainers of optionally-typed languages
 may wish to focus on shallow types and JIT compilation as a
 first step toward sound gradual types.
 Second, we want to entice researchers.
-The \SP{} type system has many restrictions that are suprising
-at first glance.
+The \SP{} type system has many noteworthy restrictions.
 For example, functions are supported only by shallow types
 and method overrides that use the dynamic type are more constrained
 than overrides in untyped code.
@@ -662,7 +661,7 @@ the type \code{Dict[int,int]}; that is, dictionaries with integer keys and
 integer values.
 A constant-time check for Python dictionaries is not enough to protect the
 function against dicts with ill-typed elements.
-The \SP{} solution is provide a second kind of dictionary that ensures
+The \SP{} solution is to provide a second kind of dictionary that ensures
 the validity of its elements.
 These different values have different types:
 \begin{enumerate}
@@ -700,7 +699,7 @@ and whenever a typed context reads from a shallow value.
 Concrete types pay a potentially-high cost for constructors,
 a constant-time cost for casts and for writes in untyped code,
 and zero cost for reads.
-If a value travels to untyped code, gets written to many times, and gets read few times,
+If a value travels to untyped codes and receives many writes but few reads,
 then the shallow types may run faster in the end.
 
 Not all generic \SP{} types have shallow and concrete versions at present,
@@ -1119,7 +1118,7 @@ In Python, the syntax for expressions overlaps with the syntax of types.
 For example, the Python name \code{None} is both an expression and a type,
 and the \SP{} names \code{chkdict} and \code{CheckedDict} are synonyms.
 \Cref{f:surface-types} does not follow these standards; instead it keeps the two syntaxes distinct.
-Expressions use lowercase names (\code{none}, \code{chkdict}) and types uses capitalized
+Expressions use lowercase names (\code{none}, \code{chkdict}) and types use capitalized
 names (\code{None}, \code{CheckedDict}).
 
 Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
@@ -1260,7 +1259,7 @@ The sole exception is optional types, which require a tag check and a test for t
 Even checked dictionaries rely on tag checks.
 A checked dict type with keys $\spteval_0$ and values $\spteval_1$ accepts only
 checked dict values that were initialized with exactly the same key and value type.
-As noted in~\cref{s:type-dynamic}, this exact-match rules applies even when $\spteval_0$
+As noted in~\cref{s:type-dynamic}, this exact-match rule applies even when $\spteval_0$
 or $\spteval_1$ is the dynamic type.
 
 No cast requires traversing a data structure.
@@ -1490,7 +1489,7 @@ By contrast, a concrete checked dict requires keys and values that match its typ
 Next we have two rules for classes:
 \trule{F-Set} says that writes to a class field must match the declared field
 type; and \trule{M-App} shows that typed methods impose similar constraints as
-typed fuctions.
+typed functions.
 
 The final two rules, \trule{C-Sub} and \trule{Matr}, depend on auxiliary judgments
 for consistent subtyping ($\spcompat$) and materialization ($\spmatr$).
@@ -1729,7 +1728,7 @@ and partly because they do not fit well with a nominal type system.
 The straightforward but restrictive approach for first-class nominal class types
 is to force code that uses a first-class class to expect subtypes of a
 particular named static class.
-Flatt et al.~\cite{fkf-popl-1998} propose a more-flexible approach, %(specifically for mixins)
+Flatt et al.~\cite{fkf-popl-1998} propose a more flexible approach, %(specifically for mixins)
 but it requires a second layer of \emph{interface types} atop the nominal hierarchy.
 MonNom~\cite{mt-oopsla-2021} uses interfaces in a similar way to accommodate
 structural objects.
@@ -1986,7 +1985,7 @@ as they handle arbitrary requests.
 
 To measure the effect of a code change on these hosts, an internal profiling tool selects
 two representative sets of machines to run as experimental and control groups.
-The experimental groups gets the latest version of the server code;
+The experimental group gets the latest version of the server code;
 the control group gets the previous version.
 Next, the profiling tool slowly increases the number of requests that these
 machines receive until each is running at maximum load.
@@ -2021,7 +2020,7 @@ few critical Cython modules.
 Cython improved performance by compiling these modules to C,
 but its partial adoption had led to an awkward workflow with a
 few compiled modules spread across an interpreted codebase.
-Replacing these modules with \SP{} let programmers return to a conventional
+Replacing these modules with \SP{} lets programmers return to a conventional
 Python workflow.
 Furthermore, \SP{} types combined with Cinder resulted in a
 0.7\% improvement in web server CPU efficiency.
@@ -2125,7 +2124,7 @@ There are nine common kinds of changes: five for types and four for speed.
   \item
     \ipara{Use primitive types}
     Integers and booleans in hot code paths run fastest with
-    primitive type~(\cref{s:c-types}).
+    primitive types~(\cref{s:c-types}).
     %%As noted above, primitives were required for \SP{} to match the performance of
     %%Cython.
     Twelve modules currently use primitives.
@@ -2148,7 +2147,7 @@ There are nine common kinds of changes: five for types and four for speed.
   \item
     \ipara{Convert \code{@classmethod} to \code{@staticmethod}}
     Static methods can get invoked directly as functions, bypassing the class vtable.
-    Twenty-four modules use static methods, though many of these uses pre-date \SP{}.
+    Twenty-four modules use static methods (many of these pre-date \SP{}).
     %% 2022-01-12 Carl:
     %% I don’t think it was a super common change, but there were some cases where we
     %% changed a @classmethod that didn’t actually use its cls argument to a
@@ -2414,7 +2413,7 @@ First, \SP{} must be applied to additional projects in a module-at-a-time manner
 A careful evaluation~\cite{gtnffvf-jfp-2019} of a few small projects would be
 especially useful to find performance bottlenecks.
 Second, the \SP{} approach should be adapted to other languages.
-An optionally language such as TypeScript would be an ideal starting
+An optionally-typed language such as TypeScript would be an ideal starting
 point.
 %% Gradual, progressive soundness may prove itself to be an effective general strategy for
 %% gradual types in practice.
