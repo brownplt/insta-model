@@ -2232,24 +2232,20 @@ Every benchmark version invoked the JIT on the same set of functions.
 \end{table}
 
 Almost all ratios are less than one, showing that \SP{} achieves a speedup over
-Python despite the cost of enforcing soundness.
-The exceptions are the simply-typed version of \bmname{fannkuch} and
-\bmname{nbody}.
-Both these benchmarks focus on numeric operations, which \SP{} does not
-optimize because it offers primitive types.
-Indeed, changing \bmname{fannkuch} to use a few primitive types without
-otherwise changing the code gives an immediate speedup (ratio = $0.90$).
-
-%% \textbf{Note to Programming Reviewers:}
-%%  We plan to add a fourth benchmark to \cref{t:microbenchmark}.
+Python.
+The exceptions are the simply-typed versions of \bmname{fannkuch} and
+\bmname{nbody}, which is unsurprising because these benchmarks focus
+on number-crunching and \SP{} optimizes arithmetic only for primitive types.
+Indeed, changing a few types in \bmname{fannkuch} to primitives
+gives an immediate speedup (ratio = $0.90$).
 
 
 \paragraph{Threat to Validity}
 
 \Cref{t:microbenchmark} does not analyze benchmark configurations that mix
 typed and untyped code. %% ---only fully-typed and untyped configurations.
-Mixed configurations may reveal performance bugs similar to those found
-by an evaluation of Reticulated Python~\cite{gm-pepm-2018}.
+A study of mixed configurations (i.e.,~\cite{gm-pepm-2018,gtnffvf-jfp-2019})
+may reveal performance bugs that have not yet shown up in production.
 
 
 \section{Related Work}
@@ -2369,7 +2365,7 @@ an optimizing ahead-of-time compiler,
 and a method-based JIT compiler.
 The team has converted hundreds of untyped modules to \SP{}
 and plans to convert thousands more in the future.
-And yet, \SP{} is carefully restricted to set attainable goals:
+And yet, \SP{} is restricted to set attainable goals:
 %% for its implementors and for adopters:
 \begin{itemize}
   \item
@@ -2410,7 +2406,7 @@ way to realize the vision of gradual typing.
 Determining whether this conjecture holds more broadly
 calls for research on two fronts.
 First, \SP{} must be applied to additional projects in a module-at-a-time manner.
-A careful evaluation~\cite{gtnffvf-jfp-2019} of a few small projects would be
+A systematic evaluation of a few small projects would be
 especially useful to find performance bottlenecks.
 Second, the \SP{} approach should be adapted to other languages.
 An optionally-typed language such as TypeScript would be an ideal starting
