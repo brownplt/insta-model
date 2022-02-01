@@ -117,8 +117,8 @@
 
 (define (simpl str)
   (case str
-    (("Typed") "T-Max")
-    (("TypedBasic") "T-Min")
+    (("TypedOpt") "T-Max")
+    (("Typed" "TypedMinOpt" "TypedBasic") "T-Min")
     (("TypedBasic2") "T-Min-2")
     (("Original") "Orig")
     (else (raise-argument-error 'simpl "Carl-name" str))))
