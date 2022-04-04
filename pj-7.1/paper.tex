@@ -348,8 +348,9 @@ This paper makes two contributions:
     Because the server code is closed-source, we additionally present data for
     \numbenchmark{} public microbenchmarks~(\cref{s:microbenchmarks}).
     Using only shallow types, \SP{} runs slightly faster than Python
-    despite the costs of enforcing soundness~(avg. \pctnum{28}).
-    With fine-tuned types, \SP{} consistently outperforms the Python baseline~(avg. \pctnum{67}).
+    despite the costs of enforcing soundness~(avg. \pctnum{20}).
+    With fine-tuned types, \SP{} consistently outperforms the Python
+    baseline~(avg. \pctnum{70}).
 
   \item
     \emph{Mechanization}.
@@ -2231,11 +2232,11 @@ Every benchmark version invoked the JIT on the same set of functions.
 \end{table}
 
 Almost all ratios are less than one, showing that \SP{} achieves a speedup over
-Python.
-The exceptions are the simply-typed versions of \bmname{fannkuch} and
-\bmname{nbody}, which is unsurprising because these benchmarks focus
+Python (typed avg. $0.8$, refined avg. $0.3$).
+The exceptions are the unrefined versions of \bmname{fannkuch} and
+\bmname{nbody}, which is because these benchmarks focus
 on number-crunching and \SP{} optimizes arithmetic only for primitive types.
-Indeed, changing a few types in \bmname{fannkuch} to primitives
+Changing a few types in \bmname{fannkuch} to primitives
 gives an immediate speedup (ratio = $0.90$).
 
 
