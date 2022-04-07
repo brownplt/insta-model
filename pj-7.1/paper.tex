@@ -12,6 +12,21 @@
 %% TODO after submission, before camera-ready
 %% - 
 
+%% Carl 2022-04-06
+%% I don’t think any major new issues or language design changes have cropped up
+%% recently. We have fixed quite a few bugs and we are working on smoothing
+%% various adoption challenges. I guess one limitation we realized we have to
+%% impose that may not have been mentioned in the paper relates to subclassing
+%% static types. If a static type has an ordinary attribute (not a descriptor or
+%% property) which we will store in an indexed slot and emit `LOAD_FIELD` /
+%% `STORE_FIELD` against, we have to prohibit subclasses (static or nonstatic)
+%% from overriding that attribute with a dynamic descriptor or property. The only
+%% safe alternative would be to introduce extra checks into every `LOAD_FIELD` and
+%% `STORE_FIELD` that would have an unacceptable perf cost. This is a restriction
+%% on subclasses that ordinary Python does not have.
+
+
+
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
 \newcommand{\JSPP}{JS\code{++}}
