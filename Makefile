@@ -13,7 +13,10 @@ redex_tests:
 	echo "Translating Python files to tests of the model."
 	python3.9 ./scripts/python_tests_to_redex_tests.py > /dev/null
 
-check_model:
+compile_model:
+	raco make -v test-*.rkt
+
+check_model: compile_model
 	echo "Testing the model." && \
 	echo "Testing the grammar." && \
 	racket ./test-grammar.rkt && \
