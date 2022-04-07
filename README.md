@@ -33,7 +33,7 @@ The main steps as follows:
 
 #### Click Below for Example Output
 
-<details summary="Collected on 2022-04-07. Took 10 minutes to finish on a laptop.">
+<details><summary>Collected on 2022-04-07. Took 10 minutes to finish on a laptop.</summary>
 <pre>
 echo "Importing tests from Static Python's test suite."
 Importing tests from Static Python's test suite.
