@@ -1,6 +1,6 @@
 #lang racket
 (require redex/reduction-semantics)
-(require redex-abbrevs)
+(require "redex-abbrevs.rkt")
 (require "desugar.rkt")
 (require "utilities.rkt")
 (provide (all-defined-out))

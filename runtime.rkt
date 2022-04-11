@@ -1,6 +1,6 @@
 #lang racket
 (require redex)
-(require redex-abbrevs)
+(require "redex-abbrevs.rkt")
 (require "grammar.rkt")
 (require "desugar.rkt")
 (require "compile.rkt")
