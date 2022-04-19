@@ -10,21 +10,22 @@
 % > be making it work -- Shriram 2021-09-30
 
 %% TODO after submission, before camera-ready
-%% - 
+%% - reword 'fields' to attribute/descriptor/property?
 
-%% Carl 2022-04-06
-%% I don’t think any major new issues or language design changes have cropped up
-%% recently. We have fixed quite a few bugs and we are working on smoothing
-%% various adoption challenges. I guess one limitation we realized we have to
-%% impose that may not have been mentioned in the paper relates to subclassing
-%% static types. If a static type has an ordinary attribute (not a descriptor or
-%% property) which we will store in an indexed slot and emit `LOAD_FIELD` /
-%% `STORE_FIELD` against, we have to prohibit subclasses (static or nonstatic)
-%% from overriding that attribute with a dynamic descriptor or property. The only
-%% safe alternative would be to introduce extra checks into every `LOAD_FIELD` and
-%% `STORE_FIELD` that would have an unacceptable perf cost. This is a restriction
-%% on subclasses that ordinary Python does not have.
-
+%% TODO 2022-04-08 from Pyre team
+%% Hi Carl! The small notational question I mentioned about in the paper was in
+%% Figure 5 -- there's this "M-APP" rule that describes how classmethod invocation
+%% is handled. I was trying to figure out how inherited classmethod would work
+%% with this rule. Say I have a class B that defines a method f0(B, S0) -> S1, and
+%% then I have another class D that inherits B which does not define additional
+%% method. Now given Env0 \vdash expr0: S0, how can Env0 \vdash D.f0(expr0): S1 be
+%% proven? If I understand correctly, the rule only looks up the type of f0 in
+%% Env0(D), i.e. the body of the derived class. But the real definition of f0 is
+%% syntactically located in the base class B. Does the notation system used here
+%% assume that every function definition in base class gets automatically copied
+%% into the derived class? Or should there be an additional preconditions added to
+%% the "M-APP" rule saying that f0 is allowed to exist in any of the superclass of
+%% D?
 
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
@@ -529,7 +530,6 @@ and can be validated quickly with casts.
 Types that do not meet these criteria are deferred to the mature optional
 type checkers that already exist for Python.
 In fact, \SP{} has no short-term plans to support all \PEP{} types.
-The main priority is to implement a small language of types efficiently.
 
 The core supported types describe basic data (integers, booleans, strings),
 data structures (lists, dicts, promises),
@@ -781,6 +781,9 @@ inheritance:
     % NOTE __ (dunder) methods may be overridden e.g. __getattribute__,
     % but the normal field access syntax skips any overrides (o.f)
 
+  \item
+    Typed fields cannot be overridden by descriptors or properties (\code{@property}).
+
 \end{enumerate}
 %
 With this context in mind, \SP{} keeps track of whether each class is typed or untyped.
@@ -788,6 +791,7 @@ Each typed class can furthermore assume that if a method has a precise (non-dyna
 type, then all typed overrides are subtypes of this type.
 \SP{} can therefore optimize dispatch from typed callers to typed methods
 and use checked dispatch for other combinations.
+\SP{} can also optimize reads from typed fields.
 One extra step arises when an untyped method overrides a typed method.
 In this case, \SP{} creates a wrapper around the overriding method to check
 that it computes type-correct results.
@@ -840,7 +844,11 @@ Relative to Python, \SP{} makes a few behavioral changes to enable
 sound types and strong optimizations:
 class attributes must be set in an \code{\_\_init\_\_} method to
 ensure predictable layouts (all \PEP{} checkers agree on this);
-module-level variables cannot be mutated; and
+typed attributes are resolved statically, and thus cannot be overridden with
+descriptors or properties;
+module-level variables cannot be mutated;
+typed fields 
+and
 multiple inheritance of either typed classes or untyped children
 of typed classes is forbidden.
 
@@ -1057,6 +1065,26 @@ a detailed categorization.
 
 
 \paragraph{The Payoff: Issues Reported}
+
+%% Carl 2022-04-07
+%% Ok, I completed my review of open issues. Turns out #55 was fixed back in
+%% December already, we just never closed it :) I found and closed a couple others
+%% in the same situation. We are left with a total of 9 issues opened by you all,
+%% 8 by KC and 1 by Ben:
+%%
+%%  https://github.com/facebookincubator/cinder/issues/created_by/LuKC1024
+%%
+%%  https://github.com/facebookincubator/cinder/issues/created_by/bennn
+%%
+%% #61 is trivial, I have a fix up and it should land today.
+%%
+%% Of the rest, I don’t think any are soundness issues. Most are cases where we
+%% could just be stricter or issue better errors statically (#40, #49, #50, #51,
+%% #52, #60 – #60 might already be fixed, #50 is about to land). #63 is a small
+%% improvement to type refinement. #71 is a pretty nasty issue that prevents use
+%% of CheckedDict with dynamic key or value type in certain positions that might
+%% take us a while to fix. But I’m comfortable saying that none of these are
+%% soundness issues. Let me know if your analysis differs.
 
 The modelling process helped uncover several critical issues in \SP{}.
 This is a very important payoff given that \SP{} is running in production at
@@ -2436,32 +2464,32 @@ point.
 %% gradual types in practice.
 
 
-%\acks{
-%  \SP{} and the Cinder JIT were developed by
-%  Max Bernstein,
-%  John Biesnecker,
-%  Jacob Bower,
-%  Sinan Cepel,
-%  Tiansi Hu,
-%  Orvid King,
-%  Vladimir Matveev,
-%  William Meehan,
-%  Carl Meyer,
-%  Matt Page,
-%  Aniket Panse,
-%  Brett Simmers,
-%  Andrei Talaba,
-%  Dino Viehland,
-%  and Shiyu Wang.
-%  The Brown authors contributed to the language by modeling it independently; they
-%  are not part of the \SP{} team.
-%
-%  Special thanks to Twitter, thanks to which the two teams
-%  (specifically, Meyer and Krishnamurthi) met.
-%  This work was partly supported by the US National Science Foundation.
-%  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-%  TODO partial funded by Meta
-%}
+\acks{
+  \SP{} and the Cinder JIT were developed by
+  Max Bernstein,
+  John Biesnecker,
+  Jacob Bower,
+  Sinan Cepel,
+  Tiansi Hu,
+  Orvid King,
+  Vladimir Matveev,
+  William Meehan,
+  Carl Meyer,
+  Matt Page,
+  Aniket Panse,
+  Brett Simmers,
+  Andrei Talaba,
+  Dino Viehland,
+  and Shiyu Wang.
+  The Brown authors contributed to the language by modeling it independently; they
+  are not part of the \SP{} team.
+
+  Special thanks to Twitter, thanks to which the two teams
+  (specifically, Meyer and Krishnamurthi) met.
+  This work was partly supported by the US National Science Foundation.
+  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
+  TODO partial funded by Meta
+}
 
 {\sloppy
 \printbibliography
