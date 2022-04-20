@@ -13,6 +13,9 @@ This repository includes a copy of the test suite (`tests.py`) fetched on
 - [Racket 8.3](https://download.racket-lang.org/racket-v8.3.html) (or newer).
   * Install Racket from the link above.
   * Make sure that the `racket` and `raco` executables are on your path.
+- [redex-abbbrev](https://pkgs.racket-lang.org/package/redex-abbrevs)
+  * Do it only after Racket 8.3 has been installed.
+  * Install redex-abbrev by running the command `raco pkg install redex-abbrevs`.
 - [Python 3.9](https://www.python.org/downloads/release/python-390/)
   * Make sure that a `python3.9` executable is on your path.
   * Newer versions of Python may work, but you'll need to change the `Makefile`
