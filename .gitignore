@@ -8,6 +8,7 @@
 
 *.rkt~
 
-**/compiled
+compiled/
+__pycache__/
 
 skipped_tests/banned_test_*
