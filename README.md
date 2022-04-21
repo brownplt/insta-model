@@ -18,12 +18,23 @@ This repository includes a copy of the test suite (`tests.py`) fetched on
   * Newer versions of Python may work, but you'll need to change the `Makefile`
     to use the correct executable.
 
+### Alternative: Docker
+
+The `Dockerfile` declares an image with Racket and Python.
+To use it, start the docker daemon (maybe with `sudo dockerd`) and run the following commands:
+
+```
+docker build -t insta-model .
+docker run -v "$PWD:/vol" -w /vol -ti insta-model bash
+```
+
+
 ## How to run
 
 Run `make`. That's all!
 
 The `Makefile` builds and executes a comprehensive test suite for the model.
-The main steps as follows:
+The main steps are:
 
  1. Import test cases from Static Python's test suite.
  2. Print statistics about the imported tests.
