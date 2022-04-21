@@ -1,5 +1,5 @@
 #lang racket
-(require redex)
+(require redex/reduction-semantics)
 (require "utilities.rkt")
 (require "desugar.rkt")
 (require "compile.rkt")

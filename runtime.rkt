@@ -1,5 +1,5 @@
 #lang racket
-(require redex)
+(require redex/reduction-semantics)
 (require "redex-abbrevs.rkt")
 (require "grammar.rkt")
 (require "desugar.rkt")
@@ -1649,16 +1649,17 @@
    p
    (where (p) ,(apply-reduction-relation* red-p (term (load program-))))])
 
-(define-metafunction SP-dynamics
-  trace-calc : program- -> any
-  [(trace-calc program-)
-   ,(traces red-p (term (load program-)))])
+;(require redex/gui)
+;(define-metafunction SP-dynamics
+;  trace-calc : program- -> any
+;  [(trace-calc program-)
+;   ,(traces red-p (term (load program-)))])
+;
+;(define-syntax-rule (trace-run e)
+;  (traces red-p (term (load (compile-program (desugar-program e))))))
 
 (define-syntax-rule (test-run expect e)
   (test-match SP-dynamics expect (term (calc (compile-program (desugar-program e))))))
-
-(define-syntax-rule (trace-run e)
-  (traces red-p (term (load (compile-program (desugar-program e))))))
 
 (test-run
  (terminate)
