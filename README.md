@@ -90,6 +90,44 @@ found 1725 well-typed programs.
 </pre>
 </details>
 
+## How to validate claims from the paper?
+
+> The model covers a substantial part of the Python language including assertions, loops, exception handlers, and delete statements.
+
+It is easy to find those language constructs in [./conformance_suite](./conformance_suite).
+
+> Second, we used Redex’s random testing tools [kf-sfp-2009] to check type soundness on thousands of examples (1,600 expressions and 11,000 programs).
+
+We have two uses of [`redex-check`](https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._redex-check%29%29) in [./conjectures.rkt](./conjectures.rkt). (TODO: numbers in code are different from numbers in paper. What is the right thing to do?)
+
+> we translated 265 tests from the Static Python regression suite to the syntax of the model and confirmed that the results do match, which suggests that the model conforms to actual Static Python.
+
+You can see the number (265) if you run 
+
+```bash
+make statistics
+```
+
+> For most of the 265 tests, the translation is automatic. A few tests required hand- pruning to remove features that the model does not handle (52 total)
+
+You can see the number (52) with 
+
+```bash
+ls ./conformance_suite/edited_test_* | wc -l
+```
+
+> Static Python has 537 other tests (802 total) that we did not use because they fall outside the scope of the model.
+
+`make statistics` also produces this number (802).
+
+> Most [casts] call for a tag check, i.e., a Python isinstance test. The sole exception is optional types, which require a tag check and a test for the none value.
+
+If you look at [the definition of `compile-check` in `./compile.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1225), the `dynamic` case is trivial. The function case is unreachable because there is no function type in the surface syntax. We use function types internally to make checking function/method calls easier. The remaining two cases are more interesting. When the target type is a class, `compile-check` calls [`check-exactness`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1244), which effectively performs a tag-check. The remaining case is for `Optional[T]`, which has a test for the none value and a recursive call. Because the `T` in `Optional[T]` must be a class, the check must be a tag check.
+
+> No cast requires traversing a data structure. Similarly, no cast allocates a wrapper to check higher-order behaviors in a delayed fashion.
+
+`compile-check` calls [`check-exactness`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1244), which uses `is` or `issubclass` to compare the object's tag and the expected tag. The object fields are never traversed.
+
 ## Conformance Tests
 
 Each file under `conformance_suite` is a test case written as a commented Python file. They come from two sources.
