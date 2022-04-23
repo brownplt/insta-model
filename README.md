@@ -96,7 +96,11 @@ This section lists claims that we made in the paper, and where in this repositor
 
 > (page 10; Section 4) The model covers a substantial part of the Python language including assertions, loops, exception handlers, and delete statements.
 
-It is easy to find those language constructs in [./conformance_suite](./conformance_suite).
+You might use `grep` to validate that we test those language constructs in [./conformance_suite](./conformance_suite). For example, to see whether we tested assertions, you can run
+
+```bash
+$ grep 'assert ' -r ./conformance_suite/
+```
 
 > (page 10; Section 4) Second, we used Redex’s random testing tools to check type soundness on thousands of examples (1,600 expressions and 11,000 programs).
 
