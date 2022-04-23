@@ -11,6 +11,9 @@
 
 %% TODO after submission, before camera-ready
 %% - reword 'fields' to attribute/descriptor/property?
+%% - 
+%% - 
+%% - 
 
 %% TODO 2022-04-08 from Pyre team
 %% Hi Carl! The small notational question I mentioned about in the paper was in
@@ -681,20 +684,21 @@ the validity of its elements.
 These different values have different types:
 \begin{enumerate}
   \item
-    The \emph{shallow} type $\sptrawpydict$ gets enforced with a constant-time check
+    The \emph{shallow} type $\sptrawpydict$ gets enforced with a tag check
     for dict values that ignores elements.
     Consequently, a parameterized surface type such as $\sptpydict{K}{V}$
     does not promise anything about keys and values.
   \item
-    The \emph{concrete} type $\sptchkdict{K}{V}$ gets enforced with a constant-time,
-    compound tag check for concrete dict values that were initialized with
-    exactly the same key and value types.
+    The \emph{concrete} type $\sptchkdict{K}{V}$ gets enforced with a
+    three-part check for concrete dicts with exactly the same key and value
+    types.
+    The overall cost of such a check depends on the nesting of concrete types,
+    but (crucially) does not depend on the size of incoming values.
     %% Programmers must use a type-annotated contructor to make a concrete-typed checked dict.
 \end{enumerate}
 %
-These options let programmers decide whether to edit their code to support concrete types
-or leave it as-is with shallow types.
-
+These options keep run-time costs low and let programmers decide between
+concrete and shallow types.
 Often, the shallow types are more attractive because concrete types impose
 nonlocal changes.
 If one type changes to concrete, then several changes may need to happen:
@@ -724,14 +728,15 @@ The shallow check for a user-defined class does, however, guarantee the types
 of all non-generic fields and methods.
 
 \begin{table}[t]
-  \caption{Worst-case costs for shallow and concrete types (T=typed, U=untyped)}
+  \newcommand{\nocost}{\textrm{---}}
+  \caption{Costs of using shallow and concrete dictionaries in typed (T) and untyped (U) contexts relative to the number (N) of dict elements. A dash (\nocost{}) means zero cost.}
   \label{t:shallow-vs-concrete}
 
   \centering
   \(\begin{array}{l@{}rr@{\qquad}rr@{~~}@{\qquad}r@{~~}r}
                    & \mbox{Constructor} & \mbox{Cast} & \mbox{T-Read} & \mbox{T-Write} & \mbox{U-Read} & \mbox{U-Write} \\\hline
-    \sptrawpydict         &           0 &        O(1) &          O(1) &              0 &             0 &              0 \\
-    \sptchkdict{K}{V}     &        O(N) &        O(1) &             0 &              0 &             0 &           O(1)
+    \sptrawpydict         &   \nocost{} &        O(1) &          O(1) &      \nocost{} &     \nocost{} &      \nocost{} \\
+    \sptchkdict{K}{V}     &        O(N) &        O(1) &     \nocost{} &      \nocost{} &     \nocost{} &           O(1)
   \end{array}\)
 \end{table}
 
@@ -753,7 +758,9 @@ for a language where truly untyped classes can enter the mix.
 Thorn~\cite{wzlov-popl-2010} and SafeTS~\cite{rsfbv-popl-2015}, for example,
 provide separate hierarchies for untyped and (gradually) typed classes.
 The closest related work, for Nom~\cite{mt-oopsla-2017}, implements
-a rather flexible point in the design space.
+a flexible design inspired by the gradual guarantees.
+In particular, Nom subclasses can override any part of a signature with the
+dynamic type.
 \SP{} implements a simpler design that restricts types and
 inheritance:
 
@@ -815,18 +822,22 @@ For performance-critical applications, \SP{} includes a set of primitive types
 that describe booleans and sized numbers.
 Example types include \code{int64}, \code{uint64}, \code{double}.
 There are also two special datatypes, \code{Array} and \code{Vector}, that store primitives.
-The purpose of these types is to enable unboxed values and arithmetic at
+The purpose of these types is to allow unboxed values and arithmetic at
 runtime.
 Consequently, their static semantics is a \emph{progressive}~\cite{pqk-onward-2012}
-refinement over the semantics of basic Python types.
+refinement over the semantics of basic Python types:
+they permit fewer behaviors statically to enable the unboxing.
+Operations such as \code{and} (boolean conjunction), for example, do not accept
+a mix of primitive and non-primitive arguments.
 
-Primitive types are restricted in two ways to enforce a static separation
-between fast-running primitives and standard data.
-First, primitives cannot be implicitly cast to non-primitive types,
-including the dynamic type.
-This is another violation of the static gradual guarantee.
-Second, operations such as \code{and} (boolean conjunction) do not accept a mix
-of primitive and non-primitive data.
+Because performance is the top priority for primitive types, they
+are intentionally incompatible with the dynamic type.
+Casts between a primitive type and the dynamic type are rejected
+statically---another violation of the gradual guarantee---to encourage the
+spread of primitives in typed code.
+At the boundaries to untyped Python code, however, \SP{} inserts casts.
+These casts let programmers introduce primitive types in one module
+without having to rewrite its untyped dependents.
 
 % Neither a module-level nor a closure-level variable may have a primitive
 % type---because untyped code can mutate such variables.
@@ -1032,10 +1043,10 @@ Because there is no prior formalization of (all of) Python and of \SP{}, we cann
 three methods to give confidence that our model matches reality.
 First, we manually reviewed the model in depth---using our
 own expertise---to look for non-conformance.  Second, 
-we used Redex's random testing tools~\cite{kf-sfp-2009} to check
+we used Redex's property-based testing tools~\cite{kf-sfp-2009} to check
 type soundness on thousands of examples (1,600 expressions and 11,000
 programs).
-% \footnote{Random testing helped us find and fix several issues in the
+% \footnote{Property-based testing helped us find and fix several issues in the
 % model.  None of issues had implications for \SP{}'s soundness.}
 Finally, we employed the well-established method of testing end-to-end
 conformance with a test suite~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}.
