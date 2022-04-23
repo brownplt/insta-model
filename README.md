@@ -108,7 +108,7 @@ To further validate that those tests are indeeded tested, you can change the sou
 
 We have two uses of [`redex-check`](https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._redex-check%29%29) in [./conjectures.rkt](./conjectures.rkt) (line [172](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L172) and [239](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L239)).
 
-We will walk you through the first use. The other is very similar. On line 172 you will see the following expression. The expression generate 10000 random expressions (`e+`) and checks whether for all expression `e+`, if the expression compiles and terminates in 100 reduction steps, the result must be of the same type as the expression. The nonterminate `e+` is defined in language `SP-conjecture`, which inherite the definition from language `SP` ([line 29 of `grammar.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/grammar.rkt#L29)
+We will walk you through the first use. The other is very similar. On line 172 you will see the following expression. The expression generate 10000 random expressions (`e+`) and checks whether for all expression `e+`, if the expression compiles and terminates within certain amoount of reduction steps, the result must be of the same type as the expression. The nonterminate `e+` is defined in language `SP-conjecture`, which inherite the definition from language `SP` ([line 29 of `grammar.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/grammar.rkt#L29)
 
 ```racket
 (redex-check SP-conjecture
