@@ -141,7 +141,7 @@ the result must be of the same type as the expression. The nonterminal `e+` is
 defined in language `SP-conjecture` ([line 10 of
 `conjectures.rkt`](https://github.com/brownplt/insta-model/blob/main/conjectures.rkt#L10)),
 which inherite the definition from language `SP` ([line 29 of
-`grammar.rkt`](https://github.com/brownplt/insta-model/blob/main/grammar.rkt#L29)
+`grammar.rkt`](https://github.com/brownplt/insta-model/blob/main/grammar.rkt#L29))
 
 ```racket
 (redex-check SP-conjecture
