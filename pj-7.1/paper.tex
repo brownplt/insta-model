@@ -30,6 +30,12 @@
 %% the "M-APP" rule saying that f0 is allowed to exist in any of the superclass of
 %% D?
 
+%% 2022-04-24 More model issues:
+%% - C.f(e) uses a class type, not an instance ... how to invoke method on instance?!
+%% ... we should really apologize for a too-simple model
+%% - Object is not clearly in C
+%% - introduce c again as variable name? gee why not expr.method()?
+
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
@@ -59,8 +65,8 @@
 \newcommand{\typefont}[1]{\mathsf{#1}}
 \newcommand{\codefont}[1]{\emph{#1}}
 \newcommand{\paramtype}[2]{#1[#2]}
-\newcommand{\sptype}{\typefont{T}}
-\newcommand{\spteval}{\typefont{S}}
+\newcommand{\sptype}{\typefont{S}}
+\newcommand{\spteval}{\typefont{T}}
 \newcommand{\sptclass}{\typefont{C}}
 \newcommand{\sptX}{\typefont{X}} %% undefined type for an early example
 \newcommand{\sptint}{\typefont{Int}}
@@ -111,10 +117,11 @@
 \newcommand{\spnone}{\code{none}}
 \newcommand{\spint}{\codefont{int}}
 \newcommand{\spbool}{\codefont{bool}}
-\newcommand{\spstr}{\typefont{str}}
+\newcommand{\spstr}{\codefont{str}}
 \newcommand{\spfloat}{\codefont{float}}
 \newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
 \newcommand{\spchkdict}[3]{\spapp{\paramtype{\code{chkdict}}{#1, #2}}{#3}}
+\newcommand{\spcnew}[2]{\spapp{#1}{#2}}
 \newcommand{\spenvapp}[2]{\spapp{#1}{#2}}
 \newcommand{\spdictref}[2]{#1[#2]}
 \newcommand{\spdictset}[3]{\spdictref{#1}{#2} = #3}
@@ -690,10 +697,12 @@ These different values have different types:
     does not promise anything about keys and values.
   \item
     The \emph{concrete} type $\sptchkdict{K}{V}$ gets enforced with a
-    three-part check for concrete dicts with exactly the same key and value
+    check for concrete dicts that have exactly the same key and value
     types.
-    The overall cost of such a check depends on the nesting of concrete types,
-    but (crucially) does not depend on the size of incoming values.
+    To implement such checks efficiently, \SP{} stores a run-time registry
+    of instantiated concrete types.
+    Every concrete dict carries a pointer into this registry to enable
+    constant-time type validation, even for nested concrete types.
     %% Programmers must use a type-annotated contructor to make a concrete-typed checked dict.
 \end{enumerate}
 %
@@ -994,9 +1003,10 @@ The implementation has three main components:
     Every operation that mutates or extends a checked dictionary must
     validate any untyped arguments that it receives.
   \item
-    The dictionary value stores a compound type tag 
-    (e.g., one token representing a three-part type $\sptchkdict{K}{V}$)
-    to support casts from the dynamic type.
+    The dictionary value stores a type tag to support casts from the dynamic
+    type.
+    A tag represents a three-part type $\sptchkdict{K}{V}$ and is implemented
+    as a pointer into a global registry of instantiated types.
     When a concrete dictionary enters typed code from an untyped context,
     its tag must match the expected type exactly.
     For example, type $\sptchkdict{K}{V}$ matches the type
@@ -1005,7 +1015,8 @@ The implementation has three main components:
 \end{itemize}
 %
 In general, other checked datatypes have the same three components:
-a constructor, checked update functions, and a compound tag.
+a constructor, checked update functions, and a tag.
+The tag is supported by a global registry of instantiated concrete types.
 
 
 \paragraph{Classloader}
@@ -1166,7 +1177,7 @@ a statement defines a variable, function, or class.
 These definitions may only appear on the top level
 and they all require type annotations.
 Functions must have one positional argument.
-Classes must declare one parent (either $\spobject$ or another class), one field, and one method.
+Classes must declare one parent (either $\sptobject$ or another class), one field, and one method.
 Expressions describe values and simple computations.
 The basic values are the none value, integers,
 booleans (which are the integers \code{0} and \code{1}), strings, and the top object.
@@ -1183,6 +1194,9 @@ names (\code{None}, \code{CheckedDict}).
 
 Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
 user-defined class, and union types.
+We choose to write the dynamic type as $\sptdyn$ for simplicity; technically,
+\SP{} does not have a surface syntax for its dynamic
+type and instead allows missing and unknown types~(\cref{s:type-dynamic}).
 We assume that all unions are written in a flat and simplified form, e.g., that
 $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
@@ -1210,10 +1224,11 @@ None of the omitted features give substantially new ways for typed code to inter
       \spclassdef{\spc}{\spc}{\spvardef{\spx}{\sptype}{\spexpr}}{\spfundef{\spf}{\spself, \spann{\spx}{\sptype}}{\sptype}{\spexpr}}
     \\[1.5ex]
     \spexpr & \defeq &
-      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid \spobject \langmid
+      \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid
   \\ & &
       \sppydict{\spx: \spexpr, \ldots} \langmid
       \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
+      \spcnew{\sptclass}{\spexpr, \ldots} \langmid
   \\ & &
       \spapp{\spf}{\spexpr} \langmid
       \spdictref{\spexpr}{\spexpr} \langmid
@@ -1242,12 +1257,13 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype}}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype}},~\sptenv
     \\[1.5ex]
     \spx, \spf & \defeq & \mbox{variable names}
+    %% TODO should C be a claass name? ... should c be variable name?
   \end{langarray}
 
   \bigskip
   \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
 
-  \caption{Surface Syntax and Types}
+  \caption{Surface syntax and types}
   \label{f:surface-types}
 \end{figure}
 
@@ -1288,11 +1304,11 @@ None of the omitted features give substantially new ways for typed code to inter
     \end{array}\right.
   \)
 
-  \caption{Evaluation Types, Surface-to-Evaluation Mapping}
+  \caption{Evaluation types, Surface-to-Evaluation mapping}
   \label{f:surface-to-eval-types}
 \end{figure}
 
-Evaluation types $\spteval$ are a subset of the surface types.
+Evaluation types $\spteval$ are a simplification of the surface types.
 These are the types that \SP{} promises to soundly enforce.
 \Cref{f:surface-to-eval-types} presents the syntax of evaluation types
 and a retraction $\mftypeF{\cdot}$ from surface types to evaluation types.
@@ -1342,23 +1358,29 @@ Nom~\cite{mt-oopsla-2017}.
 %under a fully-static type.
 
 \begin{table}[t]
-  \caption{How to Enforce the Evaluation Types}
+  \begin{threeparttable}
+  \centering
+  \caption{Description of run-time checks for the evaluation types}
   \label{t:cast}
 
-  \centering
-  \(\begin{array}{l@{\quad}l}
-    \mbox{Eval. Type $\spteval$} & \mbox{Description of run-time check} \\\hline
-    \sptoptional{\spteval_0} & \mbox{Accepts either the none value or values that match $\spteval_0$} \\
-    \sptrawpydict & \mbox{Accepts any Python dictionary} \\
-    \sptchkdict{\spteval_0}{\spteval_1} & \mbox{Accepts checked dictionaries parameterized by $\spteval_0$ and $\spteval_1$} \\
-    \sptdyn & \mbox{No check needed, accepts any value} \\
-    \sptobject & \mbox{Accepts any value, except primitives~(\cref{s:c-types})} \\
-    \sptclass_0 & \mbox{Accepts instances of the class $\sptclass_0$} \\
-    \sptnone & \mbox{Accepts the Python none value} \\
-    \sptint & \mbox{Accepts integers} \\
-    \sptbool & \mbox{Accepts booleans (the integers \code{0} and \code{1})} \\
-    \sptstr & \mbox{Accepts strings}
-  \end{array}\)
+    \begin{tabular}{l@{\quad}l}
+    {Eval. Type $\spteval$} & {Run-time check} \\\hline
+    $\sptoptional{\spteval_0}$ & {Accepts either the none value or values that match $\spteval_0$} \\
+    $\sptrawpydict$ & {Accepts any Python dictionary} \\
+    $\sptchkdict{\spteval_0}{\spteval_1}$ & {Accepts checked dictionaries parameterized by $\spteval_0$ and $\spteval_1$} \\
+    $\sptdyn$ & {No check needed, accepts any value} \\
+    $\sptobject$ & {Accepts any value\tnote{*}} \\
+    $\sptclass_0$ & {Accepts instances of the class $\sptclass_0$} \\
+    $\sptnone$ & {Accepts the Python none value} \\
+    $\sptint$ & {Accepts integers} \\
+    $\sptbool$ & {Accepts booleans (the integers \code{0} and \code{1})} \\
+    $\sptstr$ & {Accepts strings}
+    \end{tabular}
+
+    \begin{tablenotes}
+    \item {*} {\footnotesize In full \SP{}, the check for $\sptobject$ rejects primitive values~(\cref{s:c-types})}
+    \end{tablenotes}
+\end{threeparttable}
 \end{table}
 
 
@@ -1506,9 +1528,7 @@ Nom~\cite{mt-oopsla-2017}.
     }
 
     \inferrule*{
-      \sptclassdef{\sptclass_0}{\sptclass_2}{\ldots}{\ldots} \in \sptenv_0
-      \\
-      \sptenv_0 \wtsub \sptclass_2 \spsubt \sptclass_1
+      \sptclassdef{\sptclass_0}{\sptclass_1}{\ldots}{\ldots} \in \sptenv_0
     }{
       \sptenv_0 \wtsub \sptclass_0 \spsubt \sptclass_1
     }
@@ -1527,7 +1547,7 @@ Nom~\cite{mt-oopsla-2017}.
 %    }
   \end{mathpar}
 
-  \caption{Expression Typing, Consistent Subtyping, and Materialization}
+  \caption{Expression typing, consistent subtyping, and materialization}
   \label{f:eval-types}
 \end{figure}
 
@@ -1600,7 +1620,8 @@ We end here, with materialization, rather than present a semantics
 for the formalization.
 After all, the main benefit of a full formal semantics is to validate
 the behavior of complex expressions---and this job is
-better left to the Redex mechanization.
+better left to the Redex mechanization, which at any rate supports a much
+larger subset of Python~(\cref{s:surface}).
 
 Furthermore, our casts-via-materialization rule assumes that the
 type checker has access to the whole program.
@@ -1678,7 +1699,7 @@ interacts with a typed value.
 %    }
 %  \end{mathpar}
 %
-%  \caption{Program Typing}
+%  \caption{Program typing}
 %  \label{f:program-typing}
 %\end{figure}
 
