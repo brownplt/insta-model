@@ -21,7 +21,8 @@ This repository includes a copy of the test suite (`tests.py`) fetched on
 ### Alternative: Docker
 
 The `Dockerfile` declares an image with Racket and Python.
-To use it, start the docker daemon (maybe with `sudo dockerd`) and run the following commands:
+To use it, start the docker daemon (maybe with `sudo dockerd`) and run the
+following commands:
 
 ```
 docker build -t insta-model .
@@ -44,7 +45,8 @@ The main steps are:
 
 #### Click Below for Example Output
 
-<details><summary>Collected on 2022-04-07. Took 10 minutes to finish on a laptop.</summary>
+<details><summary>Collected on 2022-04-07. Took 10 minutes to finish on a
+laptop.</summary>
 
 <pre>
 echo "Importing tests from Static Python's test suite."
@@ -101,23 +103,45 @@ beforehand). We are looking into it!
 
 ## How to validate claims from the paper?
 
-This section lists claims that we made in the paper, and where in this repository to find the corresponding evidence.
+This section lists claims that we made in the paper, and where in this
+repository to find the corresponding evidence.
 
-> (page 10; Section 4) The model covers a substantial part of the Python language including assertions, loops, exception handlers, and delete statements.
+> (page 10; Section 4) The model covers a substantial part of the Python
+> language including assertions, loops, exception handlers, and delete
+> statements.
 
-These language constructs (and many others) are tested in the [./conformance_suite](./conformance_suite). You can use `grep` to validate. For example, to see whether we tested assertions, you can run:
+These language constructs (and many others) are tested in the
+[./conformance_suite](./conformance_suite). You can use `grep` to validate. For
+example, to see whether we tested assertions, you can run:
 
 ```bash
 $ grep 'assert ' -r ./conformance_suite/
 ```
 
-To further validate that the conformance tests are indeeded tested, you can edit the source code of a test to introduce a failure, re-run `make`, and check that the test does fail.
+To further validate that the conformance tests are indeeded tested, you can
+edit the source code of a test to introduce a failure, re-run `make`, and check
+that the test does fail.
 
-> (page 10; Section 4) Second, we used Redex’s random testing tools to check type soundness on thousands of examples (1,600 expressions and 11,000 programs).
+> (page 10; Section 4) Second, we used Redex’s random testing tools to check
+> type soundness on thousands of examples (1,600 expressions and 11,000
+> programs).
 
-We have two uses of [`redex-check`](https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._redex-check%29%29) in [./conjectures.rkt](./conjectures.rkt): line [172](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L172) and line [239](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L239).
+We have two uses of
+[`redex-check`](https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._redex-check%29%29)
+in [./conjectures.rkt](./conjectures.rkt): line
+[172](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L172)
+and line
+[239](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L239).
 
-We will walk you through the first use. The other is very similar. On line 172 you will see the following expression. The expression generate 10000 random expressions (`e+`) and checks whether for all expression `e+`, if the expression compiles and terminates within certain number of reduction steps, the result must be of the same type as the expression. The nonterminal `e+` is defined in language `SP-conjecture` ([line 10 of `conjectures.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L10)), which inherite the definition from language `SP` ([line 29 of `grammar.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/grammar.rkt#L29)
+We will walk you through the first use. The other is very similar. On line 172
+you will see the following expression. The expression generate 10000 random
+expressions (`e+`) and checks whether for all expression `e+`, if the
+expression compiles and terminates within certain number of reduction steps,
+the result must be of the same type as the expression. The nonterminal `e+` is
+defined in language `SP-conjecture` ([line 10 of
+`conjectures.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/conjectures.rkt#L10)),
+which inherite the definition from language `SP` ([line 29 of
+`grammar.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/grammar.rkt#L29)
 
 ```racket
 (redex-check SP-conjecture
@@ -126,9 +150,14 @@ We will walk you through the first use. The other is very similar. On line 172 y
              #:attempts 10000)
 ```
 
-In the repository we test 10000 random expressions and 15000 random programs. In the paper, we report the numbers of **well-typed** terms that came from one run: 1600 expressions and 11000 programs. You should see similar numbers of well-typed terms if you re-run the experiment.
+In the repository we test 10000 random expressions and 15000 random programs.
+In the paper, we report the numbers of **well-typed** terms that came from one
+run: 1600 expressions and 11000 programs. You should see similar numbers of
+well-typed terms if you re-run the experiment.
 
-> (page 10; Section 4) we translated 265 tests from the Static Python regression suite to the syntax of the model and confirmed that the results do match, which suggests that the model conforms to actual Static Python.
+> (page 10; Section 4) we translated 265 tests from the Static Python
+> regression suite to the syntax of the model and confirmed that the results do
+> match, which suggests that the model conforms to actual Static Python.
 
 You can see the number (265) if you run 
 
@@ -136,7 +165,9 @@ You can see the number (265) if you run
 make statistics
 ```
 
-> (page 10; Section 4) For most of the 265 tests, the translation is automatic. A few tests required hand- pruning to remove features that the model does not handle (52 total)
+> (page 10; Section 4) For most of the 265 tests, the translation is automatic.
+> A few tests required hand- pruning to remove features that the model does not
+> handle (52 total)
 
 You can see the number (52) with 
 
@@ -144,25 +175,50 @@ You can see the number (52) with
 ls ./conformance_suite/edited_test_* | wc -l
 ```
 
-> (page 10; Section 4) Static Python has 537 other tests (802 total) that we did not use because they fall outside the scope of the model.
+> (page 10; Section 4) Static Python has 537 other tests (802 total) that we
+> did not use because they fall outside the scope of the model.
 
 `make statistics` also produces this number (802).
 
-> (page 13; Section 4.2.1) Most [casts] call for a tag check, i.e., a Python isinstance test. The sole exception is optional types, which require a tag check and a test for the none value.
+> (page 13; Section 4.2.1) Most [casts] call for a tag check, i.e., a Python
+> isinstance test. The sole exception is optional types, which require a tag
+> check and a test for the none value.
 
-If you look at [the definition of `compile-check` in `./compile.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1225), the `dynamic` case is trivial. The function case is unreachable because there is no function type in the surface syntax (neither for us nor for Static Python, though we both have an internal representation for function types). The remaining two cases are more interesting. When the target type is a class, `compile-check` calls [`check-exactness`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1244), which effectively performs a tag-check. The remaining case is for `Optional[T]`, which has a test for the none value and a tag check for the class `T`.
+If you look at [the definition of `compile-check` in
+`./compile.rkt`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1225),
+the `dynamic` case is trivial. The function case is unreachable because there
+is no function type in the surface syntax (neither for us nor for Static
+Python, though we both have an internal representation for function types). The
+remaining two cases are more interesting. When the target type is a class,
+`compile-check` calls
+[`check-exactness`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1244),
+which effectively performs a tag-check. The remaining case is for
+`Optional[T]`, which has a test for the none value and a tag check for the
+class `T`.
 
-> (page 13; Section 4.2.1) No cast requires traversing a data structure. Similarly, no cast allocates a wrapper to check higher-order behaviors in a delayed fashion.
+> (page 13; Section 4.2.1) No cast requires traversing a data structure.
+> Similarly, no cast allocates a wrapper to check higher-order behaviors in a
+> delayed fashion.
 
-`compile-check` calls [`check-exactness`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1244), which uses `is` or `issubclass` to compare the object's tag and the expected tag. The object fields are never traversed.
+`compile-check` calls
+[`check-exactness`](https://github.com/brownplt/insta-model/blob/c9f21f5479b2dd4f9ddbfabacba88d22b3cb1811/compile.rkt#L1244),
+which uses `is` or `issubclass` to compare the object's tag and the expected
+tag. The object fields are never traversed.
 
 ## Conformance Tests
 
-Each file under `conformance_suite` is a test case written as a commented Python file. They come from two sources:
+Each file under `conformance_suite` is a test case written as a commented
+Python file. They come from two sources:
 
-  1. Files named as `test_*` are extracted from `tests.py` with a script `scripts/import_SP_tests.py`. Files named as `edited_test_*` are edited after extraction. Some tests in `tests.py` are not extracted for various reasons. You can find in `left-out_reason.csv` reasons why each of them was left out. For each left-out reason, you can find the corresponding string patterns at the beginning of `scripts/import_SP_tests.py`.
+  1. Files named as `test_*` are extracted from `tests.py` with a script
+     `scripts/import_SP_tests.py`. Files named as `edited_test_*` are edited
+     after extraction. Some tests in `tests.py` are not extracted for various
+     reasons. You can find in `left-out_reason.csv` reasons why each of them
+     was left out. For each left-out reason, you can find the corresponding
+     string patterns at the beginning of `scripts/import_SP_tests.py`.
 
-  2. All other tests are written by us. `Statics.md` and `Dynamics.md` lists those tests together with their purposes.
+  2. All other tests are written by us. `Statics.md` and `Dynamics.md` lists
+     those tests together with their purposes.
 
 ## The Model
 
