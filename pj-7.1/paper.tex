@@ -1037,7 +1037,7 @@ First, we manually reviewed the model in depth---using our
 own expertise---to look for non-conformance.  Second, 
 we used Redex's property-based testing tools~\cite{kf-sfp-2009} to check
 type soundness.
-Specifically, we asked Redex to generate well-formed terms (using its default
+Specifically, we used Redex to generate well-formed terms (using its default
 algorithm) and checked whether the well-typed terms that terminated within a
 fixed time budget (1,200 expressions and 11,000 programs in a typical run)
 produced only well-typed values and allowed errors.
@@ -1563,7 +1563,7 @@ These declarations fill a type environment ($\sptenv$).
 Relative to the current environment, the expressions within each statement must
 satisfy the typing judgment in~\cref{f:eval-types}.
 
-By contrast to our Redex model, the typing judgment in~\cref{f:eval-type} is
+By contrast to our Redex model, the typing judgment in~\cref{f:eval-types} is
 not syntax directed.
 The rules do not describe a typechecking algorithm.
 Instead these rules declare various conclusions and their preconditions to
@@ -2329,7 +2329,7 @@ Every benchmark version invoked the JIT on the same set of functions.
 \end{table}
 
 Almost all ratios are less than one, showing that \SP{} achieves a speedup over
-Python (typed avg. $0.8$, refined avg. $0.3$).
+Python (typed avg.~$0.8$, refined avg.~$0.3$).
 The exceptions are the unrefined versions of \bmname{fannkuch} and
 \bmname{nbody}, which is because these benchmarks focus
 on number-crunching and \SP{} optimizes arithmetic only for primitive types.
@@ -2351,7 +2351,7 @@ may reveal performance bugs that have not yet shown up in production.
 Concrete types originated in Thorn~\cite{bfnorsvw-oopsla-2009,wnlov-popl-2010}
 and StrongScript~\cite{rzv-ecoop-2015}, two early languages that support typed
 and untyped objects.
-Thorn is a new scripting language for the JVM; StrongScript is designed to
+Thorn is a scripting language for the JVM; StrongScript is designed to
 interoperate with JavaScript.
 Concrete types came to \SP{} by way of Nom~\cite{mt-oopsla-2017} and its
 successor MonNom~\cite{mt-oopsla-2021}.
