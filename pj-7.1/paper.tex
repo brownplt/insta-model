@@ -15,28 +15,6 @@
 %% - 
 %% - 
 
-%% TODO 2022-04-08 from Pyre team
-%% Hi Carl! The small notational question I mentioned about in the paper was in
-%% Figure 5 -- there's this "M-APP" rule that describes how classmethod invocation
-%% is handled. I was trying to figure out how inherited classmethod would work
-%% with this rule. Say I have a class B that defines a method f0(B, S0) -> S1, and
-%% then I have another class D that inherits B which does not define additional
-%% method. Now given Env0 \vdash expr0: S0, how can Env0 \vdash D.f0(expr0): S1 be
-%% proven? If I understand correctly, the rule only looks up the type of f0 in
-%% Env0(D), i.e. the body of the derived class. But the real definition of f0 is
-%% syntactically located in the base class B. Does the notation system used here
-%% assume that every function definition in base class gets automatically copied
-%% into the derived class? Or should there be an additional preconditions added to
-%% the "M-APP" rule saying that f0 is allowed to exist in any of the superclass of
-%% D?
-
-%% 2022-04-24 More model issues:
-%% - C.f(e) uses a class type, not an instance ... how to invoke method on instance?!
-%% ... we should really apologize for a too-simple model
-%% - Object is not clearly in C
-%% - introduce c again as variable name? gee why not expr.method()?
-
-
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
 \newcommand{\JSPP}{JS\code{++}}
@@ -85,7 +63,7 @@
 \newcommand{\sptrawchkdict}{\typefont{CheckedDict}} %% not a real SP type, but useful for TeX
 \newcommand{\sptpydict}[2]{\paramtype{\sptrawpydict}{#1, #2}}
 \newcommand{\sptchkdict}[2]{\paramtype{\sptrawchkdict}{#1, #2}}
-\newcommand{\sptenv}{\typefont{Env}}
+\newcommand{\sptenv}{\Gamma} %{\typefont{Env}}
 \newcommand{\sptenvnil}{\cdot}
 \newcommand{\sptenvempty}{\sptenvnil}
 \newcommand{\sptvardef}[2]{\spann{#1}{#2}}
@@ -122,7 +100,7 @@
 \newcommand{\sppydict}[1]{\code{\{}#1\code{\}}}
 \newcommand{\spchkdict}[3]{\spapp{\paramtype{\code{chkdict}}{#1, #2}}{#3}}
 \newcommand{\spcnew}[2]{\spapp{#1}{#2}}
-\newcommand{\spenvapp}[2]{\spapp{#1}{#2}}
+\newcommand{\spenvapp}[2]{\spapp{#1{}^*}{#2}}
 \newcommand{\spdictref}[2]{#1[#2]}
 \newcommand{\spdictset}[3]{\spdictref{#1}{#2} = #3}
 \newcommand{\spobjref}[2]{#1.#2}
@@ -706,8 +684,10 @@ These different values have different types:
     %% Programmers must use a type-annotated contructor to make a concrete-typed checked dict.
 \end{enumerate}
 %
-These options keep run-time costs low and let programmers decide between
+These options keep run-time costs low and let programmers choose between
 concrete and shallow types.
+This choice is one aspect of gradual soundness in \SP{}.
+
 Often, the shallow types are more attractive because concrete types impose
 nonlocal changes.
 If one type changes to concrete, then several changes may need to happen:
@@ -838,6 +818,7 @@ refinement over the semantics of basic Python types:
 they permit fewer behaviors statically to enable the unboxing.
 Operations such as \code{and} (boolean conjunction), for example, do not accept
 a mix of primitive and non-primitive arguments.
+These primitive types are another main aspect of gradual soundness.
 
 Because performance is the top priority for primitive types, they
 are intentionally incompatible with the dynamic type.
@@ -1055,13 +1036,16 @@ three methods to give confidence that our model matches reality.
 First, we manually reviewed the model in depth---using our
 own expertise---to look for non-conformance.  Second, 
 we used Redex's property-based testing tools~\cite{kf-sfp-2009} to check
-type soundness on thousands of examples (1,600 expressions and 11,000
-programs).
+type soundness.
+Specifically, we asked Redex to generate well-formed terms (using its default
+algorithm) and checked whether the well-typed terms that terminated within a
+fixed time budget (1,200 expressions and 11,000 programs in a typical run)
+produced only well-typed values and allowed errors.
 % \footnote{Property-based testing helped us find and fix several issues in the
 % model.  None of issues had implications for \SP{}'s soundness.}
 Finally, we employed the well-established method of testing end-to-end
 conformance with a test suite~\cite{gsk-ecoop-2010,gclpk-dls-2012,pmmwplck-oopsla-2013,bcfgmnss-popl-2014,fgpssmds-popl-2016}.
-In particular, we translated \numSPtest{} tests from the \SP{} regression suite to the
+We translated \numSPtest{} tests from the \SP{} regression suite to the
 syntax of the model and confirmed that the results
 do match,
 which suggests that the model conforms to actual \SP{}.
@@ -1071,7 +1055,7 @@ A few tests required hand-pruning to remove features that the model does not
 handle (\totalnum{52}).
 \SP{} has \numSPdiff{} other tests (\totalnum{\numSPtotal{}}) that we did not
 use because they fall outside the scope of the model.
-\Cref{s:impl} summarizes the out-of-scope features; \cref{a:banned-test} gives
+\Cref{s:impl} summarizes the out-of-scope features and \cref{a:banned-test} gives
 a detailed categorization.
 
 %% 2022-01-20 redex-check details
@@ -1160,8 +1144,16 @@ Our model caught this specification error.
 
 \paragraph{Section Outline}
 
-The rest of this section illustrates our Redex model using
-a small formalization.
+%% TODO gaps between paper and redex
+%% (if these are small enough, explain here ... maybe with minor notes further down
+%%  if bigger, consider a "threats" or "gaps" section)
+%% - typing is not algorithmic
+%% - few python features (well that's obvious)
+%% - few expressions (very subtle to introduce here/now)
+
+The rest of this section illustrates our Redex model using a small
+formalization.
+%% TODO EXAMPLE simplification
 \Cref{s:surface} presents a surface syntax to highlight the boundaries between
 typed and untyped code.
 \Cref{s:eval-types} explains how types get enforced at run-time.
@@ -1225,17 +1217,18 @@ None of the omitted features give substantially new ways for typed code to inter
     \\[1.5ex]
     \spexpr & \defeq &
       \spx \langmid \spnone \langmid \spint \langmid \spbool \langmid \spstr \langmid
+      \spapp{\spf}{\spexpr} \langmid
   \\ & &
       \sppydict{\spx: \spexpr, \ldots} \langmid
       \spchkdict{\sptype}{\sptype}{\sppydict{\spx: \spexpr, \ldots}} \langmid
-      \spcnew{\sptclass}{\spexpr, \ldots} \langmid
   \\ & &
-      \spapp{\spf}{\spexpr} \langmid
       \spdictref{\spexpr}{\spexpr} \langmid
       \spdictset{\spexpr}{\spexpr}{\spexpr} \langmid
-      \spobjref{\spc}{\spx} \langmid
-      \spobjset{\spc}{\spx}{\spexpr} \langmid
-      \spobjapp{\spc}{\spf}{\spexpr}
+  \\ & &
+      \spcnew{\sptclass}{\spexpr, \ldots} \langmid
+      \spobjref{\spexpr}{\spx} \langmid
+      \spobjset{\spexpr}{\spx}{\spexpr} \langmid
+      \spobjapp{\spexpr}{\spf}{\spexpr}
     \\[1.5ex]
     \sptype & \defeq &
       \sptdyn \langmid
@@ -1243,7 +1236,6 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptint \langmid
       \sptbool \langmid
       \sptstr \langmid
-      \sptobject \langmid
       \sptclass \langmid
   \\ & &
       \sptpydict{\sptype}{\sptype} \langmid
@@ -1257,11 +1249,13 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptclassdef{\spc}{\spc}{\sptvardef{\spx}{\sptype}}{\sptfundef{\spf}{\sptclass, \sptype}{\sptype}},~\sptenv
     \\[1.5ex]
     \spx, \spf & \defeq & \mbox{variable names}
-    %% TODO should C be a claass name? ... should c be variable name?
   \end{langarray}
 
   \bigskip
   \mbox{Abbreviation: $\sptoptional{\sptype} \defeq \sptunion{\sptnone, \sptype}$}
+
+  \medskip
+  \mbox{Convention: the set of all class types $\sptclass$ contains the top type $\sptobject$}
 
   \caption{Surface syntax and types}
   \label{f:surface-types}
@@ -1279,7 +1273,6 @@ None of the omitted features give substantially new ways for typed code to inter
       \sptint \langmid
       \sptbool \langmid
       \sptstr \langmid
-      \sptobject \langmid
       \sptclass \langmid
     \\ & &
       \sptrawpydict \langmid
@@ -1369,8 +1362,7 @@ Nom~\cite{mt-oopsla-2017}.
     $\sptrawpydict$ & {Accepts any Python dictionary} \\
     $\sptchkdict{\spteval_0}{\spteval_1}$ & {Accepts checked dictionaries parameterized by $\spteval_0$ and $\spteval_1$} \\
     $\sptdyn$ & {No check needed, accepts any value} \\
-    $\sptobject$ & {Accepts any value\tnote{*}} \\
-    $\sptclass_0$ & {Accepts instances of the class $\sptclass_0$} \\
+    $\sptclass_0$ & {Accepts instances of the class $\sptclass_0$\tnote{*}} \\
     $\sptnone$ & {Accepts the Python none value} \\
     $\sptint$ & {Accepts integers} \\
     $\sptbool$ & {Accepts booleans (the integers \code{0} and \code{1})} \\
@@ -1378,7 +1370,7 @@ Nom~\cite{mt-oopsla-2017}.
     \end{tabular}
 
     \begin{tablenotes}
-    \item {*} {\footnotesize In full \SP{}, the check for $\sptobject$ rejects primitive values~(\cref{s:c-types})}
+    \item {*} {\footnotesize In \SP{}, the check for $\sptobject$ accepts all values except for primitives~(\cref{s:c-types})}
     \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -1390,111 +1382,118 @@ Nom~\cite{mt-oopsla-2017}.
   \fbox{$\sptenv \wtexpr \spexpr : \spteval$}~selected rules
   \begin{mathpar}
     \inferrule*[left=S-App]{
-      \sptfundef{\spf_0}{\spteval_0}{\spteval_1} \in \sptenv_0
+      \sptfundef{\spf_0}{\spteval_0}{\spteval_1} \in \sptenv
       \\\\
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+      \sptenv \wtexpr \spexpr_0 : \spteval_0
     }{
-      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_0} : \spteval_1
+      \sptenv \wtexpr \spapp{\spf_0}{\spexpr_0} : \spteval_1
     }
 
     \inferrule*[left=D-App]{
-      \sptvardef{\spf_0}{\sptdyn} \in \sptenv_0
+      \sptvardef{\spf_0}{\sptdyn} \in \sptenv
       \\\\
-      \sptenv_0 \wtexpr \spexpr_0 : \sptobject
+      \sptenv \wtexpr \spexpr_0 : \sptobject
     }{
-      \sptenv_0 \wtexpr \spapp{\spf_0}{\spexpr_0} : \sptdyn
+      \sptenv \wtexpr \spapp{\spf_0}{\spexpr_0} : \sptdyn
     }
 
     %% TODO show dict read rules?
 %    \inferrule*[left=D-Ref]{
-%      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
+%      \sptenv \wtexpr \spexpr_0 : \sptrawpydict
 %      \\\\
-%      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+%      \sptenv \wtexpr \spexpr_1 : \sptobject
 %    }{
-%      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
+%      \sptenv \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
 %    }
 %
 %    \inferrule*[left=CD-Ref]{
-%      \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
+%      \sptenv \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
 %      \\\\
-%      \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+%      \sptenv \wtexpr \spexpr_1 : \spteval_0
 %    }{
-%      \sptenv_0 \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \spteval_1
+%      \sptenv \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \spteval_1
 %    }
 
     \inferrule*[lab=D-Set]{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptrawpydict
+      \sptenv \wtexpr \spexpr_0 : \sptrawpydict
       \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \sptobject
+      \sptenv \wtexpr \spexpr_1 : \sptobject
       \\\\
-      \sptenv_0 \wtexpr \spexpr_2 : \sptobject
+      \sptenv \wtexpr \spexpr_2 : \sptobject
     }{
-      \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
+      \sptenv \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
     }
 
     \inferrule*[lab=CD-Set]{
-      \sptenv_0 \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
+      \sptenv \wtexpr \spexpr_0 : \sptchkdict{\spteval_0}{\spteval_1}
       \\\\
-      \sptenv_0 \wtexpr \spexpr_1 : \spteval_0
+      \sptenv \wtexpr \spexpr_1 : \spteval_0
       \\\\
-      \sptenv_0 \wtexpr \spexpr_2 : \spteval_1
+      \sptenv \wtexpr \spexpr_2 : \spteval_1
     }{
-      \sptenv_0 \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
+      \sptenv \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
     }
 
     %\inferrule*[left=F-Ref]{
-    %  \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv_0}{\spc_0}
+    %  \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv}{\spc_0}
     %}{
-    %  \sptenv_0 \wtexpr \spobjref{\spc_0}{\spx_0} : \spteval_0
+    %  \sptenv \wtexpr \spobjref{\spc_0}{\spx_0} : \spteval_0
     %}
 
     \inferrule*[left=F-Set]{
-      \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv_0}{\spc_0}
+      \sptenv \wtexpr \spexpr_0 : \spc_0
       \\\\
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+      \spann{\spx_0}{\spteval_0} \in \spenvapp{\sptenv}{\spc_0}
+      \\\\
+      \sptenv \wtexpr \spexpr_1 : \spteval_0
     }{
-      \sptenv_0 \wtexpr \spobjset{\spc_0}{\spx_0}{\spexpr_0} : \sptnone
+      \sptenv \wtexpr \spobjset{\spexpr_0}{\spx_0}{\spexpr_1} : \sptnone
     }
 
     \inferrule*[left=M-App]{
-      \sptfundef{\spf_0}{\spc_0, \spteval_0}{\spteval_1} \in \spenvapp{\sptenv_0}{\spc_0}
+      \sptenv \wtexpr \spexpr_0 : \spc_0
       \\\\
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+      \sptfundef{\spf_0}{\spc_0, \spteval_0}{\spteval_1} \in \spenvapp{\sptenv}{\spc_0}
+      \\\\
+      \sptenv \wtexpr \spexpr_1 : \spteval_0
     }{
-      \sptenv_0 \wtexpr \spobjapp{\spc_0}{\spf_0}{\spexpr_0} : \spteval_1
+      \sptenv \wtexpr \spobjapp{\spexpr_0}{\spf_0}{\spexpr_1} : \spteval_1
     }
 
     \inferrule*[left=C-Sub]{
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_1
+      \sptenv \wtexpr \spexpr_0 : \spteval_1
       \\\\
-      \sptenv_0 \wtsub \spteval_1 \spcompat \spteval_0
+      \sptenv \wtsub \spteval_1 \spcompat \spteval_0
     }{
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+      \sptenv \wtexpr \spexpr_0 : \spteval_0
     }
 
     \inferrule*[left=Matr]{
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_1
+      \sptenv \wtexpr \spexpr_0 : \spteval_1
       \\\\
       \spteval_1 \spmatr \spteval_0
       %% side condition: result type is not a primitive
     }{
-      \sptenv_0 \wtexpr \spexpr_0 : \spteval_0
+      \sptenv \wtexpr \spexpr_0 : \spteval_0
     }
+
+  \mbox{Where $\spenvapp{\sptenv}{\spc}$ collects field and method types from $\spc$ and from its parents}
 
   \end{mathpar}
 
+  \bigskip
   \begin{minipage}[t]{0.6\columnwidth}
     \fbox{$\sptenv \wtsub \spteval \spcompat \spteval$}
     \begin{mathpar}
       \inferrule*{
-        \sptenv_0 \wtsub \spteval_0 \spsubt \spteval_1
+        \sptenv \wtsub \spteval_0 \spsubt \spteval_1
       }{
-        \sptenv_0 \wtsub \spteval_0 \spcompat \spteval_1
+        \sptenv \wtsub \spteval_0 \spcompat \spteval_1
       }
 
       \inferrule*{
       }{
-        \sptenv_0 \wtsub \spteval_0 \spcompat \sptdyn
+        \sptenv \wtsub \spteval_0 \spcompat \sptdyn
       }
   \end{mathpar}
 
@@ -1513,24 +1512,30 @@ Nom~\cite{mt-oopsla-2017}.
   \begin{mathpar}
     \inferrule*{
     }{
-      \sptenv_0 \wtsub \spteval_0 \spsubt \sptobject
+      \sptenv \wtsub \spteval_0 \spsubt \sptobject
     }
 
     \inferrule*{
     }{
-      \sptenv_0 \wtsub \sptbool \spsubt \sptint
+      \sptenv \wtsub \sptbool \spsubt \sptint
     }
 
     \inferrule*{
-      \sptenv_0 \wtsub \spteval_0 \spsubt \spteval_1
+      \sptenv \wtsub \spteval_0 \spsubt \spteval_1
     }{
-      \sptenv_0 \wtsub \spteval_0 \spsubt \sptoptional{\spteval_1}
+      \sptenv \wtsub \sptoptional{\spteval_0} \spsubt \sptoptional{\spteval_1}
     }
 
     \inferrule*{
-      \sptclassdef{\sptclass_0}{\sptclass_1}{\ldots}{\ldots} \in \sptenv_0
+      \sptenv \wtsub \spteval_0 \spsubt \spteval_1
     }{
-      \sptenv_0 \wtsub \sptclass_0 \spsubt \sptclass_1
+      \sptenv \wtsub \spteval_0 \spsubt \sptoptional{\spteval_1}
+    }
+
+    \inferrule*{
+      \sptclassdef{\sptclass_0}{\sptclass_1}{\ldots}{\ldots} \in \sptenv
+    }{
+      \sptenv \wtsub \sptclass_0 \spsubt \sptclass_1
     }
 
 %    \inferrule*{
@@ -1558,6 +1563,12 @@ These declarations fill a type environment ($\sptenv$).
 Relative to the current environment, the expressions within each statement must
 satisfy the typing judgment in~\cref{f:eval-types}.
 
+By contrast to our Redex model, the typing judgment in~\cref{f:eval-type} is
+not syntax directed.
+The rules do not describe a typechecking algorithm.
+Instead these rules declare various conclusions and their preconditions to
+illustrate how \SP{} reasons about types---dynamic or otherwise.
+
 The first two rules are for function application.
 A typed function may be applied to an argument that matches its domain type,
 in which case it computes a value that matches its codomain type.
@@ -1576,8 +1587,6 @@ for consistent subtyping ($\spcompat$) and materialization ($\spmatr$).
 Consistent subtyping relates type $\spteval_0$ to type $\spteval_1$ if they are
 related by static subtyping ($\spsubteq$) or if
 $\spteval_1$ is the dynamic type.
-When this relation holds, it is safe to upcast a value from type $\spteval_0$
-to type $\spteval_1$.
 Materialization relates the dynamic type to any non-dynamic type.
 Occurrences of the \trule{Matr} rule are downcasts that require a
 run-time check.
@@ -1596,22 +1605,22 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two mat
   \inferrule*[left=Matr]{
     \inferrule*{
       \inferrule*[left=Matr]{
-        \sptenv_0 \wtexpr \spx : \sptdyn
+        \sptenv \wtexpr \spx : \sptdyn
         \\
         \sptdyn \spmatr \sptint
       }{
-        \sptenv_0 \wtexpr \spx : \sptint
+        \sptenv \wtexpr \spx : \sptint
       }
     }{
-      \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptdyn
+      \sptenv \wtexpr \spapp{\spf}{\spx} : \sptdyn
     }
     \quad
     \sptdyn \spmatr \sptstr
   }{
-    \sptenv_0 \wtexpr \spapp{\spf}{\spx} : \sptstr
+    \sptenv \wtexpr \spapp{\spf}{\spx} : \sptstr
   }
 
-  \mbox{Where $\sptenv_0 = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
+  \mbox{Where $\sptenv = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
 \end{mathpar}
 \medskip
 Consequently, this derivation calls for two casts at the \trule{Matr} applications.
@@ -2143,13 +2152,12 @@ throughout the web server.
 
 Because the \SP{} team has been changing code as well as types during its
 migrations, the question arises as to whether the changes themselves
-are responsible for more speedups than the types.
+are responsible for more speedups than the types and gradual soundness.
 %% Carl: "I reviewed the ~30 conversion diffs"
-We therefore reviewed the $\sim 30$ conversion diffs that significantly improved
-performance to assess the extent of the code changes.
-In general, the patches have minor changes that
-affect tests more than production code.
-There are nine common kinds of changes: five for types and four for speed.
+We therefore reviewed conversion diffs that significantly improved
+performance (\nnum{30}) to assess the extent of the code changes.
+There are nine common kinds of changes: five that satisfy the type checker
+and four that aim to improve performance.
 
 %% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
 %%  removes an extra call layer
@@ -2243,6 +2251,15 @@ There are nine common kinds of changes: five for types and four for speed.
 
 \end{enumerate}
 
+\subsubsection{Conclusion}
+
+In general, the patches responsible for performance gains contain minor
+code changes and 
+affect test code rather than production code.
+We conclude that the addition of \SP{} types to a codebase can significantly
+improve performance without major refactoring.
+
+
 %% More Migration Notes
 
 %% 2022-01-12 Carl:
@@ -2257,9 +2274,8 @@ There are nine common kinds of changes: five for types and four for speed.
 %% that relied on side-effecting decorators so that it could be used without the
 %% side effects.
 
-
 % 2022-01-24 bg: hidden from submission to save space
-%\subsubsection{Developer Experience}
+%\subsection{Developer Experience}
 %
 %For the most part, programmers have been happy adopting \SP{}.
 %The transition from Pyre to \SP{} has delivered performance benefits
@@ -2333,13 +2349,27 @@ may reveal performance bugs that have not yet shown up in production.
 \label{s:related}
 
 Concrete types originated in Thorn~\cite{bfnorsvw-oopsla-2009,wnlov-popl-2010}
-and StrongScript~\cite{rzv-ecoop-2015},
-and play a central role in Nom~\cite{mt-oopsla-2017} and MonNom~\cite{mt-oopsla-2021}.
-%% It was thanks to Nom that \SP{} acquired concrete types; the impressive performance results
-%% in the original Nom paper inspired the \SP{} team to pursue an implementation.
-In addition to concrete types, Thorn and StrongScript have optional (unsound) \emph{like} types.
-The mix of like and concrete types is similar to \SP{}'s mix of concrete and shallow
-types.
+and StrongScript~\cite{rzv-ecoop-2015}, two early languages that support typed
+and untyped objects.
+Thorn is a new scripting language for the JVM; StrongScript is designed to
+interoperate with JavaScript.
+Concrete types came to \SP{} by way of Nom~\cite{mt-oopsla-2017} and its
+successor MonNom~\cite{mt-oopsla-2021}.
+The impressive performance figures in the original Nom paper inspired the \SP{}
+team to adapt the method.
+But whereas MonNom has been exploring designs for generic concrete types that
+support (a flexible form of) the gradual guarantees~\cite{svcb-snapl-2015},
+\SP{} opts for a simpler and more rigid design~(\cref{s:type-dynamic}).
+
+With its mix of shallow and concrete types, \SP{} is one of a few gradual
+language that lets programmers choose between multiple type-enforcement strategies.
+Thorn and StrongScript offer a choice of concrete types and optional (unsound)
+\emph{like} types.
+Typed Racket supports deep (structural) types, shallow types, and optional
+types~\cite{g-pldi-2022}.
+By contrast to these others, \SP{} asks programmers to change their code
+in way that reflects changes to the types~(\cref{s:checked-type}).
+The changes impose a maintenance burden, but enable performance improvements.
 
 Many aspects of our Redex model for \SP{} are adapted from the Full Monty core calculus
 for Python~\cite{pmmwplck-oopsla-2013}.
@@ -2350,22 +2380,30 @@ In particular, the Full Monty paper reminded us that booleans are integers in Py
 
 Production experience with \SP{} suggests that a method-based JIT can
 eliminate the costs of shallow types.
-This finding complements prior work on shallow types;
-e.g., in Reticulated with the pypy tracing JIT~\cite{vsc-dls-2019}
-and in Grace with the Graal partial-evaluation-based JIT~\cite{rmhn-ecoop-2019,grmhn-vmil-2019}.
-Similarly, the Pycket team successfully used a tracing JIT to reduce the costs of higher-order
-checks~\cite{bbst-oopsla-2017}.
-%% It remains to be seen whether a non-tracing JIT is effective for higher-order
-%% casts.
+This finding complements prior work.
+In the context of shallow types,
+the pypy tracing JIT improved Reticulated~\cite{vsc-dls-2019}
+and the Graal partial-evaluation-based JIT improved Grace~\cite{rmhn-ecoop-2019,grmhn-vmil-2019}.
+In the context of concrete types, the HiggsCheck VM improved an implementation of
+SafeTypeScript~\cite{rsfbv-popl-2015,rat-oopsla-2017}.
+And in the context of deep/guarded/structural types, the Pycket tracing JIT greatly reduced the costs of higher-order
+checks in Typed Racket~\cite{bbst-oopsla-2017}.
+% In sum, there is much evidence to suggest that gradual languages go well with
+% JIT technology.
 
 \SP{} is one of many type systems for Python.
 Other optional type checkers include Pyre~\cite{pyre},
 mypy~\cite{mypy}, PyType~\cite{pytype}, and Pyright~\cite{pyright}.
+These checkers use types only for static analysis; optional types have no
+effect (positive or negative) at run-time.
 Another sound type system is Reticulated, which enforces structural types and
 pioneered the transient semantics~\cite{vss-popl-2017,v-thesis-2019}.
-Optimizing type systems include Reticulated and mypyc~\cite{mypyc}.
-%% The latter compiles Python source to C extension modules; unlike \SP{},
-%% it does not offer a pure-Python developer experience.
+A rigorous comparison of Reticulated and \SP{} is an important topic for future work.
+We conjecture that adapting code to Reticulated requires fewer edits than \SP{}
+but delivers slower performance.
+Optimizing type systems for Python include Reticulated and mypyc~\cite{mypyc}.
+The latter compiles Python source to C extension modules;
+it does not offer a pure-Python developer experience.
 
 Although sound gradual types are rare in industry, there are at
 least three other languages that provide them.
@@ -2374,14 +2412,11 @@ to a top (object) type but statically allows all method calls~\cite{dart-types}.
 C\# has a dynamic type that delays type checking until runtime~\cite{bmt-ecoop-2010}.
 \JSPP{} is typed JavaScript that allows untyped values
 using a catch-all \code{external} type~\cite{jspp}.
+None of these four implement gradual types as envisioned by researchers~\cite{st-sfp-2006,tf-dls-2006,mf-toplas-2009,gktff-sfp-2006};
+instead, they offer a pragmatic solution to interoperability problems.
 %% Programmers can manually cast external values to a more precise type.
 %% The non-immediate casts make copies (how does that work for functions?!)
 %% also, how does JS++ protect arrays sent to JS?
-
-%% Gradual soundness in \SP{} bears a strong resemblance to \emph{progressive types} vision
-%% of a type system that comes in strict and lax forms~\cite{pqk-onward-2012}.
-%% Primitive types are progressive types for base values.
-%% Concrete types are essentially a progressive form of shallow types.
 
 
 %% \section{Future Work}
@@ -2482,7 +2517,7 @@ and was obtained incrementally without any careful planning to avoid performance
 By contrast, bottlenecks are a major concern for expressive, structurally-typed
 gradual languages~\cite{gtnffvf-jfp-2019,tfgnvf-popl-2016}.
 
-In conclusion, the \SP{} approach to gradual typing seems to be a promising
+In conclusion, the gradual soundness approach of \SP{} seems to be a promising
 way to realize the vision of gradual typing.
 Determining whether this conjecture holds more broadly
 calls for research on two fronts.
@@ -2516,11 +2551,10 @@ point.
   The Brown authors contributed to the language by modeling it independently; they
   are not part of the \SP{} team.
 
-  Special thanks to Twitter, thanks to which the two teams
+  Special thanks to Twitter, through which the two teams
   (specifically, Meyer and Krishnamurthi) met.
-  This work was partly supported by the US National Science Foundation.
-  Greenman acknowledges support from NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-  TODO partial funded by Meta
+  This work was partly supported by Meta and by the US National Science Foundation.
+  Greenman is supported by NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
 }
 
 {\sloppy

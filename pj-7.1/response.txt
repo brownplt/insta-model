@@ -1,0 +1,507 @@
+TODO
+- write a quick thank-you and summary of changes
+- add section + page numbers to the responses
+
+> Review #45A
+> ===========================================================================
+>
+> Paper summary (for authors)
+> ---------------------------
+> The paper makes a contribution to gradual typing in theory and practice. The
+> subject language is Static Python, which adds a compile-time type discipline to
+> Python.
+>
+> On the theory side, the paper describes a formal model created with an
+> explorative tool for semantics modeling and prototyping. This model includes a
+> static semantics and a dynamic semantics. The dynamic semantics is tested
+> against a regression test suite.
+>
+> On the practical side, the paper describes the design of Static Python as well
+> as experiments with an implementation of Static Python. This implementation
+> allegedly improves the throughput of a closed source implementation of a web
+> server by 3.6%. It improves the run time of several microbenchmarks
+> significantly.
+>
+> Assessment and comments (for authors)
+> -------------------------------------
+> ## strengths
+>
+> * The main strength of the paper is clearly the favorable evaluation of a
+>   particular datapoint in the design space of gradual typing.
+> * The formal model enabled the discovery of problems in a industrial strength
+>   implementation of Static Python, at least in its type checker.
+>
+> ## weaknesses
+>
+> * the most significant evaluation is on a closed source program
+> * the microbenchmarks potentially gain more efficiency from progressive
+>   primitive types as most of them are computationally intensive.
+> * the theoretical evaluation is only probabilistic with unclear probability
+>
+> ## comments
+>
+> I like the paper, it is generally well readable. There are a few places, where
+> I'd expect more guidance from the authors, rather than expecting the reader to
+> interpolate.
+>
+> ### Table 1
+>
+> The caption is misleading. The data is the cost of creating and using
+> shallow/concrete dictionary types in typed and untyped contexts.  I was
+> initially confused by the 0 entries. I'd prefer you put --- to indicate that no
+> casts is needed.  You should indicate that $N$ is the length of the dictionary.
+
+Thanks, we've updated the caption, explained N, and used --- for no cast.
+
+
+> ### enforcement of CheckedDict[K,V]
+>
+> *... gets enforced in constant-time* What if V is also a CheckedDict?
+
+We've added an explanation of nested types (they do run in constant time).
+
+
+> ### p8, 2
+>
+> *Nom [...] flexible point in the design space*
+> Explain this point in two sentences.
+
+Done.
+
+
+> ### p8, se 2.5
+>
+> *...static semantics is progressive...*
+> It seems like the second paragraph *Primitive types...* explains the
+> progressive aspect. You should affirm that in the text.
+
+We've expanded the first paragraph and revised the second paragraph. The first
+paragraph focuses on the "normal" progressive aspects. The second focuses on
+gradual typing.
+
+
+> ### p9, -3
+>
+> *one token*
+> Is this a variable size token or fixed size (if V is CheckedDict? see above)
+
+It is always a fixed-size pointer.
+
+
+> ### p10, 2
+>
+> *only if*
+> Is that an `iff`?
+
+No, the "only if" is intentional. An "iff" would be correct, but the paragraph
+in which this sentence appears is about one direction in particular.
+
+
+> ### p10, -17
+>
+> *Redex's random testing ... to check type soundness*
+>
+> That seems a bit shaky. What's the baseline / ground truth / oracle for these tests?
+> In the end, all that testing only gives you a probabilistic guarantee.
+> Can you give an estimate of this probability? (I mean, quantitative)
+
+These are property-based tests. Our model defines a soundness property for terms
+and asks Redex to generate random terms in the hope of finding a counterexample.
+So, the soundness property is the ground truth; these random tests are all
+checking soundness.
+
+One could imagine a probabilistic guarantee about what kinds of terms the tests
+explore, but the guarantee would depend on two complicated parameters: our
+model's grammar and Redex's algorithm for exploring grammars (Klein & Findler,
+SFP 2009). These parameters make it difficult to formulate a guarantee. On top
+of that, **explaining** the guarantee to readers would be a huge challenge.
+
+Property-based testing is shaky compared to formal verification, but it's still
+a helpful tool for finding bugs.  Indeed, we found several bugs in our model
+thanks to these property-based tests (none of which had implications for Static
+Python itself).
+
+
+> ### p10, -2
+>
+> *All but one...*
+>
+> Which soundness bug was **not** fixed and why?
+
+All soundness bugs have been fixed at this time.
+
+
+> ### p11, -3
+>
+> `Dyn` should be `Any` in Python.
+
+The revised paper explains why we use the name `Dyn`.
+
+
+> ### p12, fig 3, 4
+>
+> * `str` should be italic
+> * why is `object` part of the expression language?
+
+Fixed `str` and removed `object`.
+
+(`object` was there as a simple instance of the `Object` type. Since it's not
+needed to explain type boundary issues, we can remove it.)
+
+
+> Line 6: `C.f(expr)`
+> * looks like a static method call to me, is that right? That's usually trivial
+>   compared with the dynamic dispatch of a real method call.
+> * how do you invoke a method on an object?
+
+Oh dear. This was not meant to be a static method call, but we were far too
+aggressive when simplifying the model.
+
+The revision uses `expr.f(expr)` instead and looks up the class type of the
+receiver to type check the call.
+
+
+> * how do you create an object? Is there a syntax like `C(expr)`?
+
+Syntax for making an object was missing from the paper (not from SP or Redex!).
+We've added it, thanks!
+
+
+> ### fig 4
+>
+> Some evaluation types don't make sense
+>
+> * can Optional types be nested? E.g. Optional[Optional[int]]   doesn't make
+>   sense to me
+> * what about Optional[None] ??
+> * or Optional[Dyn]??
+
+Yes, those types can all be written. Just like surface unions (section 4.1), we
+assume that Optional evaluation types get normalized in a standard way. The
+normal forms for these examples are: `Optional[int]`, `None`, and `Dyn`.
+
+
+> BTW, I find it confusing that surface types are `T`, but evaluation types are
+> `S`, given that surface starts with s.
+
+Good point, we've switched `S` and `T`.
+
+
+> ### table 2
+>
+> Misleading caption: this is about the cast from Any to an evaluation type.
+
+We have reworded the caption.
+
+
+> ### p14, fig 5
+>
+> * rule `M-App` seems too limiting. Literally read, it's not possible to invoke
+>   inherited methods because the method `f0` must be defined in class `C0` in
+>   which it is defined. This rule affirms the class-method conjecture from
+>   above.
+
+We had envisioned the lookup `Env(C0)` as searching both `C0` and its parents
+for all visible fields and methods.
+
+The revised figure writes `Env*(C0)` instead and includes a note to this effect.
+(The revision also uses `\Gamma` instead of `Env`)
+
+
+> * the `object` rule for subtyping contradicts Table 2, which says that *objects
+>   accepts any value expect primitives*. So `S0` must not be a primitive; but
+>   primitives are not part of the model. This is not consistent!
+
+We've moved the Table 2 comment about primitives to a footnote (because, as you
+rightly point out, they are not part of the model).
+
+
+> * given transitivity, the last rule could be simplified by omitting the
+>   assumption `C2 <: C1` and changing the conclusion to `C0 <: C1`.
+
+Thanks!
+
+
+> ### p15, -16
+>
+> *better left to the Redex mechanization*
+>
+> It would be useful to show the excerpt for method calls here, as they seem to
+> be nonstandard.
+
+Method calls in Redex are standard; they work like calls in (Static) Python.
+The confusion here is due to our over-simplified model in the submission, which
+gave the impression that only a class can receive a method call.
+
+
+> ### p24
+>
+> references [23] and [24] and [41] have broken DOIs
+
+Fixed.
+
+
+> * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+>
+>
+> Review #45B
+> ===========================================================================
+>
+> Paper summary (for authors)
+> ---------------------------
+> The contribution of the paper is the following:
+>
+> - The paper describes Static Python, a project developed at Instagram to add
+>   types to Python code in a gradual manner, with the main objective of
+>   improving performance. The project has already shown its effectiveness. The
+>   authors (informally) describe both the language (the gradual type system) and
+>   how this is implemented to achieve better performance.
+>
+> - The authors have developed an implementation in PLT redex of a subset of
+>   Static Python, focusing on features related to gradual typing. Using this
+>   implementation, they did an extended testing to show:
+>   1) that this implementation is sound
+>   2) that this implementation gives the same results of Static Python.
+>
+> Assessment and comments (for authors)
+> -------------------------------------
+> Assessment: The contributions of the paper summarized above are certainly
+> useful for the PL community, so I support acceptance. The empirical evaluation
+> seems to me (but I am definitely not an expert in such kind of contributions)
+> well-driven and adequate. I have some reservations on the formalization,
+> explained in the comments below, which should be solved/improved in the final
+> version.
+>
+> Detailed comments:
+>
+> Page 3 Mechanization: you should explain better what do you mean by
+> "soundness". I thought of standard soundness in the sense that "well-typed
+> programs do not go stuck", but here you say "property-based soundness tests",
+> what do you mean more precisely?
+
+Section 4 in the revised paper gives more details.
+
+In short, we started with the property "well-typed programs do not get stuck"
+and tested it on thousands of terms generated by Redex.
+
+
+> Section 4.1 line 4: In the formal syntax in Figure 3, Object seems not to be an
+> instance of C, so class C(C) seems not to include the case C = Object.
+> In the "Other expressions" you mention object fields reads and writes, but in
+> the formal syntax in Figure 3 you have C.x and C.x = expr, I was expecting
+> expr.x and expr.x = expr' instead.
+
+We've made several changes in response:
+
+- `Object` is no longer part of the grammar
+- The grammar comes with a note that the set `C` must contain `Object`
+- Field reads and writes use `expr` instead of `C` (example: C.x is now expr.x)
+
+
+> Figure 3: it would be better to use a more abstract style with metavariables as
+> it is customary now, e.g.
+> prog = stmt_1, ..., stmt_n
+> expr = ... [x_1:expr_1, ..., x_n:expr_n] | expr[expr'] |
+
+We appreciate the suggestion, but prefer to keep the current grammar because it has
+no substripts and uses a uniform style for the "sequence" terminals `prog` and `Env`.
+
+
+> Page 13 line -7: A dynamically-typed variable -> A dynamically-typed function
+
+No, "variable" is there on purpose because we don't know statically what a
+dynamically typed variable points to. It might not be a function.
+
+
+> Figure 5 rule D-App: in Figure 3 a function f seems not to be allowed to have
+> type Dyn in the enviroment
+
+This is allowed, but only indirectly. The definition of a function `f_0` can't
+directly say that `f_0` has type Dyn, but it can declare the type `Dyn -> Dyn`
+and then apply `f_0(f_0)` to assign the dynamic type to a function.
+
+(Note that `x` and `f` are undifferentiated variable names. The model uses `x`
+ in some definitions and `f` in others as hints to readers, but it's fine to
+ name a function `x_2` and so on.)
+
+
+> Also, Object seems to be the top type, hence also Bool and Int are seen as
+> classes, right?
+
+Yes, Bool and Int are technically classes. The paper says little about this,
+but the Redex model (and Static Python) give them full support as classes.
+
+
+> In rules D-Set and CD-Set, the type None seems to be used as a "Unit" type. The
+> fact that these two types are identified seems strange.
+
+Yes it is a bit strange, but it helps keep the model small for the paper.
+(Really, the best choice would be to move these rules into a typing judgment
+for **statements** rather than expressions. That's what the Redex model does.)
+
+
+> In subtyping rules, which is the relation between two Optional types?
+
+Fixed, thank you for catching this omission.
+
+
+> Why do you use metavariable Env_0 rather than just Env in the rules?
+
+We've removed the subscript.
+
+
+> page 15 line 4: I would not say "upcast" since there is no explicit cast here.
+
+Ok. We have removed this explanatory sentence.
+
+
+> My main criticism about your formalization of the typing rules is that, in my
+> opinion, they should include generation of code annotated with casts.
+> Moreover,it should be made clear that they are algorithmic. I mean, what I
+> expect is that there is an algorithm which, taken an expression expr and an
+> environment Env, produces a type (or a typing error) and the corresponding
+> annotated code, inserting casts. I am sure that this is what happens in your
+> PLT Redex implementation, and I think that this should be reported.
+
+The typing judgment in Redex is algorithmic, but the simple judgment in the
+paper is not. Section 4.2.2 in the revised paper makes this clear.
+
+
+> Section 4.3: I would perhaps eliminate this section. As it is, it says almost
+> nothing.
+
+We disagree. The section is a proof sketch that ill-typed values cannot "sneak
+in" through the dynamic type.
+
+
+> Section 6.3 I miss a conclusion/summary of the analysis here.
+
+We've added a conclusion section.
+
+
+> * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+>
+>
+> Review #45C
+> ===========================================================================
+>
+> Paper summary (for authors)
+> ---------------------------
+> This paper presents the design of Static Python, which introduces
+> gradual typing for Python.  It is already in use by engineers at
+> Instagram.  One of the notable features in the design is that a
+> programmer can have some control over the choice of what kind of
+> invariant can be enfored by types: untyped (no guarantee), shallow (in
+> the sense that types guarantee only the top-level type constructor),
+> and concrete (where full type information is relevant).  The use of
+> concrete types promotes code optimization, which can be also an
+> incentive to programmers.
+>
+> The paper presents an overview of the language and its run-time
+> system, followed by the description of the formal type system.  The
+> type system is formalized with PLT Redex.  Although no formal
+> metatheory is developed, the model has been checked by Redex's random
+> testing tools and test suites.  Subtleties in the language features
+> that are not modeled but implemented are discussed, too.  The section
+> on evaluation reports that 3.7% imprevement in CPU efficiency.
+>
+> Assessment and comments (for authors)
+> -------------------------------------
+> The language design mixing concrete and shallow types is interesting.
+> It seems that the language has been accepted by engineers and used for
+> a large software project.  Nevertheless I have a few reservations to
+> accept the paper in its current form.
+>
+> The paper puts emphasis on "gradual soundness" at the beginning but,
+> after reading the paper, I failed to see what it really was.  The
+> phrase is never mentioned on page 3 and afterwards.  This is
+> unfortunate because this is the phrase used even in the title!
+
+We've updated the paper to mention "gradual soundness" in the following
+sections: 2.3, 2.5, 6.3, and 8.
+
+
+> It's not clear how faithfully the formal model presented in Section 4
+> models the implementation.  In particular, C-Sub allows the type of an
+> expression can be changed to Dyn (using the consistent subtyping) and
+> Matr allows conversion from Dyn to any non-Dyn type.  So, the type
+> system seems to give any expression (that references only declared
+> variables, functions, classes) any type.  However, apparently, some
+> expressions are rejected by the implementation.  I have no idea what's
+> really going on.  (I tried to access the Redex model but it wasn't
+> accessible.)
+
+We've added a disclaimer near the top of section 4.2.2 to say that the
+paper presents declarative typing rules whereas the Redex model implements a
+typing algorithm.
+
+
+> The distinction between surface types and evaluation types is
+> interesting but its implication is not so clear.  Are type arguments
+> to Dict completely ignored by the type system?  If so, what is the
+> point of writing type arguments in a program?  I may misunderstand
+> something and am wondering if my question is related to the paragraph at
+> the bottom of p.11, "we omit the surface typing judgment, which is a
+> kind of linter that merely scans typed code for logical errors".  What
+> are the logical errors mentioned here?  If type arguments to Dict are
+> completely ignored, an alternative design might have been like this:
+> instead of providing two classes Dict and CheckedDict, a programmer
+> could use the raw type Dict and fully parameterized types Dict[S0,S1].
+
+The discussion is intentionally vague because Static Python does not have firm
+guidelines for what the surface type checker (linter) should do. For Dict,
+it currently ignores the type arguments so the only reasons to write them are
+for documentation and for other type checkers (Pyre, mypy) to check them.
+In the future, though, Static Python may do more surface checks.
+
+Using the raw type Dict and parameterized type Dict[S0, S1] seems problematic
+because these types describe different data structures. The types look similar,
+but a value with type Dict[S0, S1] cannot be used where a Dict is expected.
+
+
+> The related work section is light.  It cites relevant papers and
+> describes what they discuss but doesn't really compare with the
+> present work in depth.
+
+We have expanded the related work.
+
+
+> In summary, I'd recommend that the paper be revised by:
+> * clarifying gradual soundness,
+> * clarifying the relationship between the model and the implementation,
+> * clarifying the role of surface types,
+> * enhancing the discussion on related work.
+> It would be appreciated if you make the code of the Redex model accessible.
+
+We apologize that the Redex model was inaccessible. For convenience, here is
+the link:
+
+  <https://github.com/brownplt/insta-model>
+
+
+> Detailed comments:
+>
+> Table 1: Why does a constructor call for CheckedDict pay the cost in
+> O(N)? (What does N stand for?)
+
+N is the number of keys and values in the table (we have updated the table
+caption to explain). The constructor needs to validate each element.
+
+
+> * It seems that efficient run-time checking depends on the fact that
+>   the set of type instantiations CheckedDict[S0, S1] is finite and
+>   known at compile-time.  How is it achieved?  (Is it because there
+>   are no user-defined generic classes?)  My guess above may be wrong.
+>   In that case, it's not very clear how tags are implemented.
+
+Section 2.3 and 3 in the revision say more about the "how." Static Python
+implements these tags as pointers into a run-time table of all generic
+instantiations that have appeared.
+
+
+> p.12: "Evaluation types S are a subset of the surface types".
+> Is "Dict", which is an evaluation type, a surface type?
+
+No, Dict is not a surface type in the model. We have rephrased "subset" to
+avoid this confusion.
+
