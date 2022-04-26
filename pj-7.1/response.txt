@@ -8,19 +8,19 @@ TODO
 > Paper summary (for authors)
 > ---------------------------
 > The paper makes a contribution to gradual typing in theory and practice. The
-> subject language is Static Python, which adds a compile-time type discipline to
-> Python.
+> subject language is Static Python, which adds a compile-time type discipline
+> to Python.
 >
 > On the theory side, the paper describes a formal model created with an
 > explorative tool for semantics modeling and prototyping. This model includes a
 > static semantics and a dynamic semantics. The dynamic semantics is tested
 > against a regression test suite.
 >
-> On the practical side, the paper describes the design of Static Python as well
-> as experiments with an implementation of Static Python. This implementation
-> allegedly improves the throughput of a closed source implementation of a web
-> server by 3.6%. It improves the run time of several microbenchmarks
-> significantly.
+> On the practical side, the paper describes the design of Static Python as
+> well as experiments with an implementation of Static Python. This
+> implementation allegedly improves the throughput of a closed source
+> implementation of a web server by 3.6%. It improves the run time of several
+> microbenchmarks significantly.
 >
 > Assessment and comments (for authors)
 > -------------------------------------
@@ -40,16 +40,17 @@ TODO
 >
 > ## comments
 >
-> I like the paper, it is generally well readable. There are a few places, where
-> I'd expect more guidance from the authors, rather than expecting the reader to
-> interpolate.
+> I like the paper, it is generally well readable. There are a few places,
+> where I'd expect more guidance from the authors, rather than expecting the
+> reader to interpolate.
 >
 > ### Table 1
 >
 > The caption is misleading. The data is the cost of creating and using
 > shallow/concrete dictionary types in typed and untyped contexts.  I was
-> initially confused by the 0 entries. I'd prefer you put --- to indicate that no
-> casts is needed.  You should indicate that $N$ is the length of the dictionary.
+> initially confused by the 0 entries. I'd prefer you put --- to indicate that
+> no casts is needed.  You should indicate that $N$ is the length of the
+> dictionary.
 
 Thanks, we've updated the caption, explained N, and used --- for no cast.
 
@@ -101,7 +102,8 @@ in which this sentence appears is about one direction in particular.
 >
 > *Redex's random testing ... to check type soundness*
 >
-> That seems a bit shaky. What's the baseline / ground truth / oracle for these tests?
+> That seems a bit shaky. What's the baseline / ground truth / oracle for these
+> tests?
 > In the end, all that testing only gives you a probabilistic guarantee.
 > Can you give an estimate of this probability? (I mean, quantitative)
 
@@ -150,8 +152,8 @@ needed to explain type boundary issues, we can remove it.)
 
 
 > Line 6: `C.f(expr)`
-> * looks like a static method call to me, is that right? That's usually trivial
->   compared with the dynamic dispatch of a real method call.
+> * looks like a static method call to me, is that right? That's usually
+>   trivial compared with the dynamic dispatch of a real method call.
 > * how do you invoke a method on an object?
 
 Oh dear. This was not meant to be a static method call, but we were far too
@@ -196,10 +198,10 @@ We have reworded the caption.
 
 > ### p14, fig 5
 >
-> * rule `M-App` seems too limiting. Literally read, it's not possible to invoke
->   inherited methods because the method `f0` must be defined in class `C0` in
->   which it is defined. This rule affirms the class-method conjecture from
->   above.
+> * rule `M-App` seems too limiting. Literally read, it's not possible to
+>   invoke inherited methods because the method `f0` must be defined in class
+>   `C0` in which it is defined. This rule affirms the class-method conjecture
+>   from above.
 
 We had envisioned the lookup `Env(C0)` as searching both `C0` and its parents
 for all visible fields and methods.
@@ -208,9 +210,10 @@ The revised figure writes `Env*(C0)` instead and includes a note to this effect.
 (The revision also uses `\Gamma` instead of `Env`)
 
 
-> * the `object` rule for subtyping contradicts Table 2, which says that *objects
->   accepts any value expect primitives*. So `S0` must not be a primitive; but
->   primitives are not part of the model. This is not consistent!
+> * the `object` rule for subtyping contradicts Table 2, which says that
+>   *objects accepts any value expect primitives*. So `S0` must not be a
+>   primitive; but primitives are not part of the model. This is not
+>   consistent!
 
 We've moved the Table 2 comment about primitives to a footnote (because, as you
 rightly point out, they are not part of the model).
@@ -254,8 +257,8 @@ Fixed.
 > - The paper describes Static Python, a project developed at Instagram to add
 >   types to Python code in a gradual manner, with the main objective of
 >   improving performance. The project has already shown its effectiveness. The
->   authors (informally) describe both the language (the gradual type system) and
->   how this is implemented to achieve better performance.
+>   authors (informally) describe both the language (the gradual type system)
+>   and how this is implemented to achieve better performance.
 >
 > - The authors have developed an implementation in PLT redex of a subset of
 >   Static Python, focusing on features related to gradual typing. Using this
@@ -285,8 +288,8 @@ In short, we started with the property "well-typed programs do not get stuck"
 and tested it on thousands of terms generated by Redex.
 
 
-> Section 4.1 line 4: In the formal syntax in Figure 3, Object seems not to be an
-> instance of C, so class C(C) seems not to include the case C = Object.
+> Section 4.1 line 4: In the formal syntax in Figure 3, Object seems not to be
+> an instance of C, so class C(C) seems not to include the case C = Object.
 > In the "Other expressions" you mention object fields reads and writes, but in
 > the formal syntax in Figure 3 you have C.x and C.x = expr, I was expecting
 > expr.x and expr.x = expr' instead.
@@ -298,8 +301,8 @@ We've made several changes in response:
 - Field reads and writes use `expr` instead of `C` (example: C.x is now expr.x)
 
 
-> Figure 3: it would be better to use a more abstract style with metavariables as
-> it is customary now, e.g.
+> Figure 3: it would be better to use a more abstract style with metavariables
+> as it is customary now, e.g.
 > prog = stmt_1, ..., stmt_n
 > expr = ... [x_1:expr_1, ..., x_n:expr_n] | expr[expr'] |
 
@@ -332,8 +335,8 @@ Yes, Bool and Int are technically classes. The paper says little about this,
 but the Redex model (and Static Python) give them full support as classes.
 
 
-> In rules D-Set and CD-Set, the type None seems to be used as a "Unit" type. The
-> fact that these two types are identified seems strange.
+> In rules D-Set and CD-Set, the type None seems to be used as a "Unit" type.
+> The fact that these two types are identified seems strange.
 
 Yes it is a bit strange, but it helps keep the model small for the paper.
 (Really, the best choice would be to move these rules into a typing judgment
