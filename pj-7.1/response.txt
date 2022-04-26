@@ -1,42 +1,33 @@
-TODO
-- write a quick thank-you and summary of changes
-- add section + page numbers to the responses
+Thank you all for the detailed reviews. We have made the major changes that
+we promised in our edit plan and followed many of your other suggestions.
+
+For reference, here are the major changes:
+
+ 1. (Section 4) Clearly explain the purpose of the paper's model and the Redex
+    model, and explain how they relate to one another and to Static Python. In
+    particular, address the following specific points from the reviews:
+    - (#45A) Explain how Redex's random testing helps to check type soundness.
+    - (#45B) Explain "soundness" and "property-based soundness tests" more
+      clearly.
+    - (#45B, #45C) Clearly say that the model's typing is not algorithmic and
+      that Redex's typing is algorithmic. Explain how and why the model is
+      different.
+    - (#45A, #45B) Explain the semantics of objects and method calls in more
+      detail.
+
+  2. Explain gradual soundness in more detail throughout the paper.
+
+  3. (Section 7) Extend the related work and be sure to compare this work to
+     prior work.
+
+Below, please find point-by-point replies with page and section numbers to
+show where the revised paper has changed.
+
 
 > Review #45A
 > ===========================================================================
 >
-> Paper summary (for authors)
-> ---------------------------
-> The paper makes a contribution to gradual typing in theory and practice. The
-> subject language is Static Python, which adds a compile-time type discipline
-> to Python.
->
-> On the theory side, the paper describes a formal model created with an
-> explorative tool for semantics modeling and prototyping. This model includes a
-> static semantics and a dynamic semantics. The dynamic semantics is tested
-> against a regression test suite.
->
-> On the practical side, the paper describes the design of Static Python as
-> well as experiments with an implementation of Static Python. This
-> implementation allegedly improves the throughput of a closed source
-> implementation of a web server by 3.6%. It improves the run time of several
-> microbenchmarks significantly.
->
-> Assessment and comments (for authors)
-> -------------------------------------
-> ## strengths
->
-> * The main strength of the paper is clearly the favorable evaluation of a
->   particular datapoint in the design space of gradual typing.
-> * The formal model enabled the discovery of problems in a industrial strength
->   implementation of Static Python, at least in its type checker.
->
-> ## weaknesses
->
-> * the most significant evaluation is on a closed source program
-> * the microbenchmarks potentially gain more efficiency from progressive
->   primitive types as most of them are computationally intensive.
-> * the theoretical evaluation is only probabilistic with unclear probability
+> [... clipped ...]
 >
 > ## comments
 >
@@ -108,9 +99,12 @@ in which this sentence appears is about one direction in particular.
 > Can you give an estimate of this probability? (I mean, quantitative)
 
 These are property-based tests. Our model defines a soundness property for terms
-and asks Redex to generate random terms in the hope of finding a counterexample.
+and uses Redex to generate random terms in the hope of finding a counterexample.
 So, the soundness property is the ground truth; these random tests are all
-checking soundness.
+checking soundness. The basic outline is: if a random term is well-typed and
+terminates within a finite number of steps, then it must either reduce to a
+well-typed value or an error. (To get thousands of well-typed and terminating
+terms, we have Redex generate tens of thousands of random terms.)
 
 One could imagine a probabilistic guarantee about what kinds of terms the tests
 explore, but the guarantee would depend on two complicated parameters: our
@@ -118,10 +112,10 @@ model's grammar and Redex's algorithm for exploring grammars (Klein & Findler,
 SFP 2009). These parameters make it difficult to formulate a guarantee. On top
 of that, **explaining** the guarantee to readers would be a huge challenge.
 
-Property-based testing is shaky compared to formal verification, but it's still
-a helpful tool for finding bugs.  Indeed, we found several bugs in our model
-thanks to these property-based tests (none of which had implications for Static
-Python itself).
+In the end, although property-based testing is not as convincing as formal
+verification, it is still a helpful tool for finding bugs. Indeed, we found
+several bugs in our model thanks to these property-based tests (none of which
+had implications for Static Python itself).
 
 
 > ### p10, -2
@@ -250,30 +244,7 @@ Fixed.
 > Review #45B
 > ===========================================================================
 >
-> Paper summary (for authors)
-> ---------------------------
-> The contribution of the paper is the following:
->
-> - The paper describes Static Python, a project developed at Instagram to add
->   types to Python code in a gradual manner, with the main objective of
->   improving performance. The project has already shown its effectiveness. The
->   authors (informally) describe both the language (the gradual type system)
->   and how this is implemented to achieve better performance.
->
-> - The authors have developed an implementation in PLT redex of a subset of
->   Static Python, focusing on features related to gradual typing. Using this
->   implementation, they did an extended testing to show:
->   1) that this implementation is sound
->   2) that this implementation gives the same results of Static Python.
->
-> Assessment and comments (for authors)
-> -------------------------------------
-> Assessment: The contributions of the paper summarized above are certainly
-> useful for the PL community, so I support acceptance. The empirical evaluation
-> seems to me (but I am definitely not an expert in such kind of contributions)
-> well-driven and adequate. I have some reservations on the formalization,
-> explained in the comments below, which should be solved/improved in the final
-> version.
+> [... clipped ...]
 >
 > Detailed comments:
 >
@@ -388,25 +359,7 @@ We've added a conclusion section.
 > Review #45C
 > ===========================================================================
 >
-> Paper summary (for authors)
-> ---------------------------
-> This paper presents the design of Static Python, which introduces
-> gradual typing for Python.  It is already in use by engineers at
-> Instagram.  One of the notable features in the design is that a
-> programmer can have some control over the choice of what kind of
-> invariant can be enfored by types: untyped (no guarantee), shallow (in
-> the sense that types guarantee only the top-level type constructor),
-> and concrete (where full type information is relevant).  The use of
-> concrete types promotes code optimization, which can be also an
-> incentive to programmers.
->
-> The paper presents an overview of the language and its run-time
-> system, followed by the description of the formal type system.  The
-> type system is formalized with PLT Redex.  Although no formal
-> metatheory is developed, the model has been checked by Redex's random
-> testing tools and test suites.  Subtleties in the language features
-> that are not modeled but implemented are discussed, too.  The section
-> on evaluation reports that 3.7% imprevement in CPU efficiency.
+> [... clipped ...]
 >
 > Assessment and comments (for authors)
 > -------------------------------------

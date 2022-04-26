@@ -31,7 +31,7 @@
 \newcommand{\pctnum}[1]{$#1\%$}
 
 %% TODO 2022-01-25 recount tests
-\newcommand{\numbenchmark}{3}
+\newcommand{\numbenchmark}{4}
 \newcommand{\numSPtest}{265}
 \newcommand{\numSPtotal}{802} %% SP commit 6d61575 from Jan 9
 \newcommand{\numSPdiff}{537} %% (\numSPtotal - \numSPtest)
@@ -324,8 +324,7 @@ To a first approximation, there are three main stages:
     ones (a potentially nonlocal change), then \SP{} can perform deeper optimizations.
   \item
     A third set of progressive types enable further optimizations.
-    In particular, \emph{primitive types\/} allow for unboxed arithmetic,
-    which has been critical in practice.
+    In particular, \emph{primitive types\/} allow for unboxed arithmetic.
 \end{enumerate}
 
 Over the past year, Instagram has been applying gradual soundness to its
@@ -359,7 +358,7 @@ This paper makes two contributions:
   \item
     \emph{Mechanization}.
     To validate the soundness of \SP{}, we mechanized a core language in PLT Redex
-    and ran both property-based soundness tests and over 200 tests adapted from the \SP{} regression suite.
+    and ran both property-based soundness tests and over 250 tests adapted from the \SP{} regression suite.
     The modeling effort revealed 20 significant issues in \SP{},
     four of which were soundness bugs.
 
@@ -372,7 +371,7 @@ First, we present a user-oriented summary of the language~(\cref{s:tour}).
 Second, we present the key ingredients of the runtime system, Cinder,
 that supports \SP{}~(\cref{s:runtime}).
 \Cref{s:model} uses a small formal model to introduce our Redex mechanization
-and to convince readers that \SP{} is based on a sound core.
+and to demonstrate that \SP{} is based on a sound core.
 \Cref{s:impl} notes important aspects of \SP{} that are not covered by the model.
 \Cref{s:eval} evaluates \SP{}; it reports our experience with the language in
 production and on public microbenchmarks.
@@ -417,6 +416,7 @@ behavior~(\cref{s:not-python}),
 and it compiles code on-the-fly to support existing
 IDEs and developer tools.
 The advanced features of the \SP{} type system are offered on an opt-in basis
+(\emph{gradual soundness})
 and arranged so that programmers can begin adding types one module at a time.
 
 \begin{figure}
@@ -509,8 +509,8 @@ a research language with compelling performance results.
     A module-level granularity is acceptable.
     Once \SP{} is enabled for a module, it compiles all code in that module
     including expressions that have the dynamic type~(\cref{s:type-dynamic}).
-    If this behavior is a problem for certain expressions, it is easy enough to move
-    them to an untyped Python module.
+    If this behavior is problematic for certain expressions, they must move
+    to an untyped Python module.
 \end{itemize}
 %
 In general, the types that \SP{} implements all enable significant optimizations
@@ -783,12 +783,12 @@ inheritance:
 \end{enumerate}
 %
 With this context in mind, \SP{} keeps track of whether each class is typed or untyped.
-Each typed class can furthermore assume that if a method has a precise (non-dynamic)
+Typed classes can assume that if a method has a precise (non-dynamic)
 type, then all typed overrides are subtypes of this type.
-\SP{} can therefore optimize dispatch from typed callers to typed methods
-and use checked dispatch for other combinations.
-\SP{} can also optimize reads from typed fields.
-One extra step arises when an untyped method overrides a typed method.
+This property enables optimized dispatch from typed callers to typed methods
+and optimized field reads.
+Other method and field accesses typically incur one run-time check.
+An extra step arises when an untyped method overrides a typed method.
 In this case, \SP{} creates a wrapper around the overriding method to check
 that it computes type-correct results.
 % Because these wrappers perform a simple first-order check, they
@@ -818,7 +818,7 @@ refinement over the semantics of basic Python types:
 they permit fewer behaviors statically to enable the unboxing.
 Operations such as \code{and} (boolean conjunction), for example, do not accept
 a mix of primitive and non-primitive arguments.
-These primitive types are another main aspect of gradual soundness.
+These primitive types are another central aspect of gradual soundness.
 
 Because performance is the top priority for primitive types, they
 are intentionally incompatible with the dynamic type.
@@ -843,11 +843,11 @@ without having to rewrite its untyped dependents.
 
 Relative to Python, \SP{} makes a few behavioral changes to enable
 sound types and strong optimizations:
+module-level variables cannot be mutated;
 class attributes must be set in an \code{\_\_init\_\_} method to
 ensure predictable layouts (all \PEP{} checkers agree on this);
 typed attributes are resolved statically, and thus cannot be overridden with
 descriptors or properties;
-module-level variables cannot be mutated;
 typed fields 
 and
 multiple inheritance of either typed classes or untyped children
@@ -895,7 +895,7 @@ expressing runtime checks,
 initializing concrete-typed values,
 or efficiently performing a standard action.
 As an example of the third kind, the \code{FAST\_LEN} instruction quickly
-computes the length of a built-in value, which helps to optimize for loops.
+computes the length of a built-in value, which helps to optimize loops.
 \SP{} uses type information to decide where this instruction is appropriate
 and applies it as an optimization.
 
@@ -969,8 +969,8 @@ using a wrapper implemented in C (rather than in Python) to reduce performance c
 
 The concrete versions of built-in data structures come with both a type and an
 implementation.
-The implementation provides the same interface as the built-in but uses a
-type tag to reject certain operations.
+The implementation provides the same interface as the built-in, but uses
+type tags to reject certain operations.
 
 For example, the type $\sptchkdict{K}{V}$ describes a concrete dictionary
 with keys of type $K$ and values of type $V$.
@@ -1015,7 +1015,7 @@ Cinder includes a JIT (just-in-time) compiler for its bytecode.
 At the moment, programmers enable the JIT by supplying a list of method names
 to the compiler.
 Any method can be JIT-compiled whether or not it uses \SP{} types,
-even though fewer types usually leads to fewer optimizations.
+though fewer types usually result in fewer optimizations.
 
 
 \section{Model}
@@ -1095,16 +1095,17 @@ a detailed categorization.
 The modelling process helped uncover several critical issues in \SP{}.
 This is a very important payoff given that \SP{} is running in production at
 Instagram.
-Overall, we made 25 bug reports~(\cref{a:github-issues}) to the \SP{} team via GitHub.
-Four of these were soundness issues, one of which we could exploit to raise
+Overall, we made 26 bug reports~(\cref{a:github-issues}) to the \SP{} team via GitHub.
+Five of these were soundness issues, one of which we could exploit to raise
 a segmentation fault.
-All but one of these soundness bugs have been fixed.
+All of these soundness bugs have been fixed.
 Of the remaining issues, five were relatively minor; these dealt with confusing error messages
 and incorrect tests.
 The remaining 16 issues report bugs in language design and implementation.
 The \SP{} team has acknowledged these as bugs by applying a specific GitHub label: \lstinline{sp-correctness}.
 
 %% critical soundness issues:
+%% https://github.com/facebookincubator/cinder/issues/62
 %% https://github.com/facebookincubator/cinder/issues/55
 %% https://github.com/facebookincubator/cinder/issues/53
 %% https://github.com/facebookincubator/cinder/issues/39
@@ -1151,11 +1152,10 @@ Our model caught this specification error.
 %% - few python features (well that's obvious)
 %% - few expressions (very subtle to introduce here/now)
 
-The rest of this section illustrates our Redex model using a small
-formalization.
-%% TODO EXAMPLE simplification
-\Cref{s:surface} presents a surface syntax to highlight the boundaries between
-typed and untyped code.
+The rest of this section illustrates our Redex model using a tiny
+formalization to highlight the boundaries between typed and dynamic-typed
+code.
+\Cref{s:surface} presents a surface syntax.
 \Cref{s:eval-types} explains how types get enforced at run-time.
 \Cref{s:ts} argues that the overall approach toward boundaries is sound.
 
@@ -1172,23 +1172,24 @@ Functions must have one positional argument.
 Classes must declare one parent (either $\sptobject$ or another class), one field, and one method.
 Expressions describe values and simple computations.
 The basic values are the none value, integers,
-booleans (which are the integers \code{0} and \code{1}), strings, and the top object.
+booleans (which are the integers \code{0} and \code{1}), and strings.
 There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
-Other expressions describe function calls, dictionary reads and writes, object field reads and writes,
-and method calls.
+Other expressions describe function calls, dictionary reads and writes,
+object creation, object field reads and writes, and method calls.
 
 In Python, the syntax for expressions overlaps with the syntax of types.
 For example, the Python name \code{None} is both an expression and a type,
 and the \SP{} names \code{chkdict} and \code{CheckedDict} are synonyms.
-\Cref{f:surface-types} does not follow these standards; instead it keeps the two syntaxes distinct.
+\Cref{f:surface-types} does not follow these standards.
+Instead, it keeps the two syntaxes distinct.
 Expressions use lowercase names (\code{none}, \code{chkdict}) and types use capitalized
 names (\code{None}, \code{CheckedDict}).
 
-Types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
+Surface types $\sptype$ include the dynamic type, types for the basic values, one type $\sptclass$ for every
 user-defined class, and union types.
 We choose to write the dynamic type as $\sptdyn$ for simplicity; technically,
 \SP{} does not have a surface syntax for its dynamic
-type and instead allows missing and unknown types~(\cref{s:type-dynamic}).
+type and allows missing and unknown types~(\cref{s:type-dynamic}).
 We assume that all unions are written in a flat and simplified form, e.g., that
 $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
@@ -1325,8 +1326,8 @@ with casts.
 \Cref{t:cast} describes the casts in detail.
 Most call for a tag check, i.e., a Python \code{isinstance} test.
 The sole exception is optional types, which require a tag check and a test for the none value.
-Even checked dictionaries rely on tag checks.
-A checked dict type with keys $\spteval_0$ and values $\spteval_1$ accepts only
+Checked dictionaries also rely on tag checks;
+a checked dict type with keys $\spteval_0$ and values $\spteval_1$ accepts only
 checked dict values that were initialized with exactly the same key and value type.
 As noted in~\cref{s:type-dynamic}, this exact-match rule applies even when $\spteval_0$
 or $\spteval_1$ is the dynamic type.
@@ -1629,7 +1630,7 @@ We end here, with materialization, rather than present a semantics
 for the formalization.
 After all, the main benefit of a full formal semantics is to validate
 the behavior of complex expressions---and this job is
-better left to the Redex mechanization, which at any rate supports a much
+better left to the Redex mechanization, which supports a much
 larger subset of Python~(\cref{s:surface}).
 
 Furthermore, our casts-via-materialization rule assumes that the
@@ -1742,14 +1743,14 @@ evaluation type; there are no significant boundaries that relate a partially
 static type to an evaluation type.
 This is due to the exact-match semantics for checked types and the fact that
 $\sptoptional{\sptdyn}$ normalizes to the dynamic type.
-Therefore casts at static occurrences of the materialization rule are
+Therefore, inserting casts at static occurrences of the materialization rule is
 enough to protect all boundaries.
 
 
 \section{Scaling to Python}
 \label{s:impl}
 
-The model intentionally does not cover all of Python.
+The Redex model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
 handle.
 These include primitive types~(\cref{s:c-types}), module-level variables,
@@ -1985,9 +1986,10 @@ preferable over attempting to type \code{eval}.
 \end{table}
 
 \SP{} can generate efficient code because it targets
-the Cinder runtime, which has bytecode instructions to check types at run-time, to
-construct \SP{} data structures, and to perform type-directed actions.
-\Cref{t:bytecode} lists a few representative bytecode instructions.
+the Cinder runtime.
+Cinder provides bytecode instructions that check types at run-time,
+construct \SP{} data structures, and perform type-directed actions.
+\Cref{t:bytecode} lists a few representative instructions.
 The two instructions that express run-time checks are \bcinst{CAST}
 and \bcinst{CHECK\_ARGS}.
 The former checks a value against a type.
@@ -2058,7 +2060,7 @@ Despite some initial regressions, none of the converted modules
 ran slower after small rewrites~(\cref{s:code-changes})
 and/or enabling the JIT on certain functions.
 Only 9 modules use concrete types and only 12 modules use primitive types,
-but these features delivered critical performance in key modules.
+but these features delivered critical performance gains in key modules.
 
 %% all prims are int32 and int64 and cbool
 %% 541 modules out of ~45000 total
@@ -2110,7 +2112,7 @@ few critical Cython modules.
 Cython improved performance by compiling these modules to C,
 but its partial adoption had led to an awkward workflow with a
 few compiled modules spread across an interpreted codebase.
-Replacing these modules with \SP{} lets programmers return to a conventional
+Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
 Furthermore, \SP{} types combined with Cinder resulted in a
 0.7\% improvement in web server CPU efficiency.
@@ -2123,7 +2125,7 @@ The accepted proposals resulted in a 1\% improvement in CPU efficiency.
 During the second half of 2021, the \SP{} team applied the same
 process at a larger scale.
 They also modified a code-generating module to output \SP{} code;
-this one change brought over four hundred generated modules into the typed fold.
+this one change resulted in over four hundred generated typed modules.
 Overall, the second-half changes added 2\% to the number of requests
 that servers could handle per second at maximum CPU load.
 
@@ -2202,7 +2204,7 @@ and four that aim to improve performance.
   \item
     \ipara{Refine some Pyre annotations}
     Well-typed Pyre code is not always well-typed \SP{} code.
-    \Cref{a:pyre-limits} lists the main friction points.
+    \Cref{a:pyre-limits} lists the main points of friction.
 
 \end{enumerate}
 
@@ -2294,7 +2296,7 @@ improve performance without major refactoring.
 %% https://github.com/facebookincubator/cinder/tree/cinder/3.8/Tools/benchmarks
 %% https://docs.google.com/spreadsheets/d/1IO25bL_8LwDqx3ciQTj9dMetsFnZFdiQIyjFvgYWIpI/edit?usp=sharing
 
-\Cref{t:microbenchmark} compares \SP{} to Python on public microbenchmarks.
+\Cref{t:microbenchmark} compares \SP{} to Python on public microbenchmarks~\cite{spbench}.
 These microbenchmarks are admittedly small and quite different than typical application code,
 but they provide an auditable and reproducible way to measure performance.
 
@@ -2566,15 +2568,28 @@ point.
 \section{GitHub Issues}
 \label{a:github-issues}
 
-The 25 GitHub issues that arose from our work may be found at the following three links:
+The 26 GitHub issues that arose from our work may be found at the following three links.
+A list of issue numbers follows each link.
 
 \begin{itemize}
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024} (N=20)
-  \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/bennn} (N=4)
+    \subitem \code{\#37, 39, 40, 41, 42, 43, 45, 46, 47, 49, 50, 51, 52, 53, 59, 60, 61, 62, 63, 65}
+  \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/bennn} (N=5)
+    \subitem \code{\#35, 36, 54, 55, 71}
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/64} (N=1)
+    \subitem \code{\#64}
   %% extra, can't remember if we inspired Dino or not: https://github.com/facebookincubator/cinder/issues/32
 \end{itemize}
 
+\noindent{
+  \newcommand{\spsoundness}[1]{\href{https://github.com/facebookincubator/cinder/issues/#1}{\code{#1}}}
+The critical soundness issues were:
+\code{\#}\spsoundness{36},
+         \spsoundness{39},
+         \spsoundness{53},
+         \spsoundness{55}, and
+         \spsoundness{62}.
+}
 
 \section{On Migrations from Pyre to \SP{}}
 \label{a:pyre-limits}
