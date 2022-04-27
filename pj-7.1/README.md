@@ -17,3 +17,20 @@ Perspectives = Art, Science (Empirical, Theoretical), Engineering
 
 <https://programming-journal.org/submission/>
 
+
+#### Diff
+
+To make a LaTeX diff:
+
+```
+  latexdiff -c ldiff.cfg --exclude-text="section,subsection,subsubsection" programming-submission/paper.tex paper.tex > diff/diff.tex 
+```
+
+The config file (`ldiff.cfg`) ignores lstlisting environments.
+
+To build the diff:
+
+```
+  cd diff; make full
+```
+
