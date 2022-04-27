@@ -1,0 +1,17 @@
+*.aux
+*.bbl
+*.blg
+*.bcf
+*.log
+*.out
+*.pdf
+*.vtc
+*.run.xml
+
+*.swp
+*.swn
+*.swo
+*~
+\.\#*
+\#*
+*~
