@@ -702,13 +702,13 @@ Faster performance is not guaranteed in general, though, because concrete types 
 check all writes from untyped contexts.
 For comparison, \cref{t:shallow-vs-concrete} presents the worst-case costs of
 shallow and concrete dict types.
-Shallow types pay a constant-time cost whenever an untyped value enters typed code
+Shallow types pay a constant-time cost for casts
 and whenever a typed context reads from a shallow value.
-Concrete types pay a potentially-high cost for constructors,
-a constant-time cost for casts and for writes in untyped code,
-and zero cost for reads.
-If a value travels to untyped codes and receives many writes but few reads,
-then the shallow types may run faster in the end.
+Concrete types pay nothing for reads, but incur constant-time costs
+for casts and for writes from untyped code.
+If untyped code frequently writes to a value
+(or equivalently, if untyped code initializes a huge value),
+then shallow types may run faster.
 
 Not all generic \SP{} types have shallow and concrete versions at present,
 though they are coming soon.
@@ -722,10 +722,10 @@ of all non-generic fields and methods.
   \label{t:shallow-vs-concrete}
 
   \centering
-  \(\begin{array}{l@{}rr@{\qquad}rr@{~~}@{\qquad}r@{~~}r}
-                   & \mbox{Constructor} & \mbox{Cast} & \mbox{T-Read} & \mbox{T-Write} & \mbox{U-Read} & \mbox{U-Write} \\\hline
-    \sptrawpydict         &   \nocost{} &        O(1) &          O(1) &      \nocost{} &     \nocost{} &      \nocost{} \\
-    \sptchkdict{K}{V}     &        O(N) &        O(1) &     \nocost{} &      \nocost{} &     \nocost{} &           O(1)
+  \(\begin{array}{l@{\qquad}r@{\qquad}rr@{~~}@{\qquad}r@{~~}r}
+                                        & \mbox{Cast} & \mbox{T-Read} & \mbox{T-Write} & \mbox{U-Read} & \mbox{U-Write} \\\hline
+    \sptrawpydict                       &        O(1) &          O(1) &      \nocost{} &     \nocost{} &      \nocost{} \\
+    \sptchkdict{K}{V}                   &        O(1) &     \nocost{} &      \nocost{} &     \nocost{} &           O(1)
   \end{array}\)
 \end{table}
 
