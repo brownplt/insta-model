@@ -44,6 +44,7 @@ show where the revised paper has changed.
 > dictionary.
 
 Thanks, we've updated the caption, explained N, and used --- for no cast.
+[p.7 s.2.3]
 
 
 > ### enforcement of CheckedDict[K,V]
@@ -51,6 +52,7 @@ Thanks, we've updated the caption, explained N, and used --- for no cast.
 > *... gets enforced in constant-time* What if V is also a CheckedDict?
 
 We've added an explanation of nested types (they do run in constant time).
+[p.7 s.2.3]
 
 
 > ### p8, 2
@@ -59,6 +61,7 @@ We've added an explanation of nested types (they do run in constant time).
 > Explain this point in two sentences.
 
 Done.
+[p.8 s.2.4]
 
 
 > ### p8, se 2.5
@@ -70,6 +73,7 @@ Done.
 We've expanded the first paragraph and revised the second paragraph. The first
 paragraph focuses on the "normal" progressive aspects. The second focuses on
 gradual typing.
+[p.8 s.2.5]
 
 
 > ### p9, -3
@@ -78,6 +82,7 @@ gradual typing.
 > Is this a variable size token or fixed size (if V is CheckedDict? see above)
 
 It is always a fixed-size pointer.
+[p.10 s.3]
 
 
 > ### p10, 2
@@ -87,6 +92,7 @@ It is always a fixed-size pointer.
 
 No, the "only if" is intentional. An "iff" would be correct, but the paragraph
 in which this sentence appears is about one direction in particular.
+[p.10 s.3]
 
 
 > ### p10, -17
@@ -117,6 +123,9 @@ verification, it is still a helpful tool for finding bugs. Indeed, we found
 several bugs in our model thanks to these property-based tests (none of which
 had implications for Static Python itself).
 
+We have added more details about the testing.
+[p.10 s.4]
+
 
 > ### p10, -2
 >
@@ -125,6 +134,7 @@ had implications for Static Python itself).
 > Which soundness bug was **not** fixed and why?
 
 All soundness bugs have been fixed at this time.
+[p.11 s.4]
 
 
 > ### p11, -3
@@ -132,6 +142,7 @@ All soundness bugs have been fixed at this time.
 > `Dyn` should be `Any` in Python.
 
 The revised paper explains why we use the name `Dyn`.
+[p.12 s.4.1]
 
 
 > ### p12, fig 3, 4
@@ -140,6 +151,7 @@ The revised paper explains why we use the name `Dyn`.
 > * why is `object` part of the expression language?
 
 Fixed `str` and removed `object`.
+[p.12 s.4.1]
 
 (`object` was there as a simple instance of the `Object` type. Since it's not
 needed to explain type boundary issues, we can remove it.)
@@ -150,17 +162,19 @@ needed to explain type boundary issues, we can remove it.)
 >   trivial compared with the dynamic dispatch of a real method call.
 > * how do you invoke a method on an object?
 
-Oh dear. This was not meant to be a static method call, but we were far too
-aggressive when simplifying the model.
+Oh dear. This was not meant to be a static method call. We were far too
+aggressive when simplifying from the Redex model.
 
 The revision uses `expr.f(expr)` instead and looks up the class type of the
 receiver to type check the call.
+[p.12 s.4.1]
 
 
 > * how do you create an object? Is there a syntax like `C(expr)`?
 
 Syntax for making an object was missing from the paper (not from SP or Redex!).
 We've added it, thanks!
+[p.12 s.4.1]
 
 
 > ### fig 4
@@ -175,12 +189,14 @@ We've added it, thanks!
 Yes, those types can all be written. Just like surface unions (section 4.1), we
 assume that Optional evaluation types get normalized in a standard way. The
 normal forms for these examples are: `Optional[int]`, `None`, and `Dyn`.
+[p.12 s.4.1]
 
 
 > BTW, I find it confusing that surface types are `T`, but evaluation types are
 > `S`, given that surface starts with s.
 
 Good point, we've switched `S` and `T`.
+[p.12 s.4.1 and p.13 s.4.2]
 
 
 > ### table 2
@@ -188,6 +204,7 @@ Good point, we've switched `S` and `T`.
 > Misleading caption: this is about the cast from Any to an evaluation type.
 
 We have reworded the caption.
+[p.15 s.4.2.1]
 
 
 > ### p14, fig 5
@@ -202,6 +219,7 @@ for all visible fields and methods.
 
 The revised figure writes `Env*(C0)` instead and includes a note to this effect.
 (The revision also uses `\Gamma` instead of `Env`)
+[p.14 s.4.2.2]
 
 
 > * the `object` rule for subtyping contradicts Table 2, which says that
@@ -211,12 +229,14 @@ The revised figure writes `Env*(C0)` instead and includes a note to this effect.
 
 We've moved the Table 2 comment about primitives to a footnote (because, as you
 rightly point out, they are not part of the model).
+[p.15 s.4.2.2]
 
 
 > * given transitivity, the last rule could be simplified by omitting the
 >   assumption `C2 <: C1` and changing the conclusion to `C0 <: C1`.
 
 Thanks!
+[p.14 s.4.2.2]
 
 
 > ### p15, -16
@@ -230,12 +250,16 @@ Method calls in Redex are standard; they work like calls in (Static) Python.
 The confusion here is due to our over-simplified model in the submission, which
 gave the impression that only a class can receive a method call.
 
+The revised syntax for the model addresses this.
+[p.12 s.4.1]
+
 
 > ### p24
 >
 > references [23] and [24] and [41] have broken DOIs
 
 Fixed.
+[p.26 and p.27]
 
 
 > * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -254,6 +278,7 @@ Fixed.
 > what do you mean more precisely?
 
 Section 4 in the revised paper gives more details.
+[p.10 s.4]
 
 In short, we started with the property "well-typed programs do not get stuck"
 and tested it on thousands of terms generated by Redex.
@@ -270,6 +295,8 @@ We've made several changes in response:
 - `Object` is no longer part of the grammar
 - The grammar comes with a note that the set `C` must contain `Object`
 - Field reads and writes use `expr` instead of `C` (example: C.x is now expr.x)
+
+[p.12 s.4.1]
 
 
 > Figure 3: it would be better to use a more abstract style with metavariables
@@ -290,7 +317,7 @@ dynamically typed variable points to. It might not be a function.
 > Figure 5 rule D-App: in Figure 3 a function f seems not to be allowed to have
 > type Dyn in the enviroment
 
-This is allowed, but only indirectly. The definition of a function `f_0` can't
+This is allowed, but only indirectly. The definition of a function `f_0` cannot
 directly say that `f_0` has type Dyn, but it can declare the type `Dyn -> Dyn`
 and then apply `f_0(f_0)` to assign the dynamic type to a function.
 
@@ -302,7 +329,7 @@ and then apply `f_0(f_0)` to assign the dynamic type to a function.
 > Also, Object seems to be the top type, hence also Bool and Int are seen as
 > classes, right?
 
-Yes, Bool and Int are technically classes. The paper says little about this,
+Yes, Bool and Int are technically classes. The paper does not discuss this,
 but the Redex model (and Static Python) give them full support as classes.
 
 
@@ -317,16 +344,19 @@ for **statements** rather than expressions. That's what the Redex model does.)
 > In subtyping rules, which is the relation between two Optional types?
 
 Fixed, thank you for catching this omission.
+[p.14 s.4.2.2]
 
 
 > Why do you use metavariable Env_0 rather than just Env in the rules?
 
 We've removed the subscript.
+[p.14 s.4.2.2]
 
 
 > page 15 line 4: I would not say "upcast" since there is no explicit cast here.
 
 Ok. We have removed this explanatory sentence.
+[p.15 s.4.2.2]
 
 
 > My main criticism about your formalization of the typing rules is that, in my
@@ -339,6 +369,7 @@ Ok. We have removed this explanatory sentence.
 
 The typing judgment in Redex is algorithmic, but the simple judgment in the
 paper is not. Section 4.2.2 in the revised paper makes this clear.
+[p.13 s.4.2.2]
 
 
 > Section 4.3: I would perhaps eliminate this section. As it is, it says almost
@@ -351,6 +382,7 @@ in" through the dynamic type.
 > Section 6.3 I miss a conclusion/summary of the analysis here.
 
 We've added a conclusion section.
+[p.21 s.6.3.3]
 
 
 > * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -375,6 +407,7 @@ We've added a conclusion section.
 
 We've updated the paper to mention "gradual soundness" in the following
 sections: 2.3, 2.5, 6.3, and 8.
+[p.6 and p.8 and p.20 and p.24]
 
 
 > It's not clear how faithfully the formal model presented in Section 4
@@ -394,8 +427,7 @@ we want to detect errors statically.)
 We've revised section 4.2.2 to explain how the typing rules differ from
 the Redex model's algorithm and in particular how the model uses subtyping
 and materialization.
-
-TODO
+[p.15]
 
 
 > The distinction between surface types and evaluation types is
@@ -426,6 +458,7 @@ but a value with type Dict[S0, S1] cannot be used where a Dict is expected.
 > present work in depth.
 
 We have expanded the related work.
+[p.22 s.7]
 
 
 > In summary, I'd recommend that the paper be revised by:
@@ -448,6 +481,7 @@ the link:
 
 N is the number of keys and values in the table (we have updated the table
 caption to explain). The constructor needs to validate each element.
+[p.7 s.2.3]
 
 
 > * It seems that efficient run-time checking depends on the fact that
@@ -459,6 +493,7 @@ caption to explain). The constructor needs to validate each element.
 Section 2.3 and 3 in the revision say more about the "how." Static Python
 implements these tags as pointers into a run-time table of all generic
 instantiations that have appeared.
+[p.7 and p.10]
 
 
 > p.12: "Evaluation types S are a subset of the surface types".
@@ -466,4 +501,5 @@ instantiations that have appeared.
 
 No, Dict is not a surface type in the model. We have rephrased "subset" to
 avoid this confusion.
+[p.13 s.2.4]
 
