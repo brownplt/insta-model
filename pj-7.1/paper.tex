@@ -10,9 +10,11 @@
 % > be making it work -- Shriram 2021-09-30
 
 %% TODO after submission, before camera-ready
+%% - double-check section 4, can we be more convincing about soundness / what it is?
 %% - reword 'fields' to attribute/descriptor/property?
 %% - 
-%% - 
+
+%% TODO for camera-ready
 %% - 
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
@@ -1365,8 +1367,8 @@ Nom~\cite{mt-oopsla-2017}.
     $\sptdyn$ & {No check needed, accepts any value} \\
     $\sptclass_0$ & {Accepts instances of the class $\sptclass_0$\tnote{*}} \\
     $\sptnone$ & {Accepts the Python none value} \\
-    $\sptint$ & {Accepts integers} \\
-    $\sptbool$ & {Accepts booleans (the integers \code{0} and \code{1})} \\
+    $\sptint$ & {Accepts integers and booleans} \\
+    $\sptbool$ & {Accepts booleans} \\
     $\sptstr$ & {Accepts strings}
     \end{tabular}
 
@@ -1393,7 +1395,7 @@ Nom~\cite{mt-oopsla-2017}.
     \inferrule*[left=D-App]{
       \sptvardef{\spf_0}{\sptdyn} \in \sptenv
       \\\\
-      \sptenv \wtexpr \spexpr_0 : \sptobject
+      \sptenv \wtexpr \spexpr_0 : \sptdyn
     }{
       \sptenv \wtexpr \spapp{\spf_0}{\spexpr_0} : \sptdyn
     }
@@ -1402,7 +1404,7 @@ Nom~\cite{mt-oopsla-2017}.
 %    \inferrule*[left=D-Ref]{
 %      \sptenv \wtexpr \spexpr_0 : \sptrawpydict
 %      \\\\
-%      \sptenv \wtexpr \spexpr_1 : \sptobject
+%      \sptenv \wtexpr \spexpr_1 : \sptdyn
 %    }{
 %      \sptenv \wtexpr \spdictref{\spexpr_0}{\spexpr_1} : \sptdyn
 %    }
@@ -1418,9 +1420,9 @@ Nom~\cite{mt-oopsla-2017}.
     \inferrule*[lab=D-Set]{
       \sptenv \wtexpr \spexpr_0 : \sptrawpydict
       \\\\
-      \sptenv \wtexpr \spexpr_1 : \sptobject
+      \sptenv \wtexpr \spexpr_1 : \sptdyn
       \\\\
-      \sptenv \wtexpr \spexpr_2 : \sptobject
+      \sptenv \wtexpr \spexpr_2 : \sptdyn
     }{
       \sptenv \wtexpr \spdictset{\spexpr_0}{\spexpr_1}{\spexpr_2} : \sptnone
     }
@@ -1461,7 +1463,7 @@ Nom~\cite{mt-oopsla-2017}.
       \sptenv \wtexpr \spobjapp{\spexpr_0}{\spf_0}{\spexpr_1} : \spteval_1
     }
 
-    \inferrule*[left=C-Sub]{
+    \inferrule*[left=C-Sub*]{
       \sptenv \wtexpr \spexpr_0 : \spteval_1
       \\\\
       \sptenv \wtsub \spteval_1 \spcompat \spteval_0
@@ -1469,7 +1471,7 @@ Nom~\cite{mt-oopsla-2017}.
       \sptenv \wtexpr \spexpr_0 : \spteval_0
     }
 
-    \inferrule*[left=Matr]{
+    \inferrule*[left=Matr*]{
       \sptenv \wtexpr \spexpr_0 : \spteval_1
       \\\\
       \spteval_1 \spmatr \spteval_0
@@ -1528,6 +1530,11 @@ Nom~\cite{mt-oopsla-2017}.
     }
 
     \inferrule*{
+    }{
+      \sptenv \wtsub \sptnone \spsubt \sptoptional{\spteval_0}
+    }
+
+    \inferrule*{
       \sptenv \wtsub \spteval_0 \spsubt \spteval_1
     }{
       \sptenv \wtsub \spteval_0 \spsubt \sptoptional{\spteval_1}
@@ -1564,18 +1571,26 @@ These declarations fill a type environment ($\sptenv$).
 Relative to the current environment, the expressions within each statement must
 satisfy the typing judgment in~\cref{f:eval-types}.
 
-By contrast to our Redex model, the typing judgment in~\cref{f:eval-types} is
-not syntax directed.
-The rules do not describe a typechecking algorithm.
-Instead these rules declare various conclusions and their preconditions to
-illustrate how \SP{} reasons about types---dynamic or otherwise.
+By contrast to our Redex model, the typing judgment outlined in~\cref{f:eval-types}
+\emph{does not describe} a typechecking algorithm.
+It is rather a declarative set of rules chosen to illustrate two points:
+how \SP{} reasons about data structure types and how it enforces promises made
+via the dynamic type.
+The key steps that the Redex model takes to turn these rules into an algorithm
+is to remove the two coercion rules
+(both are marked with asterisks: \trule{C-Sub*} and \trule{Matr*})
+and to allow restricted coercions at elimination forms.
+For example, a function application may apply either consistent subtyping
+or materialization to its argument.
+It cannot apply both kinds of coecion because that can be abused to delay
+any static error until run-time.
 
 The first two rules are for function application.
 A typed function may be applied to an argument that matches its domain type,
 in which case it computes a value that matches its codomain type.
-A dynamically-typed variable may be applied to any input (that matches the top
-type $\sptobject$) to yield a dynamically-typed result.
-The next rules illustrate writes to Python dictionaries and checked dictionaries.
+A dynamically-typed variable may be applied to any input
+to yield a dynamically-typed result.
+The following rules illustrate writes to Python dictionaries and checked dictionaries.
 A shallow Python dict may be updated with any kind of key and value.
 By contrast, a concrete checked dict requires keys and values that match its type parameters.
 Next we have two rules for classes:
@@ -1583,16 +1598,16 @@ Next we have two rules for classes:
 type; and \trule{M-App} shows that typed methods impose similar constraints as
 typed functions.
 
-The final two rules, \trule{C-Sub} and \trule{Matr}, depend on auxiliary judgments
+The final two rules, \trule{C-Sub*} and \trule{Matr*}, depend on auxiliary judgments
 for consistent subtyping ($\spcompat$) and materialization ($\spmatr$).
 Consistent subtyping relates type $\spteval_0$ to type $\spteval_1$ if they are
 related by static subtyping ($\spsubteq$) or if
 $\spteval_1$ is the dynamic type.
 Materialization relates the dynamic type to any non-dynamic type.
-Occurrences of the \trule{Matr} rule are downcasts that require a
+Occurrences of the \trule{Matr*} rule are downcasts that require a
 run-time check.
 
-The name \emph{materialization} and the rule \trule{Matr} are inspired by prior
+The name \emph{materialization} and the rule \trule{Matr*} are inspired by prior
 work~\cite{clps-popl-2019}.
 By itself, the judgment is merely an upside-down type precision relation~\cite{g-icfp-2013,sv-dls-2008}.
 Combined with the typing rule, however, materialization is a concise way to find
@@ -1603,9 +1618,9 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two mat
 
 \medskip
 \begin{mathpar}
-  \inferrule*[left=Matr]{
+  \inferrule*[left=Matr*]{
     \inferrule*{
-      \inferrule*[left=Matr]{
+      \inferrule*[left=Matr*]{
         \sptenv \wtexpr \spx : \sptdyn
         \\
         \sptdyn \spmatr \sptint
@@ -1624,7 +1639,7 @@ An application $\spapp{\spf}{\spx}$ can satisfy the type $\sptstr$ using two mat
   \mbox{Where $\sptenv = \sptvardef{\spx}{\sptdyn}, \sptfundef{\spf}{\sptint}{\sptdyn}$}
 \end{mathpar}
 \medskip
-Consequently, this derivation calls for two casts at the \trule{Matr} applications.
+Consequently, this derivation calls for two casts at the \trule{Matr*} applications.
 
 We end here, with materialization, rather than present a semantics
 for the formalization.
@@ -1649,8 +1664,8 @@ First, \SP{} inserts casts in an overapproximate way:
     typed code checks the results of function calls, references, and other elimination forms
     whenever there is a materialization from the dynamic type.
 \end{itemize}
-Second, the type-directed optimizer skips casts wherever a well-typed context
-interacts with a typed value.
+Second, the type-directed optimizer skips these casts wherever
+a well-typed context interacts with a typed value.
 \Cref{s:impl} explains the optimizer in more detail.
 
 
@@ -2410,7 +2425,7 @@ it does not offer a pure-Python developer experience.
 Although sound gradual types are rare in industry, there are at
 least three other languages that provide them.
 Dart 2 is a nominally-typed language with a dynamic type that is similar
-to a top (object) type but statically allows all method calls~\cite{dart-types}.
+to a top type but statically allows all method calls~\cite{dart-types}.
 C\# has a dynamic type that delays type checking until runtime~\cite{bmt-ecoop-2010}.
 \JSPP{} is typed JavaScript that allows untyped values
 using a catch-all \code{external} type~\cite{jspp}.

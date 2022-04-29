@@ -387,9 +387,15 @@ sections: 2.3, 2.5, 6.3, and 8.
 > really going on.  (I tried to access the Redex model but it wasn't
 > accessible.)
 
-We've added a disclaimer near the top of section 4.2.2 to say that the
-paper presents declarative typing rules whereas the Redex model implements a
-typing algorithm.
+You're absolutely right, mixing C-Sub and Matr is bad because it lets any
+term have any type. (Run-time checks would catch the bad casts, but still,
+we want to detect errors statically.)
+
+We've revised section 4.2.2 to explain how the typing rules differ from
+the Redex model's algorithm and in particular how the model uses subtyping
+and materialization.
+
+TODO
 
 
 > The distinction between surface types and evaluation types is
