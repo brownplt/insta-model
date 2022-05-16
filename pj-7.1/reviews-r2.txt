@@ -1,0 +1,13 @@
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Comment @A1 by Reviewer C
+---------------------------------------------------------------------------
+The paper now mentions "gradual soundness" a few more times in the paper but
+it's not still very clear what it really refers to.  How is it different from
+the standard slogan of gradual typing, that is, migration from a dynamically
+typed program to a statically typed?  It seems that the authors are trying to
+add something to it but it's not clear.  It would be very much appreciated if
+the authors could make another effort for clarification.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
