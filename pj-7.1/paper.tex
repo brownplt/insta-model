@@ -15,7 +15,11 @@
 %% - 
 
 %% TODO for camera-ready
-%% - 
+%% - reviews-r2: clarify gradual soundness again, what do we mean?
+%%    (1) two layers of types+code for some algorithms ... esp. for data structures ... key to practical concrete
+%%    (2) progressive types for other code
+%%    ... in short, progressive types adapted to GT
+%%   - try section 2 for this
 
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
@@ -418,7 +422,7 @@ behavior~(\cref{s:not-python}),
 and it compiles code on-the-fly to support existing
 IDEs and developer tools.
 The advanced features of the \SP{} type system are offered on an opt-in basis
-(\emph{gradual soundness})
+(\emph{gradual soundness},~\cref{s:gradual-soundness})
 and arranged so that programmers can begin adding types one module at a time.
 
 \begin{figure}
@@ -862,6 +866,38 @@ keyword arguments with default expressions (rather than values); and
 calls to keyword functions that use \code{**kwargs} with either
 a custom object or a dict with extra keys.
 The \SP{} team plans to lift these restrictions in the future.
+
+\subsection{Gradual Soundness}
+\label{s:gradual-soundness}
+
+\SP{} represents a new approach to the design of gradually-typed
+languages.
+Whereas prior works choose to either force changes upon untyped code
+with \emph{concrete} types~\cite{wnlov-popl-2010,mt-oopsla-2017}
+or accommodate untyped code as-is with \emph{migratory}
+types~\cite{st-sfp-2006,tfffgksst-snapl-2017}, \SP{} provides a multi-level
+type system that supports both styles without expensive run-time checks.
+Shallow types accommodate Python code, but offer little in the way
+of type-based reasoning and type-directed optimization.
+Concrete types and primitive types give stronger type guarantees, but have
+drawbacks:
+concrete types force changes upon untyped code and primitive types
+add restrictions to typed code.
+The overall system, in which programmers can choose between untyped code
+and several increasingly-restrictive typed languages,
+is a combination of gradual typing and progressive
+types~\cite{pqk-onward-2012} that we call \emph{gradual soundness}.
+
+To be clear, gradual soundness has a different focus than gradual typing.
+Gradual typing in the traditional, broad sense is about finding a best-of-both worlds
+combination of typed and untyped
+code~\cite{st-sfp-2006,tf-dls-2006,mf-toplas-2009,gktff-sfp-2006}.
+Gradual soundness fits under this broad umbrella, and contributes the idea that multiple
+type systems may be needed for an optimal mix.
+Gradual typing in the refined sense calls for a dynamic type
+that satisfies the gradual guarantees~\cite{svcb-snapl-2015}.
+A gradually-sound language may choose to satisfy these guarantees.
+\SP{}, however, does not~(\cref{s:type-dynamic}).
 
 
 \section{Runtime System Highlights}
