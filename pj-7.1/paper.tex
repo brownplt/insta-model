@@ -888,14 +888,13 @@ and several increasingly-restrictive typed languages,
 is a combination of gradual typing and progressive
 types~\cite{pqk-onward-2012} that we call \emph{gradual soundness}.
 
-To be clear, gradual soundness has a different focus than gradual typing.
-Gradual typing in the traditional, broad sense is about finding a best-of-both worlds
-combination of typed and untyped
-code~\cite{st-sfp-2006,tf-dls-2006,mf-toplas-2009,gktff-sfp-2006}.
+Compared to traditional gradual typing, gradual soundness is a refinement.
+The original gradual typing vision is to find a best-of-both-worlds combination
+of typed and untyped code~\cite{st-sfp-2006,tf-dls-2006,mf-toplas-2009,gktff-sfp-2006}.
 Gradual soundness fits under this broad umbrella, and contributes the idea that multiple
 type systems may be needed for an optimal mix.
-Gradual typing in the refined sense calls for a dynamic type
-that satisfies the gradual guarantees~\cite{svcb-snapl-2015}.
+Gradual typing in the refined sense~\cite{svcb-snapl-2015} calls for a dynamic
+type that satisfies the gradual guarantees.
 A gradually-sound language may choose to satisfy these guarantees.
 \SP{}, however, does not~(\cref{s:type-dynamic}).
 
