@@ -9,18 +9,6 @@
 % > this is too much work, it’d never work” But in fact it looks like they seem to
 % > be making it work -- Shriram 2021-09-30
 
-%% TODO after submission, before camera-ready
-%% - double-check section 4, can we be more convincing about soundness / what it is?
-%% - reword 'fields' to attribute/descriptor/property?
-%% - 
-
-%% TODO for camera-ready
-%% - reviews-r2: clarify gradual soundness again, what do we mean?
-%%    (1) two layers of types+code for some algorithms ... esp. for data structures ... key to practical concrete
-%%    (2) progressive types for other code
-%%    ... in short, progressive types adapted to GT
-%%   - try section 2 for this
-
 \newcommand{\shorturl}[2]{\href{#1#2}{#2}}
 \newcommand{\SP}{Static Python}
 \newcommand{\JSPP}{JS\code{++}}
@@ -151,29 +139,40 @@
 %% ... gradual migratory progressive soundness
 
 \author[a]{Kuang-Chen Lu}
-\authorinfo{(\email{LuKuangchen1024@gmail.com}) } %% { is a PhD student at Brown University.}
+\authorinfo{(\email{LuKuangchen1024@gmail.com}) is a PhD student at Brown University.}
 \affiliation[a]{Brown University, Providence, RI, USA}
 \author[a]{Ben Greenman}
-\authorinfo{(\email{benjamin.l.greenman@gmail.com}) } %% {is a PLT member and a postdoc at Brown University.}
+\authorinfo{(\email{benjamin.l.greenman@gmail.com}) is a postdoc at Brown University.}
 \author[b]{Carl Meyer}
-\authorinfo{(\email{carljm@fb.com}) } %% FILL
+\authorinfo{(\email{carljm@fb.com}) is a software engineer on the Python Language \& Runtime team at Meta.}
 \affiliation[b]{Meta, Menlo Park, CA, USA}
 \author[b]{Dino Viehland}
-\authorinfo{(\email{dinoviehland@fb.com}) } %% FILL
+\authorinfo{(\email{dinoviehland@fb.com}) is a software engineer at Meta working on the Cinder Python runtime. Previously he has worked on other Python related efforts including Python Tools for Visual Studio and IronPython.}
 \author[b]{Aniket Panse}
-\authorinfo{(\email{aniketpanse@fb.com}) } %% FILL
+\authorinfo{(\email{aniketpanse@fb.com}) is a software engineer on the Python Language \& Runtime team at Meta.}
 \author[a]{Shriram Krishnamurthi}
-\authorinfo{(\email{shriram@gmail.com}) } %% {is the Vice President of Programming Languages (no, not really) at Brown University.}
+\authorinfo{(\email{shriram@gmail.com}) is the Vice President of Programming Languages (no, not really) at Brown University.}
 
-\titlerunning{Draft document---please do not distribute or cite!}
-\authorrunning{Draft document---please do not distribute or cite!}
+%\titlerunning{Draft document---please do not distribute or cite!}
+%\authorrunning{Draft document---please do not distribute or cite!}
 
 \keywords{gradual typing, migratory typing, language design, concrete types, shallow types}
 
 \begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10011007</concept_id>
+       <concept_desc>Software and its engineering</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10011007.10011006.10011039.10011311</concept_id>
+       <concept_desc>Software and its engineering~Semantics</concept_desc>
+       <concept_significance>100</concept_significance>
+   </concept>
+</ccs2012>
 \end{CCSXML}
-% \ccsdesc[100]{FILL}
-%TODO mandatory: Please choose ACM 2012 classifications from https://dl.acm.org/ccs/ccs_flat.cfm 
+\ccsdesc[100]{Software and its engineering~Semantics}
 
 \paperdetails{
   %% perspective options are: art, sciencetheoretical, scienceempirical, engineering.
@@ -183,7 +182,7 @@
   %% The list is open-ended, so use other areas if yours is/are not listed.
   area={General-purpose programming},
   %% License options include: cc-by (default), cc-by-nc
-  % license=cc-by,
+  %license=cc-by,
 }
 
 \maketitle
@@ -278,11 +277,11 @@
 %%  {Typing for Performance}
 \label{s:intro}
 
-Gradual typing has attracted significant interest as a solution to
+Gradual typing is an enticing solution to
 the debate between static and dynamic typing.
 The premise is simple: let programmers introduce types in part of a
 codebase while leaving the rest untyped.
-Run-time casts and checks enforce the assumptions that typed code makes about
+Run-time casts and checks can enforce the assumptions that typed code makes about
 untyped components, thereby ensuring that the types are sound no matter how
 untyped code behaves.
 
@@ -294,7 +293,7 @@ These systems intentionally check nothing at run-time when untyped values enter
 typed code.
 Academic teams have primarily focused on the theory of sound
 gradual types, formulating correctness properties and studying ever-more-descriptive
-types~(e.g.,~\cite{sgt-jfp-2016,clps-popl-2019,nla-popl-2019,mgt-oopsla-2021})
+type systems~(e.g.,~\cite{sgt-jfp-2016,clps-popl-2019,nla-popl-2019,mgt-oopsla-2021}).
 A few academics have studied the cost of run-time checks
 in detail~\cite{tfgnvf-popl-2016,gtnffvf-jfp-2019}
 and proposed implementation methods~\cite{kas-pldi-2019,fgsfs-oopsla-2018},
@@ -365,8 +364,8 @@ This paper makes two contributions:
     \emph{Mechanization}.
     To validate the soundness of \SP{}, we mechanized a core language in PLT Redex
     and ran both property-based soundness tests and over 250 tests adapted from the \SP{} regression suite.
-    The modeling effort revealed 20 significant issues in \SP{},
-    four of which were soundness bugs.
+    The modeling effort revealed 21 significant issues in \SP{},
+    five of which were soundness bugs.
 
 \end{itemize}
 
@@ -392,10 +391,10 @@ First, we want to encourage system-builders to reproduce the
 \SP{} language design.
 In particular, the maintainers of optionally-typed languages
 may wish to focus on shallow types and JIT compilation as a
-first step toward sound gradual types.
+first step toward sound and optimized gradual types.
 Second, we want to entice researchers.
 The \SP{} type system has many noteworthy restrictions.
-For example, functions are supported only by shallow types
+For example, functions are supported only by shallow types,
 and method overrides that use the dynamic type are more constrained
 than overrides in untyped code.
 Some of these restrictions might be lifted by future research.
@@ -466,7 +465,7 @@ The other two versions use dictionary types:
     At compile-time, \SP{} uses this type to find basic logical errors.
     At run-time, \SP{} enforces the type by checking that all inputs to \code{f} are
     dictionary values.
-    These checks enable optimizations within the function body.
+    These checks enable additional optimizations within the function body.
 
   \item
     The $\sptrawchkdict$ type
@@ -535,7 +534,7 @@ typing~\cite{tf-icfp-2010,gsk-esop-2011}.
 Union types are not, however, generally supported at run-time~(\cref{s:eval-types}).
 The only exception is binary unions with the Python \code{None}
 type ($\sptunion{\sptype, \sptnone}$, or
-$\sptoptional{\sptype}$); these unions are enforced at run-time.
+$\sptoptional{\sptype}$); these unions are enforced with run-time checks.
 
 Three other unsupported types bear special mention:
 first-class class and object types~(\cref{s:inheritance});
@@ -563,10 +562,10 @@ then \SP{} replaces it with dynamic.
 Thus, \SP{} focuses on types that it can soundly optimize without forcing
 programmers to remove types that other systems (e.g., mypy) can check.
 
-The behavior of the \SP{} dynamic type is subtle because dynamic code
-faces more restrictions than untyped Python code.
-Replacing part of a type with dynamic can lead to either a static error or
-a run-time error.
+The behavior of the \SP{} dynamic type is subtle.
+Dynamic-typed code faces more restrictions than untyped Python code.
+Because of the restrictions, replacing part of a type with dynamic can lead to
+either a static error or a run-time error.
 \Cref{fig:gg-failure} presents two examples, one for each kind of failure:
 %% \footnote{Technically, \SP{} does not even
 %% have syntax for the dynamic type. The idiomatic way to ask for dynamic is to
@@ -696,7 +695,7 @@ This choice is one aspect of gradual soundness in \SP{}.
 
 Often, the shallow types are more attractive because concrete types impose
 nonlocal changes.
-If one type changes to concrete, then several changes may need to happen:
+If one type changes to concrete, then several other changes may need to happen:
 all values that reach this type must be initialized as concrete,
 all typed clients of these values must expect concrete values,
 all values that reach those clients must be concrete,
@@ -854,7 +853,6 @@ class attributes must be set in an \code{\_\_init\_\_} method to
 ensure predictable layouts (all \PEP{} checkers agree on this);
 typed attributes are resolved statically, and thus cannot be overridden with
 descriptors or properties;
-typed fields 
 and
 multiple inheritance of either typed classes or untyped children
 of typed classes is forbidden.
@@ -980,7 +978,7 @@ to a direct function-call jump.
 (Both vtable lookup and direct jumps are supported by Cinder-specific bytecode
 instructions.)
 
-The implementation of vtables happens to be built on the Python \code{vectorcall}
+The implementation of vtables is built on the Python \code{vectorcall}
 protocol; it is not a from-scratch development.
 Cinder vtables are further specialized to check untyped overrides of typed methods
 using a wrapper implemented in C (rather than in Python) to reduce performance costs.
@@ -1014,7 +1012,7 @@ with keys of type $K$ and values of type $V$.
 The implementation has three main components:
 \begin{itemize}
   \item
-    The constructor requires two type parameters and a Python dictionary ($\sptrawpydict$).
+    The constructor requires two type parameters and a Python dictionary (a $\sptrawpydict$).
     It checks that the elements of the dictionary match the key and value types.
   \item
     All untyped writes must be protected by casts.
@@ -1033,7 +1031,7 @@ The implementation has three main components:
 \end{itemize}
 %
 In general, other checked datatypes have the same three components:
-a constructor, checked update functions, and a tag.
+a constructor, a set of checked update functions, and a tag.
 The tag is supported by a global registry of instantiated concrete types.
 
 
@@ -1049,7 +1047,7 @@ The registry helps the bytecode reference objects and types via their module nam
 \label{s:jit}
 
 Cinder includes a JIT (just-in-time) compiler for its bytecode.
-At the moment, programmers enable the JIT by supplying a list of method names
+Programmers can enable the JIT by supplying a list of method names
 to the compiler.
 Any method can be JIT-compiled whether or not it uses \SP{} types,
 though fewer types usually result in fewer optimizations.
@@ -1226,7 +1224,7 @@ Surface types $\sptype$ include the dynamic type, types for the basic values, on
 user-defined class, and union types.
 We choose to write the dynamic type as $\sptdyn$ for simplicity; technically,
 \SP{} does not have a surface syntax for its dynamic
-type and allows missing and unknown types~(\cref{s:type-dynamic}).
+type and instead allows missing and unknown types~(\cref{s:type-dynamic}).
 We assume that all unions are written in a flat and simplified form, e.g., that
 $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
@@ -1408,7 +1406,7 @@ Nom~\cite{mt-oopsla-2017}.
     \end{tabular}
 
     \begin{tablenotes}
-    \item {*} {\footnotesize In \SP{}, the check for $\sptobject$ accepts all values except for primitives~(\cref{s:c-types})}
+    \item {*} {\footnotesize In full \SP{}, the check for $\sptobject$ accepts all values except for primitives~(\cref{s:c-types})}
     \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -1620,7 +1618,7 @@ or materialization to its argument.
 It cannot apply both kinds of coecion because that can be abused to delay
 any static error until run-time.
 
-The first two rules are for function application.
+The first two typing rules are for function application.
 A typed function may be applied to an argument that matches its domain type,
 in which case it computes a value that matches its codomain type.
 A dynamically-typed variable may be applied to any input
@@ -1821,11 +1819,10 @@ transformations.
 Although \SP{} is technically a new language, it is designed for gradual adoption.
 Python programmers should be able to add types module-by-module to an
 existing codebase.
-Consequently, \SP{} supports interactions with Python modules in the only viable
-way: by letting the Python code run with zero static constraints and minimal
+Consequently, \SP{} supports interactions with Python modules
+by letting the Python code run with zero static constraints and minimal
 dynamic constraints.
 
-%% TODO FILL only 2 cases? revisit after adding "changes to python" section in 2
 There are two cases in which \SP{} types impose dynamic constraints on untyped Python code.
 First, concrete types (e.g., $\sptrawchkdict$)
 reject inputs that were not created via a checked constructor.
@@ -1876,7 +1873,7 @@ structural objects.
 
 On a related note, \SP{} has no support for first-class functions or for
 structural types as defined by PEP~544~\cite{pep544}.
-MonNom interfaces may be a promising way to support these types.
+Interfaces may be a promising way to support these types.
 
 % in particular , Python's multiple inheritance would complicate the mixin story.
 % Classic mixins rely on structural types~\cite{bc-oopsla-1990}.
@@ -2159,8 +2156,8 @@ measure of their net effect.
 
 \SP{} first entered the web server codebase as a replacement for a
 few critical Cython modules.
-Cython improved performance by compiling these modules to C,
-but its partial adoption had led to an awkward workflow with a
+Cython had improved performance by compiling these modules to C,
+but its partial adoption also led to an awkward workflow with a
 few compiled modules spread across an interpreted codebase.
 Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
@@ -2309,7 +2306,8 @@ In general, the patches responsible for performance gains contain minor
 code changes and 
 affect test code rather than production code.
 We conclude that the addition of \SP{} types to a codebase can significantly
-improve performance without major refactoring.
+improve performance without major refactoring, and that refactoring is not
+the main reason for Instagram's speedups.
 
 
 %% More Migration Notes
@@ -2365,7 +2363,6 @@ Every benchmark version invoked the JIT on the same set of functions.
 
 \begin{table}[t]
   \caption{Microbenchmark performance ratios}
-  %% FILL don't forget to update \numbenchmark{}
   \label{t:microbenchmark}
 
   \centering
@@ -2394,7 +2391,7 @@ gives an immediate speedup (ratio = $0.90$).
 \Cref{t:microbenchmark} does not analyze benchmark configurations that mix
 typed and untyped code. %% ---only fully-typed and untyped configurations.
 A study of mixed configurations (e.g.,~\cite{gm-pepm-2018,gtnffvf-jfp-2019})
-may reveal performance bugs that have not yet shown up in production.
+may reveal performance bugs that have not appeared in production.
 
 
 \section{Related Work}
@@ -2421,7 +2418,7 @@ Typed Racket supports deep (structural) types, shallow types, and optional
 types~\cite{g-pldi-2022}.
 By contrast to these others, \SP{} asks programmers to change their code
 in way that reflects changes to the types~(\cref{s:checked-type}).
-The changes impose a maintenance burden, but enable performance improvements.
+The changes impose a maintenance burden, but enable performance improvements and low-cost checks.
 
 Many aspects of our Redex model for \SP{} are adapted from the Full Monty core calculus
 for Python~\cite{pmmwplck-oopsla-2013}.
@@ -2464,7 +2461,7 @@ to a top type but statically allows all method calls~\cite{dart-types}.
 C\# has a dynamic type that delays type checking until runtime~\cite{bmt-ecoop-2010}.
 \JSPP{} is typed JavaScript that allows untyped values
 using a catch-all \code{external} type~\cite{jspp}.
-None of these four implement gradual types as envisioned by researchers~\cite{st-sfp-2006,tf-dls-2006,mf-toplas-2009,gktff-sfp-2006};
+None of these four implement gradual types as envisioned by researchers~\cite{svcb-snapl-2015,tfffgksst-snapl-2017,g-snapl-2019};
 instead, they offer a pragmatic solution to interoperability problems.
 %% Programmers can manually cast external values to a more precise type.
 %% The non-immediate casts make copies (how does that work for functions?!)
@@ -2631,9 +2628,9 @@ A list of issue numbers follows each link.
   %% extra, can't remember if we inspired Dino or not: https://github.com/facebookincubator/cinder/issues/32
 \end{itemize}
 
-\noindent{
+{
   \newcommand{\spsoundness}[1]{\href{https://github.com/facebookincubator/cinder/issues/#1}{\code{#1}}}
-The critical soundness issues were:
+\noindent{}The critical soundness issues were:
 \code{\#}\spsoundness{36},
          \spsoundness{39},
          \spsoundness{53},
@@ -2674,7 +2671,7 @@ we list common reasons for such bugs below:
         to handle the case where their weakly-held object has been collected,
         but it is also a potential source of bugs.
       \item
-        Mutable class attributes are covariant in Pyre and other
+        Mutable class attributes are unsoundly covariant in Pyre and other
         Python type checkers, including mypy~\cite{mypy}.
       \item
         The meta-type \code{Type} is unsoundly covariant as well in Pyre
@@ -2710,7 +2707,7 @@ The remaining \numSPdiff{} tests are skipped for the following reasons:
   \item 12 test class and object slots.
   \item The others (\nnum{106}) test a long tail of other topics
     including byte strings, memory management, specific decorators
-    (\code{@staticmethod}), and optimizations.
+    (such as \code{@staticmethod}), and optimizations.
 
 %% actual list
 %  \item 269 use C_types
@@ -2830,12 +2827,12 @@ has no noticeable effect, and shadow-frame mode is only relevant under the JIT.
 Benchmarks are run on a 64-bit CentOS Linux system, using a build of Cinder
 compiled with default configure settings. Overall process user time is measured
 via the \code{time} utility. Each benchmark/configuration is run 10 times (after an
-initial warmup run to ensure there is an up-to-date bytecode cache file and
-compilation time will not be included), and all individual data points are
+initial warmup run to update the bytecode cache file and ignoring compilation time),
+and all individual data points are
 recorded. All data points are in seconds.
 
 JIT runs use a JIT list that includes only the benchmark code itself, to
-minimize overhead of compiling unrelated standard library code not used in the
+minimize the overhead of compiling standard library code not used in the
 benchmark.
 
 Benchmarks \bmname{richards} and \bmname{fannkuch} ran on the following commit:
@@ -2848,6 +2845,12 @@ Benchmarks \bmname{richards} and \bmname{fannkuch} ran on the following commit:
 
 \begin{center}
 \footnotesize\url{https://github.com/facebookincubator/cinder/commit/c9d14c4474facfeca15b618015b58b99a3e86d25}
+\end{center}
+
+\noindent\bmname{nbody} ran on an even later commit:
+
+\begin{center}
+\footnotesize\url{https://github.com/facebookincubator/cinder/commit/144a21e66aeae5cde08847482249396b2e16eccc}
 \end{center}
 
 Fannkuch in particular is very numeric-heavy, so using unboxed primitive
