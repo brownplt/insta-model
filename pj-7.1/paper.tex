@@ -350,11 +350,12 @@ This paper makes two contributions:
 \begin{itemize}
   \item
     \emph{Evidence}.
-    We present evidence that \SP{} improves performance with few code changes.
-    At Instagram, the web server has become significantly more efficient
-    after the application of \SP{} to high-profile modules.
+    We present evidence that \SP{} improves performance with few code changes
+    / refactorings.
+    The Instagram web server has become significantly more efficient
+    thanks to a gradual application of \SP{} to high-profile modules.
     Because the server code is closed-source, we additionally present data for
-    \numbenchmark{} public microbenchmarks~(\cref{s:microbenchmarks}).
+    four public microbenchmarks~(\cref{s:microbenchmarks}).
     Using only shallow types, \SP{} runs slightly faster than Python
     despite the costs of enforcing soundness~(avg. \pctnum{20}).
     With fine-tuned types, \SP{} consistently outperforms the Python
@@ -1224,7 +1225,7 @@ Surface types $\sptype$ include the dynamic type, types for the basic values, on
 user-defined class, and union types.
 We choose to write the dynamic type as $\sptdyn$ for simplicity; technically,
 \SP{} does not have a surface syntax for its dynamic
-type and instead allows missing and unknown types~(\cref{s:type-dynamic}).
+type and instead allows missing types~(\cref{s:type-dynamic}).
 We assume that all unions are written in a flat and simplified form, e.g., that
 $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
@@ -2157,7 +2158,7 @@ measure of their net effect.
 \SP{} first entered the web server codebase as a replacement for a
 few critical Cython modules.
 Cython had improved performance by compiling these modules to C,
-but its partial adoption also led to an awkward workflow with a
+but its partial adoption led to an awkward workflow with a
 few compiled modules spread across an interpreted codebase.
 Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
@@ -2200,13 +2201,13 @@ throughout the web server.
 \label{s:code-changes}
 
 Because the \SP{} team has been changing code as well as types during its
-migrations, the question arises as to whether the changes themselves
-are responsible for more speedups than the types and gradual soundness.
+migrations, the question arises as to whether the refactoring caused
+more speedups than the types and gradual soundness.
 %% Carl: "I reviewed the ~30 conversion diffs"
-We therefore reviewed conversion diffs that significantly improved
-performance (\nnum{30}) to assess the extent of the code changes.
-There are nine common kinds of changes: five that satisfy the type checker
-and four that aim to improve performance.
+We therefore reviewed 30 conversion diffs that significantly improved
+performance to assess the extent of the code changes.
+Across the diffs, there are nine common kinds of changes: five that satisfy the
+type checker and four that aim to improve performance.
 
 %% one significant change: replaced `contextlib.ContextDecorator` with `__static__.ContextDecorator`
 %%  removes an extra call layer
@@ -2418,7 +2419,8 @@ Typed Racket supports deep (structural) types, shallow types, and optional
 types~\cite{g-pldi-2022}.
 By contrast to these others, \SP{} asks programmers to change their code
 in way that reflects changes to the types~(\cref{s:checked-type}).
-The changes impose a maintenance burden, but enable performance improvements and low-cost checks.
+The changes impose a maintenance burden, but enable performance improvements
+and an efficient implementation of run-time checks.
 
 Many aspects of our Redex model for \SP{} are adapted from the Full Monty core calculus
 for Python~\cite{pmmwplck-oopsla-2013}.
@@ -2827,7 +2829,7 @@ has no noticeable effect, and shadow-frame mode is only relevant under the JIT.
 Benchmarks are run on a 64-bit CentOS Linux system, using a build of Cinder
 compiled with default configure settings. Overall process user time is measured
 via the \code{time} utility. Each benchmark/configuration is run 10 times (after an
-initial warmup run to update the bytecode cache file and ignoring compilation time),
+initial warmup run to update the bytecode cache file and thereby ignore compilation time),
 and all individual data points are
 recorded. All data points are in seconds.
 
