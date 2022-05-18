@@ -1,7 +1,8 @@
+@string{aera = "Annual Meeting of the American Educational Research Association"}
 @string{aaai = {AAAI}} % Conference on Artificial Intelligence, {AAAI}
 @string{asplos = {ASPLOS}} %ACM International Conference on Architectural Support for Programming Languages and Operating Systems
 @string{ase = {ASE}} %{ACM/IEEE} International Conference on Automated Software Engineering
-@string{cacm = {Comm. ACM}}
+@string{cacm = {Communications of the ACM}}
 @string{cav = {CAV}}
 @string{cc = {CC}} % sigplan symposium on compiler construction
 @string{cdc = {CDC}} % {IEEE Conference on Decision and Control (CDC)}
@@ -29,10 +30,10 @@
 @string{iticse = {ITiCSE}}
 @string{jcss = {Journal of Computer and System Sciences}}
 @string{jecr = {Journal of Educational Computing Research}}
-@string{jfp= {JFP}} %{{Journal of Functional Programming}}
-@string{jvlc = {J. Vis. Lang. Comput.}}
+@string{jfp= {{Journal of Functional Programming}}} % {JFP}}
+@string{jvlc = {{Journal of Visual Languages \& Computing}}} % {J. Vis. Lang. Comput.}}
 @string{lfp = {LFP}} %{{{LISP} and functional programming}}
-@string{lsc = {{LISP} Symb. Comput.}}
+@string{lsc = {{LISP} and Symbolic Computation}}
 @string{lics = {LICS}}
 @string{mit-press  = "{MIT} Press"}
 @string{neurips = {NeurIPS}}
@@ -43,10 +44,11 @@
 @string{pepm = {PEPM}} %{{{ACM SIGPLAN} Workshop on Partial Evaluation and Semantics-Based Program Manipulation}}
 @string{pldi = {PLDI}}
 @string{popl = {POPL}} %{{{ACM SIGPLAN} Symposium on Principles of Programming Languages}}
-@string{programming = {Art Sci. Eng. Program.}}
+@string{programming = {The Art, Science, and Engineering of Programming}}
 @string{sac = {SAC}} %{{{ACM} Symposium on Applied Computing}}
+@string{scheme-fp = "Scheme and Functional Programming"}
 @string{scp = {Science of Computer Programming}}
-@string{tphols = {TPHOLs}} % Theorem Proving in Higher Order Logics
+@string{tphols = {{Theorem Proving in Higher Order Logics}}} %  TPHOLS
 @string{tsmcc = {{IEEE} Trans. Syst. Man Cybern.}}
 @string{sigcse = {Special Interest Group on Computer Science Education}}
 @string{sigmod = {SIGMOD}}
@@ -237,6 +239,8 @@
  author = {Vitousek, Michael M.},
  title = {Gradual Typing for Python, Unguarded},
  school = {{I}ndiana {U}niversity},
+ url={https://hdl.handle.net/2022/23172},
+ note={Accessed 2022-05-17},
  year = {2019},
 }
 
@@ -392,6 +396,7 @@ pages = {24–26}
                Gordon, Andrew D. and
                Advait Sarkar},
   title     = {Understanding and Inferring Units in Spreadsheets},
+  doi       = {10.1109/VL/HCC50065.2020.9127254},
   booktitle = vlhcc,
   pages     = {1--9},
   year      = {2020}
@@ -1518,6 +1523,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{tf-dls-2006,
   author="Sam Tobin-Hochstadt and Matthias Felleisen",
   title="Interlanguage Migration: from Scripts to Programs",
+    doi       = {10.1145/1176617.1176755},
   booktitle=dls,
   pages="964--974",
   year=2006}
@@ -1532,6 +1538,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{tfffgksst-snapl-2017,
   author="Sam Tobin-Hochstadt and Matthias Felleisen and Robert Bruce Findler and Matthew Flatt and Ben Greenman and Andrew M. Kent and Vincent St-Amour and T. Stephen Strickland and Asumu Takikawa",
   title="Migratory Typing: Ten years later",
+    doi       = {10.4230/LIPIcs.SNAPL.2017.17},
   booktitle=snapl,
   pages="17:1--17:17",
   year=2017
@@ -1547,6 +1554,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{vss-popl-2017,
   author="Michael M. Vitousek and Cameron Swords and Jeremy G. Siek",
   title="Big Types in Little Runtime: Open-World Soundness and Collaborative Blame for Gradual Type Systems",
+    doi       = {10.1145/3009837.3009849},
   booktitle=popl,
   pages="762--774",
   year=2017
@@ -1555,6 +1563,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{ff-icfp-2002,
   author="Robert Bruce Findler and Matthias Felleisen",
   title="Contracts for Higher-Order Functions",
+    doi       = {10.1145/581478.581484},
   booktitle=icfp,
   pages="48--59",
   year=2002}
@@ -1570,6 +1579,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 
 @article{mf-toplas-2009,
   author="Jacob Matthews and Robert Bruce Findler",
+    doi       = {10.1145/1498926.1498930},
   title="Operational Semantics for Multi-Language Programs",
   journal=toplas,
   volume=31,
@@ -1698,22 +1708,17 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{svcb-snapl-2015,
   author={Jeremy G. Siek and Michael M. Vitousek and Matteo Cimini and John Tang Boyland},
   title="Refined Criteria for Gradual Typing",
+    doi       = {10.4230/LIPIcs.SNAPL.2015.274},
   booktitle=snapl,
   pages="274--293",
   year=2015}
-
-@inproceedings{wnlov-popl-2010,
-  author="Tobias Wrigstad and Zappa Nardelli, Francesco and Sylvain Lebresne and Johan Ostlund and Jan Vitek",
-  title="Integrating Typed and Untyped Code in a Scripting Language",
-  booktitle=popl,
-  pages="377--388",
-  year=2010}
 
 @article{mt-oopsla-2017,
   author="Fabian Muehlboeck and Ross Tate",
   title="Sound Gradual Typing is Nominally Alive and Well",
   journal=pacmpl,
   volume={1},
+  doi       = {10.1145/3133880},
   number=oopsla,
   pages="56:1--56:30",
   year={2017}
@@ -1724,6 +1729,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
   title={Transitioning from Structural to Nominal Code with Efficient Gradual Typing},
   journal=pacmpl,
   volume={5},
+  doi       = {10.1145/3485504},
   number=oopsla,
   pages="127:1--127:29",
   year={2021}
@@ -1743,6 +1749,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
   title={Concrete Types for {TypeScript}},
   author={Gregor Richards and Zappa Nardelli, Francesco and Jan Vitek},
   booktitle=ecoop,
+  doi       = {10.4230/LIPIcs.ECOOP.2015.76},
   pages={76--100},
   year=2015
 }
@@ -1750,6 +1757,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @article{rat-oopsla-2017,
   author={Gregor Richards and Ellen Arteca and Alexi Turcotte},
   title="The VM Already Knew That: Leveraging Compile-Time Knowledge to Optimize Gradual Typing",
+    doi       = {10.1145/3133879},
   journal=pacmpl,
   volume={1},
   number=oopsla,
@@ -1760,6 +1768,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @article{cvgrl-oopsla-2017,
   author={Avik Chaudhuri and Panagiotis Vekris and Sam Goldman and Marshall Roch and Gabriel Levy},
   title={Fast and Precise Type Checking for {JavaScript}},
+  doi       = {10.1145/3133872},
   journal=pacmpl,
   volume={1},
   number=oopsla,
@@ -1790,6 +1799,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{clzv-ecoop-2018,
   author="Benjamin W. Chung and Paley Li and Zappa Nardelli, Francesco and Jan Vitek",
   title="{KafKa}: Gradual Typing for Objects",
+    doi       = {10.4230/LIPIcs.ECOOP.2018.12},
   booktitle=ecoop,
   pages="12:1--12:23",
   year=2018}
@@ -1809,13 +1819,14 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
   title={On the Cost of Type-Tag Soundness},
   booktitle=pepm,
   pages={30--39},
+  doi={10.1145/3162066},
   year=2018}
-%  doi={https://doi.org/10.1145/3162066}
 
 @inproceedings{pqk-onward-2012,
   title={Progressive Types},
   author={Joe Gibbs Politz and Quay-de la Vallee, Hannah and Shriram Krishnamurthi},
   booktitle=onward,
+  doi       = {10.1145/2384592.2384599},
   pages={55--66},
   year={2012}
 }
@@ -1823,6 +1834,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{vsc-dls-2019,
   author={Vitousek, Michael M. and Siek, Jeremy G. and Chaudhuri, Avik},
   title={Optimizing and Evaluating Transient Gradual Typing},
+    doi       = {10.1145/3359619.3359742},
   booktitle=dls,
   pages={28--41},
   year={2019}
@@ -1832,6 +1844,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
   author    = {Joe Gibbs Politz and Alejandro Martinez and Matthew Milano and Sumner Warren and Daniel Patterson and Junsong Li and Anand Chitipothu and Shriram Krishnamurthi},
   title     = {Python: the Full Monty},
   booktitle = oopsla,
+  doi       = {10.1145/2509136.2509536},
   pages     = {217--232},
   year      = {2013}
 }
@@ -1843,6 +1856,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
  volume = {1},
  number = oopsla,
  pages = {54:1--54:24},
+ doi       = {10.1145/3133878},
  year=2017
 }
 
@@ -1879,6 +1893,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{fkf-popl-1998,
   author    = {Matthew Flatt and Shriram Krishnamurthi and Matthias Felleisen},
   title     = {Classes and Mixins},
+    doi       = {10.1145/268946.268961},
   booktitle = popl,
   pages     = {171--183},
   year      = {1998},
@@ -1897,6 +1912,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
 @inproceedings{wzlov-popl-2010,
   author="Tobias Wrigstad and Zappa Nardelli, Francesco and Sylvain Lebresne and Johan {\" O}stlund and Jan Vitek",
   title="Integrating Typed and Untyped Code in a Scripting Language",
+  doi       = {10.1145/1706299.1706343},
   booktitle=popl,
   pages="377--388",
   year=2010
@@ -1906,6 +1922,7 @@ url={http://scheme2006.cs.uchicago.edu/scheme2006.pdf},
   title={Safe \& Efficient Gradual Typing for {TypeScript}},
   author={Aseem Rastogi and Nikhil Swamy and C{\'e}dric Fournet and Gavin Bierman and Panagiotis Vekris},
   booktitle=popl,
+  doi       = {10.1145/2676726.2676971},
   pages={167--180},
   year=2015
 }
@@ -1941,6 +1958,7 @@ year = {2010}
 @inproceedings{tfgnvf-popl-2016,
   author={Asumu Takikawa and Daniel Feltey and Ben Greenman and Max S. New and Jan Vitek and Matthias Felleisen},
   title={Is Sound Gradual Typing Dead?},
+    doi       = {10.1145/2837614.2837630},
   booktitle=popl,
   pages={456--468},
   year=2016
@@ -1953,12 +1971,14 @@ year = {2010}
   volume={29},
   number={e4},
   year={2019},
+    doi       = {10.1145/3473573},
   pages={1--45}
 }
 
 @article{clps-popl-2019,
   author={Guiseppe Castagna and Victor Lanvin and Tommaso Petrucciani and Siek, Jeremy G.},
   title={Gradual Typing: A New Perspective},
+    doi       = {10.1145/3290329},
   journal=pacmpl,
   volume={3},
   number=popl,
@@ -2089,12 +2109,15 @@ year = {2010}
   author={Casey Klein and Findler, Robert Bruce},
   institution={Cal Poly State University},
   number={CPSLO-CSC-09-03},
+  url={http://www.schemeworkshop.org/2009/scheme2009.pdf},
+  note={Accessed 2022-05-17},
   year={2009}
 }
 
 @inproceedings{bmt-ecoop-2010,
   author={Gavin Bierman and Erik Meijer and Mads Torgersen},
   title={Adding Dynamic Types to {C\#}},
+    doi       = {10.1145/3428290},
   booktitle=ecoop,
   pages={76--100},
   year=2010
@@ -2103,6 +2126,7 @@ year = {2010}
 @inproceedings{rch-popl-2012,
   author    = {Aseem Rastogi and Avik Chaudhuri and Basil Hosmer},
   title     = {The ins and outs of gradual type inference},
+  doi       = {10.1145/2103656.2103714},
   booktitle = popl,
   pages     = {481--494},
   year      = {2012}
@@ -2113,12 +2137,14 @@ year = {2010}
   title={Toward Efficient Gradual Typing for Structural Types via Coercions},
   booktitle=pldi,
   pages={517--532},
+  doi       = {10.1145/3314221.3314627},
   year={2019}
 }
 
 @article{fgsfs-oopsla-2018,
  author = {Daniel Feltey and Ben Greenman and Christophe Scholliers and Robert Bruce Findler and Vincent St-Amour},
  title = {Collapsible Contracts: Fixing a Pathology of Gradual Typing},
+   doi       = {10.1145/3276503},
  journal = pacmpl,
  volume = {2},
  number = oopsla,
@@ -2129,6 +2155,7 @@ year = {2010}
 @article{glfd-pj-2022,
   author={Ben Greenman and Lukas Lazarek and Christos Dimoulas and Matthias Felleisen},
   title={A Transient Semantics for {Typed Racket}},
+  doi       = {10.22152/programming-journal.org/2022/6/9},
   journal={Programming},
   volume={6},
   number={2},
@@ -2139,6 +2166,7 @@ year = {2010}
 @article{gi-scp-2020,
   author    = {Gualandi, Hugo Musso and Roberto Ierusalimschy},
   title     = {{Pallene}: a companion language for {Lua}},
+    doi       = {10.1016/j.scico.2020.102393},
   journal = scp,
   volume = {189},
   number = {102393},
@@ -2151,6 +2179,7 @@ year = {2010}
   title={Gradual Type Theory},
   journal=pacmpl,
   volume={3},
+  doi       = {10.1145/3290328},
   number=popl,
   pages={15:1--15:31},
   year=2019
@@ -2170,6 +2199,7 @@ year = {2010}
   author={Richard Roberts and Stefan Marr and Michael Homer and James Noble},
   title={Transient Typechecks are (Almost) Free},
   booktitle=ecoop,
+  doi       = {10.4230/LIPIcs.ECOOP.2019.5},
   pages="15:1--15:29",
   year=2019
 }
@@ -2178,7 +2208,8 @@ year = {2010}
   title = {Which of My Transient Type Checks Are Not (Almost) Free?},
   author = {Gariano, Isaac Oscar and Roberts, Richard and Marr, Stefan and Homer, Michael and Noble, James},
   booktitle = vmil,
-  pages = {58--66},
+    doi       = {10.1145/3358504.3361232},
+pages = {58--66},
   year = {2019}
 }
 
@@ -2255,6 +2286,7 @@ year = {2010}
           Johan {\" O}stlund and Gregor Richards and Rok Strni{\v s}a and
           Jan Vitek and Tobias Wrigstad},
   booktitle=oopsla,
+  doi={10.1145/1640089.1640098},
   pages={117--136},
   year={2009}
 }
@@ -2270,6 +2302,7 @@ year = {2010}
 @inproceedings{g-snapl-2019,
   author={Michael Greenberg},
   title={The Dynamic Practice and Static Theory of Gradual Typing},
+  doi       = {10.4230/LIPIcs.SNAPL.2019.6},
   booktitle=snapl,
   pages={6:1--6:20},
   year={2019}

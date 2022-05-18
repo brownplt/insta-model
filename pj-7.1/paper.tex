@@ -111,7 +111,7 @@
 
 \newcommand{\sperror}{\mathrm{Error}}
 
-\overfullrule=1mm
+%\overfullrule=1mm
 
 %\usepackage{draftwatermark}
 %\SetWatermarkText{DRAFT}
@@ -151,7 +151,7 @@
 \author[b]{Aniket Panse}
 \authorinfo{(\email{aniketpanse@fb.com}) is a software engineer on the Python Language \& Runtime team at Meta.}
 \author[a]{Shriram Krishnamurthi}
-\authorinfo{(\email{shriram@gmail.com}) is the Vice President of Programming Languages (no, not really) at Brown University.}
+\authorinfo{(\email{shriram@brown.edu}) is the Vice President of Programming Languages (no, not really) at Brown University.}
 
 %\titlerunning{Draft document---please do not distribute or cite!}
 %\authorrunning{Draft document---please do not distribute or cite!}
@@ -871,7 +871,7 @@ The \SP{} team plans to lift these restrictions in the future.
 \SP{} represents a new approach to the design of gradually-typed
 languages.
 Whereas prior works choose to either force changes upon untyped code
-with \emph{concrete} types~\cite{wnlov-popl-2010,mt-oopsla-2017}
+with \emph{concrete} types~\cite{wzlov-popl-2010,mt-oopsla-2017}
 or accommodate untyped code as-is with \emph{migratory}
 types~\cite{st-sfp-2006,tfffgksst-snapl-2017}, \SP{} provides a multi-level
 type system that supports both styles without expensive run-time checks.
@@ -1061,7 +1061,7 @@ Redex~\cite{kcdeffmrtf-popl-2012}.
 The model covers a substantial part of the Python language, including
 assertions, loops, exception handlers, and delete statements.
 It follows \SP{}'s approach to typing these features.
-The model is available at:
+The model is on GitHub (accessed 2022-05-17):
 \begin{center}
   \url{https://github.com/brownplt/insta-model}
 \end{center}
@@ -2397,7 +2397,7 @@ may reveal performance bugs that have not appeared in production.
 \section{Related Work}
 \label{s:related}
 
-Concrete types originated in Thorn~\cite{bfnorsvw-oopsla-2009,wnlov-popl-2010}
+Concrete types originated in Thorn~\cite{bfnorsvw-oopsla-2009,wzlov-popl-2010}
 and StrongScript~\cite{rzv-ecoop-2015}, two early languages that support typed
 and untyped objects.
 Thorn is a scripting language for the JVM; StrongScript is designed to
@@ -2616,7 +2616,7 @@ point.
 \label{a:github-issues}
 
 The 26 GitHub issues that arose from our work may be found at the following three links.
-A list of issue numbers follows each link.
+A list of issue numbers follows each link (all accessed 2022-05-17).
 
 \begin{itemize}
   \item \shorturl{https://}{github.com/facebookincubator/cinder/issues/created\_by/LuKC1024} (N=20)
@@ -2835,23 +2835,17 @@ JIT runs use a JIT list that includes only the benchmark code itself, to
 minimize the overhead of compiling standard library code not used in the
 benchmark.
 
-Benchmarks \bmname{richards} and \bmname{fannkuch} ran on the following commit:
-
-\begin{center}
-\footnotesize\url{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}
-\end{center}
-
-\noindent\bmname{deltablue} ran on a later commit:
-
-\begin{center}
-\footnotesize\url{https://github.com/facebookincubator/cinder/commit/c9d14c4474facfeca15b618015b58b99a3e86d25}
-\end{center}
-
-\noindent\bmname{nbody} ran on an even later commit:
-
-\begin{center}
-\footnotesize\url{https://github.com/facebookincubator/cinder/commit/144a21e66aeae5cde08847482249396b2e16eccc}
-\end{center}
+\begin{itemize}
+  \item
+    Benchmarks \bmname{richards} and \bmname{fannkuch} ran on commit
+    \href{https://github.com/facebookincubator/cinder/commit/d0d071a9acf3e65700e7c6f8982c5087c700d116}{d0d071}
+  \item
+    \bmname{deltablue} ran on commit
+    \href{https://github.com/facebookincubator/cinder/commit/c9d14c4474facfeca15b618015b58b99a3e86d25}{c9d14c}
+  \item
+    \bmname{nbody} ran on commit
+    \href{https://github.com/facebookincubator/cinder/commit/144a21e66aeae5cde08847482249396b2e16eccc}{144a21}
+\end{itemize}
 
 Fannkuch in particular is very numeric-heavy, so using unboxed primitive
 integers in the typed version can be a big win. For this to work maximally
