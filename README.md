@@ -29,6 +29,8 @@ docker build -t insta-model .
 docker run -v "$PWD:/vol" -w /vol -ti insta-model bash
 ```
 
+Windows users: replace `$PWD` with the absolute path to the `insta-model/` repo.
+
 
 ## How to run
 
