@@ -1,4 +1,4 @@
-\documentclass[english,cleveref,submission]{programming}
+\documentclass[english,cleveref,crc]{programming}
 
 %% Thesis:
 %%  1. Static Python is sound, fast, and practical
@@ -154,7 +154,7 @@
 \authorinfo{(\email{shriram@brown.edu}) is the Vice President of Programming Languages (no, not really) at Brown University.}
 
 %\titlerunning{Draft document---please do not distribute or cite!}
-%\authorrunning{Draft document---please do not distribute or cite!}
+\authorrunning{KC. Lu, B. Greenman, C. Meyer, D. Viehland, A. Panse, and S. Krishnamurthi}
 
 \keywords{gradual typing, migratory typing, language design, concrete types, shallow types}
 
@@ -174,15 +174,29 @@
 \end{CCSXML}
 \ccsdesc[100]{Software and its engineering~Semantics}
 
+%% 2022-05-27: commented out, from submission
+%%\paperdetails{
+%%  %% perspective options are: art, sciencetheoretical, scienceempirical, engineering.
+%%  perspective=scienceempirical,
+%%  %% State one or more areas, separated by a comma. (see 2.2)
+%%  %% Please see list of areas in http://programming-journal.org/cfp/
+%%  %% The list is open-ended, so use other areas if yours is/are not listed.
+%%  area={General-purpose programming},
+%%  %% License options include: cc-by (default), cc-by-nc
+%%  %license=cc-by,
+%%}
+
+%%% The following is specific to Programming Journal, Volume 7, Issue 1 and the paper
+%%% 'Gradual Soundness: Lessons from Static Python'
+%%% by Kuang-Chen Lu, Ben Greenman, Carl Meyer, Dino Viehland, Aniket Panse, and Shriram Krishnamurthi.
+%%%
 \paperdetails{
-  %% perspective options are: art, sciencetheoretical, scienceempirical, engineering.
-  perspective=scienceempirical,
-  %% State one or more areas, separated by a comma. (see 2.2)
-  %% Please see list of areas in http://programming-journal.org/cfp/
-  %% The list is open-ended, so use other areas if yours is/are not listed.
-  area={General-purpose programming},
-  %% License options include: cc-by (default), cc-by-nc
-  %license=cc-by,
+  submitted=2022-04-29,
+  published=2022-06-15,
+  year=2023,
+  volume=7,
+  issue=1,
+  articlenumber=2,
 }
 
 \maketitle
@@ -355,7 +369,7 @@ This paper makes two contributions:
     The Instagram web server has become significantly more efficient
     thanks to a gradual application of \SP{} to high-profile modules.
     Because the server code is closed-source, we additionally present data for
-    four public microbenchmarks~(\cref{s:microbenchmarks}).
+    four public microbenchmarks~(\Cref{s:microbenchmarks}).
     Using only shallow types, \SP{} runs slightly faster than Python
     despite the costs of enforcing soundness~(avg. \pctnum{20}).
     With fine-tuned types, \SP{} consistently outperforms the Python
@@ -373,16 +387,16 @@ This paper makes two contributions:
 \paragraph*{Outline}
 
 This paper begins with an informal description of \SP{} in two parts.
-First, we present a user-oriented summary of the language~(\cref{s:tour}).
+First, we present a user-oriented summary of the language~(\Cref{s:tour}).
 Second, we present the key ingredients of the runtime system, Cinder,
-that supports \SP{}~(\cref{s:runtime}).
+that supports \SP{}~(\Cref{s:runtime}).
 \Cref{s:model} uses a small formal model to introduce our Redex mechanization
 and to demonstrate that \SP{} is based on a sound core.
 \Cref{s:impl} notes important aspects of \SP{} that are not covered by the model.
 \Cref{s:eval} evaluates \SP{}; it reports our experience with the language in
 production and on public microbenchmarks.
-The paper concludes with related work~(\cref{s:related})
-and a final summary~(\cref{s:conclusion}).
+The paper concludes with related work~(\Cref{s:related})
+and a final summary~(\Cref{s:conclusion}).
 
 
 \paragraph*{Significance}
@@ -418,11 +432,11 @@ In essence, \SP{} is the type system for an entirely new language.
 The interface that it offers to programmers, however, replicates the
 standard Python experience.
 \SP{} runs Python 3.8 programs with minimal changes to their
-behavior~(\cref{s:not-python}),
+behavior~(\Cref{s:not-python}),
 and it compiles code on-the-fly to support existing
 IDEs and developer tools.
 The advanced features of the \SP{} type system are offered on an opt-in basis
-(\emph{gradual soundness},~\cref{s:gradual-soundness})
+(\emph{gradual soundness},~\Cref{s:gradual-soundness})
 and arranged so that programmers can begin adding types one module at a time.
 
 \begin{figure}
@@ -514,7 +528,7 @@ a research language with compelling performance results.
   \item
     A module-level granularity is acceptable.
     Once \SP{} is enabled for a module, it compiles all code in that module
-    including expressions that have the dynamic type~(\cref{s:type-dynamic}).
+    including expressions that have the dynamic type~(\Cref{s:type-dynamic}).
     If this behavior is problematic for certain expressions, they must move
     to an untyped Python module.
 \end{itemize}
@@ -532,13 +546,13 @@ Union types are tracked statically; for example, if \code{x} is an integer and
 \code{y} is a string, then the expression \code{x or y} has a union type.
 Unions also narrow down via type tests as a kind of occurrence
 typing~\cite{tf-icfp-2010,gsk-esop-2011}.
-Union types are not, however, generally supported at run-time~(\cref{s:eval-types}).
+Union types are not, however, generally supported at run-time~(\Cref{s:eval-types}).
 The only exception is binary unions with the Python \code{None}
 type ($\sptunion{\sptype, \sptnone}$, or
 $\sptoptional{\sptype}$); these unions are enforced with run-time checks.
 
 Three other unsupported types bear special mention:
-first-class class and object types~(\cref{s:inheritance});
+first-class class and object types~(\Cref{s:inheritance});
 first-class function (callable) types; and
 recursive types.
 Pyre and mypy have some support for the first two kinds, but no support for recursive types.
@@ -575,7 +589,7 @@ either a static error or a run-time error.
 %% assume a standard type precision relation. Of course, one could argue that these programs
 %% do not break the gradual guarantees for a type precision relation that is tailored to \SP{}.}
 %%   %% tailored = describes exactly the migrations that SP allows
-%% \footnote{In addition, C types~(\cref{s:c-types}) are incompatible with type dynamic.}
+%% \footnote{In addition, C types~(\Cref{s:c-types}) are incompatible with type dynamic.}
 \begin{itemize}
   \item
     \Cref{f:gg-failure-stat} presents a fully-typed class and a partially-typed subclass.
@@ -706,7 +720,7 @@ The upside of concrete types is that they enforce stronger type constraints.
 These constraints can catch bugs and always lead to faster typed code.
 Faster performance is not guaranteed in general, though, because concrete types must
 check all writes from untyped contexts.
-For comparison, \cref{t:shallow-vs-concrete} presents the worst-case costs of
+For comparison, \Cref{t:shallow-vs-concrete} presents the worst-case costs of
 shallow and concrete dict types.
 Shallow types pay a constant-time cost for casts
 and whenever a typed context reads from a shallow value.
@@ -764,7 +778,7 @@ inheritance:
     To benefit from types, classes must be declared at the module top level
     and may have at most one parent.
     Nested class declarations, first-class classes, and classes with
-    multiple parents default to un-optimized Python behavior~(\cref{s:impl}).
+    multiple parents default to un-optimized Python behavior~(\Cref{s:impl}).
 
   \item
     Methods cannot be overloaded.
@@ -774,7 +788,7 @@ inheritance:
     Non-final methods and fields may be overridden in arbitrary ways by untyped code.
     In typed code, however, overrides cannot use less-precise types.
     For example, a method that returns a number cannot be overridden by a method
-    that returns the dynamic type; \cref{f:gg-failure-stat} shows the static error
+    that returns the dynamic type; \Cref{f:gg-failure-stat} shows the static error
     that arises from such an override.
 
     % In fact, \SP{} compiles fields using Python slots
@@ -800,7 +814,7 @@ that it computes type-correct results.
 % Because these wrappers perform a simple first-order check, they
 % are supported by an efficiently implementation that cooperates with
 % \SP{}
-The wrappers are handled efficiently by a tailored implementation of vtables~(\cref{s:vtable}).
+The wrappers are handled efficiently by a tailored implementation of vtables~(\Cref{s:vtable}).
 
 
 \subsection{Progressive Primitive Types}
@@ -895,7 +909,7 @@ type systems may be needed for an optimal mix.
 Gradual typing in the refined sense~\cite{svcb-snapl-2015} calls for a dynamic
 type that satisfies the gradual guarantees.
 A gradually-sound language may choose to satisfy these guarantees.
-\SP{}, however, does not~(\cref{s:type-dynamic}).
+\SP{}, however, does not~(\Cref{s:type-dynamic}).
 
 
 \section{Runtime System Highlights}
@@ -974,7 +988,7 @@ Calls to static methods that appear in statically-typed
 code use the vtable to find an address for the method.
 If the method is part of a final class, then the call is further optimized
 to a direct function-call jump.
-%% Just-in-time compilation~(\cref{s:jit}) can also upgrade vtable lookups to
+%% Just-in-time compilation~(\Cref{s:jit}) can also upgrade vtable lookups to
 %% function calls.
 (Both vtable lookup and direct jumps are supported by Cinder-specific bytecode
 instructions.)
@@ -1091,7 +1105,7 @@ A few tests required hand-pruning to remove features that the model does not
 handle (\totalnum{52}).
 \SP{} has \numSPdiff{} other tests (\totalnum{\numSPtotal{}}) that we did not
 use because they fall outside the scope of the model.
-\Cref{s:impl} summarizes the out-of-scope features and \cref{a:banned-test} gives
+\Cref{s:impl} summarizes the out-of-scope features and \Cref{a:banned-test} gives
 a detailed categorization.
 
 %% 2022-01-20 redex-check details
@@ -1131,7 +1145,7 @@ a detailed categorization.
 The modelling process helped uncover several critical issues in \SP{}.
 This is a very important payoff given that \SP{} is running in production at
 Instagram.
-Overall, we made 26 bug reports~(\cref{a:github-issues}) to the \SP{} team via GitHub.
+Overall, we made 26 bug reports~(\Cref{a:github-issues}) to the \SP{} team via GitHub.
 Five of these were soundness issues, one of which we could exploit to raise
 a segmentation fault.
 All of these soundness bugs have been fixed.
@@ -1209,7 +1223,7 @@ Classes must declare one parent (either $\sptobject$ or another class), one fiel
 Expressions describe values and simple computations.
 The basic values are the none value, integers,
 booleans (which are the integers \code{0} and \code{1}), and strings.
-There are two data structures: dictionaries and checked dictionaries~(\cref{s:checked-type}).
+There are two data structures: dictionaries and checked dictionaries~(\Cref{s:checked-type}).
 Other expressions describe function calls, dictionary reads and writes,
 object creation, object field reads and writes, and method calls.
 
@@ -1225,16 +1239,16 @@ Surface types $\sptype$ include the dynamic type, types for the basic values, on
 user-defined class, and union types.
 We choose to write the dynamic type as $\sptdyn$ for simplicity; technically,
 \SP{} does not have a surface syntax for its dynamic
-type and instead allows missing types~(\cref{s:type-dynamic}).
+type and instead allows missing types~(\Cref{s:type-dynamic}).
 We assume that all unions are written in a flat and simplified form, e.g., that
 $\sptunion{\sptint, \sptunion{\sptdyn, \sptclass_0}}$ would be normalized to $\sptdyn$.
 
 \SP{} does not enforce all surface types against untyped code, only the evaluation
-types presented in the next subsection~(\cref{s:eval-types}).
+types presented in the next subsection~(\Cref{s:eval-types}).
 For this reason, we omit the surface typing judgment, which is a kind of linter
 that merely scans typed code for logical errors.
 
-Relative to \SP{} and our Redex mechanization, the formalization in \cref{f:surface-types} omits
+Relative to \SP{} and our Redex mechanization, the formalization in \Cref{f:surface-types} omits
 many details of Python including class variables, imports, conditionals, and exception handlers.
 These details are crucial in the mechanization, which tests whether \SP{}
 soundly approximates Python.
@@ -1365,7 +1379,7 @@ The sole exception is optional types, which require a tag check and a test for t
 Checked dictionaries also rely on tag checks;
 a checked dict type with keys $\spteval_0$ and values $\spteval_1$ accepts only
 checked dict values that were initialized with exactly the same key and value type.
-As noted in~\cref{s:type-dynamic}, this exact-match rule applies even when $\spteval_0$
+As noted in~\Cref{s:type-dynamic}, this exact-match rule applies even when $\spteval_0$
 or $\spteval_1$ is the dynamic type.
 
 No cast requires traversing a data structure.
@@ -1407,7 +1421,7 @@ Nom~\cite{mt-oopsla-2017}.
     \end{tabular}
 
     \begin{tablenotes}
-    \item {*} {\footnotesize In full \SP{}, the check for $\sptobject$ accepts all values except for primitives~(\cref{s:c-types})}
+    \item {*} {\footnotesize In full \SP{}, the check for $\sptobject$ accepts all values except for primitives~(\Cref{s:c-types})}
     \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -1600,12 +1614,12 @@ Nom~\cite{mt-oopsla-2017}.
 
 
 To show where \SP{} needs to insert casts, we present a selection of typing rules.
-Recall that a program declares variables, functions, and classes~(\cref{f:surface-types}).
+Recall that a program declares variables, functions, and classes~(\Cref{f:surface-types}).
 These declarations fill a type environment ($\sptenv$).
 Relative to the current environment, the expressions within each statement must
-satisfy the typing judgment in~\cref{f:eval-types}.
+satisfy the typing judgment in~\Cref{f:eval-types}.
 
-By contrast to our Redex model, the typing judgment outlined in~\cref{f:eval-types}
+By contrast to our Redex model, the typing judgment outlined in~\Cref{f:eval-types}
 \emph{does not describe} a typechecking algorithm.
 It is rather a declarative set of rules chosen to illustrate two points:
 how \SP{} reasons about data structure types and how it enforces promises made
@@ -1680,7 +1694,7 @@ for the formalization.
 After all, the main benefit of a full formal semantics is to validate
 the behavior of complex expressions---and this job is
 better left to the Redex mechanization, which supports a much
-larger subset of Python~(\cref{s:surface}).
+larger subset of Python~(\Cref{s:surface}).
 
 Furthermore, our casts-via-materialization rule assumes that the
 type checker has access to the whole program.
@@ -1769,7 +1783,7 @@ a well-typed context interacts with a typed value.
 The soundness of our model is easily seen by reduction to Nom, a gradual
 language that allows fine-grained interactions with untyped code and comes with
 a detailed proof of soundness~\cite{mt-oopsla-2017,mt-oopsla-2021}.
-Given a program written in the syntax of \cref{f:surface-types}, one can derive
+Given a program written in the syntax of \Cref{f:surface-types}, one can derive
 a Nom program with the same type boundaries by replacing every checked
 dict instance with a fresh class type.
 Because distinct checked dict types are incompatible, the
@@ -1782,7 +1796,7 @@ a validating check.
 The question is thus whether all boundaries are properly guarded.
 Our answer has two parts.
 First, observe that every evaluation type comes with a decidable
-cast~(\cref{t:cast}).
+cast~(\Cref{t:cast}).
 For basic types such as strings, a tag check clearly suffices.
 For parameterized types such as $\sptchkdict{\spteval_0}{\spteval_1}$,
 the exact-match semantics is also decidable (and also implemented with
@@ -1802,13 +1816,13 @@ enough to protect all boundaries.
 The Redex model intentionally does not cover all of Python.
 Some aspects of \SP{} are left out because they are straightforward to
 handle.
-These include primitive types~(\cref{s:c-types}), module-level variables,
-and the boundary to untyped Python~(\cref{s:py-boundary}).
+These include primitive types~(\Cref{s:c-types}), module-level variables,
+and the boundary to untyped Python~(\Cref{s:py-boundary}).
 %% Aspects of \SP{} that do not pertain to soundness, such as the quality of error messages,
 %% are also omitted.
 Other Python features are left out because their \SP{} semantics is identical
-to standard Python~(\cref{s:py-boundary}).
-Our model also does not cover the optimizer~(\cref{s:optimize}) because
+to standard Python~(\Cref{s:py-boundary}).
+Our model also does not cover the optimizer~(\Cref{s:optimize}) because
 a formal account of type-directed optimization would require substantial additional
 components; namely, a model of the \SP{} bytecode and a faithful rendering of its
 transformations.
@@ -1838,7 +1852,7 @@ well-typed.
 All arguments sent from typed contexts get validated either statically or
 via materialization casts, but arguments from untyped contexts are unchecked.
 For this reason, \SP{} compiles every typed function to check its inputs.
-The optimizer can bypass these checks for typed-to-typed calls~(\cref{s:optimize}).
+The optimizer can bypass these checks for typed-to-typed calls~(\Cref{s:optimize}).
 Similarly, concrete types such as $\sptrawchkdict$ must check writes that
 come from untyped contexts.
 %% 2022-01-09 worth mentioning primitive types? they get cast like anything else (they don't materiazize)
@@ -2046,7 +2060,7 @@ against their declared types.
 The instructions \bcinst{BUILD\_CHECKED\_MAP} and \bcinst{TP\_ALLOC}
 allocate \SP{}-specific data structures.
 The first creates a checked dictionary; the second allocates an uninitialized instance
-of an object~(\cref{s:vtable}).
+of an object~(\Cref{s:vtable}).
 Cinder comes with a similar instruction to build checked lists.
 The remaining instructions are for optimization.
 Both \bcinst{INVOKE\_FUNCTION} and \bcinst{INVOKE\_METHOD} are alternatives
@@ -2100,12 +2114,12 @@ The Instagram web server has been using \SP{} code to serve requests in
 production since April 2021.
 Overall, the results are very encouraging.
 Instagram's internal profiling tools attribute a \CPUchange{} improvement
-in CPU efficiency~(\cref{s:what-is-cpu}) to \SP{} conversions~(\cref{s:migration-path}).
+in CPU efficiency~(\Cref{s:what-is-cpu}) to \SP{} conversions~(\Cref{s:migration-path}).
 This is a big improvement at Instagram scale.
 
 Developers have converted over 500 modules to \SP{} thus far.
 Despite some initial regressions, none of the converted modules
-ran slower after small rewrites~(\cref{s:code-changes})
+ran slower after small rewrites~(\Cref{s:code-changes})
 and/or enabling the JIT on certain functions.
 Only 9 modules use concrete types and only 12 modules use primitive types,
 but these features delivered critical performance gains in key modules.
@@ -2164,11 +2178,11 @@ Replacing these modules with \SP{} let programmers return to a conventional
 Python workflow.
 Furthermore, \SP{} types combined with Cinder resulted in a
 0.7\% improvement in web server CPU efficiency.
-Primitive types~(\cref{s:c-types}) were essential for matching Cython.
+Primitive types~(\Cref{s:c-types}) were essential for matching Cython.
 
 Later \SP{} migrations have been directed by profiling to find frequently-executed code.
 During the first half of 2021, the \SP{} team identified hot
-modules and proposed types plus small code changes to the maintainers of these modules~(\cref{s:code-changes}).
+modules and proposed types plus small code changes to the maintainers of these modules~(\Cref{s:code-changes}).
 The accepted proposals resulted in a 1\% improvement in CPU efficiency.
 During the second half of 2021, the \SP{} team applied the same
 process at a larger scale.
@@ -2245,7 +2259,7 @@ type checker and four that aim to improve performance.
 
   \item
     \ipara{Move unsupported Python features}
-    Code that uses the unsupported features listed in~\cref{s:not-python}
+    Code that uses the unsupported features listed in~\Cref{s:not-python}
     must be changed or moved to an untyped module.
     %% So far, these changes have not required major rewrites.
 
@@ -2263,7 +2277,7 @@ type checker and four that aim to improve performance.
   \item
     \ipara{Use primitive types}
     Integers and booleans in hot code paths run fastest with
-    primitive types~(\cref{s:c-types}).
+    primitive types~(\Cref{s:c-types}).
     %%As noted above, primitives were required for \SP{} to match the performance of
     %%Cython.
     Twelve modules currently use primitives.
@@ -2409,7 +2423,7 @@ The impressive performance figures in the original Nom paper inspired the \SP{}
 team to adapt the method.
 But whereas MonNom has been exploring designs for generic concrete types that
 support (a flexible form of) the gradual guarantees~\cite{svcb-snapl-2015},
-\SP{} opts for a simpler and more rigid design~(\cref{s:type-dynamic}).
+\SP{} opts for a simpler and more rigid design~(\Cref{s:type-dynamic}).
 
 With its mix of shallow and concrete types, \SP{} is one of a few gradual
 language that lets programmers choose between multiple type-enforcement strategies.
@@ -2418,7 +2432,7 @@ Thorn and StrongScript offer a choice of concrete types and optional (unsound)
 Typed Racket supports deep (structural) types, shallow types, and optional
 types~\cite{g-pldi-2022}.
 By contrast to these others, \SP{} asks programmers to change their code
-in way that reflects changes to the types~(\cref{s:checked-type}).
+in way that reflects changes to the types~(\Cref{s:checked-type}).
 The changes impose a maintenance burden, but enable performance improvements
 and an efficient implementation of run-time checks.
 
@@ -2539,24 +2553,24 @@ And yet, \SP{} is restricted to set attainable goals:
     The syntax of sound static types is relatively small compared
     to \PEP{}.
     Higher-order types are absent.
-    The focus is instead on first-order objects and standard data structures~(\cref{s:ts-context}).
+    The focus is instead on first-order objects and standard data structures~(\Cref{s:ts-context}).
   \item
     The type checker analyzes entire modules rather than individual statements,
     and although it supports a dynamic type, dynamic type-checked code
-    does not have the same freedom as untyped code~(\cref{s:type-dynamic}).
+    does not have the same freedom as untyped code~(\Cref{s:type-dynamic}).
   \item
     Shallow types accommodate Python code but offer coarse
     soundness guarantees.
     %% These types have been the top priority for \SP{}.
-    Concrete types are deeply sound, but add nonlocal constraints~(\cref{s:checked-type}).
+    Concrete types are deeply sound, but add nonlocal constraints~(\Cref{s:checked-type}).
     %% \SP{} supports few concrete types at the moment and plans to add more.
   \item
     Gradual class hierarchies are permitted, but restricted to single inheritance.
-    Static-to-static method overrides cannot reduce the precision of types~(\cref{s:inheritance}).
+    Static-to-static method overrides cannot reduce the precision of types~(\Cref{s:inheritance}).
     %% ---a restriction
     %% that enables optimizations but breaks the static gradual guarantee.
   \item
-    Progressive primitive types are available to maximize performance~(\cref{{s:c-types}}).
+    Progressive primitive types are available to maximize performance~(\Cref{{s:c-types}}).
     %%These types are intentionally incompatible with the dynamic type to help programmers
     %%avoid casts.
 \end{itemize}
@@ -2606,10 +2620,6 @@ point.
   (specifically, Meyer and Krishnamurthi) met.
   This work was partly supported by Meta and by the US National Science Foundation.
   Greenman is supported by NSF grant 2030859 to the CRA for the \href{https://cifellows2020.org}{CIFellows} project.
-}
-
-{\sloppy
-\printbibliography
 }
 
 \appendix
@@ -3282,6 +3292,12 @@ making the calls to \code{list.insert} and \code{list.pop} slower; this is fixab
   \end{tabular}
 
 \end{table}
+
+\clearpage
+
+{\sloppy
+\printbibliography
+}
 
 
 \end{document}
