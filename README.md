@@ -273,3 +273,23 @@ Static Python. This script has three major prerequisites:
     (arbitrary) name of a new subdirectory.
  3. There is a copy of `conformance_suite` inside `SP/<dir>/`
 
+
+## Citation
+
+This model is a core part of the following paper:
+
+<https://programming-journal.org/2023/7/2/>
+
+```
+@article{lgmvpk-pj-2023,
+  author={Kuang-Chen Lu and Ben Greenman and Carl Meyer and Dino Viehland and Aniket Panse and Shriram Krishnamurthi},
+  title={Gradual Soundness: Lessons from {Static Python}},
+  journal={{<Programming>}},
+  volume={7},
+  number={1},
+  pages={2:1--2:40},
+  doi={10.22152/programming-journal.org/2023/7/2},
+  year={2023}
+}
+```
+
