@@ -1,36 +1,9 @@
 #lang at-exp slideshow
 
-;; ?? min talk, ?? min qa
-;; what time of day?
-;; [ ] start with PLDI intro
-;;     4 camps
-;;     research focus: 1-2, industry focus: 3
-;;     today focus = 4
-;;     a few papers ... compelling result
-;;     and now a stellar implementation
-;; [ ] context (what the heck are these N worlds):
-;;      TR, soundnesss, death traps
-;;      Retic, weak soundness, still death traps!
-;;      ... gotta explain the strategies a bit
-;; [ ] SP checks
-;;  - constant size
-;;  - 
-;; 
-;; [ ] how they did it?
-;;     - python slow! lots of room with numbers simple ops (cpython)
-;;     - ??? something else
-;;     - concrete data structures
-;; [ ] hilites
-;;   - non-GG
-;;     - fig 2a: override type with Dyn in typed class
-;;       coarse granularity
-;;     - fig 2b: chkdict, caller must have type
-;;     - opt-in is the key: make the most! light at end!
-;;       instead of all this theory work about fine-grained, focus on semantics and performance
-;;      ** payoff in vtable lookup
-;;   - primitive ~= dynamic
-;;     - ok for module boundaries, not for typed code
-;;     - again, gg violation, again ok because opt-in
+;; 30 min slot
+;; 20:00 March 15
+;; https://docs.google.com/presentation/d/1zbi3st3HDC29_o79D9vgjwEFo4l5VDKnAN92TXBlLcE/edit#slide=id.g2128e74c6b5_0_10
+
 ;;   - gradual class hierarchy
 ;;     - rare in RW: Thorn, SafeTS don't allow it
 ;;     - Nom allows plenty, makes dispatch tricky, optimistic / pess.
@@ -39,34 +12,9 @@
 ;;     - typed code, type-based override
 ;;     - no @property for typed fields
 ;;     - attrs set by __init__ (all PEP checkers want this)
-;;   - first order functions, classes, objects; fall back to python for the rest
 ;;   - table for all generic/concrete instantiations
-;;   - CPU efficiency
-;;     - how to interpret
-;;     - 
-;;   - how to edit code for migration, what edits happened: for types, for perf.
-;; [ ] formalization
-;;   - SP test -> redex test -> check!
-;;     265 total, 52 tuned, rest auto. Omit 537 tests.
-;;   - 5 soundness bugs, fixed!
-;;   - 16 correctness issues, example in paper sec 4
-;;   - model: S types and T types 
-;;   - typing rules, D vs CD? maybe show earlier ... maybe refer to earlier down here
-;;   - cast insertion example; SP approximation; ... open world python
-;; [ ] more small hilites
-;;   - pep 484 compatible, but a subset, no plans to cover all
-;;     can always run Pyre!
-;;   - limited concretes at the moment
-;;   - no unions at runtime, only optional
 ;;   - no recursive types anywhere (Dyn for that, as default like for Set[T]?)
 ;;   - no **kwargs, coming soon
-;;   - per-method JIT
-;; [ ] summary
-;;   - no GG, no eval, no mult.inhr., no first-class class, no overload
-;;   - 
-
-;; [ ] TODO ask SP for current events! calls for help!
-
 
 (require
   images/icons/misc
