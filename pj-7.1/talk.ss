@@ -119,12 +119,14 @@
 (define tiny-x-sep (w%->pixels 2/100))
 (define border-x-sep (w%->pixels 4/100))
 (define small-x-sep (w%->pixels 5/100))
+(define smol-x-sep small-x-sep)
 (define med-x-sep (w%->pixels 10/100))
 (define big-x-sep (w%->pixels 15/100))
 
 (define pico-y-sep (h%->pixels 1/100))
 (define tiny-y-sep (h%->pixels 2/100))
 (define small-y-sep (h%->pixels 5/100))
+(define smol-y-sep small-y-sep)
 (define med-y-sep (h%->pixels 10/100))
 (define big-y-sep (h%->pixels 15/100))
 
@@ -211,7 +213,7 @@
 (define body-font "Source Sans Pro" #;"Open Sans")
 (define code-font "Inconsolata")
 
-(define title-size 52)
+(define title-size 46)
 (define subtitle-size 34)
 (define head-size 38)
 (define body-size 30)
@@ -238,6 +240,8 @@
 (define titlerm (make-string->text #:font utah-web-headline-font #:size title-size #:color black))
 (define titlerm2 (make-string->text #:font utah-web-headline-font #:size (- title-size 8) #:color black))
 (define subtitlerm (make-string->text #:font title-font #;body-font-md #:size subtitle-size #:color black))
+(define subtitlermem (make-string->text #:font (bold-style title-font) #:size subtitle-size #:color dark-orange))
+(define subtitlermemlo (make-string->text #:font title-font #:size subtitle-size #:color dark-orange))
 (define subtitlermlo
   (let ((ff (make-string->text #:font title-font #:size subtitle-size #:color black)))
     (lambda str*
@@ -341,6 +345,15 @@
 (define down-arrow-pict
   (arrowhead-pict (* 3/4 turn) #:color black))
 
+(define (author-append . pp*)
+  (apply hc-append (pict-width @rm{xxx}) pp*))
+
+(define (affiliation-pict)
+  (table2
+    #:row-sep 4
+    (list @subtitlermemlo{Brown University} (blank)
+          @subtitlermlo{Meta} (blank))))
+
 (define ((slide-assembler/background2 base-assembler make-rect) slide-title slide-vspace slide-pict)
   (define foreground-pict (base-assembler slide-title slide-vspace slide-pict))
   (define background-pict
@@ -354,7 +367,7 @@
          (fg (filled-rectangle w h #:color color #:draw-border? #f)))
     (cc-superimpose bg fg)))
 
-(define (make-bg w h) (make-solid-bg w h utah-litegrey))
+(define (make-bg w h) (make-solid-bg w h utah-darkgrey))
 
 (define bg-orig (current-slide-assembler))
 (define bg-bg (slide-assembler/background2 bg-orig make-bg))
@@ -372,7 +385,7 @@
 (define bbox-x-margin (make-parameter small-x-sep))
 (define bbox-y-margin (make-parameter tiny-y-sep))
 (define bbox-frame-width (make-parameter 2))
-(define bbox-frame-color (make-parameter dark-blue))
+(define bbox-frame-color (make-parameter utah-granite))
 
 (define (bbox pp
               #:color [color white]
@@ -1858,67 +1871,64 @@
             (word-append @bodyemrm{Checks say  } @coderm{f2} @bodyrmlo{ is a function})))
         right-arrow-pict))))
 
+(define (title-pict)
+    (let* ([title-pict
+             (bbox
+               #:y-margin small-y-sep
+               (let* ((str* (string-split the-title-str " Lessons")))
+                 (vc-append
+                   (titlerm (car str*))
+                   (titlerm2 (string-append "Lessons" (cadr str*))))))]
+           [ben-pict
+             (vc-append
+               smol-y-sep
+               (vc-append -4
+                 (author-append
+                            @subtitlermemlo{Kuang-Chen Lu}
+                            @subtitlermem{Ben Greenman}
+                            @subtitlermlo{Carl Meyer}
+                            @subtitlermlo{Dino Viehland})
+                 (author-append
+                            @subtitlermlo{Aniket Panse}
+                            @subtitlermemlo{Shriram Krishnamurthi}))
+               (hc-append
+                 smol-x-sep
+                 (affiliation-pict)
+                 @subtitlerm{‹Programming› 2023}))]
+           [author-pict (bbox ben-pict)])
+      (vc-append
+        smol-y-sep
+        title-pict
+        author-pict)))
+
 ;; -----------------------------------------------------------------------------
 
 (define the-title-str "Gradual Soundness: Lessons from Static Python")
 
 (define (sec:title)
   (pslide
-    ;;#:next
-    #:alt (
+    #:next
     #:go title-coord-m
-    (let* ([title-pict
-             (bbox
-               #:y-margin small-y-sep
-               (let* ((str* (string-split the-title-str " for ")))
-                 (vc-append
-                   (titlerm (car str*))
-                   (titlerm2 (string-append "for " (cadr str*))))))]
-           [tu-pict
-             (vc-append
-               pico-y-sep
-               (boundary-node '(U D U D D))
-               (boundary-node '(U U D D))
-               #;(boundary-node '(D D U U D))
-               )]
-           [ben-pict (vr-append
-                       -4
-                       @subtitlerm{Ben Greenman}
-                       (yblank 12)
-                       @subtitlerm{2022-06-16})]
-           [brown-pict
-             #;(scale-to-width% (bitmap "img/browncs-logo.png") 14/100)
-             (vl-append
-               tiny-y-sep
-               @coderm{Northeastern}
-               @coderm{-> Brown*}
-               @coderm{-> Utah})]
-           [author-pict (bbox (hc-append small-x-sep ben-pict brown-pict))])
-      (vc-append
-        tiny-y-sep
-          (vc-append tiny-y-sep title-pict (bghost tu-pict))
-        author-pict))
-    )
-  )
+    (title-pict))
   (void))
 
 (define (sec:what)
-  ;; TODO ... need a "center" slide
-  (pslide
-    #:go center-coord
-    @rm{What is Gradual Typing?})
+  (center-slide
+    "What is Gradual Typing?")
   (void))
 
 (define (sec:how)
+  (center-slide
+    "How is Static Python so Fast?")
   (pslide
     #:go center-coord
-    @rm{How is Static Python so Fast?})
+    (microbenchmarks 2))
+
   (void))
 
 (define (sec:lesson)
-  (pslide
-    #:go center-coord
-    @rm{Lessons})
+  (center-slide
+    "Lessons")
   (void))
 
 ;; --- 
@@ -1969,6 +1979,12 @@
       #:width (x%->pixels 7/10)
       #:height (h%->pixels 6/10))))
 
+(define (center-slide str)
+  ;; TODO ... need a "center" slide
+  ;; ? rotate paintings?
+  (pslide
+    #:go center-coord
+    (bodyrmem str)))
 
 ;; -----------------------------------------------------------------------------
 
@@ -1982,20 +1998,9 @@
   (parameterize ((current-slide-assembler bg-bg)
                  (pplay-steps 30))
     (sec:title)
-    (sec:what)
-    (sec:how)
-    (sec:lesson)
-;    (sec:intro)
-;    (sec:2way)
-;    (sec:3way)
-;    (sec:impl)
-;    (sec:perf)
-;    (sec:end)
-;
-;    (pslide)
-;    ;(sec:expr)
-;    ;(sec:qa)
-;    ;(pslide)
+;;    (sec:what)
+;;    (sec:how)
+;;    (sec:lesson)
     (void))
   (void))
 
@@ -2012,8 +2017,9 @@
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
 
-    #:go center-coord
-    (microbenchmarks 2)
+    #:next
+    #:go title-coord-m
+    (title-pict)
 
 
   )))
