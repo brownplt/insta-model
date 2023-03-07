@@ -94,9 +94,11 @@
 (define hi-text-coord-left (coord slide-text-left hi-text 'lt))
 (define hi-text-coord-mid (coord 1/2 hi-text 'ct))
 (define hi-text-coord-right (coord slide-text-right hi-text 'rt))
-(define hi-text-coord-l  hi-text-coord-left)
-(define hi-text-coord-m   hi-text-coord-mid)
+(define hi-text-coord-l hi-text-coord-left)
 (define hi-text-coord-r hi-text-coord-right)
+(define hi-text-coord-ll  (coord 48/100 hi-text 'rt))
+(define hi-text-coord-m   hi-text-coord-mid)
+(define hi-text-coord-rr (coord 52/100 hi-text 'lt))
 (define lo-text-coord-left (coord slide-text-left lo-text 'lt))
 (define lo-text-coord-mid (coord 1/2 lo-text 'ct))
 (define lo-text-coord-right (coord slide-text-right lo-text 'rt))
@@ -213,8 +215,8 @@
 (define body-font "Source Sans Pro" #;"Open Sans")
 (define code-font "Inconsolata")
 
-(define title-size 46)
-(define subtitle-size 34)
+(define title-size 42)
+(define subtitle-size 32)
 (define head-size 38)
 (define body-size 30)
 (define code-size 28)
@@ -259,6 +261,7 @@
 (define bodyrm (make-string->text #:font body-font-md #:size body-size #:color black))
 (define bodyrmlo (make-string->text #:font body-font-lo #:size body-size #:color black))
 (define rm bodyrmlo)
+(define rmem (make-string->text #:font body-font-lo #:size body-size #:color dark-orange))
 (define bodyrmlobb (make-string->text #:font body-font-lo #:size body-size #:color deep-pen-color))
 (define bodyrmloyy (make-string->text #:font body-font-lo #:size body-size #:color shallow-pen-color))
 (define bodyrmhi (make-string->text #:font body-font-hi #:size body-size #:color black))
@@ -328,6 +331,9 @@
 (define pen-color-converter (make-converter deep-pen-color shallow-pen-color))
 (define brush-color-converter (make-converter deep-brush-color shallow-brush-color))
 
+(define (at-find-right tag)
+  (at-find-pict tag rc-find 'lc #:abs-x pico-x-sep))
+
 (define (arrowhead-pict rad #:color [color black] #:size [size 20])
   (colorize
     (arrowhead 20 rad)
@@ -351,7 +357,10 @@
 (define (affiliation-pict)
   (table2
     #:row-sep 4
-    (list @subtitlermemlo{Brown University} (blank)
+    (list (word-append
+            @subtitlermemlo{Brown University (}
+            @subtitlermem{U Utah}
+            @subtitlermemlo{)}) (blank)
           @subtitlermlo{Meta} (blank))))
 
 (define ((slide-assembler/background2 base-assembler make-rect) slide-title slide-vspace slide-pict)
@@ -673,8 +682,7 @@
              #:frame-color #f #;(if dark? #f background-color)
              #:color (if dark?
                        background-color
-                       (color%-update-alpha background-color 0.4))
-                       )))
+                       (color%-update-alpha background-color 0.4)))))
     (if label
       (let ((block-pict (add-label-margin block-pict 2)))
         (ppict-do (if title-pict (lt-superimpose block-pict (ht-append 4 (blank) title-pict)) block-pict)
@@ -759,6 +767,12 @@
 (define (yblank n)
   (blank 0 n))
 
+(define (pblank pp)
+  (blank (pict-width pp) (pict-height pp)))
+
+(define (bblur pp)
+  (cellophane pp 4/10))
+
 (define xsep xblank)
 (define ysep yblank)
 
@@ -795,7 +809,7 @@
       pp)))
 
 (define (table2 #:col-sep [pre-col-sep #f]
-                #:row-sep [pre-row-sep #f]
+                #:row-sep [pre-row-sep 4]
                 #:col-align [col-align lc-superimpose]
                 #:row-align [row-align cc-superimpose]
                 . kv*)
@@ -1149,6 +1163,7 @@
     (scale (symbol->lang-pict 'lua) 9/10)))
 
 (define (sp-pict)
+  ;; TODO better logo, add Insta
   (ppict-do
     (symbol->lang-pict 'python)
     #:go (coord 1/2 1 #:abs-y (- 4))
@@ -1872,34 +1887,99 @@
         right-arrow-pict))))
 
 (define (title-pict)
-    (let* ([title-pict
-             (bbox
-               #:y-margin small-y-sep
-               (let* ((str* (string-split the-title-str " Lessons")))
-                 (vc-append
-                   (titlerm (car str*))
-                   (titlerm2 (string-append "Lessons" (cadr str*))))))]
-           [ben-pict
-             (vc-append
-               smol-y-sep
-               (vc-append -4
-                 (author-append
-                            @subtitlermemlo{Kuang-Chen Lu}
-                            @subtitlermem{Ben Greenman}
-                            @subtitlermlo{Carl Meyer}
-                            @subtitlermlo{Dino Viehland})
-                 (author-append
-                            @subtitlermlo{Aniket Panse}
-                            @subtitlermemlo{Shriram Krishnamurthi}))
-               (hc-append
-                 smol-x-sep
-                 (affiliation-pict)
-                 @subtitlerm{‹Programming› 2023}))]
-           [author-pict (bbox ben-pict)])
-      (vc-append
-        smol-y-sep
-        title-pict
-        author-pict)))
+  (let* ([title-pict
+           (bbox
+             #:y-margin small-y-sep
+             (let* ((str* (string-split the-title-str " Lessons")))
+               (vc-append
+                 (titlerm (car str*))
+                 (titlerm2 (string-append "Lessons" (cadr str*))))))]
+         [ben-pict
+           (vc-append
+             smol-y-sep
+             (vc-append -4
+               (author-append
+                          @subtitlermemlo{Kuang-Chen Lu}
+                          @subtitlermem{Ben Greenman}
+                          @subtitlermlo{Carl Meyer}
+                          @subtitlermlo{Dino Viehland})
+               (author-append
+                          @subtitlermlo{Aniket Panse}
+                          @subtitlermemlo{Shriram Krishnamurthi}))
+             (hc-append
+               smol-x-sep
+               (affiliation-pict)
+               @subtitlerm{‹Programming› 2023}))]
+         [author-pict (bbox ben-pict)])
+    (vc-append
+      smol-y-sep
+      title-pict
+      author-pict)))
+
+(define (static-python-logo)
+  (vc-append
+    tiny-y-sep
+    @titlerm2{Static Python}
+    (ppict-do
+      (big-python-pict)
+      #:go (coord 98/100 02/100 'rt)
+      (insta-pict))))
+
+(define (big-python-pict)
+  ;; TODO
+  (define ww 300)
+  (frame (blank ww ww)))
+
+(define (insta-pict)
+  ;; TODO
+  (define ww 90)
+  (frame (blank ww ww)))
+
+(define (py-migration n)
+  ;; TODO check insta syntax for functions, return types
+  ;; https://pandas.pydata.org/pandas-docs/stable/reference/
+  (define arr right-arrow-pict)
+  (define ucode* (list
+@coderm|{# Python code}|
+@coderm|{}|
+@coderm|{def join(d0,d1,sort,how):}|
+@coderm|{  ....}|
+@coderm|{}|
+@coderm|{}|
+))
+  (define tcode* (list
+@coderm|{def join(d0:DataFrame,}|
+@coderm|{         d1:DataFrame,}|
+@coderm|{         sort:Bool,}|
+@coderm|{         how:Left|Right)}|
+@coderm|{    -> DataFrame:}|
+@coderm|{  ....}|
+))
+  (define uu (untyped-codeblock* ucode*))
+  (define tt
+    (vc-append
+      tiny-y-sep
+      (typed-codeblock* (list @coderm{DataFrame}))
+      (typed-codeblock* (list @coderm{Bool}))
+      (typed-codeblock* (list @coderm{Left|Right}))))
+  (define gg
+    (let ((maxw (+ 4 (apply max (map pict-width tcode*)))))
+      (cc-superimpose
+        (untyped-codeblock*
+          (list*
+            @coderm{# Python + Types}
+            @coderm{}
+            @coderm{}
+            (map (lambda (pp) (blank maxw (pict-height pp))) ucode*)))
+        (typed-codeblock* tcode*))))
+  (if (< n 3)
+    (hc-append
+      tiny-x-sep
+      uu arr
+      ((if (< n 1) bghost values) tt)
+      ((if (< n 1) bghost values) arr)
+      ((if (< n 2) bghost values) gg))
+    gg))
 
 ;; -----------------------------------------------------------------------------
 
@@ -1913,8 +1993,78 @@
   (void))
 
 (define (sec:what)
-  (center-slide
-    "What is Gradual Typing?")
+  (pslide
+    #:next
+    #:go hi-text-coord-ll
+    (static-python-logo)
+    #:next
+    #:go hi-text-coord-rr
+    (yblank med-y-sep)
+    (ll-append
+      @rm{Enhanced Python, by Instagram}
+      @rm{ +2 years running in production})
+    (yblank smol-y-sep)
+    @rm{Gradually typed ...})
+  (pslide
+    #:go heading-coord-r
+    @titlerm2{What is Gradual Typing?}
+    ;; one main point of talk = subtle question!
+    #:go hi-text-coord-m
+    @rm{Idea: combine the best parts of typed and untyped code}
+    ;; untyped as before, flexible ... idiomatic, handy, lovable, concise
+    ;; typed, use statics soundness performance
+    #:next
+    (yblank smol-y-sep)
+    #:alt ((py-migration 0))
+    #:alt ((py-migration 1))
+    #:alt ((py-migration 2))
+    (yblank tiny-y-sep)
+    (word-append
+      @rm{Q. which }
+      @rmem{best parts}
+      @rm{?})
+    #:next
+    (ppict-do
+      (yblank smol-y-sep)
+      #:go (coord 1 1 'lt)
+    (bbox
+      (vc-append
+        tiny-y-sep
+        (table2
+          ;; TODO icons
+          #:col-sep tiny-x-sep
+          @rm{Types for:} @rm{static checks}
+          (blank) @rm{run-time guarantees}
+          (blank) @rm{optimizations})
+        @rm{vs. cost of untyped interop.})))
+  )
+  (pslide
+    #:go heading-coord-r
+    @titlerm2{What is Gradual Typing?}
+    #:next
+    #:go hi-text-coord-l
+    (hc-append
+      smol-x-sep
+      (py-migration 4)
+      (vl-append
+        big-y-sep
+        (add-hubs @headrm{A1.} 'a1)
+        (add-hubs @headrm{A2.} 'a2)
+        (add-hubs @headrm{A3.} 'a3)))
+    #:go (at-find-right 'a1)
+    #:alt ((a1-optional 0))
+    #:alt ((a1-optional 1))
+    (a1-optional 2)
+    #:go (at-find-right 'a2)
+    #:alt ((a2-deep 0))
+    #:alt ((a2-deep 1))
+    (a2-deep 2)
+    ;; TODO perf interlude?? 1: lattice 2: build suspense for the SP perf improvement
+    #:go (at-find-right 'a3)
+    (a3-concrete 2)
+  )
+  (pslide
+    )
   (void))
 
 (define (sec:how)
@@ -1979,6 +2129,40 @@
       #:width (x%->pixels 7/10)
       #:height (h%->pixels 6/10))))
 
+(define (a1-optional n)
+  (define txt @rm{Optional static checks, nothing at run-time})
+  (define logo (ts-pict))
+  (define extra (word-append @rm{How to debug?  } (untyped-codeblock* (list @coderm{join(42, "hola", ...)}))))
+  (three-part-description n txt logo extra))
+
+(define (a2-deep n)
+  (define txt @rm{Static types + contracts})
+  (define logo (tr-pict))
+  (define extra @rm{Performance?})
+  (three-part-description n txt logo extra))
+
+(define (a3-concrete n)
+  (define txt (word-append
+                @rm{Progressive static types + tags}
+                ; @rm{ (}
+                ; (xblank 2)
+                ; @bodyrm{gradual soundness}
+                ; (xblank 2)
+                ; @rm{)}
+                ))
+  (define logo (sp-pict))
+  (define extra (blank))
+  (three-part-description n txt logo extra))
+
+(define (three-part-description n txt logo extra)
+  (ppict-do
+    txt
+    #:go (coord 5/100 1 'lt #:abs-y pico-y-sep)
+    (ppict-do
+      ((if (< n 1) bghost values) logo)
+      #:go (coord 1 3/10 'lt #:abs-x tiny-x-sep)
+      ((if (< n 2) bghost values) extra))))
+
 (define (center-slide str)
   ;; TODO ... need a "center" slide
   ;; ? rotate paintings?
@@ -2016,10 +2200,6 @@
   (ppict-do
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
-
-    #:next
-    #:go title-coord-m
-    (title-pict)
 
 
   )))
