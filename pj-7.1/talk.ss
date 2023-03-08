@@ -95,9 +95,9 @@
 (define hi-text-coord-mid (coord 1/2 hi-text 'ct))
 (define hi-text-coord-right (coord slide-text-right hi-text 'rt))
 (define hi-text-coord-l hi-text-coord-left)
+(define hi-text-coord-m   hi-text-coord-mid)
 (define hi-text-coord-r hi-text-coord-right)
 (define hi-text-coord-ll  (coord 48/100 hi-text 'rt))
-(define hi-text-coord-m   hi-text-coord-mid)
 (define hi-text-coord-rr (coord 52/100 hi-text 'lt))
 (define lo-text-coord-left (coord slide-text-left lo-text 'lt))
 (define lo-text-coord-mid (coord 1/2 lo-text 'ct))
@@ -207,6 +207,7 @@
 (define deep-bg-color  (color%-update-alpha deep-pen-color 0.2))
 (define typed-bg-color deep-bg-color)
 (define untyped-bg-color (color%-update-alpha untyped-pen-color 0.2))
+(define bg-color utah-darkgrey)
 
 (define (color-off c)
   (color%-update-alpha c 0.2))
@@ -376,7 +377,7 @@
          (fg (filled-rectangle w h #:color color #:draw-border? #f)))
     (cc-superimpose bg fg)))
 
-(define (make-bg w h) (make-solid-bg w h utah-darkgrey))
+(define (make-bg w h) (make-solid-bg w h bg-color))
 
 (define bg-orig (current-slide-assembler))
 (define bg-bg (slide-assembler/background2 bg-orig make-bg))
@@ -770,8 +771,17 @@
 (define (pblank pp)
   (blank (pict-width pp) (pict-height pp)))
 
-(define (bblur pp)
-  (cellophane pp 4/10))
+(define (bblur pp #:alpha [alpha #f] #:bg [bg? #f])
+  (define fg (cellophane pp (or alpha 4/10)))
+  (if bg?
+    (cc-superimpose (bgrect fg) fg)
+    fg))
+
+(define (bgrect pp)
+  (brect pp bg-color))
+
+(define (brect pp cc)
+  (filled-rectangle (pict-width pp) (pict-height pp) #:draw-border? #f #:color cc))
 
 (define xsep xblank)
 (define ysep yblank)
@@ -2059,17 +2069,102 @@
     #:alt ((a2-deep 0))
     #:alt ((a2-deep 1))
     (a2-deep 2)
-    ;; TODO perf interlude?? 1: lattice 2: build suspense for the SP perf improvement
+    ;; TODO perf interlude?? (highlight word in RED then use RED background or something for the detour)
+    ;; why = 1: lattice, 2: build suspense for the SP perf improvement
     #:go (at-find-right 'a3)
     (a3-concrete 2)
   )
   (pslide
+    ;; TODO
+    #:go heading-coord-l
+    (add-hubs @headrm{A3.} 'a3)
+    #:go (at-find-right 'a3)
+    (a3-concrete 2)
+    #:go hi-text-coord-m
+    (yblank pico-y-sep)
+    ;; recent 20% slowdown on revert to pure Python, a state that never existed in practice
+    (ht-append
+      smol-x-sep
+      (bbox @rm{Sound types*})
+      (bbox @rm{541 typed modules}))
+    (yblank smol-y-sep)
+    (bbox
+      (word-append @bodyrm{3.7% boost} @rm{ to CPU efficiency}))
+    (yblank smol-y-sep)
+    #:go (coord 35/100 54/100 'rt)
+    (frame
+      (ppict-do
+        (blank 400 200)
+        #:go (coord 3/10 3/10) (untyped-icon)
+        #:go (coord 4/10 6/10) (untyped-icon)
+        #:go (coord 2/10 7/10) (typed-icon)
+        ;; #:go (coord 7/10 4/10) (typed-icon)
+        #:go (coord 8/10 8/10) (untyped-icon)
+        ))
+    @rm{Mix of typed and untyped}
+    #:go (coord 65/100 54/100 'lt)
+    (frame
+      (ppict-do
+        (blank 460 200)
+        #:go (coord 2/100 1/2 'lc)
+        @coderm{requests ->}
+        #:go (coord 40/100 10/100 'lt)
+        (frame @coderm{control, P+Cython})
+        #:go (coord 40/100 90/100 'lb)
+        (frame @coderm{experiment, SP})))
+    @rm{Efficiency = requests / sec. at full load}
     )
   (void))
 
 (define (sec:how)
   (center-slide
     "How is Static Python so Fast?")
+  (pslide
+    ;; TODO icon for each step??!
+    ;; https://github.com/facebookincubator/cinder
+    ;; img/lang/cinder.svg
+    #:go heading-coord-m
+    @titlerm2{Step 0. Better Compiler, Better Runtime}
+    #:next
+    #:go hi-text-coord-m
+    ;; TODO staging
+    (runtime-support 2)
+    )
+  (pslide
+    #:go heading-coord-m
+    @titlerm2{Step 1. Fast Soundness Checks}
+    #:next
+    #:go hi-text-coord-ll
+    (tag-pict
+      (vc-append
+        smol-y-sep
+        (untyped-codeblock* (list @coderm{avg(nums)}))
+        (tag-pict down-arrow-pict 'boundary)
+        ;; TODO Num? Int?
+        ;; TODO pylist?, chklist?
+        (typed-codeblock*
+          (list
+            @coderm{def avg(ns:List[Num]) -> Num:}
+            @coderm{  ....})))
+      'main)
+    #:go (at-find-right 'boundary)
+    (tag-pict (bbox @rm{Tag check}) 'lbl)
+    #:go (at-find-right 'lbl)
+    (ll-append
+      @rm{  ++ no traversal, no wrapper}
+      @rm{  -- no Python lists allowed!})
+    #:go (coord 1/2 1/2 'ct)
+    (yblank med-y-sep)
+    (bbox @rm{Every sound type has an O(1) tag check})
+    (yblank tiny-y-sep)
+    ;; TODO detour, defer checks to Pyre
+    (word-append
+      @rm{First-class function types are }
+      @rmem{unsound})
+    )
+  (pslide
+    )
+
   (pslide
     #:go center-coord
     (microbenchmarks 2))
@@ -2092,6 +2187,30 @@
 
 (define (python-baseline-bar)
   (hrule 1 #:width 2 #:color python-blue #:alpha 0.9))
+
+(define (runtime-support nn)
+  ;; TODO use nn
+  (define lhs
+    ;; https://docs.python.org/3.8/library/dis.html#python-bytecode-instructions
+    (bbox
+      (vc-append
+        smol-y-sep
+        @rm{Type-Aware Bytecode}
+        (table2
+          #:row-sep pico-y-sep
+          #:col-sep tiny-x-sep
+          @coderm{CALL_FUNCTION} @rm{Python default}
+          @coderm{INVOKE_METHOD} @rm{vtable lookup}
+          @coderm{INVOKE_FUNCTION} @rm{direct call}))))
+  (define rhs
+    (bbox
+      (vc-append
+        smol-y-sep
+        @rm{Cinder Runtime}
+        (ll-append
+          @rm{VTables}
+          @rm{Method-based JIT}))))
+  (ht-append med-x-sep lhs rhs))
 
 (define (microbenchmarks [n 0])
   (define row->title first)
@@ -2138,12 +2257,15 @@
 (define (a2-deep n)
   (define txt @rm{Static types + contracts})
   (define logo (tr-pict))
-  (define extra @rm{Performance?})
+  (define extra (word-append @rm{Performance?  } (join-call-huge)))
   (three-part-description n txt logo extra))
+
+(define (join-call-huge)
+  (untyped-codeblock* (list @coderm{join(huge0, huge1, ...)})))
 
 (define (a3-concrete n)
   (define txt (word-append
-                @rm{Progressive static types + tags}
+                @bodyrm{Progressive static types + tags}
                 ; @rm{ (}
                 ; (xblank 2)
                 ; @bodyrm{gradual soundness}
@@ -2169,6 +2291,25 @@
   (pslide
     #:go center-coord
     (bodyrmem str)))
+
+(define (stripe cc)
+  (filled-rectangle
+    (+ (* 2 margin) client-w)
+    (* 1/4 client-h)
+    #:color cc
+    #:draw-border? #f))
+
+(define (pstripe s0 s1 s2)
+  (define l0-color utah-sunrise)
+  (define l1-color utah-crimson)
+  (define l2-color utah-lake)
+  (bblur
+    #:alpha 6/10
+    #:bg #true
+    (vc-append
+      (tag-pict (stripe l0-color) s0)
+      (tag-pict (stripe l1-color) s1)
+      (tag-pict (stripe l2-color) s2))))
 
 ;; -----------------------------------------------------------------------------
 
@@ -2201,5 +2342,39 @@
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
 
+    #:go heading-coord-m
+    @titlerm2{Step 2. Progressive Types}
+    #:next
+    (yblank tiny-y-sep)
+    (pstripe 'p0 'p1 'p2)
+    #:go (at-find-pict 'p1 cc-find 'cc #:abs-x (- big-x-sep))
+    ;; TODO concrete shallow primitive as labels!
+    (typed-codeblock* (list @coderm{List[Num]}))
+    (bbox @rm{Concrete list})
+    #:next
+    #:go (at-find-pict 'p0 cc-find 'cc #:abs-x (- big-x-sep))
+    (typed-codeblock* (list @coderm{PyList[Num]}))
+    (bbox
+      (word-append @rm{Shallow list, }
+                   (typed-codeblock* (list @coderm{PyList}))
+                   @rm{ at runtime}))
+
+;    #:go (at-find-right 'boundary)
+;    (tag-pict (bbox @rm{Tag check}) 'lbl)
+;    #:go (at-find-right 'lbl)
+;    (ll-append
+;      @rm{  ++ no traversal, no wrapper}
+;      @rm{  -- no Python lists allowed!})
+;    #:go center-coord
+;    (yblank med-y-sep)
+;    (bbox @rm{Every sound type has an O(1) tag check})
+;    (yblank tiny-y-sep)
+;    ;; TODO detour, defer checks to Pyre
+;    @rm{First-class function types are unsound}
+
+    ;;
+
+    ;; every type is fast
+    ;;  certain types missing!
 
   )))
