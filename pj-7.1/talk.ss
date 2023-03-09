@@ -732,6 +732,9 @@
 
 (define typed-codeblock* deep-codeblock*)
 
+(define (tcode str)
+  (typed-codeblock* (list (coderm str))))
+
 (define (untyped-box pp)
   (bbox #:x-margin 0 #:y-margin 0 #:color untyped-brush-color pp))
 
@@ -2163,6 +2166,46 @@
       @rmem{unsound})
     )
   (pslide
+    #:go heading-coord-m
+    @titlerm2{Step 2. Progressive Types}
+    #:next
+    (yblank med-y-sep)
+    (pstripe 'p0 'p1 'p2)
+    #:next
+    #:go (at-find-pict 'p1 cc-find 'cc)
+    (tag-pict (typed-codeblock* (list @coderm{ChkList[Num]})) 'clist)
+    #:go (at-find-pict 'p2 cc-find 'cc)
+    (tag-pict (bghost @tcode{Int64}) 'pint)
+    #:next
+    #:go (at-find-pict 'clist cc-find 'cc #:abs-y (- (stripe-h)))
+    (tag-pict (typed-codeblock* (list @coderm{PyList})) 'slist)
+    #:set (bvline ppict-do-state 'slist 'clist)
+    #:next
+    #:go (at-top-left 'p0)
+    (types-nametag "Shallow" "Python value-shapes")
+    #:go (at-top-left 'p1)
+    (types-nametag "Concrete" "sound generics")
+    #:go (at-find-pict 'clist cb-find 'ct #:abs-y pico-y-sep)
+    (hc-append
+      pico-y-sep
+      @tcode{ChkDict[String, Num]}
+      @tcode{ChkList[T]})
+    #:go (at-find-pict 'pint cc-find 'cc #:abs-y (- (stripe-h)))
+    (tag-pict @tcode{Int} 'sint)
+    #:go (at-find-pict 'slist rt-find 'lt #:abs-x med-x-sep)
+    (vc-append
+      pico-y-sep
+      @tcode{PyDict}
+      (hc-append smol-x-sep @tcode{String} @tcode{Bool}))
+    #:next
+    #:go (at-find-pict 'pint cc-find 'cc)
+    (ppict-do @tcode{Int64}
+              #:go (coord 1/2 12 'ct #:abs-y pico-y-sep) @tcode{Array[Float32]})
+    #:set (bvline ppict-do-state 'sint 'pint)
+    #:go (at-top-left 'p2)
+    (types-nametag "Primitive" "C values")
+    )
+  (pslide
     )
 
   (pslide
@@ -2174,6 +2217,14 @@
 (define (sec:lesson)
   (center-slide
     "Lessons")
+  (void))
+
+(define (sec:qa)
+  (center-slide
+    "Q/A")
+  (pslide
+    @rm{Unions?}
+    )
   (void))
 
 ;; --- 
@@ -2292,12 +2343,21 @@
     #:go center-coord
     (bodyrmem str)))
 
-(define (stripe cc)
+(define (stripe-h)
+  (* 35/100 client-h))
+
+(define (stripe cc [wscale #f])
   (filled-rectangle
-    (+ (* 2 margin) client-w)
-    (* 1/4 client-h)
+    (* (or wscale 1) (+ (* 2 margin) client-w))
+    (stripe-h)
     #:color cc
     #:draw-border? #f))
+
+(define (at-top-left sym)
+  (at-find-pict sym lt-find 'lt #:abs-x 8 #:abs-y 4))
+
+(define (types-nametag name what)
+  (bbox (word-append (bodyrm name) (bodyrmlo (string-append " types for " what)))))
 
 (define (pstripe s0 s1 s2)
   (define l0-color utah-sunrise)
@@ -2308,8 +2368,13 @@
     #:bg #true
     (vc-append
       (tag-pict (stripe l0-color) s0)
-      (tag-pict (stripe l1-color) s1)
-      (tag-pict (stripe l2-color) s2))))
+      (hc-append
+        (tag-pict (stripe l1-color 1/2) s1)
+        (tag-pict (stripe l2-color 1/2) s2)))))
+
+(define (bvline pp src tgt)
+  (define arr (code-arrow src cb-find tgt ct-find (* 1/4 turn) (* 3/4 turn) 0 0 'solid))
+  (add-code-line pp arr #:line-width 4 #:color (bbox-frame-color)))
 
 ;; -----------------------------------------------------------------------------
 
@@ -2323,9 +2388,10 @@
   (parameterize ((current-slide-assembler bg-bg)
                  (pplay-steps 30))
     (sec:title)
-;;    (sec:what)
-;;    (sec:how)
+    (sec:what)
+    (sec:how)
 ;;    (sec:lesson)
+;;    (sec:qa)
     (void))
   (void))
 
@@ -2343,38 +2409,11 @@
     #;(make-titlebg client-w client-h)
 
     #:go heading-coord-m
-    @titlerm2{Step 2. Progressive Types}
+    @titlerm2{Step 3. Module-Level Migration}
+    ;; coarse grained (not that coarse, still have an Any type)
+    ;; macro
+    ;; ... avoiding footgunsa
+    ;; 
     #:next
-    (yblank tiny-y-sep)
-    (pstripe 'p0 'p1 'p2)
-    #:go (at-find-pict 'p1 cc-find 'cc #:abs-x (- big-x-sep))
-    ;; TODO concrete shallow primitive as labels!
-    (typed-codeblock* (list @coderm{List[Num]}))
-    (bbox @rm{Concrete list})
-    #:next
-    #:go (at-find-pict 'p0 cc-find 'cc #:abs-x (- big-x-sep))
-    (typed-codeblock* (list @coderm{PyList[Num]}))
-    (bbox
-      (word-append @rm{Shallow list, }
-                   (typed-codeblock* (list @coderm{PyList}))
-                   @rm{ at runtime}))
-
-;    #:go (at-find-right 'boundary)
-;    (tag-pict (bbox @rm{Tag check}) 'lbl)
-;    #:go (at-find-right 'lbl)
-;    (ll-append
-;      @rm{  ++ no traversal, no wrapper}
-;      @rm{  -- no Python lists allowed!})
-;    #:go center-coord
-;    (yblank med-y-sep)
-;    (bbox @rm{Every sound type has an O(1) tag check})
-;    (yblank tiny-y-sep)
-;    ;; TODO detour, defer checks to Pyre
-;    @rm{First-class function types are unsound}
-
-    ;;
-
-    ;; every type is fast
-    ;;  certain types missing!
 
   )))
