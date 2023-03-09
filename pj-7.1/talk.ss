@@ -49,6 +49,26 @@
 
 [*OVERHEAD-DECORATION?* #f]
 
+(define turn revolution)
+
+(define x%->pixels w%->pixels)
+(define y%->pixels h%->pixels)
+
+(define pico-x-sep (w%->pixels 1/100))
+(define tiny-x-sep (w%->pixels 2/100))
+(define border-x-sep (w%->pixels 4/100))
+(define small-x-sep (w%->pixels 5/100))
+(define smol-x-sep small-x-sep)
+(define med-x-sep (w%->pixels 10/100))
+(define big-x-sep (w%->pixels 15/100))
+
+(define pico-y-sep (h%->pixels 1/100))
+(define tiny-y-sep (h%->pixels 2/100))
+(define small-y-sep (h%->pixels 5/100))
+(define smol-y-sep small-y-sep)
+(define med-y-sep (h%->pixels 10/100))
+(define big-y-sep (h%->pixels 15/100))
+
 (define slide-top 4/100)
 (define slide-left 2/100)
 (define slide-right (- 1 slide-left))
@@ -64,6 +84,7 @@
 (define hi-text (* 6 slide-top))
 (define lo-text (* 2.5 hi-text))
 (define slide-text-bottom slide-bottom)
+(define lesson-x 18/100)
 
 (define slide-text-coord (coord slide-text-left slide-text-top 'lt))
 (define slide-text-coord-left slide-text-coord)
@@ -104,6 +125,9 @@
 (define lo-text-coord-right (coord slide-text-right lo-text 'rt))
 (define title-coord-m (coord 1/2 26/100 'ct))
 (define all-lang-coord (coord 99/100 1/2 'rc))
+(define lesson-coord-h (coord lesson-x hi-text  'lt))
+(define lesson-coord-m (coord lesson-x (+ 15/100 hi-text) 'lt))
+(define lesson-coord-l (coord lesson-x (+ 30/100 hi-text) 'lt))
 
 (define img "img")
 (define src img)
@@ -111,26 +135,6 @@
 (define default-line-width 4)
 (define default-arrow-size 14)
 (define large-arrow-size 18)
-
-(define turn revolution)
-
-(define x%->pixels w%->pixels)
-(define y%->pixels h%->pixels)
-
-(define pico-x-sep (w%->pixels 1/100))
-(define tiny-x-sep (w%->pixels 2/100))
-(define border-x-sep (w%->pixels 4/100))
-(define small-x-sep (w%->pixels 5/100))
-(define smol-x-sep small-x-sep)
-(define med-x-sep (w%->pixels 10/100))
-(define big-x-sep (w%->pixels 15/100))
-
-(define pico-y-sep (h%->pixels 1/100))
-(define tiny-y-sep (h%->pixels 2/100))
-(define small-y-sep (h%->pixels 5/100))
-(define smol-y-sep small-y-sep)
-(define med-y-sep (h%->pixels 10/100))
-(define big-y-sep (h%->pixels 15/100))
 
 (define code-brush-alpha 0.6)
 
@@ -176,7 +180,9 @@
 
 (define typed-color utah-sunrise)
 (define untyped-color utah-granite)
-(define shallow-color utah-lake)
+(define shallow-color utah-sunrise)
+(define concrete-color utah-crimson)
+(define primitive-color utah-lake)
 (define deep-color typed-color)
 (define typed-brush-color (color%++ typed-color 20))
 (define shallow-pen-color shallow-color #;(hex-triplet->color% #xffc20a) )
@@ -732,6 +738,9 @@
 
 (define typed-codeblock* deep-codeblock*)
 
+(define (ucode str)
+  (untyped-codeblock* (list (coderm str))))
+
 (define (tcode str)
   (typed-codeblock* (list (coderm str))))
 
@@ -1100,6 +1109,7 @@
     #:go (coord 65/100 1/2 'cc)
     (symbol->lang-pict 'clojure)))
 
+    ;; NOTE room for research / improvement
 (define (pyre-pict)
   (symbol->lang-pict 'pyre))
 
@@ -1131,11 +1141,10 @@
   (freeze (symbol->lang-pict 'Pyright)))
 
 (define (rdl-pict)
-  (symbol->lang-pict 'ruby)
-  #;(ppict-do
-    (symbol->lang-pict 'ruby)
-    #:go center-coord
-    @coderm{RDL}))
+  (ruby-pict))
+
+(define (ruby-pict)
+  (symbol->lang-pict 'ruby))
 
 (define (strongtalk-pict)
   (symbol->lang-pict 'strongtalk))
@@ -1415,6 +1424,9 @@
 
 (define (label-below base . pp*)
   (vc-append 0 base (apply vc-append 2 pp*)))
+
+(define (label-above base . pp*)
+  (vc-append 0 (apply vc-append 2 pp*) base))
 
 (define (add-lite-bg pp #:x [x #f] #:y [y #f])
   (bbox pp #:color lite-grey #:x-margin x #:y-margin y))
@@ -2068,10 +2080,12 @@
     #:alt ((a1-optional 0))
     #:alt ((a1-optional 1))
     (a1-optional 2)
+    #:next
     #:go (at-find-right 'a2)
     #:alt ((a2-deep 0))
     #:alt ((a2-deep 1))
     (a2-deep 2)
+    #:next
     ;; TODO perf interlude?? (highlight word in RED then use RED background or something for the detour)
     ;; why = 1: lattice, 2: build suspense for the SP perf improvement
     #:go (at-find-right 'a3)
@@ -2160,10 +2174,10 @@
     (yblank med-y-sep)
     (bbox @rm{Every sound type has an O(1) tag check})
     (yblank tiny-y-sep)
-    ;; TODO detour, defer checks to Pyre
-    (word-append
-      @rm{First-class function types are }
-      @rmem{unsound})
+    ;; TODO detour, defer checks to Pyre/pyre
+    ;(word-append
+    ;  @rm{First-class function types are }
+    ;  @rmem{unsound})
     )
   (pslide
     #:go heading-coord-m
@@ -2206,17 +2220,173 @@
     (types-nametag "Primitive" "C values")
     )
   (pslide
+    ;; NOTE room for research / improvement
+    #:go heading-coord-m
+    @titlerm2{Step 3. Limited Dyn Type}
+    (yblank smol-y-sep)
+    #:alt ((dyn-theory-practice 0))
+    #:alt ((dyn-theory-practice 1))
+    (dyn-theory-practice 2)
+    (yblank pico-y-sep)
+    #:alt ((sp-types-enable 0))
+    (sp-types-enable 1)
+    #:next
+    (yblank tiny-y-sep)
+    (pvstripe 'stype 'ctype 'ptype)
+    #:go (at-bot-mid 'stype) (shallow-box)
+    #:go (at-bot-mid 'ctype) (concrete-box)
+    #:go (at-bot-mid 'ptype) (primitive-box)
+    #:next
+    ;; TODO wider stripes, shorter stripes
+    ;; TODO label optimizations, maybe: dispatch; fast boundaries/checks; unboxing
+    ;; TODO blur after showing
+    #:go (at-top-mid 'stype)
+    (vc-append
+      tiny-y-sep
+      ;(untyped-codeblock*
+      ;  (list
+      ;    @coderm{class A:}
+      ;    @coderm{ def f(self):}))
+      (typed-codeblock*
+        (list
+          @coderm{class A:}
+          @coderm{ def f(self)->Int:}))
+      (typed-codeblock*
+        (list
+          @coderm{class B(A):}
+          @coderm{ def f(self):}
+          @coderm{   # Type Error})))
+    #:next
+    #:go (at-top-mid 'ptype)
+    (typed-codeblock*
+      (list
+        @coderm{x:Int64 = 42}
+        @coderm{y = x}
+        @coderm{# Type Error}))
+    #:next
+    #:go (at-top-mid 'ctype)
+    (vc-append
+      pico-y-sep
+      (typed-codeblock*
+        (list
+          @coderm{def avg(ns:ChkList[Num]):}))
+      (untyped-codeblock*
+        (list
+          @coderm{avg([1,2])}
+          @coderm{# Runtime Error})))
     )
-
   (pslide
-    #:go center-coord
-    (microbenchmarks 2))
+    #:go heading-coord-m
+    @titlerm2{Step 4. Limited Scope}
+    (yblank med-y-sep)
+    (bbox
+      (lc-append
+        @rm{Focus on high-payoff optimizations}
+        @rm{rather than feature-completeness}))
+    #:next
+    (yblank med-y-sep)
+    ;; TODO table2
+    (defer-to 'python
+              (vc-append tiny-y-sep
+                         (hc-append tiny-y-sep @ucode{eval} @ucode{first-class class})
+                          @ucode{multiple inheritance}))
+    (yblank med-y-sep)
+    (defer-to 'pyre
+              (hc-append tiny-y-sep @tcode{Callable[T0, T1]} @tcode{Setof[T]}))
+    )
+  (pslide
+    #:go hi-text-coord-ll
+    #:alt ((step-summary 0))
+    (ppict-do
+      (step-summary 1)
+      #:go (coord 1 1/2 'lc #:abs-x smol-x-sep)
+      (vc-append
+        pico-y-sep
+        (scale (pstripe-icon) 8/10)
+        (bbox
+          (lc-append
+            @rm{Types gradually enable optimizations}
+            @bodyrm{Gradual Soundness}))))
+    #:next
+    #:go (coord 1/2 58/100 'ct)
+    #:alt ((gradual-soundness 0))
+    (gradual-soundness 1)
+    )
 
   (void))
 
 (define (sec:lesson)
   (center-slide
-    "Lessons")
+    "Takeaways")
+  (pslide
+    #:go heading-coord-m
+    @titlerm2{Takeaways}
+    #:alt (
+    #:go lesson-coord-h
+    (ht-append
+      smol-x-sep
+      (lesson-for (frame (blank 100 100)) "GT Researchers")
+      (vc-append
+        tiny-y-sep
+        (bbox
+          (ll-append
+            @rm{Good problems in the Concrete space:}
+            @rm{* help adding Concrete types}
+            @rm{* fast tags for unions, functions}))
+        (bbox
+          (ll-append
+            @rm{Need to understand perf tradeoffs:}
+            @rm{* expressiveness vs perf}
+            @rm{* gradual guarantee}))))
+    )
+    #:alt (
+    #:go lesson-coord-m
+    (hc-append
+      smol-x-sep
+      (lesson-for (frame (blank 100 100)) "Practitioners")
+      (bbox
+        (ll-append
+          @rm{Go progressive types!}
+          @rm{* Why not JS? Ruby?}
+          @rm{}
+          (hc-append smol-x-sep (js-pict) (ruby-pict)))))
+    )
+    #:alt (
+    #:go lesson-coord-l
+    (hb-append
+      smol-x-sep
+      (lesson-for (frame (blank 100 100)) "Language Designers")
+      (bbox
+        (ll-append
+          @rm{Power of lightweight verification:}
+          @rm{* Redex model of Static Python}
+          @rm{* Converted 265 tests}
+          @rm{* 5 critical soundness bugs, discovered}
+          @rm{* 16 correctness issues})))
+    )
+    #:go lesson-coord-h
+    (hc-append
+      smol-x-sep
+      (lesson-for (frame (blank 100 100)) "GT Researchers")
+      (bbox @rm{Gradual Types vs. Performance}))
+    #:go lesson-coord-m
+    (hc-append
+      smol-x-sep
+      (lesson-for (frame (blank 100 100)) "Practitioners")
+      (bbox
+        (hc-append smol-x-sep @rm{Sound types pay off})))
+    #:go lesson-coord-l
+    (hc-append
+      smol-x-sep
+      (lesson-for (frame (blank 100 100)) "Language Designers")
+      (bbox
+        @rm{++ Lightweight verification:}))
+    #:go bottom-coord-m
+    (ppict-do
+      (sp-pict)
+      #:go (coord 1/2 1 'lc #:abs-x med-x-sep) @coderm{End})
+    #;(hc-append med-x-sep (sp-pict) (pstripe-icon))
+    )
   (void))
 
 (define (sec:qa)
@@ -2263,7 +2433,31 @@
           @rm{Method-based JIT}))))
   (ht-append med-x-sep lhs rhs))
 
-(define (microbenchmarks [n 0])
+(define (dyn-theory-practice n)
+  (define lhs (dyn-vs-untyped "GT Theory" "=="))
+  (define rhs (dyn-vs-untyped "Static Python" "!="))
+  (ht-append
+    med-x-sep
+    ((if (< 1 n) bblur values) lhs)
+    ((if (< n 1) bghost values) rhs)))
+
+(define (dyn-vs-untyped name eq)
+  (define shim (make-list 1 (bghost @coderm{XXXX})))
+  (define lhs (untyped-codeblock* shim))
+  (define rhs (typed-codeblock* shim))
+  (define llbl @rm{Untyped code})
+  (define rlbl @rm{Dyn-Typed code})
+  (define hshim (bghost @rm{X}))
+  (label-above
+    (bbox
+      (ht-append
+        pico-x-sep
+        (label-above lhs llbl)
+        (word-append hshim (coderm eq) hshim)
+        (label-above rhs rlbl)))
+    (bodyrm name)))
+
+(define (microbenchmarks [n 0] #:h [hh #f] #:w [ww #f])
   (define row->title first)
   (define row->python second)
   (define row->tmin third)
@@ -2279,8 +2473,8 @@
       (list
         (python-baseline-bar)
         (for/list ((acc (in-list (list row->python row->tmin row->tmax)))
+                   (c0 (in-list (list untyped-color shallow-color primitive-color)))
                    (jj (in-naturals)))
-          (define c0 (+ jj 2))
           ;; TODO colorblind colors
           (rectangles
             (for/list ((rr (in-list microbench-data))
@@ -2288,16 +2482,45 @@
               (define x0 (+ (* ii skip-len) jj))
               (vector (ivl x0 (+ x0 1))
                       (ivl 0  (acc rr))))
-            #:color (->brush-color c0)
-            #:line-color (->pen-color c0)
+            #:color (color%-update-alpha c0 2/10)
+            #:line-color c0
             #:alpha (if (< n jj) 0 0.95))))
-      #:y-max y-max
+      #:y-max (+ 1/2 y-max)
       #:title #f
       #:x-label #f
       #:y-label #f
       #:legend-anchor 'no-legend
-      #:width (x%->pixels 7/10)
-      #:height (h%->pixels 6/10))))
+      #:width (or ww (x%->pixels 7/10))
+      #:height (or hh (h%->pixels 6/10)))))
+
+(define (step-summary n)
+  (define fmt (if (< n 1) bodyrmlo bodyrm))
+  (ll-append
+    @rm{0. Better Compiler, Better Runtime}
+    @rm{1. Fast Soundness Checks}
+    @fmt{2. Progressive Types}
+    @rm{3. Limited Dyn Type}
+    @rm{4. Limited Overall Scope}))
+
+(define (gradual-soundness n)
+  (define lhs
+    (label-above
+      (ll-append
+        @rm{959 typed modules}
+        @rm{ 10 with Concrete => fast reads}
+        @rm{ 16 with Primitives => unboxed math})
+      @rm{March 2023 stats:}))
+  (define rhs
+  ;; TODO microbench
+  ;; - typed = shallow
+  ;; - refined = concrete + primitive
+  ;; - T speedup = some benefits out of box, wow
+  ;; - T slowdown = high cost of checks / low opt
+  ;; - R all speedups, nice
+    (label-above
+      (microbenchmarks 2 #:h (* 2 big-y-sep) #:w (* 2 big-x-sep))
+      @rm{Microbenchmarks (1x = Python, lower = faster)}))
+  (ht-append med-x-sep lhs ((if (< n 1) bghost values) rhs)))
 
 (define (a1-optional n)
   (define txt @rm{Optional static checks, nothing at run-time})
@@ -2353,16 +2576,35 @@
     #:color cc
     #:draw-border? #f))
 
+(define (vstripe cc)
+  (filled-rectangle
+    (* 1/3 client-w)
+    (- (* 1/2 client-h) margin)
+    #:color cc
+    #:draw-border? #f))
+
+(define (at-cc sym)
+  (at-find-pict sym cc-find 'cc))
+
 (define (at-top-left sym)
   (at-find-pict sym lt-find 'lt #:abs-x 8 #:abs-y 4))
 
+(define (at-bot-mid sym)
+  (at-find-pict sym cb-find 'cb #:abs-y -4))
+
+(define (at-top-mid sym)
+  (at-find-pict sym ct-find 'ct #:abs-y tiny-y-sep))
+
 (define (types-nametag name what)
-  (bbox (word-append (bodyrm name) (bodyrmlo (string-append " types for " what)))))
+  (bbox
+    (word-append
+      (bodyrm (string-append name " types"))
+      (bodyrmlo (string-append " for " what)))))
 
 (define (pstripe s0 s1 s2)
-  (define l0-color utah-sunrise)
-  (define l1-color utah-crimson)
-  (define l2-color utah-lake)
+  (define l0-color shallow-color)
+  (define l1-color concrete-color)
+  (define l2-color primitive-color)
   (bblur
     #:alpha 6/10
     #:bg #true
@@ -2372,9 +2614,70 @@
         (tag-pict (stripe l1-color 1/2) s1)
         (tag-pict (stripe l2-color 1/2) s2)))))
 
+(define (pvstripe s0 s1 s2)
+  (define l0-color shallow-color)
+  (define l1-color concrete-color)
+  (define l2-color primitive-color)
+  (bblur
+    #:alpha 6/10
+    #:bg #true
+    (ht-append
+      (tag-pict (vstripe l0-color) s0)
+      (tag-pict (vstripe l1-color) s1)
+      (tag-pict (vstripe l2-color) s2))))
+
+(define (pstripe-icon)
+  ;; TODO cleanup
+  (ppict-do
+    (scale (pstripe 'a 'b 'c) 4/10)
+    #:go (at-cc 'a) (shallow-box)
+    #:go (at-cc 'b) (concrete-box)
+    #:go (at-cc 'c) (primitive-box)))
+
+(define (shallow-box)
+  (bbox @bodyrm{Shallow}))
+
+(define (concrete-box)
+  (bbox @bodyrm{Concrete}))
+
+(define (primitive-box)
+  (bbox @bodyrm{Primitive}))
+
+(define (sp-types-enable n)
+  ;; TODO center, vertical
+  (define sp-yes
+    (word-append
+      @rm{Types enable } @bodyrmem{optimizations}))
+  (define sp-no
+    (word-append
+      (scale (lc-append
+               @rm{Types enable arbitrary migrations}
+               @rm{(gradual guarantees)}) 90/100)
+      @coderm{   <<   }))
+  (bbox (word-append
+          ((if (< n 1) bghost values) sp-no)
+          sp-yes)))
+
 (define (bvline pp src tgt)
   (define arr (code-arrow src cb-find tgt ct-find (* 1/4 turn) (* 3/4 turn) 0 0 'solid))
   (add-code-line pp arr #:line-width 4 #:color (bbox-frame-color)))
+
+(define (defer-to sym pp)
+  (define-values [img name]
+    (case sym
+      ((python)
+       (values (python-pict) "Python"))
+      ((pyre)
+       (values (pyre-pict) "Pyre"))
+      (else
+        (raise-argument-error 'defer-to "(or/c 'python 'pyre)" sym))))
+  (define txt (hb-append smol-x-sep
+                         (word-append
+                           @coderm{==>  } @rm{defer to @|name| }) img))
+  (hc-append tiny-x-sep  pp txt))
+
+(define (lesson-for pp str)
+  (hc-append smol-x-sep pp (rm str)))
 
 ;; -----------------------------------------------------------------------------
 
@@ -2390,7 +2693,8 @@
     (sec:title)
     (sec:what)
     (sec:how)
-;;    (sec:lesson)
+    (sec:lesson)
+    (pslide)
 ;;    (sec:qa)
     (void))
   (void))
@@ -2408,12 +2712,5 @@
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
 
-    #:go heading-coord-m
-    @titlerm2{Step 3. Module-Level Migration}
-    ;; coarse grained (not that coarse, still have an Any type)
-    ;; macro
-    ;; ... avoiding footgunsa
-    ;; 
-    #:next
 
   )))
