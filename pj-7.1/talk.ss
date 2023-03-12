@@ -362,13 +362,28 @@
   (apply hc-append (pict-width @rm{xxx}) pp*))
 
 (define (affiliation-pict)
-  (table2
-    #:row-sep 4
-    (list (word-append
-            @subtitlermemlo{Brown University (}
-            @subtitlermem{U Utah}
-            @subtitlermemlo{)}) (blank)
-          @subtitlermlo{Meta} (blank))))
+ (bbox
+  (ht-append smol-x-sep (brown-logo) (meta-logo))))
+; (((     (vc-append
+;        tiny-y-sep
+;        @subtitlermemlo{Brown University}
+;        (brown-logo))
+;      (vc-append
+;        tiny-y-sep
+;        @subtitlermlo{Meta}
+;        (meta-logo)))))
+
+(define main-logo-w 200)
+(define main-logo-h 100)
+
+(define (brown-logo)
+  (main-logo "img/browncs-logo.png"))
+
+(define (meta-logo)
+  (main-logo "img/meta-logo.png"))
+
+(define (main-logo str)
+  (freeze (scale-to-fit (bitmap str) main-logo-w main-logo-h)))
 
 (define ((slide-assembler/background2 base-assembler make-rect) slide-title slide-vspace slide-pict)
   (define foreground-pict (base-assembler slide-title slide-vspace slide-pict))
@@ -1919,10 +1934,12 @@
                (vc-append
                  (titlerm (car str*))
                  (titlerm2 (string-append "Lessons" (cadr str*))))))]
+         [pypy
+           (freeze (bitmap "img/python-large.png"))]
          [ben-pict
            (vc-append
              smol-y-sep
-             (vc-append -4
+             (vc-append 8
                (author-append
                           @subtitlermemlo{Kuang-Chen Lu}
                           @subtitlermem{Ben Greenman}
@@ -1931,15 +1948,20 @@
                (author-append
                           @subtitlermlo{Aniket Panse}
                           @subtitlermemlo{Shriram Krishnamurthi}))
+             )]
+         [author-pict
+           (vc-append
+             tiny-y-sep
+             (bbox ben-pict)
              (hc-append
-               smol-x-sep
+               med-x-sep
                (affiliation-pict)
-               @subtitlerm{‹Programming› 2023}))]
-         [author-pict (bbox ben-pict)])
-    (vc-append
-      smol-y-sep
-      title-pict
-      author-pict)))
+               (bbox @subtitlerm{‹Programming› 2023})))]
+         [fg (vc-append smol-y-sep title-pict author-pict)])
+    (ppict-do
+      (pblank fg)
+      #:go (coord 80/100 82/100 'cc) (cellophane pypy 0.5)
+      #:go center-coord fg)))
 
 (define (static-python-logo)
   (vc-append
@@ -2088,6 +2110,7 @@
     #:next
     ;; TODO perf interlude?? (highlight word in RED then use RED background or something for the detour)
     ;; why = 1: lattice, 2: build suspense for the SP perf improvement
+    ;; 2014: "in the context of current impl tech sound gradual typing is dead"
     #:go (at-find-right 'a3)
     (a3-concrete 2)
   )
@@ -2173,6 +2196,8 @@
     #:go (coord 1/2 1/2 'ct)
     (yblank med-y-sep)
     (bbox @rm{Every sound type has an O(1) tag check})
+    ;; prior: Thorn, Nom, Dart 2
+    ;; warning: no gradual lattice here
     (yblank tiny-y-sep)
     ;; TODO detour, defer checks to Pyre/pyre
     ;(word-append
@@ -2712,5 +2737,7 @@
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
 
+    #:go title-coord-m
+    (title-pict)
 
   )))
