@@ -382,8 +382,8 @@
 (define (meta-logo)
   (main-logo "img/meta-logo.png"))
 
-(define (main-logo str)
-  (freeze (scale-to-fit (bitmap str) main-logo-w main-logo-h)))
+(define (main-logo str [ww main-logo-w] [hh main-logo-h])
+  (freeze (scale-to-fit (bitmap str) ww ww)))
 
 (define ((slide-assembler/background2 base-assembler make-rect) slide-title slide-vspace slide-pict)
   (define foreground-pict (base-assembler slide-title slide-vspace slide-pict))
@@ -1199,12 +1199,13 @@
     @coderm{Pallene}
     (scale (symbol->lang-pict 'lua) 9/10)))
 
-(define (sp-pict)
-  ;; TODO better logo, add Insta
-  (ppict-do
-    (symbol->lang-pict 'python)
-    #:go (coord 1/2 1 #:abs-y (- 4))
-    @coderm{StaticP}))
+(define sp-pict
+  (let ((pp (box #f)))
+    (lambda ()
+      (or (unbox pp)
+          (let ((vv (freeze (scale-lang-lo (static-python-logo #:title? #f)))))
+            (set-box! pp vv)
+            vv)))))
 
 (define (csharp-pict)
   (txt-lang "C#"))
@@ -1963,24 +1964,31 @@
       #:go (coord 80/100 82/100 'cc) (cellophane pypy 0.5)
       #:go center-coord fg)))
 
-(define (static-python-logo)
-  (vc-append
-    tiny-y-sep
-    @titlerm2{Static Python}
-    (ppict-do
-      (big-python-pict)
-      #:go (coord 98/100 02/100 'rt)
-      (insta-pict))))
+(define (static-python-logo #:title? [title? #t])
+  (define mm 2)
+  (define oo 12)
+  (define py (big-python-pict))
+  (define body
+    (add-rounded-border
+      #:x-margin mm
+      #:y-margin mm
+      (ppict-do
+        (blank (+ 40 (pict-width py)) (- (pict-height py) 0))
+        #:go (coord 1/2 8/100 'ct)
+        (ppict-do py
+          #:go (coord 1 0 'rt #:abs-x oo #:abs-y (- oo))
+          (insta-pict)))))
+  (if title?
+    (vc-append tiny-y-sep @titlerm2{Static Python} body)
+    body))
 
 (define (big-python-pict)
-  ;; TODO
   (define ww 300)
-  (frame (blank ww ww)))
+  (main-logo "img/python-large.png" ww ww))
 
 (define (insta-pict)
-  ;; TODO
   (define ww 90)
-  (frame (blank ww ww)))
+  (main-logo "img/instagram.jpeg" ww ww))
 
 (define (py-migration n)
   ;; TODO check insta syntax for functions, return types
@@ -2022,11 +2030,33 @@
   (if (< n 3)
     (hc-append
       tiny-x-sep
-      uu arr
+      (tag-pict uu 'ucode)
+      arr
       ((if (< n 1) bghost values) tt)
       ((if (< n 1) bghost values) arr)
-      ((if (< n 2) bghost values) gg))
+      (tag-pict ((if (< n 2) bghost values) gg) 'gcode))
     gg))
+
+(define (types-traditional-benefits)
+    (bbox
+      (vc-append
+        tiny-y-sep
+        (table2
+          ;; TODO icons
+          #:col-sep tiny-x-sep
+          @rm{Types for:} @rm{static checks}
+          (blank) @rm{run-time guarantees}
+          (blank) @rm{optimizations})
+        @rm{vs. cost of untyped interop.})))
+
+(define (happy-face)
+  (tiny-face 'sortof-happy))
+
+(define (confused-face)
+  (tiny-face 'unhappy))
+
+(define (tiny-face sym)
+  (scale (face sym) 24/100))
 
 ;; -----------------------------------------------------------------------------
 
@@ -2047,57 +2077,60 @@
     #:next
     #:go hi-text-coord-rr
     (yblank med-y-sep)
-    (ll-append
-      @rm{Enhanced Python, by Instagram}
-      @rm{ +2 years running in production})
+    @rm{Enhanced Python, by Instagram}
     (yblank smol-y-sep)
-    @rm{Gradually typed ...})
+    (word-append
+      @rm{ +2 years running  } @bodyrm{in production})
+    #:next
+    (yblank smol-y-sep)
+    (ll-append
+      @rm{Gradually typed}
+      (word-append
+        @rm{ ... for some value of  }
+        @rmem{gradual}))
+    )
   (pslide
     #:go heading-coord-r
     @titlerm2{What is Gradual Typing?}
     ;; one main point of talk = subtle question!
+    #:next
     #:go hi-text-coord-m
-    @rm{Idea: combine the best parts of typed and untyped code}
+    (bbox @rm{Idea: combine the best parts of typed and untyped code})
     ;; untyped as before, flexible ... idiomatic, handy, lovable, concise
     ;; typed, use statics soundness performance
     #:next
     (yblank smol-y-sep)
-    #:alt ((py-migration 0))
+    #:alt ((py-migration 0)
+           #:go (at-find-pict 'ucode ct-find 'lc #:abs-x smol-x-sep)
+           (bbox
+             (hc-append
+               (confused-face) @rm{  so many params!})))
     #:alt ((py-migration 1))
-    #:alt ((py-migration 2))
-    (yblank tiny-y-sep)
-    (word-append
-      @rm{Q. which }
-      @rmem{best parts}
-      @rm{?})
+    (py-migration 2)
+           #:go (at-find-pict 'gcode rt-find 'rc #:abs-x (- pico-x-sep))
+           (bbox (happy-face))
     #:next
-    (ppict-do
-      (yblank smol-y-sep)
-      #:go (coord 1 1 'lt)
+    #:go (coord 1/2 40/100 'ct)
     (bbox
-      (vc-append
-        tiny-y-sep
-        (table2
-          ;; TODO icons
-          #:col-sep tiny-x-sep
-          @rm{Types for:} @rm{static checks}
-          (blank) @rm{run-time guarantees}
-          (blank) @rm{optimizations})
-        @rm{vs. cost of untyped interop.})))
+      (lc-append
+        @rm{Great!}
+        @rm{}
+        @rm{But, what happens when}
+        (hc-append
+          (typed-codeblock* (list @rm{typed code}))
+          @rm{  and  }
+          (untyped-codeblock* (list @rm{untyped code})))
+        @rm{interact?}
+        @rm{}
+        @rm{Are types sound?}))
   )
   (pslide
     #:go heading-coord-r
     @titlerm2{What is Gradual Typing?}
     #:next
     #:go hi-text-coord-l
-    (hc-append
-      smol-x-sep
-      (py-migration 4)
-      (vl-append
-        big-y-sep
-        (add-hubs @headrm{A1.} 'a1)
-        (add-hubs @headrm{A2.} 'a2)
-        (add-hubs @headrm{A3.} 'a3)))
+    (three-answers 0)
+    #:next
     #:go (at-find-right 'a1)
     #:alt ((a1-optional 0))
     #:alt ((a1-optional 1))
@@ -2113,8 +2146,13 @@
     ;; 2014: "in the context of current impl tech sound gradual typing is dead"
     #:go (at-find-right 'a3)
     (a3-concrete 2)
+    #:go (at-find-pict 'a3 cb-find 'ct #:abs-y pico-y-sep)
+    (parameterize ((bbox-x-margin pico-x-sep))
+      (bbox @rm{Today!}))
   )
   (pslide
+
+
     ;; TODO
     #:go heading-coord-l
     (add-hubs @headrm{A3.} 'a3)
@@ -2550,21 +2588,23 @@
 (define (a1-optional n)
   (define txt @rm{Optional static checks, nothing at run-time})
   (define logo (ts-pict))
-  (define extra (word-append @rm{How to debug?  } (untyped-codeblock* (list @coderm{join(42, "hola", ...)}))))
+  (define extra (hc-append @rm{How to debug?  } (untyped-codeblock* (list @coderm{join(42, "hola", ...)}))))
   (three-part-description n txt logo extra))
 
 (define (a2-deep n)
   (define txt @rm{Static types + contracts})
   (define logo (tr-pict))
-  (define extra (word-append @rm{Performance?  } (join-call-huge)))
+  (define extra (hc-append @rm{Performance?  } (join-call-huge)))
   (three-part-description n txt logo extra))
 
 (define (join-call-huge)
-  (untyped-codeblock* (list @coderm{join(huge0, huge1, ...)})))
+  (untyped-codeblock*
+    (list
+      (word-append @coderm{join(} @codeembf{huge0} @coderm{, } @codeembf{huge1} @coderm{, ...)}))))
 
 (define (a3-concrete n)
   (define txt (word-append
-                @bodyrm{Progressive static types + tags}
+                @bodyrmlo{Progressive static types + tags}
                 ; @rm{ (}
                 ; (xblank 2)
                 ; @bodyrm{gradual soundness}
@@ -2704,6 +2744,16 @@
 (define (lesson-for pp str)
   (hc-append smol-x-sep pp (rm str)))
 
+(define (three-answers n)
+  (hc-append
+    smol-x-sep
+    ((if (< n 1) values bghost) (py-migration 4))
+    (vl-append
+      big-y-sep
+      ((if (< n 1) values bghost) (add-hubs @headrm{A1.} 'a1))
+      ((if (< n 1) values bghost) (add-hubs @headrm{A2.} 'a2))
+      (add-hubs @headrm{A3.} 'a3))))
+
 ;; -----------------------------------------------------------------------------
 
 
@@ -2737,7 +2787,39 @@
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
 
-    #:go title-coord-m
-    (title-pict)
+    #:go hi-text-coord-l
+    (three-answers 1)
+    #:go (at-find-right 'a3)
+    (a3-concrete 2)
+    #:next
+    #:go heading-coord-m
+    @titlerm2{Experience}
+    #:next
+    #:go hi-text-coord-ll
+    (bbox
+      @rm{+500 modules with sound types})
+    (frame
+      (ppict-do
+        (blank 400 200)
+        #:go (coord 3/10 3/10) (untyped-icon)
+        #:go (coord 4/10 6/10) (untyped-icon)
+        #:go (coord 2/10 7/10) (typed-icon)
+        ;; #:go (coord 7/10 4/10) (typed-icon)
+        #:go (coord 8/10 8/10) (untyped-icon)
+        ))
+    #:next
+    #:go hi-text-coord-rr
+    (bbox
+      @rm{3.9% efficiency boost})
+    (frame
+      (ppict-do
+        (blank 460 200)
+        #:go (coord 2/100 1/2 'lc)
+        @coderm{requests ->}
+        #:go (coord 40/100 10/100 'lt)
+        (frame @coderm{control, P+Cython})
+        #:go (coord 40/100 90/100 'lb)
+        (frame @coderm{experiment, SP})))
+    @rm{Efficiency = requests / sec. at full load}
 
   )))
