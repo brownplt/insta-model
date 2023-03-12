@@ -151,6 +151,7 @@
     (if (< 255 n)
       255 n)))
 
+(define at-sign @"@")
 
 (define black (hex-triplet->color% #x222222))
 (define gray (string->color% "light gray"))
@@ -1990,6 +1991,100 @@
   (define ww 90)
   (main-logo "img/instagram.jpeg" ww ww))
 
+(define (T<=>U)
+  (define-values [tt uu]
+    (parameterize ((bbox-x-margin pico-x-sep))
+      (values (typed-icon) (untyped-icon))))
+  (define arr (code-arrow tt rc-find uu lc-find 0 0 0 0 'solid))
+  (let* ((pp (hc-append tiny-x-sep tt uu))
+         (pp (add-code-line pp arr))
+         (pp (scale pp 7/10)))
+    pp))
+
+(define (low-lbl str pp)
+  (ppict-do pp #:go (coord 1/2 1 'cb #:abs-y (- 2)) (coderm str)))
+
+(define (low-lbl2 str pp)
+  (vc-append pico-y-sep pp (coderm str)))
+
+(define (insta-modules)
+  (define txt
+    (bbox
+      (vc-append
+        tiny-y-sep
+        (word-append
+          @rm{+500 modules with }
+          @bodyrm{sound types})
+        ;; 20k typed exports, 10k untyped imports
+        (word-append
+          @rm{+30k  } (T<=>U) @rm{ interactions}))))
+  (define mod
+    (let* ((pp (blank (+ (pict-width txt) (* 2 smol-x-sep)) (* 2 (pict-height txt))))
+           (tgt* '((12 28/100 29/100)
+                   (06 45/100 72/100)
+                   (11 75/100 40/100))))
+      (parameterize ((current-pseudo-random-generator (make-pseudo-random-generator)))
+        (random-seed 96345)
+        (for*/fold ((pp pp))
+                   ((tgt (in-list tgt*))
+                    (_n (in-range (car tgt))))
+          (define x0 (second tgt))
+          (define y0 (third tgt))
+          (define x (+ x0 (random-offset 20/100)))
+          (define y (+ y0 (random-offset 16/100)))
+          (define ii (if (zero? (random 3)) (typed-icon) (untyped-icon)))
+          (ppict-do pp #:go (coord x y 'cc) ii)))))
+  (vc-append tiny-y-sep txt mod))
+
+(define (random-offset fraction)
+  (define nn (random))
+  (- (* nn 2 fraction)
+     fraction))
+
+(define (insta-boost n)
+  (define txt
+    (bbox
+      (word-append @bodyrm{3.9%}
+                   @rm{  increase to CPU efficiency})))
+  (define body
+    (if (< n 1)
+      (blank)
+      (let* (
+              ;; add time
+              ;; staging
+             (top (add-hubs ((if (< n 2) bghost values) (hpictx 5 (envelope-pict 48 30))) 'top))
+             (ss (hpictx 3 (server-pict 38 55)))
+             (lhs (add-hubs ((if (< n 2) values add-stopwatch) (cbox (low-lbl2 "control" ss))) 'lhs))
+             (rhs (add-hubs ((if (< n 2) values add-stopwatch) (ebox (low-lbl2 "experiment" ss))) 'rhs))
+             (bot (ht-append smol-x-sep lhs rhs))
+             (pp (vc-append med-y-sep top bot))
+             (arr* (for/list ((tgt (in-list (if (< n 2) '() '(lhs-N rhs-N)))))
+                     (code-arrow 'top-S cb-find tgt ct-find (* 3/4 turn) (* 3/4 turn) 1/2 1/2 'solid)))
+             (pp (add-code-arrow* pp arr* #:color black)))
+        pp)))
+  (vc-append tiny-y-sep txt body))
+
+(define (add-stopwatch pp)
+  (ppict-do
+    pp
+    #:go (coord 1 1 'lb #:abs-y pico-y-sep #:abs-x (- pico-y-sep))
+    (stopwatch-pict)))
+
+(define (stopwatch-pict)
+  ;; (bitmap (clock-icon 10 8 #:height 40))
+  (define rr 40)
+  (ppict-do
+    (disk rr #:color white #:border-color black #:border-width 3)
+    #:go (coord 46/100 1/2 'cb) (bvrule (* rr 1/3) #:thickness 2 #:color black)
+    #:go (coord 54/100 1/2 'cb) (rotate (bvrule (* rr 1/3) #:thickness 2 #:color black) (* -6/100 turn))))
+
+(define (serverbox pp)
+  (parameterize ((bbox-x-margin tiny-x-sep))
+    (bbox pp #:color utah-litegrey)))
+
+(define cbox serverbox)
+(define ebox serverbox)
+
 (define (py-migration n)
   ;; TODO check insta syntax for functions, return types
   ;; https://pandas.pydata.org/pandas-docs/stable/reference/
@@ -2151,46 +2246,22 @@
       (bbox @rm{Today!}))
   )
   (pslide
-
-
-    ;; TODO
-    #:go heading-coord-l
-    (add-hubs @headrm{A3.} 'a3)
+    #:go hi-text-coord-l
+    (three-answers 1)
     #:go (at-find-right 'a3)
     (a3-concrete 2)
-    #:go hi-text-coord-m
-    (yblank pico-y-sep)
-    ;; recent 20% slowdown on revert to pure Python, a state that never existed in practice
-    (ht-append
-      smol-x-sep
-      (bbox @rm{Sound types*})
-      (bbox @rm{541 typed modules}))
-    (yblank smol-y-sep)
-    (bbox
-      (word-append @bodyrm{3.7% boost} @rm{ to CPU efficiency}))
-    (yblank smol-y-sep)
-    #:go (coord 35/100 54/100 'rt)
-    (frame
-      (ppict-do
-        (blank 400 200)
-        #:go (coord 3/10 3/10) (untyped-icon)
-        #:go (coord 4/10 6/10) (untyped-icon)
-        #:go (coord 2/10 7/10) (typed-icon)
-        ;; #:go (coord 7/10 4/10) (typed-icon)
-        #:go (coord 8/10 8/10) (untyped-icon)
-        ))
-    @rm{Mix of typed and untyped}
-    #:go (coord 65/100 54/100 'lt)
-    (frame
-      (ppict-do
-        (blank 460 200)
-        #:go (coord 2/100 1/2 'lc)
-        @coderm{requests ->}
-        #:go (coord 40/100 10/100 'lt)
-        (frame @coderm{control, P+Cython})
-        #:go (coord 40/100 90/100 'lb)
-        (frame @coderm{experiment, SP})))
-    @rm{Efficiency = requests / sec. at full load}
+    #:next
+    #:go heading-coord-m
+    @titlerm2{Experience @|at-sign| Instagram Web Server}
+    #:next
+    #:go hi-text-coord-ll
+    (yblank (- smol-y-sep))
+    (insta-modules)
+    #:next
+    #:go hi-text-coord-rr
+    #:alt ((insta-boost 0))
+    #:alt ((insta-boost 1))
+    (insta-boost 2)
     )
   (void))
 
@@ -2629,7 +2700,7 @@
   ;; ? rotate paintings?
   (pslide
     #:go center-coord
-    (bodyrmem str)))
+    (titlerm2 str)))
 
 (define (stripe-h)
   (* 35/100 client-h))
@@ -2754,6 +2825,56 @@
       ((if (< n 1) values bghost) (add-hubs @headrm{A2.} 'a2))
       (add-hubs @headrm{A3.} 'a3))))
 
+(define (envelope-pict ww hh #:color [color utah-litegrey] #:line-width [line-width 2])
+  (define (draw dc dx dy)
+    (define old-brush (send dc get-brush))
+    (define old-pen (send dc get-pen))
+    (send dc set-brush (new brush% [style 'solid] [color color]))
+    (send dc set-pen (new pen% [width line-width] [color black]))
+    ;; ---
+    (define path (new dc-path%))
+    (send path rectangle 0 0 ww hh)
+    (send dc draw-path path dx dy)
+    (send dc draw-lines `((0 . 0) (,(* ww 1/2) . ,(* hh 6/10)) (,ww . 0)) dx dy)
+    ;; ---
+    (send dc set-brush old-brush)
+    (send dc set-pen old-pen))
+  (dc draw ww hh))
+
+(define (hpictx n pp)
+  (apply hc-append pico-x-sep (make-list n pp)))
+
+(define (server-pict ww hh)
+  (define color "dark gray")
+  (define line-width 2)
+  (define (draw dc dx dy)
+    (define old-brush (send dc get-brush))
+    (define old-pen (send dc get-pen))
+    (send dc set-brush (new brush% [style 'solid] [color color]))
+    (send dc set-pen (new pen% [width line-width] [color black]))
+    ;; ---
+    (define ygap (* 2/10 hh))
+    (define xgap (* 2/10 ww))
+    (let ((path (new dc-path%)))
+      (send path move-to 0 hh)
+      (send path line-to 0 (+ 0 ygap))
+      (send path line-to (+ 0 xgap) 0)
+      (send path line-to ww 0)
+      (send path line-to ww (- hh ygap))
+      (send path line-to (- ww xgap) hh)
+      (send path close)
+      (send dc draw-path path dx dy))
+    (send dc draw-lines `((0 . ,ygap) (,(- ww xgap) . ,ygap) (,ww . 0)) dx dy)
+    (send dc draw-lines `((,(- ww xgap) . ,ygap) (,(- ww xgap) . ,hh)) dx dy)
+    (let ((path (new dc-path%)))
+      (for ((ym (in-list '(1/2 1))))
+        (send path rounded-rectangle (* 1/2 xgap) (- hh (* ym ygap)) (* 3 xgap) (* 1/8 ygap))
+        (send dc draw-path path dx dy)))
+    ;; ---
+    (send dc set-brush old-brush)
+    (send dc set-pen old-pen))
+  (dc draw ww hh))
+
 ;; -----------------------------------------------------------------------------
 
 
@@ -2787,39 +2908,5 @@
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
 
-    #:go hi-text-coord-l
-    (three-answers 1)
-    #:go (at-find-right 'a3)
-    (a3-concrete 2)
-    #:next
-    #:go heading-coord-m
-    @titlerm2{Experience}
-    #:next
-    #:go hi-text-coord-ll
-    (bbox
-      @rm{+500 modules with sound types})
-    (frame
-      (ppict-do
-        (blank 400 200)
-        #:go (coord 3/10 3/10) (untyped-icon)
-        #:go (coord 4/10 6/10) (untyped-icon)
-        #:go (coord 2/10 7/10) (typed-icon)
-        ;; #:go (coord 7/10 4/10) (typed-icon)
-        #:go (coord 8/10 8/10) (untyped-icon)
-        ))
-    #:next
-    #:go hi-text-coord-rr
-    (bbox
-      @rm{3.9% efficiency boost})
-    (frame
-      (ppict-do
-        (blank 460 200)
-        #:go (coord 2/100 1/2 'lc)
-        @coderm{requests ->}
-        #:go (coord 40/100 10/100 'lt)
-        (frame @coderm{control, P+Cython})
-        #:go (coord 40/100 90/100 'lb)
-        (frame @coderm{experiment, SP})))
-    @rm{Efficiency = requests / sec. at full load}
 
   )))
