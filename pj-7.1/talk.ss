@@ -188,9 +188,13 @@
 (define typed-brush-color (color%++ typed-color 20))
 (define shallow-pen-color shallow-color #;(hex-triplet->color% #xffc20a) )
 (define deep-pen-color deep-color #;(hex-triplet->color% #x0c7bdc))
+(define concrete-pen-color concrete-color)
+(define primitive-pen-color primitive-color)
 (define untyped-pen-color untyped-color)
 (define shallow-brush-color (color%-update-alpha shallow-pen-color 0.4) #;lite-orange #;(hex-triplet->color% #xfdc008))
 (define deep-brush-color (color%-update-alpha deep-pen-color 0.4) #;(hex-triplet->color% #x0a79da))
+(define concrete-brush-color (color%-update-alpha concrete-pen-color 0.4) #;(hex-triplet->color% #x0a79da))
+(define primitive-brush-color (color%-update-alpha primitive-pen-color 0.4) #;(hex-triplet->color% #x0a79da))
 (define untyped-brush-color (color%-update-alpha untyped-pen-color 0.4) #;(color%++ untyped-color 20))
 (define fog-3k1 (hex-triplet->color% #xDBCAC2))
 (define neutral-brush-color fog-3k1)
@@ -267,6 +271,7 @@
 (define tt coderm)
 
 (define bodyrm (make-string->text #:font body-font-md #:size body-size #:color black))
+(define hugerm (make-string->text #:font body-font-md #:size (+ 20 body-size) #:color black))
 (define bodyrmlo (make-string->text #:font body-font-lo #:size body-size #:color black))
 (define rm bodyrmlo)
 (define rmem (make-string->text #:font body-font-lo #:size body-size #:color dark-orange))
@@ -360,19 +365,13 @@
   (arrowhead-pict (* 3/4 turn) #:color black))
 
 (define (author-append . pp*)
-  (apply hc-append (pict-width @rm{xxx}) pp*))
+  (apply hc-append (pict-width @rm{xx}) pp*))
 
 (define (affiliation-pict)
- (bbox
-  (ht-append smol-x-sep (brown-logo) (meta-logo))))
-; (((     (vc-append
-;        tiny-y-sep
-;        @subtitlermemlo{Brown University}
-;        (brown-logo))
-;      (vc-append
-;        tiny-y-sep
-;        @subtitlermlo{Meta}
-;        (meta-logo)))))
+  (bbox
+    (vc-append
+      (yblank tiny-y-sep)
+      (ht-append smol-x-sep (brown-logo) (meta-logo)))))
 
 (define main-logo-w 200)
 (define main-logo-h 100)
@@ -754,11 +753,32 @@
 
 (define typed-codeblock* deep-codeblock*)
 
+(define (concrete-code str)
+  (concrete-codeblock #:title #f #:lang #f str))
+
+(define (concrete-codeblock #:dark? [dark? #f] #:title [title #f] #:lang [lang #f #;"#lang concrete"] . str*)
+  (concrete-codeblock* #:dark? dark? #:title title (conslang lang (map tt str*))))
+
+(define (concrete-codeblock* pp* #:dark? [dark? #f] #:title [title #f])
+  (X-codeblock pp* #:dark? dark? #:title title #:frame-color concrete-pen-color #:background-color concrete-brush-color))
+
+(define (primitive-code str)
+  (primitive-codeblock #:title #f #:lang #f str))
+
+(define (primitive-codeblock #:dark? [dark? #f] #:title [title #f] #:lang [lang #f #;"#lang primitive"] . str*)
+  (primitive-codeblock* #:dark? dark? #:title title (conslang lang (map tt str*))))
+
+(define (primitive-codeblock* pp* #:dark? [dark? #f] #:title [title #f])
+  (X-codeblock pp* #:dark? dark? #:title title #:frame-color primitive-pen-color #:background-color primitive-brush-color))
+
 (define (ucode str)
   (untyped-codeblock* (list (coderm str))))
 
 (define (tcode str)
   (typed-codeblock* (list (coderm str))))
+
+(define (ccode str)
+  (concrete-codeblock* (list (coderm str))))
 
 (define (untyped-box pp)
   (bbox #:x-margin 0 #:y-margin 0 #:color untyped-brush-color pp))
@@ -804,6 +824,9 @@
   (if bg?
     (cc-superimpose (bgrect fg) fg)
     fg))
+
+(define (maybe-bblur yes? pp)
+  (if yes?  (bblur pp) pp))
 
 (define (bgrect pp)
   (brect pp bg-color))
@@ -1123,7 +1146,13 @@
   (ppict-do
     (symbol->lang-pict 'typed-clojure)
     #:go (coord 65/100 1/2 'cc)
-    (symbol->lang-pict 'clojure)))
+    (clojure-pict)))
+
+(define (clojure-pict)
+  (symbol->lang-pict 'clojure))
+
+(define (php-pict)
+  (symbol->lang-pict 'php))
 
     ;; NOTE room for research / improvement
 (define (pyre-pict)
@@ -2044,22 +2073,19 @@
 (define (insta-boost n)
   (define txt
     (bbox
-      (word-append @bodyrm{3.9%}
-                   @rm{  increase to CPU efficiency})))
+      (word-append @bodyrm{3.9% increase}
+                   @rm{  in CPU efficiency})))
   (define body
     (if (< n 1)
       (blank)
-      (let* (
-              ;; add time
-              ;; staging
-             (top (add-hubs ((if (< n 2) bghost values) (hpictx 5 (envelope-pict 48 30))) 'top))
+      (let* ((top (add-hubs ((if (< n 2) bghost values) (hpictx 5 (envelope-pict 48 30))) 'top))
              (ss (hpictx 3 (server-pict 38 55)))
              (lhs (add-hubs ((if (< n 2) values add-stopwatch) (cbox (low-lbl2 "control" ss))) 'lhs))
              (rhs (add-hubs ((if (< n 2) values add-stopwatch) (ebox (low-lbl2 "experiment" ss))) 'rhs))
              (bot (ht-append smol-x-sep lhs rhs))
-             (pp (vc-append med-y-sep top bot))
-             (arr* (for/list ((tgt (in-list (if (< n 2) '() '(lhs-N rhs-N)))))
-                     (code-arrow 'top-S cb-find tgt ct-find (* 3/4 turn) (* 3/4 turn) 1/2 1/2 'solid)))
+             (pp (vc-append med-y-sep bot top))
+             (arr* (for/list ((tgt (in-list (if (< n 2) '() '(lhs-S rhs-S)))))
+                     (code-arrow 'top-N ct-find tgt cb-find (* 1/4 turn) (* 1/4 turn) 1/2 1/2 'solid)))
              (pp (add-code-arrow* pp arr* #:color black)))
         pp)))
   (vc-append tiny-y-sep txt body))
@@ -2100,7 +2126,7 @@
   (define tcode* (list
 @coderm|{def join(d0:DataFrame,}|
 @coderm|{         d1:DataFrame,}|
-@coderm|{         sort:Bool,}|
+@coderm|{         sort:bool,}|
 @coderm|{         how:Left|Right)}|
 @coderm|{    -> DataFrame:}|
 @coderm|{  ....}|
@@ -2110,7 +2136,7 @@
     (vc-append
       tiny-y-sep
       (typed-codeblock* (list @coderm{DataFrame}))
-      (typed-codeblock* (list @coderm{Bool}))
+      (typed-codeblock* (list @coderm{bool}))
       (typed-codeblock* (list @coderm{Left|Right}))))
   (define gg
     (let ((maxw (+ 4 (apply max (map pict-width tcode*)))))
@@ -2199,10 +2225,10 @@
            #:go (at-find-pict 'ucode ct-find 'lc #:abs-x smol-x-sep)
            (bbox
              (hc-append
-               (confused-face) @rm{  so many params!})))
+               (confused-face) @rm{  so many parameters!})))
     #:alt ((py-migration 1))
     (py-migration 2)
-           #:go (at-find-pict 'gcode rt-find 'rc #:abs-x (- pico-x-sep))
+           #:go (at-find-pict 'gcode rt-find 'rc #:abs-x (- 4))
            (bbox (happy-face))
     #:next
     #:go (coord 1/2 40/100 'ct)
@@ -2210,11 +2236,13 @@
       (lc-append
         @rm{Great!}
         @rm{}
-        @rm{But, what happens when}
+        (word-append @rm{But, } @bodyrm{what happens} @rm{ when})
+        (yblank pico-y-sep)
         (hc-append
           (typed-codeblock* (list @rm{typed code}))
           @rm{  and  }
           (untyped-codeblock* (list @rm{untyped code})))
+        (yblank pico-y-sep)
         @rm{interact?}
         @rm{}
         @rm{Are types sound?}))
@@ -2269,15 +2297,18 @@
   (center-slide
     "How is Static Python so Fast?")
   (pslide
-    ;; TODO icon for each step??!
-    ;; https://github.com/facebookincubator/cinder
-    ;; img/lang/cinder.svg
     #:go heading-coord-m
-    @titlerm2{Step 0. Better Compiler, Better Runtime}
+    ;; https://github.com/facebookincubator/cinder
+    @titlerm2{Step 0. Better Compiler & Runtime}
+    (yblank med-y-sep)
+    (lc-append
+      (freeze (scale (bitmap "img/cinder.png") 45/100))
+      @tcoderm{https://github.com/facebookincubator/cinder})
     #:next
-    #:go hi-text-coord-m
+    (yblank smol-y-sep)
     ;; TODO staging
-    (runtime-support 2)
+    #:alt ((runtime-support 0))
+    (runtime-support 1)
     )
   (pslide
     #:go heading-coord-m
@@ -2289,44 +2320,51 @@
         smol-y-sep
         (untyped-codeblock* (list @coderm{avg(nums)}))
         (tag-pict down-arrow-pict 'boundary)
-        ;; TODO Num? Int?
-        ;; TODO pylist?, chklist?
         (typed-codeblock*
           (list
-            @coderm{def avg(ns:List[Num]) -> Num:}
+            @coderm{def avg(ns:chklist[int]) -> int:}
             @coderm{  ....})))
       'main)
-    #:go (at-find-right 'boundary)
-    (tag-pict (bbox @rm{Tag check}) 'lbl)
-    #:go (at-find-right 'lbl)
-    (ll-append
-      @rm{  ++ no traversal, no wrapper}
-      @rm{  -- no Python lists allowed!})
-    #:go (coord 1/2 1/2 'ct)
-    (yblank med-y-sep)
-    (bbox @rm{Every sound type has an O(1) tag check})
-    ;; prior: Thorn, Nom, Dart 2
-    ;; warning: no gradual lattice here
+    #:next
+    #:go hi-text-coord-rr
+    (bbox
+      (lc-append
+        @rm{Q. How to enforce soundness?}
+        (yblank tiny-y-sep)
+        (word-append @rm{A. } @bodyrm{Tag check})
+        (yblank tiny-y-sep)
+        (parameterize ((bbox-x-margin pico-x-sep))
+          (hc-append
+            @rm{Is }
+            @ucode{nums}
+            @rm{ an instance of }
+            @tcode{chklist[int]}
+            @rm{ ?}))))
+    #:next
     (yblank tiny-y-sep)
-    ;; TODO detour, defer checks to Pyre/pyre
-    ;(word-append
-    ;  @rm{First-class function types are }
-    ;  @rmem{unsound})
+    (hc-append
+      (xblank tiny-x-sep)
+      (table2
+        #:row-sep tiny-y-sep
+        #:col-sep tiny-x-sep
+        (list
+          (check-pict 40) @rm{Fast! No traversal, no wrapper}
+          (stop-pict 40) @rm{Rejects built-in Python lists})))
     )
   (pslide
     #:go heading-coord-m
     @titlerm2{Step 2. Progressive Types}
     #:next
-    (yblank med-y-sep)
+    (yblank smol-y-sep)
     (pstripe 'p0 'p1 'p2)
     #:next
     #:go (at-find-pict 'p1 cc-find 'cc)
-    (tag-pict (typed-codeblock* (list @coderm{ChkList[Num]})) 'clist)
+    (tag-pict (typed-codeblock* (list @coderm{chklist[int]})) 'clist)
     #:go (at-find-pict 'p2 cc-find 'cc)
-    (tag-pict (bghost @tcode{Int64}) 'pint)
+    (tag-pict (bghost @tcode{int64}) 'pint)
     #:next
     #:go (at-find-pict 'clist cc-find 'cc #:abs-y (- (stripe-h)))
-    (tag-pict (typed-codeblock* (list @coderm{PyList})) 'slist)
+    (tag-pict (typed-codeblock* (list @coderm{list})) 'slist)
     #:set (bvline ppict-do-state 'slist 'clist)
     #:next
     #:go (at-top-left 'p0)
@@ -2336,99 +2374,73 @@
     #:go (at-find-pict 'clist cb-find 'ct #:abs-y pico-y-sep)
     (hc-append
       pico-y-sep
-      @tcode{ChkDict[String, Num]}
-      @tcode{ChkList[T]})
+      @tcode{chkdict[string, int]}
+      @tcode{chklist[T]})
     #:go (at-find-pict 'pint cc-find 'cc #:abs-y (- (stripe-h)))
-    (tag-pict @tcode{Int} 'sint)
+    (tag-pict @tcode{int} 'sint)
     #:go (at-find-pict 'slist rt-find 'lt #:abs-x med-x-sep)
     (vc-append
       pico-y-sep
-      @tcode{PyDict}
-      (hc-append smol-x-sep @tcode{String} @tcode{Bool}))
+      @tcode{dict}
+      (hc-append pico-y-sep @tcode{string} @tcode{bool}))
     #:next
     #:go (at-find-pict 'pint cc-find 'cc)
-    (ppict-do @tcode{Int64}
-              #:go (coord 1/2 12 'ct #:abs-y pico-y-sep) @tcode{Array[Float32]})
+    (ppict-do @tcode{int64}
+              #:go (coord 1/2 1 'lt #:abs-x pico-y-sep #:abs-y pico-y-sep)
+              @tcode{Array[float32]})
     #:set (bvline ppict-do-state 'sint 'pint)
     #:go (at-top-left 'p2)
     (types-nametag "Primitive" "C values")
     )
   (pslide
-    ;; NOTE room for research / improvement
     #:go heading-coord-m
     @titlerm2{Step 3. Limited Dyn Type}
+    #:next
     (yblank smol-y-sep)
     #:alt ((dyn-theory-practice 0))
     #:alt ((dyn-theory-practice 1))
     (dyn-theory-practice 2)
     (yblank pico-y-sep)
-    #:alt ((sp-types-enable 0))
     (sp-types-enable 1)
     #:next
     (yblank tiny-y-sep)
     (pvstripe 'stype 'ctype 'ptype)
-    #:go (at-bot-mid 'stype) (shallow-box)
-    #:go (at-bot-mid 'ctype) (concrete-box)
-    #:go (at-bot-mid 'ptype) (primitive-box)
+    #:go (at-bot-mid 'stype) (shallow-box " ~ dispatch")
+    #:go (at-bot-mid 'ctype) (concrete-box " ~ fast checks")
+    #:go (at-bot-mid 'ptype) (primitive-box " ~ unboxing")
     #:next
-    ;; TODO wider stripes, shorter stripes
-    ;; TODO label optimizations, maybe: dispatch; fast boundaries/checks; unboxing
-    ;; TODO blur after showing
     #:go (at-top-mid 'stype)
-    (vc-append
-      tiny-y-sep
-      ;(untyped-codeblock*
-      ;  (list
-      ;    @coderm{class A:}
-      ;    @coderm{ def f(self):}))
-      (typed-codeblock*
-        (list
-          @coderm{class A:}
-          @coderm{ def f(self)->Int:}))
-      (typed-codeblock*
-        (list
-          @coderm{class B(A):}
-          @coderm{ def f(self):}
-          @coderm{   # Type Error})))
-    #:next
+    #:alt ((shallow-dynlimit 0))
+    (shallow-dynlimit 1)
     #:go (at-top-mid 'ptype)
-    (typed-codeblock*
-      (list
-        @coderm{x:Int64 = 42}
-        @coderm{y = x}
-        @coderm{# Type Error}))
-    #:next
+    #:alt ((primitive-dynlimit 0))
+    (primitive-dynlimit 1)
     #:go (at-top-mid 'ctype)
-    (vc-append
-      pico-y-sep
-      (typed-codeblock*
-        (list
-          @coderm{def avg(ns:ChkList[Num]):}))
-      (untyped-codeblock*
-        (list
-          @coderm{avg([1,2])}
-          @coderm{# Runtime Error})))
+    (concrete-dynlimit 0)
     )
   (pslide
     #:go heading-coord-m
     @titlerm2{Step 4. Limited Scope}
+    #:next
     (yblank med-y-sep)
     (bbox
       (lc-append
-        @rm{Focus on high-payoff optimizations}
+        (word-append
+          @rm{Focus on high-payoff } @bodyrmem{optimizations})
         @rm{rather than feature-completeness}))
-    #:next
     (yblank med-y-sep)
-    ;; TODO table2
     (defer-to 'python
               (vc-append tiny-y-sep
                          (hc-append tiny-y-sep @ucode{eval} @ucode{first-class class})
                           @ucode{multiple inheritance}))
     (yblank med-y-sep)
     (defer-to 'pyre
-              (hc-append tiny-y-sep @tcode{Callable[T0, T1]} @tcode{Setof[T]}))
+              (vc-append tiny-y-sep
+                         (hc-append tiny-y-sep @tcode{Callable[T0, T1]} @tcode{Setof[T]})
+                         @tcode{Union[T0, T1, T2]}))
     )
   (pslide
+    #:go heading-coord-m @titlerm2{How is Static Python so Fast?}
     #:go hi-text-coord-ll
     #:alt ((step-summary 0))
     (ppict-do
@@ -2441,8 +2453,15 @@
           (lc-append
             @rm{Types gradually enable optimizations}
             @bodyrm{Gradual Soundness}))))
+    )
+  (pslide
+    #:go heading-coord-m
+    (ppict-do
+      @titlerm2{More Experience}
+      #:go (coord 1 1/2 'lt #:abs-x med-x-sep)
+      (scale (pstripe-icon) 6/10))
     #:next
-    #:go (coord 1/2 58/100 'ct)
+    #:go (coord 1/2 32/100 'ct)
     #:alt ((gradual-soundness 0))
     (gradual-soundness 1)
     )
@@ -2455,71 +2474,33 @@
   (pslide
     #:go heading-coord-m
     @titlerm2{Takeaways}
-    #:alt (
     #:go lesson-coord-h
-    (ht-append
-      smol-x-sep
-      (lesson-for (frame (blank 100 100)) "GT Researchers")
+    #:alt (
+      #:alt ((takeaway:gt 0))
+      (takeaway:gt 1)
+    )
+    #:alt (
+      #:go lesson-coord-m (takeaway:imp 0)
+    )
+    #:alt (
+      #:go lesson-coord-l (takeaway:lang 0)
+    )
+  )
+  (pslide
+    #:go heading-coord-m
+    @titlerm2{The End}
+    #:go lesson-coord-h
+    (ppict-do
+      (vl-append
+        smol-y-sep
+        (takeaway:gt 2)
+        (takeaway:imp 2)
+        (takeaway:lang 2))
+      #:go (coord 1 1/2 'lc #:abs-x smol-x-sep)
       (vc-append
         tiny-y-sep
-        (bbox
-          (ll-append
-            @rm{Good problems in the Concrete space:}
-            @rm{* help adding Concrete types}
-            @rm{* fast tags for unions, functions}))
-        (bbox
-          (ll-append
-            @rm{Need to understand perf tradeoffs:}
-            @rm{* expressiveness vs perf}
-            @rm{* gradual guarantee}))))
-    )
-    #:alt (
-    #:go lesson-coord-m
-    (hc-append
-      smol-x-sep
-      (lesson-for (frame (blank 100 100)) "Practitioners")
-      (bbox
-        (ll-append
-          @rm{Go progressive types!}
-          @rm{* Why not JS? Ruby?}
-          @rm{}
-          (hc-append smol-x-sep (js-pict) (ruby-pict)))))
-    )
-    #:alt (
-    #:go lesson-coord-l
-    (hb-append
-      smol-x-sep
-      (lesson-for (frame (blank 100 100)) "Language Designers")
-      (bbox
-        (ll-append
-          @rm{Power of lightweight verification:}
-          @rm{* Redex model of Static Python}
-          @rm{* Converted 265 tests}
-          @rm{* 5 critical soundness bugs, discovered}
-          @rm{* 16 correctness issues})))
-    )
-    #:go lesson-coord-h
-    (hc-append
-      smol-x-sep
-      (lesson-for (frame (blank 100 100)) "GT Researchers")
-      (bbox @rm{Gradual Types vs. Performance}))
-    #:go lesson-coord-m
-    (hc-append
-      smol-x-sep
-      (lesson-for (frame (blank 100 100)) "Practitioners")
-      (bbox
-        (hc-append smol-x-sep @rm{Sound types pay off})))
-    #:go lesson-coord-l
-    (hc-append
-      smol-x-sep
-      (lesson-for (frame (blank 100 100)) "Language Designers")
-      (bbox
-        @rm{++ Lightweight verification:}))
-    #:go bottom-coord-m
-    (ppict-do
-      (sp-pict)
-      #:go (coord 1/2 1 'lc #:abs-x med-x-sep) @coderm{End})
-    #;(hc-append med-x-sep (sp-pict) (pstripe-icon))
+        (scale (static-python-logo #:title? #t) 7/10)
+        (scale (pstripe-icon) 7/10)))
     )
   (void))
 
@@ -2544,27 +2525,28 @@
   (hrule 1 #:width 2 #:color python-blue #:alpha 0.9))
 
 (define (runtime-support nn)
-  ;; TODO use nn
+  ;; https://docs.python.org/3.8/library/dis.html#python-bytecode-instructions
   (define lhs
-    ;; https://docs.python.org/3.8/library/dis.html#python-bytecode-instructions
-    (bbox
-      (vc-append
-        smol-y-sep
-        @rm{Type-Aware Bytecode}
-        (table2
-          #:row-sep pico-y-sep
-          #:col-sep tiny-x-sep
-          @coderm{CALL_FUNCTION} @rm{Python default}
-          @coderm{INVOKE_METHOD} @rm{vtable lookup}
-          @coderm{INVOKE_FUNCTION} @rm{direct call}))))
+    (if (< nn 0)
+      (blank)
+      (label-above
+        (bbox
+          (lc-append
+            @rm{V Tables}
+            @rm{Method-based JIT}
+            @rm{...}))
+        @bodyrm{Cinder Runtime})))
   (define rhs
-    (bbox
-      (vc-append
-        smol-y-sep
-        @rm{Cinder Runtime}
-        (ll-append
-          @rm{VTables}
-          @rm{Method-based JIT}))))
+    ((if (< nn 1) bghost values)
+     (label-above
+       (bbox
+         (table2
+           #:row-sep pico-y-sep
+           #:col-sep tiny-x-sep
+           @coderm{CALL_FUNCTION} @rm{Python default}
+           @coderm{INVOKE_METHOD} @rm{V Table lookup}
+           @coderm{INVOKE_FUNCTION} @rm{direct call}))
+       @bodyrm{Type-Aware Bytecode})))
   (ht-append med-x-sep lhs rhs))
 
 (define (dyn-theory-practice n)
@@ -2576,7 +2558,7 @@
     ((if (< n 1) bghost values) rhs)))
 
 (define (dyn-vs-untyped name eq)
-  (define shim (make-list 1 (bghost @coderm{XXXX})))
+  (define shim (make-list 1 (bghost @coderm{xxxx})))
   (define lhs (untyped-codeblock* shim))
   (define rhs (typed-codeblock* shim))
   (define llbl @rm{Untyped code})
@@ -2602,21 +2584,28 @@
            (nn (exact-ceiling (* 10 nn)))
            (nn (/ nn 10)))
       nn))
-  (parameterize ((plot-x-ticks no-ticks))
+  (parameterize ((plot-x-ticks (microbench-ticks '(delta fannk nbody richa)))
+                 (plot-y-ticks (exact-overhead-ticks '(0 1/2 1 3/2)))
+                 (plot-font-family 'modern)
+                 (plot-font-size 22))
     (plot-pict
       (list
         (python-baseline-bar)
-        (for/list ((acc (in-list (list row->python row->tmin row->tmax)))
-                   (c0 (in-list (list untyped-color shallow-color primitive-color)))
-                   (jj (in-naturals)))
-          ;; TODO colorblind colors
+        (for/list ((acc (in-list (list row->python row->tmin row->tmax row->tmax)))
+                   (c0 (in-list (list untyped-color shallow-color concrete-color primitive-color)))
+                   (c1 (in-list (list untyped-brush-color shallow-brush-color concrete-brush-color primitive-brush-color)))
+                   (-jj (in-naturals)))
+          (define overlap? (> -jj 2))
+          (define jj (min -jj 2))
           (rectangles
             (for/list ((rr (in-list microbench-data))
                        (ii (in-naturals)))
               (define x0 (+ (* ii skip-len) jj))
               (vector (ivl x0 (+ x0 1))
                       (ivl 0  (acc rr))))
-            #:color (color%-update-alpha c0 2/10)
+            #:color c1
+            #:style (if overlap? 'bdiagonal-hatch 'solid)
+            #:line-width (if overlap? 2 1)
             #:line-color c0
             #:alpha (if (< n jj) 0 0.95))))
       #:y-max (+ 1/2 y-max)
@@ -2627,34 +2616,66 @@
       #:width (or ww (x%->pixels 7/10))
       #:height (or hh (h%->pixels 6/10)))))
 
+(define (microbench-ticks name*)
+  (define (my-layout ax-min ax-max)
+    (for/list ((n (in-list '(3/2 11/2 19/2 27/2))))
+      (pre-tick n #true)))
+  (define (my-format ax-min ax-max pt*)
+    (for/list ((pt (in-list pt*))
+               (nn (in-list name*)))
+      (format "~a" nn)))
+  (ticks my-layout my-format))
+
+(define (exact-overhead-ticks n*)
+  (define (my-layout ax-min ax-max)
+    (for/list ((n (in-list n*)))
+      (pre-tick n #true)))
+  (define (my-format ax-min ax-max pt*)
+    (for/list ((pt (in-list pt*)))
+      (define vv (pre-tick-value pt))
+      (format "~ax" (if (integer? vv) vv (exact->inexact vv)))))
+  (ticks my-layout my-format))
+
 (define (step-summary n)
   (define fmt (if (< n 1) bodyrmlo bodyrm))
-  (ll-append
-    @rm{0. Better Compiler, Better Runtime}
-    @rm{1. Fast Soundness Checks}
-    @fmt{2. Progressive Types}
-    @rm{3. Limited Dyn Type}
-    @rm{4. Limited Overall Scope}))
+  (bbox
+    (ll-append
+      @rm{0. Better Compiler & Runtime}
+      @rm{1. Fast Soundness Checks}
+      @fmt{2. Progressive Types}
+      @rm{3. Limited Dyn Type}
+      @rm{4. Limited Overall Scope})))
 
 (define (gradual-soundness n)
   (define lhs
+   (bbox
     (label-above
-      (ll-append
-        @rm{959 typed modules}
-        @rm{ 10 with Concrete => fast reads}
-        @rm{ 16 with Primitives => unboxed math})
-      @rm{March 2023 stats:}))
+      (table2
+        #:row-sep pico-y-sep
+        #:col-sep tiny-x-sep
+        #:col-align cc-superimpose
+        (list
+          (typed-codeblock* (list (word-append @bodyrm{959 typed} @rm{ modules})))
+          (blank)
+          (concrete-codeblock* (list (word-append @bodyrm{ 10} @rm{ with } @bodyrm{Concrete})))
+          @rm{(fast reads)})
+          (primitive-codeblock* (list (word-append @bodyrm{ 16} @rm{ with } @bodyrm{Primitives})))
+          @rm{(unboxed math)})
+      @rm{Instagram, March 2023:}
+      (yblank tiny-y-sep))))
   (define rhs
-  ;; TODO microbench
-  ;; - typed = shallow
-  ;; - refined = concrete + primitive
-  ;; - T speedup = some benefits out of box, wow
-  ;; - T slowdown = high cost of checks / low opt
-  ;; - R all speedups, nice
-    (label-above
-      (microbenchmarks 2 #:h (* 2 big-y-sep) #:w (* 2 big-x-sep))
-      @rm{Microbenchmarks (1x = Python, lower = faster)}))
-  (ht-append med-x-sep lhs ((if (< n 1) bghost values) rhs)))
+    ;; - typed = shallow
+    ;; - refined = concrete + primitive
+    ;; - T speedup = some benefits out of box, wow
+    ;; - T slowdown = high cost of checks / low opt
+    ;; - R all speedups, nice
+    (bbox
+      (label-above
+        (microbenchmarks 2 #:h (* 2 big-y-sep) #:w (* 2.5 big-x-sep))
+        @rm{Microbenchmarks}
+        (word-append @rm{1x = Python, } @bodyrm{lower} @rm{ is faster})
+        (yblank pico-y-sep))))
+  (ht-append smol-x-sep lhs ((if (< n 1) bghost values) rhs)))
 
 (define (a1-optional n)
   (define txt @rm{Optional static checks, nothing at run-time})
@@ -2696,8 +2717,6 @@
       ((if (< n 2) bghost values) extra))))
 
 (define (center-slide str)
-  ;; TODO ... need a "center" slide
-  ;; ? rotate paintings?
   (pslide
     #:go center-coord
     (titlerm2 str)))
@@ -2763,34 +2782,78 @@
       (tag-pict (vstripe l2-color) s2))))
 
 (define (pstripe-icon)
-  ;; TODO cleanup
   (ppict-do
     (scale (pstripe 'a 'b 'c) 4/10)
     #:go (at-cc 'a) (shallow-box)
     #:go (at-cc 'b) (concrete-box)
     #:go (at-cc 'c) (primitive-box)))
 
-(define (shallow-box)
-  (bbox @bodyrm{Shallow}))
+(define (shallow-box [extra #f])
+  (progressivebox "Shallow" extra))
 
-(define (concrete-box)
-  (bbox @bodyrm{Concrete}))
+(define (concrete-box [extra #f])
+  (progressivebox "Concrete" extra))
 
-(define (primitive-box)
-  (bbox @bodyrm{Primitive}))
+(define (primitive-box [extra #f])
+  (progressivebox "Primitive" extra))
+
+(define (progressivebox name [extra #f])
+  (define pp (bodyrm name))
+  (bbox (if extra (hc-append pp (rm extra)) pp)))
+
+(define (shallow-dynlimit n)
+  (maybe-bblur
+    (< 0 n)
+    (vc-append
+      tiny-y-sep
+      ;(untyped-codeblock*
+      ;  (list
+      ;    @coderm{class A:}
+      ;    @coderm{ def f(self):}))
+      (typed-codeblock*
+        (list
+          @coderm{class A:}
+          @coderm{ def f(self)->int:}))
+      (typed-codeblock*
+        (list
+          @coderm{class B(A):}
+          @coderm{ def f(self):}
+          @codebf{   # Type Error})))))
+
+(define (primitive-dynlimit n)
+  (maybe-bblur
+    (< 0 n)
+    (typed-codeblock*
+      (list
+        @coderm{x:int64 = 42}
+        @coderm{y = x}
+        @codebf{# Type Error}))))
+
+(define (concrete-dynlimit n)
+  (maybe-bblur
+    (< 0 n)
+    (vc-append
+      pico-y-sep
+      (typed-codeblock*
+        (list
+          @coderm{def avg(ns:chklist[int]):}))
+      (untyped-codeblock*
+        (list
+          @coderm{avg([1,2])}
+          @codebf{# Runtime Error})))))
+
 
 (define (sp-types-enable n)
-  ;; TODO center, vertical
   (define sp-yes
     (word-append
       @rm{Types enable } @bodyrmem{optimizations}))
   (define sp-no
-    (word-append
+    (hc-append
       (scale (lc-append
                @rm{Types enable arbitrary migrations}
                @rm{(gradual guarantees)}) 90/100)
       @coderm{   <<   }))
-  (bbox (word-append
+  (bbox (hc-append
           ((if (< n 1) bghost values) sp-no)
           sp-yes)))
 
@@ -2812,8 +2875,10 @@
                            @coderm{==>  } @rm{defer to @|name| }) img))
   (hc-append tiny-x-sep  pp txt))
 
-(define (lesson-for pp str)
-  (hc-append smol-x-sep pp (rm str)))
+(define (lesson-for pp str n)
+  (if (< n 2)
+    (hc-append smol-x-sep pp (rm str))
+    pp))
 
 (define (three-answers n)
   (hc-append
@@ -2875,6 +2940,93 @@
     (send dc set-pen old-pen))
   (dc draw ww hh))
 
+(define (takeaway:gt n)
+  (define concrete-rqs
+    ((if (< n 1) bghost values)
+      (bbox
+        (parameterize ((bbox-x-margin pico-x-sep))
+          (ll-append
+            @rm{Qs for Concrete:}
+            (hc-append @rm{  * migrating }
+                       @tcode{list}
+                       @rm{ to }
+                       @ccode{chklist[T]}
+                       @rm{ etc.})
+            (yblank pico-y-sep)
+            (hc-append
+              @rm{  * fast tags for } @tcode{Union[T0, T1, T2]}))))))
+  (define theory-perf
+    (bbox
+      @rm{Guarantees vs. Performance?}))
+  ((if (< n 2) ht-append hc-append)
+    smol-x-sep
+    (lesson-for (gt-research-pict) "GT Researchers" n)
+    (if (< n 2)
+      (vc-append tiny-y-sep theory-perf concrete-rqs)
+      (bbox @rm{New research directions}))))
+
+(define (takeaway:imp n)
+  (hc-append
+    smol-x-sep
+    (lesson-for (practitioner-pict) "Practitioners" n)
+    (if (< n 2)
+      (ppict-do
+        (bbox @rm{Why not your language?})
+        #:go (coord 1/2 1 'ct #:abs-y pico-y-sep)
+        (scale (pstripe-icon) 6/10))
+      (bbox @rm{Who's next?}))))
+
+(define (takeaway:lang n)
+  (define pp
+    (bbox
+      (if (< n 2)
+        (ll-append
+          @rm{Redex model found:}
+          ;; @rm{* Redex model of Static Python}
+          ;; @rm{* Converted 265 tests}
+          (word-append
+            @bodyrm{   5} @rm{ critical soundness bugs})
+          (word-append
+            @bodyrm{  16} @rm{ correctness issues}))
+        (ll-append
+          @rm{Model found:}
+          (word-append @bodyrm{  5} @rm{ soundness + } @bodyrm{16} @rm{ other issues})))))
+  ((if (< n 2) hb-append hc-append)
+    smol-x-sep
+    (lesson-for (designers-pict) "Language Designers" n)
+    (ppict-do pp #:go (coord 1 1) (if (< n 2) (racket-pict) (blank)))))
+
+(define (gt-research-pict)
+  (define pp
+    (ppict-do
+      (blank 36 55)
+      #:go (coord 0 0 'lt) @hugerm{τ}
+      #:go (coord 1 1 'rb) @hugerm{λ}))
+  (ppict-do
+    (blank 100)
+    #:go center-coord (scale pp 3/2)))
+
+(define (practitioner-pict)
+  (define ww 70)
+  (define pp
+    (ppict-do
+      (blank ww ww)
+      #:go (coord 1 1) (js-pict)
+      #:go (coord 0 0) (ruby-pict)
+      #:go (coord 1 0) (php-pict)
+      #:go (coord 0 1) (clojure-pict)
+      ))
+  (ppict-do
+    (blank 100)
+    #:go center-coord (scale pp 8/10)))
+
+(define (designers-pict)
+  (define ww 130)
+  (ppict-do
+    (blank 100)
+    #:go center-coord
+    (frame (freeze (scale-to-square (bitmap "img/msn.jpeg") ww)))))
+
 ;; -----------------------------------------------------------------------------
 
 
@@ -2899,6 +3051,11 @@
   (do-show))
 
 ;; =============================================================================
+
+;; open RQs
+;; - debugging with unsoundness; or slow sound mode
+;; - more sound types, unions
+;; - reduce dyn limits
 
 (module+ raco-pict (provide raco-pict)
          ;;(define client-w 984) (define client-h 728) ;; 4:3
