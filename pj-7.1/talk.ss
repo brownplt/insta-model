@@ -2837,10 +2837,11 @@
       pico-y-sep
       (typed-codeblock*
         (list
-          @coderm{def avg(ns:chklist[int]):}))
-      (untyped-codeblock*
+          @coderm{def avg(ns:chklist[dyn]):}
+          @coderm{  ....}))
+      (typed-codeblock*
         (list
-          @coderm{avg([1,2])}
+          @coderm{avg(chklist[int](1,2))}
           @codebf{# Runtime Error})))))
 
 
