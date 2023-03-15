@@ -2300,6 +2300,7 @@
     #:go heading-coord-m
     ;; https://github.com/facebookincubator/cinder
     @titlerm2{Step 0. Better Compiler & Runtime}
+    #:next
     (yblank med-y-sep)
     (lc-append
       (freeze (scale (bitmap "img/cinder.png") 45/100))
@@ -2799,7 +2800,7 @@
 
 (define (progressivebox name [extra #f])
   (define pp (bodyrm name))
-  (bbox (if extra (hc-append pp (rm extra)) pp)))
+  (bbox (if extra (hc-append pp (rmem extra)) pp)))
 
 (define (shallow-dynlimit n)
   (maybe-bblur
@@ -2954,7 +2955,7 @@
                        @rm{ etc.})
             (yblank pico-y-sep)
             (hc-append
-              @rm{  * fast tags for } @tcode{Union[T0, T1, T2]}))))))
+              @rm{  * fast tags for } @ccode{Union[T0, T1, T2]}))))))
   (define theory-perf
     (bbox
       @rm{Guarantees vs. Performance?}))
