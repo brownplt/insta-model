@@ -1,12 +1,18 @@
 #lang at-exp slideshow
 
+;; TALKING NOTES
+;; - can call chklist from untyped --- it's the value constructor not the types, don't have to type the full path!
+;; - 
+
+;; TODO
+;; [ ] thorn, strongscript + nom (M,T) at the end, related work shout out
+;; [ ] 541 is the old number, be clear old vs new
+;; [ ] add slide about Pyre: defer ; migrations => lots using Optional types, more info in paper; types do give benefits
+;; [ ] show good untyped avg() call; don't need types, do need value constructor
+
 ;; 30 min slot
 ;; 20:00 March 15
 ;; https://docs.google.com/presentation/d/1zbi3st3HDC29_o79D9vgjwEFo4l5VDKnAN92TXBlLcE/edit#slide=id.g2128e74c6b5_0_10
-
-;; Inspiration:
-;; - g-pldi-2022/talk/talk.ss
-;; - ~/code/uu/cs3020/talk.ss
 
 ;;   - gradual class hierarchy
 ;;     - rare in RW: Thorn, SafeTS don't allow it
@@ -24,30 +30,22 @@
   images/icons/misc
   images/icons/symbol
   images/icons/style
-  images/icons/file
   images/icons/control
   (only-in pict/face face)
-  (only-in math/statistics mean)
   (only-in racket/random random-sample)
-  file/glob
   racket/class
   racket/draw
   racket/format
   racket/match
   racket/list
   racket/string
-  racket/runtime-path
-  gtp-pict
   pict
   ppict/2
   pict-abbrevs
   ppict/pict ppict/tag
   pict-abbrevs/slideshow
   (only-in slideshow para bt)
-  gtp-plot/configuration-info gtp-plot/plot gtp-plot/typed-racket-info gtp-plot/reticulated-info gtp-plot/performance-info gtp-plot/sample-info
   plot/no-gui (except-in plot/utils min* max*))
-
-[*OVERHEAD-DECORATION?* #f]
 
 (define turn revolution)
 
@@ -128,9 +126,6 @@
 (define lesson-coord-h (coord lesson-x hi-text  'lt))
 (define lesson-coord-m (coord lesson-x (+ 15/100 hi-text) 'lt))
 (define lesson-coord-l (coord lesson-x (+ 30/100 hi-text) 'lt))
-
-(define img "img")
-(define src img)
 
 (define default-line-width 4)
 (define default-arrow-size 14)
@@ -294,56 +289,6 @@
 (define bodyemun (make-string->text #:font body-font-md #:size body-size #:color untyped-color))
 (define bodyembl (make-string->text #:font body-font-md #:size body-size #:color blame-color))
 
-(define bname bodyembf)
-
-(define stransient "transient")
-(define MAX-OVERHEAD 20)
-(define gtp-version "6.0")
-(define olde-rkt-version "6.2")
-(define transient-rkt-version "7.8.0.5")
-(define SAMPLE-RATE 10)
-(define NUM-SAMPLE-TRIALS 10)
-
-(define-runtime-path here ".")
-(define data-dir (build-path here ".." "data"))
-
-(define (benchmark-name->data-file bm-name version)
-  (define pp
-    (let* ((name bm-name)
-           (patt (format "~a-*rktd" name)))
-      (glob-first (build-path data-dir version patt))))
-  (if (file-exists? pp)
-      pp
-      (raise-argument-error 'benchmark-name->data-file "directory-exists?" pp)))
-
-
-(define (benchmark-name->performance-info bm-name version #:full-name? [full-name? #f])
-  (when (and (eq? bm-name 'zordoz)
-             (string=? version "6.4"))
-    (error 'die))
-  (define data-dir (benchmark-name->data-file bm-name version))
-  (define extra-name (and full-name? (string->symbol (format "~a-~a" bm-name version))))
-  (make-typed-racket-info data-dir #:name extra-name))
-
-(define (glob-first str)
-  (match (glob str)
-   [(cons r '())
-    r]
-   ['()
-    (raise-user-error 'glob-first "No results for glob '~a'" str)]
-   [r*
-    (printf "WARNING: ambiguous results for glob '~a'. Returning the first.~n" str)
-    (car r*)]))
-
-(define make-converter
-  (let ((magic-n (*OVERHEAD-LINE-COLOR*)))
-    (lambda (a b)
-      (lambda (i)
-        (if (= i magic-n) a b)))))
-
-(define pen-color-converter (make-converter deep-pen-color shallow-pen-color))
-(define brush-color-converter (make-converter deep-brush-color shallow-brush-color))
-
 (define (at-find-right tag)
   (at-find-pict tag rc-find 'lc #:abs-x pico-x-sep))
 
@@ -385,6 +330,9 @@
 (define (main-logo str [ww main-logo-w] [hh main-logo-h])
   (freeze (scale-to-fit (bitmap str) ww ww)))
 
+(define (scale-to-square pp dim)
+  (scale-to-fit pp dim dim))
+
 (define ((slide-assembler/background2 base-assembler make-rect) slide-title slide-vspace slide-pict)
   (define foreground-pict (base-assembler slide-title slide-vspace slide-pict))
   (define background-pict
@@ -402,12 +350,6 @@
 
 (define bg-orig (current-slide-assembler))
 (define bg-bg (slide-assembler/background2 bg-orig make-bg))
-
-(define (make-deepbg w h)
-  (make-solid-bg w h deep-bg-color))
-
-(define (make-shallowbg w h)
-  (make-solid-bg w h shallow-bg-color))
 
 (define browncs-x-margin (make-parameter small-x-sep))
 (define browncs-y-margin (make-parameter tiny-y-sep))
@@ -515,85 +457,13 @@
 (define (scale-to-pict pp bg)
   (scale-to-fit pp (pict-width bg) (pict-height bg)))
 
-(define (scale-to-huge pp)
-  (scale-to-fit pp
-    (w%->pixels 9/10)
-    (h%->pixels 85/100)))
-
-(define (scale-to-superscript pp)
-  (scale-to-fit pp
-    44
-    44))
-
-(define (scale-to-tiny pp)
-  (scale-to-fit pp 50 50))
-
-(define (scale-to-width pp w)
-  (scale-to-fit pp w (pict-height pp)))
-
-(define (scale-to-width% pp w%)
-  (scale-to-width pp (w%->pixels w%)))
-
-(define (scale-to-height% pp h%)
-  (scale-to-height pp (h%->pixels h%)))
-
-(define (scale-to-height pp h)
-  (scale-to-fit pp (pict-width pp) h))
-
-(define (scale-to-square pp dim)
-  (scale-to-fit pp dim dim))
-
-(define (person-scale pp [w% #f])
-  (scale-to-width% pp (or w% 15/100)))
-
-(define (person-frame pp)
-  (add-rounded-border
-    pp
-    #:radius 2
-    #:frame-width 1
-    #:frame-color black))
-
-(define (typed-person-frame pp)
-  (X-person-frame pp typed-color))
-
-(define (untyped-person-frame pp)
-  (X-person-frame pp untyped-color))
-
-(define (X-person-frame pp cc)
-    (add-rounded-border
-      (person-frame pp)
-      #:x-margin tiny-y-sep
-      #:y-margin tiny-y-sep
-      #:radius 2
-      #:frame-width 0
-      #:background-color cc))
-
 (define (add-lang str)
   (string-append "lang/" str))
-
-(define (scale-small-face pp)
-  (scale-to-square pp 80))
-
-(define (add-face str)
-  (string-append "face/" str))
 
 (define (add-src str)
   (string-append "img/" str))
 
 (define add-img add-src)
-
-(define (frame-person _f str w)
-  (person-frame
-    (person-scale (bitmap (add-src (add-face str))) w)))
-
-(define (person-pict str)
-  (person-frame (person-scale (bitmap str))))
-
-(define (typed-person-pict str)
-  (typed-person-frame (person-scale (bitmap str) 10/100)))
-
-(define (untyped-person-pict str)
-  (untyped-person-frame (person-scale (bitmap str) 10/100)))
 
 (define word-sep 0)
 
@@ -664,25 +534,14 @@
 (define (hcodeblock-append* #:sep [sep #f] pp*)
   (apply ht-append (or sep tiny-x-sep) pp*))
 
-(define boundary-append* hcodeblock-append*)
-
 (define (scale-lang-lo pp)
   (scale-to-fit pp 120 80))
-
-(define (scale-lang-hi pp)
-  (scale-to-fit pp 120 120))
 
 (define (lang-lo str)
   (scale-lang-lo (bitmap str)))
 
 (define (symbol->lang-pict sym #:ext [ext #f])
   (lang-lo (add-img (add-lang (format "~a.~a" sym (or ext 'png))))))
-
-(define (lang-hi str)
-  (scale-lang-hi (bitmap str)))
-
-(define (split/2 lang-img*)
-  (split-at lang-img* (quotient (length lang-img*) 2)))
 
 (define (split/n lang-img* n)
   (let loop ((pp* lang-img*))
@@ -713,16 +572,6 @@
 
 (define (conslang x y)
   (if x (list* (tt x) (blank) y) y))
-
-(define (ds-codeblock* x*)
-  (LR-stack (deep-codeblock* x*) (shallow-codeblock* x*)))
-
-(define (LR-stack lhs rhs)
-  (define offset (* 1.4 pico-y-sep))
-  (ppict-do
-    rhs
-    #:go (coord 1/2 1/2 #:abs-x (- offset) #:abs-y offset)
-    lhs))
 
 (define (untyped-code str)
   (untyped-codeblock #:title #f #:lang #f str))
@@ -789,27 +638,6 @@
 (define (typed-codeblock #:dark? [dark? #f] #:title [title #f] #:lang [lang #f #;"#lang typed"] . str*)
   (deep-codeblock* #:dark? dark? #:title title (conslang lang (map tt str*))))
 
-(define (dyn-codeblock sym)
-  (case sym
-    ((U untyped) untyped-codeblock)
-    ((D deep) deep-codeblock)
-    ((S shallow) shallow-codeblock)
-    ((T typed) typed-codeblock)
-    ((#f) (lambda arg* (blank)))
-    (else (raise-argument-error 'dyn-codeblock "(or/c D S U)" sym))))
-
-(define (deep-name)
-  (parameterize ((browncs-x-margin pico-x-sep))
-    (deep-codeblock "Deep")))
-
-(define (shallow-name)
-  (parameterize ((browncs-x-margin pico-x-sep))
-    (shallow-codeblock "Shallow")))
-
-(define (untyped-name)
-  (parameterize ((browncs-x-margin pico-x-sep))
-    (untyped-codeblock "Untyped")))
-
 (define (xblank n)
   (blank n 0))
 
@@ -837,37 +665,14 @@
 (define xsep xblank)
 (define ysep yblank)
 
-(define natural-str "Guarded")
-(define conatural-str "Co-Guarded")
-(define forgetful-str "Forgetful")
-(define transient-str "Transient")
-(define amnesic-str "Amnesic")
-(define erasure-str "Optional")
-
 (define (check-pict h)
   (bitmap (check-icon #:color apple-green #:height h #:material rubber-icon-material)))
-
-(define (caution-pict h)
-  (bitmap (close-icon #:color utah-sunrise #:height h #:material plastic-icon-material)))
 
 (define (stop-pict h)
   (bitmap (stop-icon #:color utah-crimson #:height h #:material plastic-icon-material)))
 
-(define (record-pict h)
-  (bitmap (record-icon #:color green1-3k1 #:height h #:material plastic-icon-material)))
-
 (define (bghost pp)
   (blank (pict-width pp) (pict-height pp)))
-
-(define (add-neutral-background pp)
-  (add-rectangle-background
-    #:x-margin 0 #:y-margin 0
-    #:color neutral-brush-color
-    #:radius 1
-    (add-rectangle-background
-      #:x-margin small-x-sep #:y-margin tiny-y-sep
-      #:color white
-      pp)))
 
 (define (table2 #:col-sep [pre-col-sep #f]
                 #:row-sep [pre-row-sep 4]
@@ -889,22 +694,6 @@
   (define row-sep (or pre-row-sep 364/5))
   (table 2 (flatten kv**) col-align row-align col-sep row-sep))
 
-(define (xindent pp #:sep [x #f]) (ht-append (xblank (or x small-x-sep)) pp))
-
-(define swatch-blank (blank pico-x-sep pico-y-sep))
-
-(define red-swatch
-  (X-codeblock #:background-color apple-red #:dark? #t #:title #f (list swatch-blank)))
-
-(define untyped-swatch
-  (untyped-codeblock* #:dark? #t #:title #f (list swatch-blank)))
-
-(define shallow-swatch
-  (shallow-codeblock* #:dark? #t #:title #f (list swatch-blank)))
-
-(define deep-swatch
-  (deep-codeblock* #:dark? #t #:title #f (list swatch-blank)))
-
 (define big-swatch-blank (blank (w%->pixels 6/100) small-y-sep))
 
 (define (untyped-icon #:lbl [lbl "U"])
@@ -917,212 +706,11 @@
     (deep-codeblock* #:title #f (list big-swatch-blank))
     lbl))
 
-(define (deep-icon #:lbl [lbl "D"])
-  (center-label
-    (deep-codeblock* #:title #f (list big-swatch-blank))
-    lbl))
-
-(define (shallow-icon #:lbl [lbl "S"])
-  (center-label
-    (shallow-codeblock* #:title #f (list big-swatch-blank))
-    lbl))
-
-(define (untyped-icon2 pp)
-  (untyped-codeblock* #:title #f (list (cc-superimpose big-swatch-blank pp))))
-
-(define (typed-icon2 pp)
-  (typed-codeblock* #:title #f (list (cc-superimpose big-swatch-blank pp))))
-
 (define (center-label pp lbl)
   (ppict-do
     pp
     #:go (coord 1/2 46/100 'cc)
     (if lbl (scale (headrm lbl) 0.9) (blank))))
-
-(define (dyn-swatch sym)
-  (case sym
-    ((D T) deep-swatch)
-    ((U) untyped-swatch)
-    ((S) shallow-swatch)
-    ((B) (bghost deep-swatch))
-    ((K) red-swatch)
-    (else (raise-argument-error 'dyn-swatch "(or/c 'D 'S 'U)" sym))))
-
-(define (boundary-node sym* #:arrow [arrow #f])
-  (let* ((pp*
-          (for/list ((sym (in-list sym*))
-                     (i (in-naturals)))
-            (add-hubs
-              (dyn-swatch sym)
-              (string->symbol (format "N~a" i)))))
-         (pp (hcodeblock-append* #:sep (if arrow tiny-x-sep 4) pp*))
-         (gg (bghost pp)))
-    (if arrow
-      (add-code-arrows
-        ;; TODO options? gotta standardize everywhere
-        (vc-append gg pp gg)
-        (code-arrow 'N0-E rc-find 'N1-W lc-find 0 0 0 0 'solid)
-        (code-arrow 'N2-W lc-find 'N1-E rc-find (* 1/2 turn) (* 1/2 turn) 0 0 'solid)
-        (code-arrow 'N3-E rc-find 'N4-W lc-find 0 0 0 0 'solid)
-        (code-arrow 'N0-N rt-find 'N3-N lt-find (* 08/100 turn) (* 92/100 turn) 1/4 1/4 'solid)
-        (code-arrow 'N2-S rb-find 'N4-S lb-find (* 90/100 turn) (* 10/100 turn) 1/4 1/4 'solid))
-      pp)))
-
-(define the-boundary-pict
-  (boundary-node '(U D U D D) #:arrow #t))
-
-(define the-mixed-pict
-  (boundary-node '(U D U D D)))
-
-(define the-typed-pict
-  (boundary-node '(D D D D D)))
-
-(define the-untyped-pict
-  (boundary-node '(U U U U U)))
-
-(define lattice-x-sep small-x-sep)
-(define lattice-y-sep tiny-y-sep)
-
-(define (path-node sym*)
-  (apply hc-append pico-x-sep (map dyn-swatch sym*)))
-
-(define (eq?* x*)
-  (let loop ((xx x*))
-    (if (or (null? xx) (null? (cdr xx)))
-      #t
-      (and (eq? (car xx) (cadr xx))
-           (loop (cdr xx))))))
-
-(define (bits->path-node b*)
-  (path-node
-    (for/list ((b (in-list b*)))
-      (if b 'T 'U))))
-
-(define (bits->ds b*)
-  (path-node
-    (for/list ((b (in-list b*)))
-      (if b 'S 'D))))
-
-(define (what-to-measure-lattice n #:x [x #f])
-  (define x-sep
-    (if (< n 5) lattice-x-sep pico-x-sep))
-  (define lattice-pict
-    (make-lattice n bits->path-node #:x-margin x-sep #:y-margin lattice-y-sep))
-  lattice-pict)
-
-(define (ds-lattice n)
-  (define x-sep
-    (if (< n 5) lattice-x-sep pico-x-sep))
-  (define lattice-pict
-    (make-lattice n bits->ds #:x-margin x-sep #:y-margin lattice-y-sep))
-  lattice-pict)
-
-(define (bits->dspath b*)
-  (define num-untyped (for/sum ((b (in-list b*))) (if b 0 1)))
-  (define t-sym (if (< num-untyped 2) 'D 'S))
-  (path-node
-    (for/list ((b (in-list b*)))
-      (if b t-sym 'U))))
-
-(define (pathology-lattice n #:x [x #f])
-  (define x-sep lattice-x-sep)
-  (make-lattice n bits->dspath #:x-margin x-sep #:y-margin lattice-y-sep))
-
-(define (scale-small-lattice pp)
-  (scale-to-fit pp (w%->pixels 55/100) (h%->pixels 45/100)))
-
-(define (migration-append #:arr [arr #f] . pp*)
-  (migration-append* #:arr arr pp*))
-
-(define (migration-append* #:arr [arr #f] pp*)
-  (apply vc-append lattice-y-sep (add-between pp* (or arr up-arrow-pict))))
-
-(define (dmigration-append #:arr [arr #f] . pp*)
-  (dmigration-append* #:arr arr pp*))
-
-(define (dmigration-append* #:arr [arr #f] pp*)
-  (apply vc-append lattice-y-sep (add-between pp* (or arr down-arrow-pict))))
-
-(define (email-panels pth*)
-  (define w 280)
-  (define h 240)
-  (for/fold ((acc (blank)))
-            ((pth (in-list pth*))
-             (up? (in-cycle (in-list '(#t #f)))))
-    (define img
-      (if (pict? pth)
-        (ppict-do (blank w h) #:go (coord 1/2 0/100 'ct) pth)
-        (scale-to-fit (bitmap pth) w h)))
-    (define yshim (yblank (* 1/2 (pict-height img))))
-    (hc-append
-      (- med-x-sep)
-      (if up? (vc-append img yshim) (vc-append yshim img))
-      acc)))
-
-(define (tu-icon)
-  (hc-append tiny-x-sep (typed-icon #:lbl #f) (untyped-icon #:lbl #f)))
-
-(define (du-icon)
-  (hc-append tiny-x-sep (deep-icon #:lbl #f) (untyped-icon #:lbl #f)))
-
-(define (su-icon)
-  (hc-append tiny-x-sep (shallow-icon #:lbl #f) (untyped-icon #:lbl #f)))
-
-(define (dsu-icon)
-  (hc-append
-    tiny-x-sep
-    (vc-append
-      tiny-y-sep
-      (deep-icon)
-      (shallow-icon))
-    (untyped-icon)))
-
-(define (on-stick pp)
-  (ppict-do
-    pp
-    #:go (coord 1/2 93/100 'ct)
-    (vrule (h%->pixels 2/100) #:thickness 3)))
-
-(define (dsu-icon2)
-  (hc-append
-    (w%->pixels 5/100)
-    (vr-append
-      tiny-y-sep
-      (deep-codeblock* (list @coderm{Deep}))
-      (shallow-codeblock* (list @coderm{Shallow})))
-    (untyped-codeblock* (list @coderm{Untyped}))))
-
-(define (mixed-best-pict n)
-    (hc-append
-      small-x-sep
-      ((if (< n 1) bghost values) (mixed-best-table 2))
-      (scale (example-lattice-3way #:top #t) 75/100)))
-
-(define (rq-text pp)
-  (word-append
-    @bodyrmhi{RQ.  } pp))
-
-(define (question-box pp)
-  (bbox #:x-margin med-x-sep #:y-margin small-y-sep pp))
-
-(define answer-box bbox)
-
-(define (scale-lang-sidebar pp)
-  (scale pp 80/100))
-
-(define (scale-lang-sidebar2 pp)
-  (scale pp 60/100))
-
-(define (maybe-lbl do-lbl? pp name)
-  (if do-lbl?
-    (cc-superimpose pp (bbox (bodyembf name)))
-    pp))
-
-(define (interleave x* y*)
-  (cond
-    [(null? x*) y*]
-    [(null? y*) x*]
-    [else (list* (car x*) (car y*) (interleave (cdr x*) (cdr y*)))]))
 
 (define (tr-pict)
   (racket-pict))
@@ -1136,12 +724,6 @@
 (define (flow-pict)
   (symbol->lang-pict 'flow))
 
-(define (mypy-pict)
-  (ppict-do
-    (symbol->lang-pict 'python)
-    #:go (coord 1/2 1 #:abs-y (- 4))
-    @coderm{mypy}))
-
 (define (typed-clojure-pict)
   (ppict-do
     (symbol->lang-pict 'typed-clojure)
@@ -1154,39 +736,9 @@
 (define (php-pict)
   (symbol->lang-pict 'php))
 
-    ;; NOTE room for research / improvement
+;; NOTE room for research / improvement
 (define (pyre-pict)
   (symbol->lang-pict 'pyre))
-
-(define (text->lang-pict str)
-  (scale (headrm str) 80/100))
-
-(define (retic-pict)
-  (ppict-do
-    (python-pict)
-    #:go (coord 1 1 'rb #:abs-x (- 4) #:abs-y (- 4))
-    (scale (bbox (indiana-pict) #:x-margin 4 #:y-margin 4) 45/100)))
-
-(define (actionscript-pict)
-  (txt-lang "AS"))
-
-(define (cl-pict)
-  (symbol->lang-pict 'cl))
-
-(define (hack-pict)
-  (symbol->lang-pict 'hack))
-
-(define (pytype-pict)
-  (ppict-do
-    (symbol->lang-pict 'python)
-    #:go (coord 1/2 1 #:abs-y (- 4))
-    @coderm{PyType}))
-
-(define (pyright-pict)
-  (freeze (symbol->lang-pict 'Pyright)))
-
-(define (rdl-pict)
-  (ruby-pict))
 
 (define (ruby-pict)
   (symbol->lang-pict 'ruby))
@@ -1204,30 +756,8 @@
     #:go center-coord
     @coderm{T. Lua}))
 
-(define (gradualtalk-pict)
-  (symbol->lang-pict 'smalltalk)
-  #;(ppict-do
-    (symbol->lang-pict 'smalltalk)
-    #:go center-coord
-    @coderm{Gradualtalk}))
-
-(define (grift-pict)
-  (txt-lang "Grift"))
-
-(define (tpd-pict)
-  (txt-lang "TPD"))
-
 (define (pyret-pict)
   (symbol->lang-pict 'pyret))
-
-(define (grace-pict)
-  (symbol->lang-pict 'grace))
-
-(define (pallene-pict)
-  (vc-append
-    4
-    @coderm{Pallene}
-    (scale (symbol->lang-pict 'lua) 9/10)))
 
 (define sp-pict
   (let ((pp (box #f)))
@@ -1237,14 +767,8 @@
             (set-box! pp vv)
             vv)))))
 
-(define (csharp-pict)
-  (txt-lang "C#"))
-
 (define (dart2-pict)
   (symbol->lang-pict 'dart))
-
-(define (nom-pict)
-  (txt-lang "Nom"))
 
 (define (js-pict)
   (symbol->lang-pict 'javascript))
@@ -1255,15 +779,6 @@
     #:go (coord 1/2 0 'ct)
     @coderm{SafeTS}))
 
-(define (tsstar-pict)
-  (ppict-do
-    (js-pict)
-    #:go (coord 1/2 0 'ct)
-    @coderm{TS*}))
-
-(define (sorbet-pict)
-  (symbol->lang-pict 'sorbet))
-
 (define (strongscript-pict)
   (ppict-do
     (js-pict)
@@ -1273,689 +788,14 @@
 (define (thorn-pict)
   (symbol->lang-pict 'thorn))
 
-(define (tmp-lang)
-  (scale-lang-lo (filled-rectangle 200 200 #:color gray #:draw-border? #f)))
-
-(define (txt-lang str)
-  (ppict-do
-    (filled-rectangle 80 80 #:color gray #:draw-border? #f)
-    #:go center-coord
-    (coderm str)))
-
-(define (indiana-pict)
-  (symbol->lang-pict 'indiana))
-
-(define (all-lang-pict*)
-             (list (actionscript-pict) (cl-pict) (mypy-pict)
-                   (flow-pict) (hack-pict) (pyre-pict)
-                   (pytype-pict) (pyright-pict) (rdl-pict)
-                   (strongtalk-pict) (typescript-pict) (typed-clojure-pict)
-                   (typed-lua-pict) (gradualtalk-pict) (grift-pict)
-                   (tpd-pict) (tr-pict) (pyret-pict) (grace-pict)
-                   (pallene-pict) (retic-pict) (sp-pict) (csharp-pict)
-                   (dart2-pict) (nom-pict) (safets-pict) (tsstar-pict)
-                   (sorbet-pict) (strongscript-pict) (thorn-pict)))
-
-(define (lang-grid lang* #:num [num #f])
-      (let* (
-             (row-width (or num 8))
-             (lang** (split/n lang* row-width))
-             (pp* (map (lambda (l*) (apply hc-append tiny-x-sep l*)) lang**))
-             (pp (apply vc-append small-y-sep pp*)))
-        pp))
-
-(define (four-camps-pict north-tag east-tag south-tag west-tag)
-  (define c*
-    (list (sp-pict) (csharp-pict) (dart2-pict) (nom-pict) (safets-pict)
-          (tsstar-pict) (sorbet-pict) (strongscript-pict) (thorn-pict)))
-  (define e*
-    (list (actionscript-pict) (cl-pict) (mypy-pict) (pyre-pict) (flow-pict)
-          (hack-pict) (pytype-pict) (pyright-pict) (rdl-pict) (strongtalk-pict)
-          (typescript-pict) (typed-clojure-pict) (typed-lua-pict)))
-  (define n*
-    (list (gradualtalk-pict) (grift-pict) (tpd-pict) (tr-pict)))
-  (define t*
-    (list (pyret-pict) (grace-pict) (pallene-pict) (retic-pict)))
-  (define-values [t+ n+]
-    (apply values (pict-bbox-sup (lang-grid t* #:num 4) (lang-grid n* #:num 4))))
-  (ppict-do
-    (bghost (lang-grid (all-lang-pict*)))
-    #:go (coord 1/2 0 'cc)
-    (tag-pict (values (lang-grid c* #:num 5)) north-tag)
-    #:go (coord 1 1/2 'cc)
-    (tag-pict (values t+) east-tag)
-    #:go (coord 1/2 1 'cc)
-    (tag-pict (values (lang-grid e*)) south-tag)
-    #:go (coord 0 1/2 'cc)
-    (tag-pict (values n+) west-tag)
-    ))
-
-(define (not-today why-str)
-  (define no-pict (stop-pict 35))
-  (bbox
-    (ht-append tiny-x-sep no-pict (bodyrmlo why-str) (bghost no-pict))))
-
-(define (yes-today why-str lbl-pict)
-  (define y-pict (record-pict 38))
-  (bbox
-    (ht-append
-      tiny-x-sep
-      y-pict
-      (lc-append
-        (bodyrmlo why-str)
-        (yblank 0)
-        lbl-pict)
-      (bghost y-pict))))
-
-(define (shallow-today-pict) (yes-today "fast, wrong types" (shallow-name)))
-(define (deep-today-pict) (yes-today "strong, slow types" (deep-name)))
-
-(define (shallow-today-pict2)
-  (vc-append
-    pico-y-sep
-    (shallow-today-pict)
-    (su-icon)))
-
-(define (deep-today-pict2)
-  (vc-append
-    pico-y-sep
-    (deep-today-pict)
-    (du-icon)))
-
-(define (camp-lbl str)
-  (bbox (bodyrmhi str)))
-
-(define (more-lang-pict)
-  (cc-superimpose
-    (scale-lang-lo (filled-rectangle 200 200 #:color white #:draw-border? #f))
-    @headrm{...}))
-
-(define (vss-pict)
-  ;; TODO show Vitousek and coauthors??
-  (blank))
-
-(define (python-pict)
-  (symbol->lang-pict 'python))
-
-(define (example-lattice-n n)
-  (what-to-measure-lattice n))
-
-(define (example-lattice-3way #:top [top #f])
-  (define n 3)
-  (define x-sep
-    (if (< n 5) lattice-x-sep pico-x-sep))
-  (define (atop lo hi)
-    (ppict-do lo #:go (coord 1/2 1/2 'cb) (bbox hi #:backup? #t #:color shallow-brush-color)))
-  (define (b->p/3 b*)
-    (define base (bits->path-node b*))
-    (cond
-      [(equal? b* '(#t #f #f))
-       (atop
-         base
-         (scale (path-node '(S U U)) 1/2))]
-      [(equal? b* '(#f #t #t))
-       (atop
-         base
-          (scale
-           (vc-append
-             lattice-y-sep
-             (path-node '(U S S))
-             (hc-append x-sep (path-node '(U D S)) (path-node '(U S D)))
-             (path-node '(U D D)))
-           40/100))]
-      [(and top (equal? b* '(#t #t #t)))
-       (atop
-         base
-         (scale
-           (ds-lattice 3)
-           30/100))]
-      [else
-        base]))
-  (make-lattice n b->p/3 #:x-margin x-sep #:y-margin lattice-y-sep))
-
-(define (whence-lattice n)
-    (let* ((ss (lambda (pp) (scale pp 76/100)))
-           (txt (lambda (pp str) (vc-append tiny-y-sep (bbox (bodyrmlo str)) pp))))
-      (vc-append
-        small-y-sep
-        (txt (ss (path-node (make-list 3 'T))) "Ex: One program with 3 components")
-        down-arrow-pict
-        ((if (< n 1) bghost values)
-         (txt (ss (example-lattice-n 3)) "8 Typed / Untyped points (2^N)"))
-        ((if (< n 1) bghost values)
-          down-arrow-pict)
-        ((if (< n 2) bghost values)
-          (txt (ss (example-lattice-3way)) "27 Deep / Shallow / Untyped points (3^N)"))
-        )))
-
-(define (pict-w-sup . pp*)
-  (pict-w-sup* pp*))
-
-(define (pict-w-sup* pp*)
-  (define w (apply max (map pict-width pp*)))
-  (for/list ((pp (in-list pp*)))
-    (ct-superimpose (xblank w) pp)))
-
-(define (arrow-bullet pp)
-  (hc-append
-    tiny-x-sep
-    right-arrow-pict pp))
-
-(define (plus-bullet pp)
-  (word-append @bodyrmhi{+ } pp))
-
-(define (minus-bullet pp)
-  (word-append @bodyrmhi{- } pp))
-
-(define (venue-pict title where #:box? [box? #t])
-  (lc-append
-    (bodyrmhi title)
-    (vv-pict where #:box? box?)))
-
-(define (vv-pict where #:box? [box? #t])
-    ((if box? bbox values) (bodyrmlo where)))
-
-(define (benchmark-pict img #:w% [w% #f] #:url [url #f])
-  (add-lite-bg
-    #:x tiny-y-sep
-    #:y tiny-y-sep
-    (label-below
-      (bbox
-        #:x-margin pico-y-sep #:y-margin pico-y-sep
-        (scale-to-fit (bitmap img)
-                      (w%->pixels (or w% 3/10))
-                      600))
-      (yblank pico-y-sep)
-      (coderm url))))
-
 (define (label-below base . pp*)
   (vc-append 0 base (apply vc-append 2 pp*)))
 
 (define (label-above base . pp*)
   (vc-append 0 (apply vc-append 2 pp*) base))
 
-(define (add-lite-bg pp #:x [x #f] #:y [y #f])
-  (bbox pp #:color lite-grey #:x-margin x #:y-margin y))
-
-(define (pplay #:steps [N (pplay-steps)]
-               #:delay [secs 0.05]
-               #:skip-first? [skip-first? #f]
-               mid)
-  (unless skip-first?
-    (pslide #:set (mid ppict-do-state 0)))
-  (if condense?
-      (skip-slides N)
-      (for ([n (in-list
-                (let ([cnt N])
-                  (let loop ([n cnt])
-                    (if (zero? n)
-                        null
-                        (cons (/ (- cnt -1 n) 1.0 cnt)
-                              (loop (sub1 n)))))))])
-        (pslide #:timeout secs
-                #:set (mid ppict-do-state n)))))
-
-(define ds-benchmark* '(synth take5 quadU jpeg suffixtree dungeon #;fsmoo))
-
-(define (arrow-bullet* . pp*)
-  (apply vl-append 2 (map arrow-bullet pp*)))
-
-(define (bad-news pp)
-  (bbox
-    #:x-margin pico-y-sep #:y-margin pico-y-sep
-    (question-box pp)))
-
-(define (bbbox pp)
-  (bbox
-    #:x-margin pico-y-sep #:y-margin pico-y-sep
-    (bbox pp)))
-
-(define pplay-steps (make-parameter 10))
-
-(define ((slide-assembler/background base-assembler make-rect) slide-title slide-vspace slide-pict)
-  (define foreground-pict (base-assembler slide-title slide-vspace slide-pict))
-  (define background-pict
-    (let ((+margin (* 2 margin))
-          (-margin (- margin)))
-      (inset (make-rect (+ +margin client-w) (+ +margin client-h)) -margin)))
-  (cc-superimpose background-pict foreground-pict))
-
-(define mixed-best-data*
-  (list
-    (list "forth" "12%")
-    (list "fsm" "38%")
-    (list "fsmoo" "31%")
-    (list "mbta" "19%")
-    (list "morsecode" "25%")
-    (list "zombie" "6%")
-    (list "dungeon" "31%")
-    (list "jpeg" "38%")
-    (list "zordoz" "47%")
-    (list "lnm" "66%")
-    (list "suffixtree" "48%")
-    (list "kcfa" "55%")
-    (list "snake" "46%")
-    (list "take5" "36%")
-    (list "acquire" "64%")
-    (list "tetris" "62%")
-    ))
-
-(define (mixed-best-table n)
-  (define title* (list "Benchmark" @bodyembf{Best with D+S}))
-  (define (num->pict str)
-    (define n (string->number
-                (let ((ss (substring str 0 (sub1 (string-length str)))))
-                  (if (eq? #\> (string-ref ss 0))
-                    (substring ss 1)
-                    ss))))
-    ((if (< n 40) coderm codeemrm) str))
-  (define (?bodyrmlo x)
-    (if (pict? x) x (bodyrmlo x)))
-  (define (title->pre-pict* rr)
-    (list (bghost (bodyrmlo (first rr))) (?bodyrmlo (second rr))))
-  (define (row->pre-pict* rr)
-    (list (coderm (first rr)) (num->pict (second rr))))
-  (define mask*
-    (case n
-      ((0 1)
-       (lambda (pp*)
-         (define-values [ll rr] (split-at pp* (- (length pp*) (- 2 n))))
-         (append ll (map bghost rr))))
-      (else
-       (lambda (pp*)
-         pp*))))
-  (define ff (compose1 mask* row->pre-pict*))
-  (apply
-    ht-append
-    (w%->pixels 7/100)
-    (for/list ((row (in-list (split/n mixed-best-data* 8)))
-               #:when (not (null? row)))
-      (table
-        2
-        (flatten (map ff row))
-        (cons lc-superimpose rc-superimpose)
-        cc-superimpose
-        tiny-x-sep
-        tiny-y-sep))))
-
-(define overhead-data*
-  (list
-    (list "sieve" "16x" "4.36x" "2.97x")
-    (list "forth" "5800x" "5.51x" "5.43x")
-    (list "fsm" "2.24x" "2.38x" "1.91x")
-    (list "fsmoo" "420x" "4.28x" "4.25x")
-    (list "mbta" "1.91x" "1.74x" "1.71x")
-    (list "morsecode" "1.57x" "2.77x" "1.3x")
-    (list "zombie" "46x" "31x" "31x")
-    (list "dungeon" "15000x" "4.97x" "3.16x")
-    (list "jpeg" "23x" "1.66x" "1.56x")
-    (list "zordoz" "2.63x" "2.75x" "2.58x")
-    (list "lnm" "1.23x" "1.21x" "1.17x")
-    (list "suffixtree" "31x" "5.8x" "5.8x")
-    (list "kcfa" "4.33x" "1.24x" "1.24x")
-    (list "snake" "12x" "7.67x" "7.61x")
-    (list "take5" "44x" "2.99x" "2.97x")
-    (list "acquire" "4.22x" "1.42x" "1.42x")
-    (list "tetris" "13x" "9.93x" "5.44x")
-    (list "synth" "47x" "4.2x" "4.2x")
-    (list "gregor" "1.72x" "1.59x" "1.51x")
-    (list "quadT" "26x" "7.39x" "7.23x")
-    (list "quadU" "55x" "7.57x" "7.45x")
-    ))
-
-(define (overhead-table n)
-  (define title* (list "Benchmark"
-                       "Deep" "Shallow" "D|S"
-                       ;;@bodyembf{Deep} @bodyembf{Shallow} @bodyembf{D||S}
-                       ))
-  (define (s->n str)
-    (string->number
-              (let ((ss (substring str 0 (sub1 (string-length str)))))
-                ss)))
-  (define (num->pict str #:vs [vs* #f])
-    (define nnn (s->n str))
-    (unless (real? nnn)
-      (printf "DEAD ~a~n" str))
-    (cond
-      [(>= nnn 30)
-       (codeembf str)]
-      [(and vs* (< 1 n) (andmap (lambda (ss) (< nnn (s->n ss))) vs*))
-       (codeemrm str)]
-      [else
-        (coderm str)]))
-  (define (?bodyrmlo x)
-    (if (pict? x) x (bodyrmlo x)))
-  (define (title->pre-pict* rr)
-    (list (bghost (bodyrmlo (first rr)))
-          (?bodyrmlo (fourth rr))
-          (?bodyrmlo (second rr))
-          (?bodyrmlo (third rr))
-          ))
-  (define (row->pre-pict* rr)
-    (define the-name (first rr))
-    (list (tag-pict (coderm the-name) (string->symbol the-name))
-          (num->pict (fourth rr) #:vs (list (second rr) (third rr)))
-          (num->pict (second rr))
-          (num->pict (third rr))
-          ))
-  (define mask*
-    (case n
-      ((0 1)
-       (lambda (pp*)
-         (define-values [ll rr] (split-at pp* (- (length pp*) (- 2 n))))
-         (append ll (map bghost rr))))
-      (else
-       (lambda (pp*)
-         pp*))))
-  (define ff (compose1 mask* row->pre-pict*))
-  (apply
-    ht-append
-    (w%->pixels 7/100)
-    (for/list ((row (in-list (split/n overhead-data* 11))))
-      (define pp** (map ff row)
-          #;(cons
-            (mask* (title->pre-pict* title*))
-            (map ff row)))
-      (bg-stripes
-        (reverse (for/list ((bg-color (in-list (if (= n 2)
-                                        (list shallow-brush-color deep-brush-color)
-                                        '())))
-                   (i (in-naturals 1)))
-          (define (ref x*)
-            (list-ref x* (- (length x*) i)))
-          (cons bg-color (apply max (map (compose1 pict-width ref) pp**)))))
-        (table
-          4
-          (flatten pp**)
-          (cons lc-superimpose rc-superimpose)
-          cc-superimpose
-          tiny-x-sep
-          tiny-y-sep)))))
-
-(define (bg-stripes c+w* pp)
-  (cond
-    [(null? c+w*)
-     pp]
-    [else
-      (define h (pict-height pp))
-      (rt-superimpose
-        (apply
-          ht-append
-          tiny-x-sep
-          (for/list ((c+w (in-list c+w*)))
-            (filled-rounded-rectangle
-              (cdr c+w) h 1/2
-              #:color (car c+w)
-              #:draw-border? #f)))
-        pp)]))
-
-(define path-data*
-  (list
-    (list "sieve" "0%" "0%" "100%")
-    (list "forth" "0%" "0%" "50%")
-    (list "fsm" "100%" "100%" "100%")
-    (list "fsmoo" "0%" "0%" "50%")
-    (list "mbta" "100%" "100%" "100%")
-    (list "morsecode" "100%" "100%" "100%")
-    (list "zombie" "0%" "0%" "50%")
-    (list "dungeon" "0%" "0%" "67%")
-    (list "jpeg" "0%" "100%" "100%")
-    (list "zordoz" "100%" "100%" "100%")
-    (list "lnm" "100%" "100%" "100%")
-    (list "suffixtree" "0%" "0%" "12%")
-    (list "kcfa" "33%" "100%" "100%")
-    (list "snake" "0%" "0%" "0%")
-    (list "take5" "0%" "100%" "100%")
-    ))
-
-(define region-w (w%->pixels 26/100))
-(define region-h (h%->pixels 2/10))
-
-(define (region-pict name #:color color)
-  (let* ((bg (filled-rounded-rectangle
-               region-w region-h
-               1
-               #:color color
-               #:border-color black
-               #:border-width 1))
-         (fg (coderm name))
-         (pp (cc-superimpose bg fg))
-         (sym (string->symbol name)))
-    (add-hubs pp sym)))
-
-(define interaction-y-sep big-y-sep)
-(define interaction-x-sep (w%->pixels 24/100))
-
-(define (du-interaction n)
-  (let* ((t-pict (region-pict "Deep Typed" #:color deep-brush-color))
-         (u-pict (region-pict "Untyped" #:color untyped-brush-color))
-         (pp (hc-append interaction-x-sep t-pict u-pict))
-         (arr (code-arrow '|Deep Typed-E| rc-find 'Untyped-W lc-find 0 0 0 0 'solid))
-         (pp (if (< n 1)
-               pp
-               (add-code-arrow pp arr #:arrow-size large-arrow-size #:both #true))))
-    pp))
-
-(define (type-boundary nn dir type before after)
-  (let* ((left? (eq? dir 'L))
-         (pp (xblank interaction-x-sep))
-         (pp
-           (hc-append
-             (add-hubs ((if (< nn (if left? 2 1)) bghost values) (if left? after before)) 'L)
-             pp
-             (add-hubs ((if (< nn (if left? 1 2)) bghost values) (if left? before after)) 'R)))
-         (pp
-           (add-code-arrow
-             pp
-             (if left?
-               (code-arrow '|R-W| lc-find '|L-E| rc-find (* 1/2 turn) (* 1/2 turn) 0 0 'solid)
-               (code-arrow '|L-E| rc-find '|R-W| lc-find (* 0 turn) (* 0 turn) 0 0 'solid))
-             #:arrow-size large-arrow-size))
-         (pp
-           (vc-append (- pico-y-sep) type pp))
-         )
-    pp))
-
-(define (su-interaction n)
-  (let* ((t-pict
-           (let* ((pp (region-pict "Shallow Typed" #:color shallow-brush-color))
-                  (pp (if (< n 2) pp (add-spots pp untyped-brush-color))))
-             (if (< n 4)
-               pp
-               (ppict-do
-                 pp
-                 #:go (coord 9/10 9/10 'cc)
-                 (tiny-mag)
-                 #:go (coord 1/10 1/10 'cc)
-                 (tiny-mag)))))
-         (u-pict
-           (let ((pp (region-pict "Untyped" #:color untyped-brush-color)))
-             (if (< n 3)
-               pp
-               (add-spots pp shallow-brush-color))))
-         (pp (hc-append interaction-x-sep t-pict u-pict))
-         (arr (code-arrow '|Shallow Typed-E| rc-find 'Untyped-W lc-find 0 0 0 0 'solid))
-         (pp (if (< n 1)
-               pp
-               (add-code-arrow pp arr #:arrow-size large-arrow-size #:both #true)))
-         )
-    pp))
-
-(define (tiny-mag)
-  (bitmap (magnifying-glass-icon #:height 60)))
-
-(define (add-spots pp color)
-  (define y-spot (tiny-spot color))
-  (define n-spot (bghost y-spot))
-  (define num-check 15)
-  (ppict-do
-    pp
-    #:go (coord 1/2 10/100 'ct)
-    (checkerboard 2 num-check n-spot y-spot)
-    #:go (coord 1/2 90/100 'cb)
-    (checkerboard 2 num-check y-spot n-spot)))
-
-(define (checkerboard num-rows num-cols black-pict red-pict)
-  (define (make-row n . pp*)
-    (apply
-      ht-append
-      4
-      (for/list ((_i (in-range n))
-                 (pp (in-cycle (in-list pp*))))
-        pp)))
-  (define y-row (make-row num-cols black-pict red-pict))
-  (define n-row (make-row num-cols red-pict black-pict))
-  (apply
-    vl-append
-    (for/list ((_i (in-range num-rows))
-               (pp (in-cycle (in-list (list y-row n-row)))))
-      pp)))
-
-(define (tiny-spot color)
-  (define ww 18)
-  (define hh ww)
-  (cc-superimpose
-    (tiny-rect ww hh white)
-    (tiny-rect ww hh color)))
-
-(define (tiny-rect ww hh color)
-  (filled-rounded-rectangle
-    ww hh 2
-    #:color color
-    ;;#:draw-border? #f
-    #:border-color browncs-frame-color
-    #:border-width 0.2
-    ))
-
-(define (dsu-interaction n #:su-blur [su-blur #f])
-  (let* ((d-pict (region-pict "Deep Typed" #:color deep-brush-color))
-         (s-pict
-           (let ((pp (region-pict "Shallow Typed" #:color shallow-brush-color)))
-             (if su-blur (add-spots pp untyped-brush-color) pp)))
-         (ds-pict (vc-append interaction-y-sep d-pict s-pict))
-         (u-pict
-           (let ((pp (region-pict "Untyped" #:color untyped-brush-color)))
-             (if su-blur (add-spots pp shallow-brush-color) pp)))
-         (u+-pict (cc-superimpose (yblank (- (pict-height ds-pict) (pict-height d-pict))) u-pict))
-         (pp (hc-append interaction-x-sep ds-pict u+-pict))
-         (pp (if (< n 1)
-               pp
-               (add-code-arrow*
-                 (add-code-arrow
-                   pp
-                   (code-arrow '|Deep Typed-S| cb-find '|Shallow Typed-N| ct-find (* 3/4 turn) (* 3/4 turn) 0 0 'solid)
-                   #:arrow-size large-arrow-size #:both #true)
-                 (list
-                   (code-arrow u+-pict ct-find '|Deep Typed-E| rc-find (* 1/2 turn) (* 1/2 turn) 0 0 'solid)
-                   (code-arrow u+-pict cb-find '|Shallow Typed-E| rc-find (* 1/2 turn) (* 1/2 turn) 0 0 'solid)
-                   (code-arrow u+-pict ct-find '|Untyped-N| ct-find (* 1/2 turn) (* 3/4 turn) 0 0 'solid)
-                   (code-arrow u+-pict cb-find '|Untyped-S| cb-find (* 1/2 turn) (* 1/4 turn) 0 0 'solid))
-                 #:arrow-size large-arrow-size))))
-    pp))
-
-(define (tu-bubbles)
-  (define-values [tt uu]
-    (apply values (pict-bbox-sup @bodyrmlo{Typed} @bodyrmlo{Untyped})))
-  (values (typed-bubble tt)
-          (untyped-bubble uu)))
-
-(define (typed-bubble pp)
-  (typed-codeblock* (list pp)) #;
-  (bubblebox pp #:color deep-brush-color))
-
-(define (untyped-bubble pp)
-  (untyped-codeblock* (list pp)) #;
-  (bubblebox pp #:color untyped-brush-color))
-
-(define (bubblebox pp #:color [color white])
-  (add-rounded-border
-    pp
-    #:radius 10
-    #:background-color color
-    #:frame-width bbox-frame-width
-    #:frame-color bbox-frame-color
-    #:x-margin (browncs-x-margin)
-    #:y-margin (browncs-y-margin)))
-
-(define (snoc x* x)
-  (append x* (list x)))
-
-(define (how-natural-pict)
-        (word-append
-          @bodyrmlo{ Q. How does  } @bodyrmhi{Natural} @bodyrmlo{  enforce }
-          (deep-name) @bodyrmlo{ types?}))
-
-(define (how-transient-pict)
-        (word-append
-          @bodyrmlo{ Q. How does  } @bodyrmhi{Transient} @bodyrmlo{  enforce }
-          (shallow-name) @bodyrmlo{ types?}))
-
-(define (how-transient-a)
-  (word-append @bodyrmlo{A. With } @bodyrmhi{no wrappers} @bodyrmlo{ but many tiny } @bodyrmem{shape checks}))
-
-(define (deep-prop-pict)
-    (deep-codeblock* (list (lc-append
-            @coderm{Type Soundness}
-            @coderm{Complete Monitoring}))))
-
-(define (at-du)
-  (at-find-pict '|Deep Typed| rc-find 'cc #:abs-x (* 3/4 interaction-x-sep)))
-
-(define (at-ds)
-  (at-find-pict '|Deep Typed| cb-find 'ct #:abs-y (* 35/100 interaction-y-sep)))
-
-(define (at-su)
-  (at-find-pict '|Shallow Typed| rc-find 'cc #:abs-x (* 3/4 interaction-x-sep)))
-
-(define (conclusion-pict nn)
-    (table2
-      #:col-sep small-x-sep
-      #:row-sep (* 2 tiny-y-sep)
-      #:col-align lt-superimpose
-      #:row-align lt-superimpose
-      (take/hide (* (+ 1 nn) 2)
-      (list
-        @bodyrmhi{Context:} (ll-append
-                              @bodyrmlo{Different GT strategies exist}
-                              @bodyrmlo{ (for good reason!)})
-        @bodyrmhi{Inquiry:} (ll-append
-                               @bodyrmlo{Can two extreme strategies interoperate?}
-                               (yblank pico-y-sep)
-                               (word-append (deep-name) @bodyrmlo{ types via } @bodyrmhi{Natural} @bodyrmlo{ (wrappers)})
-                               (yblank 0)
-                               (word-append (shallow-name) @bodyrmlo{ types via } @bodyrmhi{Transient} @bodyrmlo{ (no wrappers)}))
-        @bodyrmhi{Contribution:} (ll-append
-                             @bodyrmlo{Yes! In a way that:}
-                             (word-append @bodyrmlo{ - preserves their formal } @bodyrmem{guarantees})
-                             (word-append @bodyrmlo{ - leads to better overall } @bodyrmem{performance})
-                             (word-append @bodyrmlo{ - lets TR } @bodyrmem{express} @bodyrmlo{ additional programs}))
-        )
-      )
-      ))
-
-(define (take/hide nn x*)
-  (for/list ((x (in-list x*))
-             (i (in-naturals)))
-    (if (< i nn)
-      x
-      (bghost x))))
-
-(define (types-and-checks nn)
-    (ppict-do
-      (shallow-codeblock*
-        #:title "and back, with a new type."
-        (list
-      @coderm{f2 : Str -> Str}
-      (word-append @codebf{def } @coderm{ f2 = f1})))
-      #:go (coord 0 55/100 'rc #:abs-x (+ 0))
-      ((if (< nn 1) bghost values)
-      (hc-append
-        tiny-x-sep
-        (bbox
-          (ll-append
-            (word-append @bodyemrm{Types say  } @coderm{f2 : Str -> Str})
-            (word-append @bodyemrm{Checks say  } @coderm{f2} @bodyrmlo{ is a function})))
-        right-arrow-pict))))
+(define (python-pict)
+  (symbol->lang-pict 'python))
 
 (define (title-pict)
   (let* ([title-pict
@@ -2036,7 +876,11 @@
 (define (low-lbl2 str pp)
   (vc-append pico-y-sep pp (coderm str)))
 
-(define (insta-modules)
+(define insta-modules
+  (let ((cache (box #f)))
+    (lambda ()
+      (or (unbox cache)
+          (let ()
   (define txt
     (bbox
       (vc-append
@@ -2063,7 +907,9 @@
           (define y (+ y0 (random-offset 16/100)))
           (define ii (if (zero? (random 3)) (typed-icon) (untyped-icon)))
           (ppict-do pp #:go (coord x y 'cc) ii)))))
-  (vc-append tiny-y-sep txt mod))
+  (define pp (vc-append tiny-y-sep txt mod))
+  (set-box! cache pp)
+  pp)))))
 
 (define (random-offset fraction)
   (define nn (random))
@@ -3038,8 +1884,7 @@
   ;; [current-page-number-font page-font]
   ;; [current-page-number-color white]
   ;; --
-  (parameterize ((current-slide-assembler bg-bg)
-                 (pplay-steps 30))
+  (parameterize ((current-slide-assembler bg-bg))
     (sec:title)
     (sec:what)
     (sec:how)
