@@ -4,7 +4,7 @@ The goal of this project is to model Static Python, a gradually typed variant
 of Python developed at Instagram. To show that this project models Static
 Python faithfully, we borrow hundreds of conformance tests from [Static
 Python's test
-suite](https://github.com/facebookincubator/cinder/blob/cinder/3.8/Lib/test/test_compiler/test_static/tests.py).
+suite](https://github.com/facebookincubator/cinder/blob/6d61575e28b2d1f31a197f883486c5f012de98c1/Lib/test/test_compiler/test_static/tests.py).
 This repository includes a copy of the test suite (`tests.py`) fetched on
 2022-01-09 (commit hash: `6d61575`).
 
