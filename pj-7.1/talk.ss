@@ -5,10 +5,11 @@
 ;; - 
 
 ;; TODO
-;; [ ] thorn, strongscript + nom (M,T) at the end, related work shout out
-;; [ ] 541 is the old number, be clear old vs new
-;; [ ] add slide about Pyre: defer ; migrations => lots using Optional types, more info in paper; types do give benefits
-;; [ ] show good untyped avg() call; don't need types, do need value constructor
+;; [X] thorn, strongscript + nom (M,T) at the end, related work shout out
+;; [X] 541 is the old number, be clear old vs new
+;; [X] add slide about Pyre: defer ; migrations => lots using Optional types,
+;;      more info in paper; types do give benefits
+;; [X] show good untyped avg() call; don't need types, do need value constructor
 
 ;; 30 min slot
 ;; 20:00 March 15
@@ -653,6 +654,9 @@
     (cc-superimpose (bgrect fg) fg)
     fg))
 
+(define (bblur2 pp)
+  (bblur pp #:alpha 0.7))
+
 (define (maybe-bblur yes? pp)
   (if yes?  (bblur pp) pp))
 
@@ -788,6 +792,17 @@
 (define (thorn-pict)
   (symbol->lang-pict 'thorn))
 
+(define (nom-pict base)
+  (define logo
+    (freeze
+      (ppict-do
+        (scale-to-pict (bitmap "img/lang/nom.png") base)
+        #:go (coord 0 1 'rb)
+        (ben-rule 20 20 #:color white))))
+  (define text
+    (freeze (scale (bitmap "img/lang/nom-text.png") 9/10)))
+  (hc-append text logo))
+
 (define (label-below base . pp*)
   (vc-append 0 base (apply vc-append 2 pp*)))
 
@@ -885,9 +900,11 @@
     (bbox
       (vc-append
         tiny-y-sep
-        (word-append
+        (lr-append
+          (word-append
           @rm{+500 modules with }
           @bodyrm{sound types})
+          @rm{(upgraded from Pyre)})
         ;; 20k typed exports, 10k untyped imports
         (word-append
           @rm{+30k  } (T<=>U) @rm{ interactions}))))
@@ -924,7 +941,8 @@
   (define body
     (if (< n 1)
       (blank)
-      (let* ((top (add-hubs ((if (< n 2) bghost values) (hpictx 5 (envelope-pict 48 30))) 'top))
+      (let* ((env (envelope-pict 48 30 #:color "Linen"))
+             (top (add-hubs ((if (< n 2) bghost values) (hpictx 5 env)) 'top))
              (ss (hpictx 3 (server-pict 38 55)))
              (lhs (add-hubs ((if (< n 2) values add-stopwatch) (cbox (low-lbl2 "control" ss))) 'lhs))
              (rhs (add-hubs ((if (< n 2) values add-stopwatch) (ebox (low-lbl2 "experiment" ss))) 'rhs))
@@ -1031,7 +1049,6 @@
 
 (define (sec:title)
   (pslide
-    #:next
     #:go title-coord-m
     (title-pict))
   (void))
@@ -1121,10 +1138,8 @@
   )
   (pslide
     #:go hi-text-coord-l
-    (three-answers 1)
-    #:go (at-find-right 'a3)
-    (a3-concrete 2)
-    #:next
+    #:alt ( (three-answers 1) #:go (at-find-right 'a3) (a3-concrete 2) )
+    (bblur2 (three-answers 1)) #:go (at-find-right 'a3) (bblur2 (a3-concrete 2))
     #:go heading-coord-m
     @titlerm2{Experience @|at-sign| Instagram Web Server}
     #:next
@@ -1165,7 +1180,7 @@
     (tag-pict
       (vc-append
         smol-y-sep
-        (untyped-codeblock* (list @coderm{avg(nums)}))
+        (tag-pict (untyped-codeblock* (list @coderm{avg(nums)})) 'ucode)
         (tag-pict down-arrow-pict 'boundary)
         (typed-codeblock*
           (list
@@ -1189,14 +1204,19 @@
             @rm{ ?}))))
     #:next
     (yblank tiny-y-sep)
-    (hc-append
-      (xblank tiny-x-sep)
-      (table2
-        #:row-sep tiny-y-sep
-        #:col-sep tiny-x-sep
-        (list
-          (check-pict 40) @rm{Fast! No traversal, no wrapper}
-          (stop-pict 40) @rm{Rejects built-in Python lists})))
+    (vc-append
+      tiny-y-sep
+      (hc-append
+        (xblank tiny-x-sep)
+        (table2
+          #:row-sep tiny-y-sep
+          #:col-sep tiny-x-sep
+          (list
+            (check-pict 40) @rm{Fast! No traversal, no wrapper}
+            (stop-pict 40) @rm{Rejects built-in Python lists})))
+      (vc-append 4
+        @rm{Need constructor:}
+        @ucode{avg(chklist[int](nums))}))
     )
   (pslide
     #:go heading-coord-m
@@ -1252,9 +1272,9 @@
     #:next
     (yblank tiny-y-sep)
     (pvstripe 'stype 'ctype 'ptype)
-    #:go (at-bot-mid 'stype) (shallow-box " ~ dispatch")
-    #:go (at-bot-mid 'ctype) (concrete-box " ~ fast checks")
-    #:go (at-bot-mid 'ptype) (primitive-box " ~ unboxing")
+    #:go (at-bot-mid 'stype) (shallow-box "dispatch")
+    #:go (at-bot-mid 'ctype) (concrete-box "fast checks")
+    #:go (at-bot-mid 'ptype) (primitive-box "unboxing")
     #:next
     #:go (at-top-mid 'stype)
     #:alt ((shallow-dynlimit 0))
@@ -1276,6 +1296,7 @@
           @rm{Focus on high-payoff } @bodyrmem{optimizations})
         @rm{rather than feature-completeness}))
     (yblank med-y-sep)
+    #:next
     (defer-to 'python
               (vc-append tiny-y-sep
                          (hc-append tiny-y-sep @ucode{eval} @ucode{first-class class})
@@ -1312,7 +1333,6 @@
     #:alt ((gradual-soundness 0))
     (gradual-soundness 1)
     )
-
   (void))
 
 (define (sec:lesson)
@@ -1322,16 +1342,9 @@
     #:go heading-coord-m
     @titlerm2{Takeaways}
     #:go lesson-coord-h
-    #:alt (
-      #:alt ((takeaway:gt 0))
-      (takeaway:gt 1)
-    )
-    #:alt (
-      #:go lesson-coord-m (takeaway:imp 0)
-    )
-    #:alt (
-      #:go lesson-coord-l (takeaway:lang 0)
-    )
+    #:alt ( (prior-work-concrete (takeaway:gt 1)))
+    #:alt ( #:go lesson-coord-m (takeaway:imp 0))
+    #:go lesson-coord-l (takeaway:lang 0)
   )
   (pslide
     #:go heading-coord-m
@@ -1348,14 +1361,6 @@
         tiny-y-sep
         (scale (static-python-logo #:title? #t) 7/10)
         (scale (pstripe-icon) 7/10)))
-    )
-  (void))
-
-(define (sec:qa)
-  (center-slide
-    "Q/A")
-  (pslide
-    @rm{Unions?}
     )
   (void))
 
@@ -1646,7 +1651,7 @@
 
 (define (progressivebox name [extra #f])
   (define pp (bodyrm name))
-  (bbox (if extra (hc-append pp (rmem extra)) pp)))
+  (bbox (if extra (hc-append pp @rm{ ~ } (rmem extra)) pp)))
 
 (define (shallow-dynlimit n)
   (maybe-bblur
@@ -1875,6 +1880,19 @@
     #:go center-coord
     (frame (freeze (scale-to-square (bitmap "img/msn.jpeg") ww)))))
 
+(define (prior-work-concrete pp)
+  (define tp (thorn-pict))
+  (define cc*
+    (parameterize ((bbox-x-margin 10) (bbox-y-margin 4))
+      (hc-append pico-y-sep (bbox tp) (bbox (nom-pict tp)))))
+  (ppict-do
+    pp
+    #:go (coord 1 1 'ct #:abs-y pico-y-sep #:abs-x (- smol-x-sep))
+    (ppict-do
+      cc*
+      #:go (coord 0 1/2 'rc #:abs-x (- pico-x-sep))
+      @rm{Prior work:})))
+
 ;; -----------------------------------------------------------------------------
 
 
@@ -1890,7 +1908,6 @@
     (sec:how)
     (sec:lesson)
     (pslide)
-;;    (sec:qa)
     (void))
   (void))
 
@@ -1911,6 +1928,7 @@
   (ppict-do
     (make-bg client-w client-h)
     #;(make-titlebg client-w client-h)
+
 
 
   )))
